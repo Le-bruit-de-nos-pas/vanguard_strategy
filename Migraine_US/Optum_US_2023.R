@@ -8260,6 +8260,19 @@ Fst_Mig_Dx_date_PatVector <- fread("Fst_Mig_Dx_date_PatVector.txt", sep=",")
 Fst_Mig_Dx_date_PatVector$FST_MIG_DX_DT <- as.Date(Fst_Mig_Dx_date_PatVector$FST_MIG_DX_DT)
 sum(is.na(Fst_Mig_Dx_date_PatVector))
 
+Fst_Mig_Dx_date_MigPts <- fread("Fst_Mig_Dx_date_MigPts.txt", sep=",")
+Fst_Mig_Dx_date_MigPts$FST_MIG_DX_DT <- as.Date(Fst_Mig_Dx_date_MigPts$FST_MIG_DX_DT)
+sum(is.na(Fst_Mig_Dx_date_MigPts))
+
+Fst_Mig_Dx_date_MigPts <- Fst_Mig_Dx_date_MigPts %>% left_join(Fst_Mig_Dx_date_PatVector %>% mutate(group="RIME"))
+
+Fst_Mig_Dx_date_MigPts %>% group_by(group) %>% summarise(median=median(FST_MIG_DX_DT))
+
+#   group median    
+# 1 RIME  2017-05-16
+# 2 NA    2018-10-11
+
+
 min(Fst_Mig_Dx_date_PatVector$FST_MIG_DX_DT) # "2015-08-06"
 median(Fst_Mig_Dx_date_PatVector$FST_MIG_DX_DT) # "2017-05-16"
 mean(Fst_Mig_Dx_date_PatVector$FST_MIG_DX_DT) # "2018-03-31"
@@ -8269,6 +8282,17 @@ Fst_Mig_Dx_date_PatVector %>%
   ggplot(aes(FST_MIG_DX_DT)) +
   geom_density(colour="midnightblue", fill="midnightblue", alpha=0.7) +
   theme_minimal() +
+  xlab("\n Migraine Onset Date") + ylab("Patient density \n")
+
+range(Fst_Mig_Dx_date_MigPts$FST_MIG_DX_DT)
+
+Fst_Mig_Dx_date_MigPts %>%
+  mutate(group=ifelse(is.na(group), "Other", group)) %>%
+  ggplot(aes(FST_MIG_DX_DT, colour=group, fill=group)) +
+  geom_density(alpha=0.7) +
+  theme_minimal() +
+  scale_fill_manual(values=c("midnightblue", "firebrick")) +
+  scale_colour_manual(values=c("midnightblue", "firebrick")) +
   xlab("\n Migraine Onset Date") + ylab("Patient density \n")
 
 
@@ -8481,3 +8505,415 @@ length(unique(PCP_CGRP$provider)) # 4043
 PCP_CGRP %>% inner_join(Firsts) %>% select(provider) %>% distinct() # 1702
 
 # --------------
+# Target Extract volume PCP and Neuros --------------
+Target_Extract_Summary_paulo <- fread("Target_Extract_Summary_paulo.csv", sep=",")
+
+library(RColorBrewer)
+library(hexbin)
+rf <- colorRampPalette(rev(brewer.pal(11,'Spectral')))
+r <- rf(32)
+
+
+Target_Extract_Summary_paulo %>%
+  filter(specialty_group=="NEURO") %>%
+  ggplot(aes(`acute+mab_trx`, cgrp_mab_trx)) +
+  stat_bin2d(bins=100) +
+  xlim(0,1000) + ylim(0,1000) +
+  theme_minimal() +
+  scale_fill_gradientn(colours=r, trans="log") +
+  ylab("Volume CGRPs \n") + xlab("\n Total Volume (Acute+CGRPs)")
+
+
+Target_Extract_Summary_paulo %>%
+  filter(specialty_group=="PCP") %>%
+  ggplot(aes(`acute+mab_trx`, cgrp_mab_trx)) +
+   stat_bin2d(bins=100) +
+ xlim(0,400) + ylim(0,400) +
+  theme_minimal() +
+   scale_fill_gradientn(colours=r, trans="log") +
+  ylab("Volume CGRPs \n") + xlab("\n Total Volume (Acute+CGRPs)")
+
+# ---------------------
+# Pathways Acute vs Prev ------------
+
+RIMUS23_Doses <- read.table("RIMUS23 Doses.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Doses <- RIMUS23_Doses %>% filter(generic=="Rimegepant")
+RIMUS23_Doses <- RIMUS23_Doses %>% filter(status != "G") %>% select(-c( status, code, NPI))
+RIMUS23_Doses <- RIMUS23_Doses %>% mutate(from_dt = as.Date(from_dt))  %>% filter(from_dt>="2022-06-16"&from_dt<="2023-05-15") %>% filter(days_sup  != "")
+RIMUS23_Doses <- RIMUS23_Doses %>% arrange(patid, generic, from_dt) 
+RIMUS23_Doses <- RIMUS23_Doses %>% group_by(patid, generic) %>% mutate(elapsed=as.numeric(lead(from_dt)-from_dt))
+RIMUS23_Doses <- RIMUS23_Doses %>% drop_na()
+data.frame(RIMUS23_Doses) 
+RIMUS23_Doses <- RIMUS23_Doses %>% filter(elapsed <= 92)
+RIMUS23_Doses <- RIMUS23_Doses %>% mutate(rate=30*(as.numeric(qty)/elapsed))
+
+RIMUS23_Doses <- RIMUS23_Doses %>% mutate(rate=ifelse(elapsed==0, 0, rate)) %>%
+  group_by(patid, weight, generic) %>% summarise(mean=mean(rate)) %>%
+  mutate(group=ifelse(mean>=13, "Prev", "Acute")) %>%
+  ungroup() 
+
+
+Means <- RIMUS23_Doses 
+Acutes <- Means %>% filter(group=="Acute") %>% select(patid) %>% rename("patient"="patid")
+Prevs <- Means %>% filter(group=="Prev")  %>% select(patid) %>% rename("patient"="patid")
+
+
+Rimegepant_Pats <- fread("Rimegepant_Pats.txt", sep="\t" , header = T, colClasses = "character", stringsAsFactors = FALSE)
+Rimegepant_Pats <- Rimegepant_Pats %>% inner_join(Prevs)
+
+Drugs_lookup <- fread("Drugs_lookup.csv")
+
+RIMUS23_Drug_Histories <- read.table("RIMUS23_Drug_Histories_NEW_short_2.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Drug_Histories <- Rimegepant_Pats %>% select(-weight) %>% inner_join(RIMUS23_Drug_Histories)
+RIMUS23_Drug_Histories <- gather(RIMUS23_Drug_Histories, Month, Treat, X1:X60, factor_key=TRUE)
+RIMUS23_Drug_Histories$Month <- parse_number(as.character(RIMUS23_Drug_Histories$Month))
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% filter(Treat != "-")
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% group_by(patient) %>% 
+  slice(if(any(grepl("136",Treat))) 1:which.max(grepl("136",Treat)) else row_number())   
+
+RIMUS23_Drug_Histories <- separate_rows(RIMUS23_Drug_Histories, Treat, sep = ",", convert=T )
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% left_join(Drugs_lookup %>% select(drug_id, drug_group), by=c("Treat"="drug_id"))
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% select(patient, weight, Month, drug_group) %>% distinct()
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% anti_join(RIMUS23_Drug_Histories %>% group_by(patient)%>% filter(Month==max(Month)) %>% select(patient, Month) %>% distinct())
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% group_by(patient, weight, drug_group) %>% count()
+
+length(unique(RIMUS23_Drug_Histories$patient))
+length(unique(RIMUS23_Drug_Histories$patient[RIMUS23_Drug_Histories$drug_group=="CGRP Oral"]))
+
+RIMUS23_Drug_Histories %>% ungroup() %>% group_by(drug_group) %>% summarise(mean=mean(n))
+
+
+
+RIMUS23_Drug_Histories %>% ungroup() %>%
+  mutate(drug_group=factor(drug_group, levels=c("Preventive", "Symptomatic", "Triptans", "CGRP Injectable", "CGRP Oral" ))) %>%
+  ggplot(aes(n,colour=drug_group, fill=drug_group)) +
+  geom_density(alpha=0.5) +
+  theme_minimal() +
+  xlab("\n Number of Months Until Rimegepant Initiation") + ylab("Patient density \n") +
+  scale_fill_manual(values=c( "#ee931b",  "#1bb6ee", "#095d7b", "#f8a5de", "#6d084d")) +
+  scale_colour_manual(values=c("#ee931b",  "#1bb6ee", "#095d7b", "#f8a5de", "#6d084d")) +
+  facet_wrap(~drug_group)
+
+
+RIMUS23_Drug_Histories %>% ungroup() %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))
+
+
+data.frame(
+  RIMUS23_Drug_Histories %>% ungroup() %>% select(-n) %>% distinct() %>%
+    arrange(patient, weight, drug_group) %>%
+  group_by(patient, weight) %>% mutate(drug_group=paste0(drug_group, collapse="+")) %>% distinct() %>%
+  ungroup() %>% group_by(drug_group) %>% summarise(n=sum(as.numeric(weight))/63250) %>% arrange(-n)
+  )
+  
+
+
+
+
+
+Rimegepant_Pats <- fread("Rimegepant_Pats.txt", sep="\t" , header = T, colClasses = "character", stringsAsFactors = FALSE)
+Rimegepant_Pats <- Rimegepant_Pats %>% inner_join(Prevs)
+
+Drugs_lookup <- fread("Drugs_lookup.csv")
+
+RIMUS23_Drug_Histories <- read.table("RIMUS23_Drug_Histories_NEW_short_2.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Drug_Histories <- Rimegepant_Pats %>% select(-weight) %>% inner_join(RIMUS23_Drug_Histories)
+RIMUS23_Drug_Histories <- gather(RIMUS23_Drug_Histories, Month, Treat, X1:X60, factor_key=TRUE)
+RIMUS23_Drug_Histories$Month <- parse_number(as.character(RIMUS23_Drug_Histories$Month))
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% filter(Treat != "-")
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% group_by(patient) %>% 
+  slice(if(any(grepl("136",Treat))) 1:which.max(grepl("136",Treat)) else row_number())   
+
+RIMUS23_Drug_Histories <- separate_rows(RIMUS23_Drug_Histories, Treat, sep = ",", convert=T )
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% left_join(Drugs_lookup %>% select(drug_id, drug_group), by=c("Treat"="drug_id"))
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% select(patient, weight, Month, drug_group) %>% distinct()
+
+RIMUS23_Drug_Histories %>% 
+  left_join(
+    RIMUS23_Drug_Histories %>% group_by(patient)%>% filter(Month==max(Month)) %>% select(patient, Month) %>% distinct() %>% rename("Max"="Month")
+    ) %>%
+  mutate(Month=Month-Max) %>% filter(Month!=0) %>%
+  ungroup() %>% group_by(Month, drug_group) %>% summarise(pop=sum(as.numeric(weight))) %>%
+  ggplot(aes(Month, 100*pop/63250, colour=drug_group, fill=drug_group)) +
+  geom_smooth() +
+  theme_minimal() +
+  xlab("\n Number of Months Until Rimegepant Initiation") + ylab("Population (%) \n") +
+  scale_fill_manual(values=c("#f8a5de", "#6d084d", "#ee931b",  "#1bb6ee", "#095d7b")) +
+  scale_colour_manual(values=c("#f8a5de", "#6d084d", "#ee931b",  "#1bb6ee", "#095d7b")) 
+
+
+
+  
+data.frame(drug_group=c("CGRP_Injectable", "CGRP_oral", "Preventive", "Symptomatic", "Tritpans"), 
+           months=c(15.7, 6.4, 25.0, 20.7, 17.3)) %>%
+  mutate(drug_group=factor(drug_group, levels=c("Preventive", "Symptomatic", "Tritpans", "CGRP_Injectable", "CGRP_oral" ))) %>%
+  ggplot(aes(drug_group, months, colour=drug_group, fill=drug_group)) +
+  geom_col() +
+  theme_minimal() +
+  scale_fill_manual(values=c( "#ee931b",  "#1bb6ee", "#095d7b", "#f8a5de", "#6d084d")) +
+  scale_colour_manual(values=c("#ee931b",  "#1bb6ee", "#095d7b", "#f8a5de", "#6d084d")) +
+  coord_flip()
+
+# -----------------------------------------
+
+
+# Pathways CGRP Inj ------------
+
+
+Drugs_lookup <- fread("Drugs_lookup.csv")
+string_CGRPInjectable <- paste0("\\b(",paste0(Drugs_lookup$drug_id[Drugs_lookup$drug_class == "CGRP Injectable"], collapse = "|"),")\\b")
+
+RIMUS23_Drug_Histories <- read.table("RIMUS23_Drug_Histories_NEW_short_2.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Drug_Histories <- gather(RIMUS23_Drug_Histories, Month, Treat, X1:X60, factor_key=TRUE)
+RIMUS23_Drug_Histories$Month <- parse_number(as.character(RIMUS23_Drug_Histories$Month))
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% filter(Treat != "-")
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% select(patient, Treat) %>% distinct() %>% filter(grepl(string_CGRPInjectable, Treat)) %>%
+  select(patient) %>% distinct() %>%
+  left_join(RIMUS23_Drug_Histories)
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% group_by(patient) %>% 
+  slice(if(any(grepl(string_CGRPInjectable,Treat))) 1:which.max(grepl(string_CGRPInjectable,Treat)) else row_number())   
+
+RIMUS23_Drug_Histories <- separate_rows(RIMUS23_Drug_Histories, Treat, sep = ",", convert=T )
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% left_join(Drugs_lookup %>% select(drug_id, drug_group), by=c("Treat"="drug_id"))
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% select(patient, weight, Month, drug_group) %>% distinct()
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% anti_join(RIMUS23_Drug_Histories %>% group_by(patient)%>% filter(Month==max(Month)) %>% select(patient, Month) %>% distinct())
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% group_by(patient, weight, drug_group) %>% count()
+
+length(unique(RIMUS23_Drug_Histories$patient))
+length(unique(RIMUS23_Drug_Histories$patient[RIMUS23_Drug_Histories$drug_group=="CGRP Injectable"]))
+
+RIMUS23_Drug_Histories %>% ungroup() %>% group_by(drug_group) %>% summarise(mean=mean(n))
+
+
+
+
+RIMUS23_Drug_Histories %>% ungroup() %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))
+
+
+data.frame(
+  RIMUS23_Drug_Histories %>% ungroup() %>% select(-n) %>% distinct() %>%
+    arrange(patient, weight, drug_group) %>%
+  group_by(patient, weight) %>% mutate(drug_group=paste0(drug_group, collapse="+")) %>% distinct() %>%
+  ungroup() %>% group_by(drug_group) %>% summarise(n=sum(as.numeric(weight))/1068660) %>% arrange(-n)
+  )
+  
+
+
+
+Drugs_lookup <- fread("Drugs_lookup.csv")
+string_CGRPInjectable <- paste0("\\b(",paste0(Drugs_lookup$drug_id[Drugs_lookup$drug_class == "CGRP Injectable"], collapse = "|"),")\\b")
+
+RIMUS23_Drug_Histories <- read.table("RIMUS23_Drug_Histories_NEW_short_2.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Drug_Histories <- gather(RIMUS23_Drug_Histories, Month, Treat, X1:X60, factor_key=TRUE)
+RIMUS23_Drug_Histories$Month <- parse_number(as.character(RIMUS23_Drug_Histories$Month))
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% filter(Treat != "-")
+
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% select(patient, Treat) %>% distinct() %>% filter(grepl(string_CGRPInjectable, Treat)) %>%
+  select(patient) %>% distinct() %>%
+  left_join(RIMUS23_Drug_Histories)
+
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% group_by(patient) %>% 
+  slice(if(any(grepl(string_CGRPInjectable,Treat))) 1:which.max(grepl(string_CGRPInjectable,Treat)) else row_number())   
+
+RIMUS23_Drug_Histories <- separate_rows(RIMUS23_Drug_Histories, Treat, sep = ",", convert=T )
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% left_join(Drugs_lookup %>% select(drug_id, drug_group), by=c("Treat"="drug_id"))
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% select(patient, weight, Month, drug_group) %>% distinct()
+
+RIMUS23_Drug_Histories %>% 
+  left_join(
+    RIMUS23_Drug_Histories %>% group_by(patient)%>% filter(Month==max(Month)) %>% select(patient, Month) %>% distinct() %>% rename("Max"="Month")
+    ) %>%
+  mutate(Month=Month-Max) %>% filter(Month!=0) %>%
+  ungroup() %>% group_by(Month, drug_group) %>% summarise(pop=sum(as.numeric(weight))) %>%
+  ggplot(aes(Month, 100*pop/1068660, colour=drug_group, fill=drug_group)) +
+  geom_smooth() +
+  theme_minimal() +
+  xlab("\n Number of Months Until Injectable CGRP Initiation") + ylab("Population (%) \n") +
+  scale_fill_manual(values=c("#f8a5de", "#6d084d", "#ee931b",  "#1bb6ee", "#095d7b")) +
+  scale_colour_manual(values=c("#f8a5de", "#6d084d", "#ee931b",  "#1bb6ee", "#095d7b")) 
+
+
+
+
+# --------------
+# lapsed to Rime --------
+
+Rimegepant_Pats <- fread("Rimegepant_Pats.txt", sep="\t" , header = T, colClasses = "character", stringsAsFactors = FALSE)
+
+Drugs_lookup <- fread("Drugs_lookup.csv")
+
+RIMUS23_Drug_Histories <- read.table("RIMUS23_Drug_Histories_NEW_short_2.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Drug_Histories <- Rimegepant_Pats %>% select(-weight) %>% inner_join(RIMUS23_Drug_Histories)
+RIMUS23_Drug_Histories <- gather(RIMUS23_Drug_Histories, Month, Treat, X1:X60, factor_key=TRUE)
+RIMUS23_Drug_Histories$Month <- parse_number(as.character(RIMUS23_Drug_Histories$Month))
+
+Min <- RIMUS23_Drug_Histories %>% group_by(patient) %>% filter(grepl("136", Treat) & grepl("-", lag(Treat))) %>%
+  group_by(patient) %>% filter(Month==min(Month)) %>% ungroup() %>% select(patient, Month) %>% rename("Min"="Month")
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% inner_join(Min) %>% filter(Month<Min) %>% arrange(patient, Month) %>% select(-Min)
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% filter(Treat != "-")
+
+RIMUS23_Drug_Histories <- separate_rows(RIMUS23_Drug_Histories, Treat, sep = ",", convert=T )
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% left_join(Drugs_lookup  %>% select(drug_id, drug_group), by=c("Treat"="drug_id"))
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% select(patient, weight, Month, drug_group) %>% distinct()
+
+RIMUS23_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))
+
+RIMUS23_Drug_Histories %>% 
+  left_join(
+    RIMUS23_Drug_Histories %>% group_by(patient)%>% filter(Month==max(Month)) %>% select(patient, Month) %>% distinct() %>% rename("Max"="Month")
+    ) %>%
+  mutate(Month=Month-Max) %>%   filter(Month!=0) %>%
+  drop_na() %>%
+  ungroup() %>% group_by(Month, drug_group) %>% summarise(pop=sum(as.numeric(weight))) %>%
+  ggplot(aes(Month, 100*pop/102986, colour=drug_group, fill=drug_group)) +
+  geom_smooth() +
+  theme_minimal() +
+   coord_cartesian(ylim=c(0, 50)) +
+  xlab("\n Number of Months Until Rimegepant Initiation") + ylab("Population (%) \n") +
+  scale_fill_manual(values=c("#f8a5de", "#6d084d", "#ee931b",  "#1bb6ee", "#095d7b")) +
+  scale_colour_manual(values=c("#f8a5de", "#6d084d", "#ee931b",  "#1bb6ee", "#095d7b")) 
+
+
+data.frame(
+  RIMUS23_Drug_Histories %>% ungroup() %>% select(-Month) %>% distinct() %>%
+    arrange(patient, weight, drug_group) %>%
+  group_by(patient, weight) %>% mutate(drug_group=paste0(drug_group, collapse="+")) %>% distinct() %>%
+  ungroup() %>% group_by(drug_group) %>% summarise(n=sum(as.numeric(weight))/102986) %>% arrange(-n)
+  )
+  
+# -------
+
+# patients ON Preventive Month 60 -------------------
+Drugs_lookup <- fread("Drugs_lookup.csv")
+string_Preventive <- paste0("\\b(",paste0(Drugs_lookup$drug_id[Drugs_lookup$drug_group == "Preventive"], collapse = "|"),")\\b")
+
+RIMUS23_Drug_Histories <- read.table("RIMUS23_Drug_Histories_NEW_short_2.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Drug_Histories <- gather(RIMUS23_Drug_Histories, Month, Treat, X1:X60, factor_key=TRUE)
+RIMUS23_Drug_Histories$Month <- parse_number(as.character(RIMUS23_Drug_Histories$Month))
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% filter(Month==60) %>%
+  select(patient, Treat) %>% distinct() %>% filter(grepl(string_Preventive, Treat)) %>% 
+  select(patient) %>% distinct() %>% left_join(RIMUS23_Drug_Histories)
+
+RIMUS23_Drug_Histories %>% ungroup() %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))
+# 4717304
+
+RIMUS23_Drug_Histories <- separate_rows(RIMUS23_Drug_Histories, Treat, sep = ",", convert=T )
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% left_join(Drugs_lookup %>% mutate(drug_id=as.character(drug_id)) %>% select(drug_id, drug_group), by=c("Treat"="drug_id"))
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% select(patient, weight, Month, drug_group) %>% distinct()
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% anti_join(RIMUS23_Drug_Histories %>% group_by(patient)%>% filter(Month==max(Month)) %>% select(patient, Month) %>% distinct())
+
+
+RIMUS23_Drug_Histories %>%
+  left_join(
+    RIMUS23_Drug_Histories %>% group_by(patient)%>% filter(Month==max(Month)) %>% select(patient, Month) %>% distinct() %>% rename("Max"="Month")
+    ) %>%
+  mutate(Month=Month-Max) %>% # filter(Month!=0) %>%
+  drop_na() %>%
+  ungroup() %>% group_by(Month, drug_group) %>% summarise(pop=sum(as.numeric(weight))) %>%
+  ggplot(aes(Month, 100*pop/4717304, colour=drug_group, fill=drug_group)) +
+  geom_smooth() +
+  theme_minimal() +
+  xlab("\n Number of Months Until May 2023 \n (Patients ON Preventive in May 2023) \n") + ylab("Population (%) \n") +
+  scale_fill_manual(values=c("#f8a5de", "#6d084d", "#ee931b",  "#1bb6ee", "#095d7b")) +
+  scale_colour_manual(values=c("#f8a5de", "#6d084d", "#ee931b",  "#1bb6ee", "#095d7b"))
+
+# ----------
+# Split ALl Migraine flows as acute vs preventive ------
+
+All_pats <- fread("ModSev_Pats_V3.txt")
+All_pats <- All_pats %>% filter(group=="ModSev") %>% select(patient)
+
+flMIG <- fread("MIG_Flows_Aux._Long_v3.txt")
+flMIG <- flMIG %>% inner_join(All_pats)
+
+Drugs_lookup <- fread("Drugs_lookup.csv")
+unique(Drugs_lookup$drug_group)
+
+
+string_Prevs <- paste0("\\b(",paste0(Drugs_lookup$drug_id[Drugs_lookup$drug_group == "CGRP Injectable" | 
+                                                            Drugs_lookup$drug_group == "Preventive"], collapse = "|"),")\\b")
+
+
+
+flMIG <- flMIG %>% filter(p2>=49) %>% filter(flow==1) 
+flMIG <- flMIG %>% select(patient,weight,p1,p2,d1,d2,s1,s2,flow)
+
+flMIG %>% group_by(s1, s2) %>% summarise(n=sum(weight)) %>% spread(key=s2, value=n)
+
+
+
+
+# Triptan Therapy class - flags
+
+flMIG <- flMIG[, Prevs_d1 := unlist(lapply(d1, function(x) ifelse(str_detect(x, string_Prevs), str_c(unlist(str_extract_all(x, string_Prevs)), collapse = ","),"")))]
+flMIG <- flMIG[, Prevs_d2 := unlist(lapply(d2, function(x) ifelse(str_detect(x, string_Prevs), str_c(unlist(str_extract_all(x, string_Prevs)), collapse = ","),"")))]
+flMIG <- flMIG[, nr_Prevs_d1 := unlist(lapply(d1, function(x) mapply(function (x) sum(str_detect(x, string_Prevs)*1), str_split(x,","))))]
+flMIG <- flMIG[, nr_Prevs_d2 := unlist(lapply(d2, function(x) mapply(function (x) sum(str_detect(x, string_Prevs)*1), str_split(x,","))))]
+flMIG <- flMIG[, nr_PrevsUnq_d1d2 := .(apply(.SD, 1, function(x) sum((unique(unlist(str_split(str_c(x,","),","))) != "")*1))), ,.SDcols = c("Prevs_d1","Prevs_d2")] 
+flMIG <- flMIG[, Prevs_flow_type := ifelse(nr_Prevs_d2 < nr_Prevs_d1 & nr_PrevsUnq_d1d2 > nr_Prevs_d1, "D+S", 
+                                           ifelse(nr_Prevs_d2 > nr_Prevs_d1 & nr_PrevsUnq_d1d2 > nr_Prevs_d2, "A+S",
+                                                  ifelse(nr_Prevs_d2 < nr_Prevs_d1, "D", 
+                                                         ifelse(nr_Prevs_d2 > nr_Prevs_d1, "A", 
+                                                                ifelse(nr_Prevs_d2 == nr_Prevs_d1 & Prevs_d2 != Prevs_d1, "S","-")))))] 
+
+
+
+flMIG %>% filter(Prevs_flow_type!="-") %>% group_by(s1, s2) %>% summarise(n=sum(weight)) %>% spread(key=s2, value=n)
+
+
+
+# ---------
+# % Acute vs Prev Volume month over month ---------------
+
+RIMUS23_Doses <- read.table("RIMUS23 Doses.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Doses <- RIMUS23_Doses %>% filter(generic=="Rimegepant")
+RIMUS23_Doses <- RIMUS23_Doses %>% filter(status != "G") %>% select(-c(provider, provcat, status, code, NPI))
+RIMUS23_Doses <- RIMUS23_Doses %>% mutate(from_dt = as.Date(from_dt))  %>% filter(from_dt >= "2022-05-15") %>% filter(days_sup  != "")
+RIMUS23_Doses <- RIMUS23_Doses %>% arrange(patid, generic, from_dt) 
+RIMUS23_Doses <- RIMUS23_Doses %>% group_by(patid, generic) %>% mutate(elapsed=as.numeric(lead(from_dt)-from_dt))
+RIMUS23_Doses <- RIMUS23_Doses %>% drop_na()
+data.frame(RIMUS23_Doses) 
+RIMUS23_Doses <- RIMUS23_Doses %>% filter(elapsed <= 92)
+RIMUS23_Doses <- RIMUS23_Doses %>% mutate(rate=30*(as.numeric(qty)/elapsed))
+
+RIMUS23_Doses <- RIMUS23_Doses %>% mutate(rate=ifelse(elapsed==0, 0, rate)) %>%
+  group_by(patid, weight, generic) %>% summarise(mean=mean(rate)) %>%
+  mutate(mean=ifelse(mean>=13, "Prev", "Acute")) %>%
+  ungroup() 
+
+means <- RIMUS23_Doses
+
+means <- means %>% select(patid, weight, mean)
+
+
+
+
+RIMUS23_Doses <- read.table("RIMUS23 Doses.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Doses <- RIMUS23_Doses %>% filter(drug_class=="CGRP Oral")
+RIMUS23_Doses <- RIMUS23_Doses %>% filter(status != "G") %>% select(-c(provider, provcat, status, code, NPI))
+RIMUS23_Doses$from_dt <- substr(as.character(RIMUS23_Doses$from_dt), 1, 7)
+
+RIMUS23_Doses <- RIMUS23_Doses %>% group_by(patid, from_dt) %>% summarise(n=sum(as.numeric(days_sup)))
+
+data.frame(means %>% inner_join(RIMUS23_Doses) %>% group_by(mean , from_dt) %>% 
+  summarise(n2=sum(as.numeric(weight)*n)) %>%
+  spread(key=mean, value=n2))%>% mutate(percAcute=Acute/(Acute+Prev)) %>% mutate(percPrev=Prev/(Acute+Prev))
+ 
+# -----------

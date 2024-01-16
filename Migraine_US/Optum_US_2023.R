@@ -8917,3 +8917,126 @@ data.frame(means %>% inner_join(RIMUS23_Doses) %>% group_by(mean , from_dt) %>%
   spread(key=mean, value=n2))%>% mutate(percAcute=Acute/(Acute+Prev)) %>% mutate(percPrev=Prev/(Acute+Prev))
  
 # -----------
+# Switch matrix new class based on CGRP exp, break down Acute vs Prev -----------
+All_pats <- fread("ModSev_Pats_V3.txt", colClasses = "character", stringsAsFactors = FALSE)
+
+Drugs_lookup <- fread("Drugs_lookup.csv")
+
+string_Orals <- paste0("\\b(",paste0(Drugs_lookup$drug_id[Drugs_lookup$drug_class == "CGRP Oral"], collapse = "|"),")\\b")
+string_Mabs <- paste0("\\b(",paste0(Drugs_lookup$drug_id[Drugs_lookup$drug_class == "CGRP Injectable"], collapse = "|"),")\\b")
+string_Preventive <- paste0("\\b(",paste0(Drugs_lookup$drug_id[Drugs_lookup$drug_group == "Preventive"], collapse = "|"),")\\b")
+string_Acute <- paste0("\\b(",paste0(Drugs_lookup$drug_id[Drugs_lookup$drug_group == "Triptans"], collapse = "|"),")\\b")
+string_Symptomatic <- paste0("\\b(",paste0(Drugs_lookup$drug_id[Drugs_lookup$drug_group == "Symptomatic"], collapse = "|"),")\\b")
+
+RIMUS23_Drug_Histories <- read.table("RIMUS23_Drug_Histories_NEW_short_2.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Drug_Histories <- All_pats %>% filter(group=="ModSev") %>% select(patient) %>%  left_join(RIMUS23_Drug_Histories)
+
+RIMUS23_Drug_Histories <- gather(RIMUS23_Drug_Histories, Month, Treat, `X1`:`X60`, factor_key=TRUE)
+RIMUS23_Drug_Histories$Month <- parse_number(as.character(RIMUS23_Drug_Histories$Month))
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% arrange(patient, Month)
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% mutate(Preventive=ifelse(grepl(string_Preventive, Treat),1,0))
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% mutate(AcuteSympt=ifelse(grepl(string_Acute, Treat)|grepl(string_Symptomatic, Treat),1,0))
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% mutate(Rimeg=ifelse(grepl("136", Treat),1,0))
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% mutate(OralCGRP=ifelse(grepl(string_Orals, Treat),1,0))
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% mutate(InjCGRP=ifelse(grepl(string_Mabs, Treat),1,0))
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% 
+  group_by(patient) %>% mutate(CumOralCGRP=cumsum(OralCGRP ==1)) %>%
+  mutate(CumOralCGRP=ifelse(CumOralCGRP==0,0,1)) %>% ungroup()
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% 
+  group_by(patient) %>% mutate(CumInjCGRP=cumsum(InjCGRP ==1)) %>%
+  mutate(CumInjCGRP=ifelse(CumInjCGRP==0,0,1))  %>% ungroup()
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% mutate(Stock=ifelse(Rimeg==1, "Rime",
+                                               ifelse(OralCGRP==1, "Orals",
+                                                      ifelse(InjCGRP==1, "Injs",
+                                                             ifelse(CumOralCGRP==1, "OralExp",
+                                                                    ifelse(CumInjCGRP==1,"InjExp",
+                                                                           ifelse(Preventive==1, "Prevs",
+                                                                                  ifelse(AcuteSympt==1, "Acutes", "Lapsed"))))))))
+
+RIMUS23_Drug_Histories %>% filter(Month==60) %>% group_by(Stock) %>% summarise(n=sum(as.numeric(weight))) 
+
+#   Stock          n
+# 1 Acutes  2081682.
+# 2 InjExp   329844.
+# 3 Injs     422687.
+# 4 Lapsed  3924046.
+# 5 OralExp  358118.
+# 6 Orals    223610.
+# 7 Prevs   3946513.
+# 8 Rime     203969.
+
+RIMUS23_Drug_Histories %>% filter(Month==48) %>% group_by(Stock) %>% summarise(n=sum(as.numeric(weight))) 
+
+#   Stock          n
+# 1 Acutes  2095818.
+# 2 InjExp   288864.
+# 3 Injs     405467.
+# 4 Lapsed  4351935.
+# 5 OralExp  164881.
+# 6 Orals    145317.
+# 7 Prevs   3959744.
+# 8 Rime      78443.
+
+
+Stocks <- RIMUS23_Drug_Histories %>% select(patient, weight, Treat, Month, Stock)
+
+Stocks <- Stocks %>% left_join(Stocks %>% mutate(Month=Month-1) %>% rename("Stock2"="Stock") %>% rename("Treat2"="Treat"))
+Stocks <- Stocks %>% select(patient, weight, Month, Treat, Treat2, Stock, Stock2)
+Stocks <- Stocks %>% filter(Month!=60) %>% mutate(Month=Month+1)
+
+unique(Stocks$Month)
+
+unique(Stocks$Stock2)
+
+Stocks %>% filter(Month>=48) %>% filter(Treat!=Treat2)  %>% group_by(Stock, Stock2) %>% 
+  summarise(n=sum(as.numeric(weight))) %>% spread(key=Stock2, value=n)
+
+
+RIMUS23_Doses <- read.table("RIMUS23 Doses.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Doses <- RIMUS23_Doses %>% filter(drug_class=="CGRP Oral")
+RIMUS23_Doses <- RIMUS23_Doses %>% filter(status != "G") %>% select(-c( status, code, NPI))
+RIMUS23_Doses <- RIMUS23_Doses %>% mutate(from_dt = as.Date(from_dt))  %>% filter(from_dt>="2022-06-16"&from_dt<="2023-05-15") %>% filter(days_sup  != "")
+RIMUS23_Doses <- RIMUS23_Doses %>% arrange(patid,  from_dt) 
+RIMUS23_Doses <- RIMUS23_Doses %>% group_by(patid) %>% mutate(elapsed=as.numeric(lead(from_dt)-from_dt))
+RIMUS23_Doses <- RIMUS23_Doses %>% drop_na()
+data.frame(RIMUS23_Doses) 
+RIMUS23_Doses <- RIMUS23_Doses %>% filter(elapsed <= 92)
+RIMUS23_Doses <- RIMUS23_Doses %>% mutate(rate=30*(as.numeric(qty)/elapsed))
+
+RIMUS23_Doses <- RIMUS23_Doses %>% mutate(rate=ifelse(elapsed==0, 0, rate)) %>%
+  group_by(generic, patid, weight) %>% summarise(mean=mean(rate)) %>%
+ mutate(mean=ifelse(mean>=13, "Prev", "Acute")) %>%
+  ungroup() 
+
+RIMUS23_Doses %>% group_by(generic, mean) %>% summarise(n=sum(as.numeric(weight))) 
+names(RIMUS23_Doses)[2] <- "patient"
+RIMUS23_Doses <- RIMUS23_Doses %>% select(-weight) 
+
+RIMUS23_Doses %>% group_by(generic, mean) %>% count()
+
+
+RIMUS23_Doses %>% mutate(generic=ifelse(generic=="Rimegepant", "Rime", "Orals")) %>% distinct() %>%
+  group_by(patient) %>% mutate(mean2=paste(generic, mean, sep=",")) %>% ungroup() %>% select(mean2) %>% distinct()
+
+
+Stocks %>%  filter(Month>=48) %>% filter(Treat!=Treat2)  %>%
+  left_join(RIMUS23_Doses %>% mutate(generic=ifelse(generic=="Rimegepant", "Rime", "Orals")) %>% distinct()) 
+
+RIMUS23_Doses %>% filter(generic!="Atogepant") %>% mutate(generic=ifelse(generic=="Rimegepant", "Rime", "Orals")) %>% distinct()
+
+
+Stocks %>%  filter(Month>=48) %>% filter(Treat!=Treat2) %>% 
+  filter(Stock2 %in% c("Rime", "Orals", "Injs")) %>% select(patient, weight, Stock) %>% distinct() %>%
+    filter(Stock %in% c("Acutes", "Lapsed", "Prevs")) %>%
+  inner_join(
+    RIMUS23_Doses %>% filter(generic!="Atogepant") %>% mutate(generic=ifelse(generic=="Rimegepant", "Rime", "Orals"))
+  ) %>%
+  group_by(Stock, generic, mean) %>% count() %>%
+  spread(key=mean, value=n) %>% mutate(AcutePerc=Acute/(Acute+Prev)) %>% mutate(PrevPerc=Prev/(Acute+Prev)) 
+
+
+# ------------------------

@@ -8495,7 +8495,7 @@ length(unique(PCP_CGRP$provider)) # 4043
 
 
 
-91Firsts <- RIMUS23_Doses %>%  filter(drug_class=="CGRP Injectable"|drug_class=="CGRP Oral") %>% mutate(from_dt==as.Date(from_dt)) %>%
+Firsts <- RIMUS23_Doses %>%  filter(drug_class=="CGRP Injectable"|drug_class=="CGRP Oral") %>% mutate(from_dt==as.Date(from_dt)) %>%
   mutate(provcat=as.numeric(provcat)) %>% 
     filter(from_dt>="2022-06-16"&from_dt<="2023-05-15") %>%
     group_by(patid) %>% filter(from_dt==min(from_dt)) %>% ungroup() %>%
@@ -9040,3 +9040,225 @@ Stocks %>%  filter(Month>=48) %>% filter(Treat!=Treat2) %>%
 
 
 # ------------------------
+# Class penetrance month over month for antiepileptics --------------------
+Drugs_lookup <- fread("Drugs_lookup.csv")
+
+RIMUS23_Drug_Histories <- read.table("RIMUS23 Drug Histories.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+sum(as.numeric(RIMUS23_Drug_Histories$weight)) # 21179255
+
+RIMUS23_Drug_Histories <- gather(RIMUS23_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+RIMUS23_Drug_Histories$Month <- parse_number(as.character(RIMUS23_Drug_Histories$Month))
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% select(-disease)
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% filter(Treat != "-")
+RIMUS23_Drug_Histories <- separate_rows(RIMUS23_Drug_Histories, Treat, sep = ",", convert=T )
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% 
+  inner_join(Drugs_lookup %>% filter(drug_class=="Antiepileptic") %>% select(drug_id, generic), by=c("Treat"="drug_id"))
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% select(patient, weight, Month, generic) %>% distinct()
+
+df <- data.frame(RIMUS23_Drug_Histories %>% group_by(Month, generic) %>% summarise(n=sum(as.numeric(weight))) %>%
+  spread(key=generic, value=n))
+
+
+fwrite(df, "df.csv")
+
+# --------------
+# Rimegepant Scripts over time per specialty -----------------------------------
+
+RIMUS23_Doses <- read.table("RIMUS23 Doses.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Doses <- RIMUS23_Doses %>% filter(generic=="Rimegepant")
+
+RIMUS23_Doses <- RIMUS23_Doses %>% select(patid, weight, from_dt, provider, provcat)
+
+setDT(RIMUS23_Doses)[, Month_Yr := format(as.Date(from_dt), "%Y-%m") ]
+RIMUS23_Doses <- RIMUS23_Doses %>% select(-from_dt)
+
+Unique_provcats <- fread("Unique_provcats.csv")
+
+
+RIMUS23_Doses <- RIMUS23_Doses %>% mutate(provcat=as.numeric(provcat)) %>%
+  inner_join(Unique_provcats %>% select(PROVCAT, TYPE), by=c("provcat"="PROVCAT"))
+
+RIMUS23_Doses <- RIMUS23_Doses %>% filter(TYPE!="EXCLUDE") %>% drop_na()
+
+unique(RIMUS23_Doses$TYPE)
+
+RIMUS23_Doses <- RIMUS23_Doses %>% mutate(TYPE=ifelse(TYPE=="INTERAL MEDICINE", "INTERNAL MEDICINE", TYPE)) %>%
+  mutate(TYPE=ifelse(TYPE=="OBG", "OTHER PHYSICIAN", TYPE)) %>% mutate(TYPE=ifelse(TYPE=="PSYCHIATRY", "OTHER PHYSICIAN", TYPE))
+
+RIMUS23_Doses <- RIMUS23_Doses %>% group_by(Month_Yr, TYPE) %>% summarise(n=sum(as.numeric(weight)))  %>% spread(key=TYPE, value=n)
+
+data.frame(RIMUS23_Doses)
+
+RIMUS23_Doses <- read.table("RIMUS23 Doses.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Doses <- RIMUS23_Doses %>% filter(generic=="Rimegepant")
+
+RIMUS23_Doses <- RIMUS23_Doses %>% select(patid, weight, from_dt)
+
+setDT(RIMUS23_Doses)[, Month_Yr := format(as.Date(from_dt), "%Y-%m") ]
+RIMUS23_Doses <- RIMUS23_Doses %>% select(-from_dt)
+
+data.frame(RIMUS23_Doses %>% group_by(Month_Yr) %>% summarise(n=sum(as.numeric(weight))))
+
+# --------------
+# % Preventive volume removed due to comorbidity ------------------
+
+Drugs_lookup <- fread("Drugs_lookup.csv")
+
+RIMUS23_Drug_Histories <- read.table("RIMUS23 Drug Histories.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+
+RIMUS23_Drug_Histories <- gather(RIMUS23_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+RIMUS23_Drug_Histories$Month <- parse_number(as.character(RIMUS23_Drug_Histories$Month))
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% select(-disease)
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% filter(Treat != "-")
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% filter(Month>=49)
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% select(-Month) %>% distinct()
+RIMUS23_Drug_Histories <- separate_rows(RIMUS23_Drug_Histories, Treat, sep = ",", convert=T )
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% distinct()
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% left_join(Drugs_lookup, by=c("Treat"="drug_id"))
+
+ModSev_vector <- fread("ModSev_vector.txt", colClasses = "character", stringsAsFactors = FALSE)
+
+RIMUS23_Drug_Histories <- ModSev_vector %>% select(patient) %>% left_join(RIMUS23_Drug_Histories)
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% drop_na()
+
+RIMUS23_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))
+
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% filter(drug_group=="Preventive")
+
+RIMUS23_Demographics <- read.table("RIMUS23 Demographics.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Demographics <- RIMUS23_Demographics %>% select(patid, CV, psychiatric, epileptic)
+names(RIMUS23_Demographics)[1] <- "patient"
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% left_join(RIMUS23_Demographics)
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% mutate(to_flag=ifelse(CV==1&drug_class=="Beta Blocker", 1,
+                                                                 ifelse(CV==1&drug_class=="Cardiovascular",1,
+                                                                        ifelse(CV==1&drug_class=="Calcium Blocker",1,
+                                                                               ifelse(epileptic==1&drug_class=="Antiepileptic",1,
+                                                                                      ifelse(psychiatric==1&drug_class=="SSRI",1,
+                                                                                             ifelse(psychiatric==1&drug_class=="SNRI",1,
+                                                                                                    ifelse(psychiatric==1&drug_class=="Antipsychotic",1,
+                                                                                                           ifelse(psychiatric==1&drug_class=="Tricyclic",1,0)))))))))
+
+
+RIMUS23_Drug_Histories %>% select(patient, weight, drug_class) %>% distinct() %>% group_by(drug_class) %>% summarise(n=sum(as.numeric(weight)))
+RIMUS23_Drug_Histories %>%  filter(to_flag!=1) %>%  select(patient, weight, drug_class) %>% distinct() %>% group_by(drug_class) %>% summarise(n=sum(as.numeric(weight)))
+data.frame(RIMUS23_Drug_Histories %>% filter(to_flag==1) %>%  group_by(drug_class, psychiatric, epileptic, CV) %>% summarise(n=sum(as.numeric(weight))))
+
+
+# ------------
+
+# Number of flows before vs after first triptan Mab Riemgepant -------------
+
+RIMUS23_Drug_Histories <- read.table("RIMUS23_Drug_Histories_NEW_short_2.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Drug_Histories <- gather(RIMUS23_Drug_Histories, Month, Treat, X1:X60, factor_key=TRUE)
+RIMUS23_Drug_Histories$Month <- parse_number(as.character(RIMUS23_Drug_Histories$Month))
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% filter(Treat!="-")
+
+Drugs_lookup <- fread("Drugs_lookup.csv")
+string_Mabs <- paste0("\\b(",paste0(Drugs_lookup$drug_id[Drugs_lookup$drug_class == "CGRP Injectable"], collapse = "|"),")\\b")
+string_Orals <- paste0("\\b(",paste0(Drugs_lookup$drug_id[Drugs_lookup$drug_class == "CGRP Oral"], collapse = "|"),")\\b")
+string_Acute <- paste0("\\b(",paste0(Drugs_lookup$drug_id[Drugs_lookup$drug_group == "Triptans"], collapse = "|"),")\\b")
+
+First_Triptan <- RIMUS23_Drug_Histories %>% filter(grepl(string_Acute, Treat)) %>% group_by(patient) %>% filter(Month==min(Month))
+First_Triptan <- First_Triptan %>% select(patient, Month) %>% ungroup() %>% filter(Month>12 & Month<49)
+
+First_Mab <- RIMUS23_Drug_Histories %>% filter(grepl(string_Mabs, Treat)) %>% group_by(patient) %>% filter(Month==min(Month))
+First_Mab <- First_Mab %>% select(patient, Month) %>% ungroup() %>% filter(Month>12 & Month<49)
+
+First_Orals <- RIMUS23_Drug_Histories %>% filter(grepl(string_Orals, Treat)) %>% group_by(patient) %>% filter(Month==min(Month))
+First_Orals <- First_Orals %>% select(patient, Month) %>% ungroup() %>% filter(Month>12 & Month<49)
+
+
+flMIG <- fread("MIG_Flows_Aux._Long_v2.txt", colClasses = "character", stringsAsFactors = FALSE)
+
+flMIG <- flMIG %>% select(patient, weight, p2, flow)
+
+flMIG %>% mutate(p2=as.numeric(p2)) %>% inner_join(First_Triptan) %>% arrange(patient) %>%  
+  filter(p2>=(Month-12) & p2<(Month+12) ) %>% 
+  mutate(period=ifelse(p2<Month, "Before", "After")) %>%
+  filter(flow==1) %>%  group_by(period, patient) %>% summarise(n=sum( as.numeric(flow) )) %>%
+  spread(key=period, value=n) %>% mutate(Before=ifelse(is.na(Before),1,Before)) %>% mutate(After=ifelse(is.na(After),1,After)) %>%
+  mutate(fold= (After-Before)/Before) %>% ungroup() %>%
+  summarise(after=mean(After), before=mean(Before))
+
+
+flMIG %>% mutate(p2=as.numeric(p2)) %>% inner_join(First_Mab) %>% arrange(patient) %>%  
+  filter(p2>=(Month-12) & p2<(Month+12) ) %>% 
+  mutate(period=ifelse(p2<Month, "Before", "After")) %>%
+  filter(flow==1) %>%  group_by(period, patient) %>% summarise(n=sum( as.numeric(flow) )) %>%
+  spread(key=period, value=n) %>% mutate(Before=ifelse(is.na(Before),1,Before)) %>% mutate(After=ifelse(is.na(After),1,After)) %>%
+  mutate(fold= (After-Before)/Before) %>% ungroup() %>% 
+    summarise(after=mean(After), before=mean(Before))
+
+
+flMIG %>% mutate(p2=as.numeric(p2)) %>% inner_join(First_Orals) %>% arrange(patient) %>%  
+  filter(p2>=(Month-12) & p2<(Month+12) ) %>% 
+  mutate(period=ifelse(p2<Month, "Before", "After")) %>%
+  filter(flow==1) %>%  group_by(period, patient) %>% summarise(n=sum( as.numeric(flow) )) %>%
+  spread(key=period, value=n) %>% mutate(Before=ifelse(is.na(Before),1,Before)) %>% mutate(After=ifelse(is.na(After),1,After)) %>%
+  mutate(fold= (After-Before)/Before) %>% ungroup() %>% 
+    summarise(after=mean(After), before=mean(Before))
+
+
+# ------------------
+# What's the first Injectable CGRP molecule ? -------------
+
+RIMUS23_Drug_Histories <- read.table("RIMUS23_Drug_Histories_NEW_short_2.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Drug_Histories <- gather(RIMUS23_Drug_Histories, Month, Treat, X1:X60, factor_key=TRUE)
+RIMUS23_Drug_Histories$Month <- parse_number(as.character(RIMUS23_Drug_Histories$Month))
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% filter(Treat!="-")
+
+Drugs_lookup <- fread("Drugs_lookup.csv")
+string_Mabs <- paste0("\\b(",paste0(Drugs_lookup$drug_id[Drugs_lookup$drug_class == "CGRP Injectable"], collapse = "|"),")\\b")
+
+First_Mab <- RIMUS23_Drug_Histories %>% filter(grepl(string_Mabs, Treat)) %>% group_by(patient) %>% filter(Month==min(Month))
+
+First_Mab <- separate_rows(First_Mab, Treat, sep = ",", convert=T )
+First_Mab <- First_Mab %>% select(patient, weight, Treat) %>% filter(grepl(string_Mabs, Treat))
+
+First_Mab %>% ungroup() %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) 
+
+First_Mab %>% left_join(Drugs_lookup %>% select(drug_id, generic) %>% mutate(drug_id=as.numeric(drug_id)), by=c("Treat"="drug_id")) %>%
+  ungroup() %>% group_by(generic) %>% summarise(n= 100 * sum(as.numeric(weight) /  1087653))
+
+
+# ------------------------
+# Stock month60 if not considering muscle relaxants ---------------
+
+RIMUS23_Drug_Histories <- read.table("RIMUS23_Drug_Histories_NEW_short_2.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Drug_Histories <- gather(RIMUS23_Drug_Histories, Month, Treat, `X1`:`X60`, factor_key=TRUE)
+RIMUS23_Drug_Histories$Month <- parse_number(as.character(RIMUS23_Drug_Histories$Month))
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% arrange(patient, Month)
+
+Drugs_lookup <- fread("Drugs_lookup.csv")
+unique(Drugs_lookup$drug_class)
+string_Orals <- paste0("\\b(",paste0(Drugs_lookup$drug_id[Drugs_lookup$drug_class == "CGRP Oral"], collapse = "|"),")\\b")
+string_Mabs <- paste0("\\b(",paste0(Drugs_lookup$drug_id[Drugs_lookup$drug_class == "CGRP Injectable"], collapse = "|"),")\\b")
+string_Preventive <- paste0("\\b(",paste0(Drugs_lookup$drug_id[Drugs_lookup$drug_group == "Preventive" & Drugs_lookup$drug_class != "Muscle Relaxant"], collapse = "|"),")\\b")
+string_Acute <- paste0("\\b(",paste0(Drugs_lookup$drug_id[Drugs_lookup$drug_group == "Triptans"], collapse = "|"),")\\b")
+string_Symptomatic <- paste0("\\b(",paste0(Drugs_lookup$drug_id[Drugs_lookup$drug_group == "Symptomatic"], collapse = "|"),")\\b")
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% filter(Month==60)
+
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% mutate(Box=ifelse(grepl(string_Orals, Treat), "O",
+                                      ifelse(grepl(string_Mabs, Treat), "I",
+                                             ifelse(grepl(string_Preventive, Treat) & grepl(string_Acute, Treat), "K",
+                                                    ifelse(grepl(string_Preventive, Treat) & grepl(string_Symptomatic, Treat), "Y",
+                                                           ifelse(grepl(string_Preventive, Treat), "P",
+                                                                  ifelse(grepl(string_Acute, Treat), "T",
+                                                                         ifelse(grepl(string_Symptomatic, Treat), "S", "X"))))))))
+
+
+Boxes_V3 <- RIMUS23_Drug_Histories
+
+Boxes_V3 %>% group_by(Box) %>% summarise(n=sum(as.numeric(weight))) 
+
+sum(as.numeric(Boxes_V3$weight))
+
+# -----------

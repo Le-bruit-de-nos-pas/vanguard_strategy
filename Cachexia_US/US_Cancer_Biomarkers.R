@@ -861,3 +861,55 @@ fwrite(ignore, "ignore2.csv")
 
 
 # -------------------------------------
+# Breast Cancer, Metastatic, All, Hormonal Therapy exo, drugs month over month ---------
+New_Primary_Cancer_Box <- fread("Source/New_Primary_Cancer_Box.txt", sep="\t")
+
+setDT(New_Primary_Cancer_Box)
+
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box[
+  Primary_Cancer %in% c("Breast Cancer"),
+  .(patid, Primary_Cancer)
+]
+
+
+PONS_Demographics <- fread("Source/PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% select(patid, weight, cancer_metastasis) %>% drop_na() %>% select(patid, weight) 
+
+PONS_Demographics <- PONS_Demographics %>% inner_join(New_Primary_Cancer_Box) %>% select(patid, weight)
+
+sum(as.numeric(PONS_Demographics$weight)) # 1424476
+
+
+CAN_Drug_Histories <- fread("Source/CAN Drug Histories.txt")
+CAN_Drug_Histories <- setDT(CAN_Drug_Histories)[PONS_Demographics[, .(patid)], on = c("patient"="patid"), nomatch = 0]
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+setDT(CAN_Drug_Histories)
+CAN_Drug_Histories <- unique(CAN_Drug_Histories[Treat != "-", .(patient, Month, Treat)])
+
+PONS_Ingredients_JN_ChemoClass <- fread("Source/PONS_Ingredients_JN_ChemoClass.csv", colClasses = "character")
+string_Hormonal <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[PONS_Ingredients_JN_ChemoClass$chemo_class=="Hormonal Therapy"], collapse = "|"),")\\b")
+
+Hormone_mets_pats <- CAN_Drug_Histories %>% filter(grepl(string_Hormonal, Treat)) %>% select(patient) %>% distinct()
+
+Hormone_mets_pats %>% left_join(PONS_Demographics, by=c("patient"="patid")) %>% summarise(n=sum(as.numeric(weight))) # 777760.6
+
+CAN_Drug_Histories <- Hormone_mets_pats %>% left_join(CAN_Drug_Histories)
+
+CAN_Drug_Histories <- separate_rows(CAN_Drug_Histories, Treat, sep = ",", convert=T)
+
+PONS_Ingredients_JN_ChemoClass <- setDT(PONS_Ingredients_JN_ChemoClass)[indication == "Cancer", .(molecule, generic_name)]
+PONS_Ingredients_JN_ChemoClass$molecule <- as.numeric(PONS_Ingredients_JN_ChemoClass$molecule)
+
+
+temp <- CAN_Drug_Histories %>% mutate(Month=parse_number(as.character(Month))) %>%
+  left_join(PONS_Ingredients_JN_ChemoClass, by=c("Treat"="molecule")) %>% drop_na() %>%
+  select(patient, Month, generic_name) %>% distinct() %>%
+  left_join(PONS_Demographics %>% rename("patient"="patid")) %>%
+  group_by(Month, generic_name) %>% summarise(n=sum(as.numeric(weight))) %>%
+  spread(key=Month, value=n)
+
+temp[is.na(temp)] <- 0
+
+fwrite(temp, "Breast_HormonalExp_Mets_drugMonthoverMonth.csv")
+
+# ---------

@@ -9282,3 +9282,278 @@ summary(glm(GLP1_Oral ~ . , data=temp))
 
 
 # ----------------
+# Predict a rybelsus patient ------------------
+
+library(tidyverse)
+library(data.table)
+library(hacksaw)
+library(splitstackshape)
+library(spatstat)
+library(lubridate)
+options(scipen = 999)
+
+DANU_Ingredients <- fread("DIA Analysis Results 1.1/DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+DANU_Ingredients <- DANU_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+
+string_Biguanide       <- paste0("\\b(",paste0(DANU_Ingredients$molecule[DANU_Ingredients$drug_group == "Biguanide"], collapse = "|"),")\\b")
+string_Antidiabetic    <- paste0("\\b(",paste0(DANU_Ingredients$molecule[DANU_Ingredients$drug_group == "Antidiabetic"], collapse = "|"),")\\b")
+string_DPP4            <- paste0("\\b(",paste0(DANU_Ingredients$molecule[DANU_Ingredients$drug_group == "DPP4"], collapse = "|"),")\\b")
+string_SGLT2           <- paste0("\\b(",paste0(DANU_Ingredients$molecule[DANU_Ingredients$drug_group == "SGLT2"], collapse = "|"),")\\b")
+string_Insulin         <- paste0("\\b(",paste0(DANU_Ingredients$molecule[DANU_Ingredients$drug_group == "Insulin"], collapse = "|"),")\\b")
+string_OralGLP1        <- paste0("\\b(",paste0(DANU_Ingredients$molecule[DANU_Ingredients$drug_group == "GLP1 Oral"], collapse = "|"),")\\b")
+string_InjectableGLP1  <- paste0("\\b(",paste0(DANU_Ingredients$molecule[DANU_Ingredients$drug_group == "GLP1 Injectable"], collapse = "|"),")\\b")
+
+DIA_Flows_Aux_Long <- fread("DIA Analysis Results 1.1/DIA_Flows_Aux_Long.txt", integer64 = "character", stringsAsFactors = F)
+Treatment_exp_Vector <- fread("DIA Analysis Results 1.1/Treatment_exp_Vector.txt")
+DIA_Flows_Aux_Long <- Treatment_exp_Vector %>% inner_join(DIA_Flows_Aux_Long)
+DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% select(patient, weight, p1, p2, d1, d2, flow) 
+DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% filter(p2<49 & p2>=37 )
+
+DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% mutate(BiguanideExp = ifelse(grepl(string_Biguanide,d1)|grepl(string_Biguanide,d2),1,0))
+DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% group_by(patient) %>% mutate(BiguanideExp = cumsum(BiguanideExp))
+DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% group_by(patient) %>% mutate(BiguanideExp = ifelse(BiguanideExp==0,0,1))
+
+DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% mutate(AntidiabeticExp = ifelse(grepl(string_Antidiabetic,d1)|grepl(string_Antidiabetic,d2),1,0))
+DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% group_by(patient) %>% mutate(AntidiabeticExp = cumsum(AntidiabeticExp))
+DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% group_by(patient) %>% mutate(AntidiabeticExp = ifelse(AntidiabeticExp==0,0,1))
+ 
+DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% mutate(DPP4Exp = ifelse(grepl(string_DPP4,d1)|grepl(string_DPP4,d2),1,0))
+DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% group_by(patient) %>% mutate(DPP4Exp = cumsum(DPP4Exp))
+DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% group_by(patient) %>% mutate(DPP4Exp = ifelse(DPP4Exp==0,0,1))
+
+DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% mutate(SGLT2Exp = ifelse(grepl(string_SGLT2,d1)|grepl(string_SGLT2,d2),1,0))
+DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% group_by(patient) %>% mutate(SGLT2Exp = cumsum(SGLT2Exp))
+DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% group_by(patient) %>% mutate(SGLT2Exp = ifelse(SGLT2Exp==0,0,1))
+ 
+DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% mutate(OralExp = ifelse(grepl(string_OralGLP1,d1)|grepl(string_OralGLP1,d2),1,0))
+DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% group_by(patient) %>% mutate(OralExp = ifelse(OralExp==0,0,1))
+ 
+DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% mutate(InjExp = ifelse(grepl(string_InjectableGLP1,d1)|grepl(string_InjectableGLP1,d2),1,0))
+DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% group_by(patient) %>% mutate(InjExp = cumsum(InjExp))
+DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% group_by(patient) %>% mutate(InjExp = ifelse(InjExp==0,0,1))
+
+DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% mutate(InsulinExp = ifelse(grepl(string_Insulin,d1)|grepl(string_Insulin,d2),1,0))
+DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% group_by(patient) %>% mutate(InsulinExp = cumsum(InsulinExp))
+DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% group_by(patient) %>% mutate(InsulinExp = ifelse(InsulinExp==0,0,1))
+
+
+DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% left_join(DIA_Flows_Aux_Long %>% group_by(patient) %>% summarise(N_flows=sum(flow)))
+DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% left_join(
+  DIA_Flows_Aux_Long %>% select(patient, d2) %>% distinct() %>% filter(d2!="-") %>% group_by(patient) %>% count() %>% rename("N_lines"="n"))
+
+
+DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% select(-c(p1, d1, d2, weight))
+
+DANU_Demographics <- fread("DANU Demographics 1.1/DANU Demographics.txt", integer64 = "character", stringsAsFactors = F)
+DANU_Demographics <- DANU_Demographics %>% select(c(patid, age, gender)) %>% rename("patient"="patid")
+DANU_Demographics <- DANU_Demographics %>% mutate(gender=ifelse(gender=="F",1,0))
+
+DIA_Flows_Aux_Long <- DANU_Demographics %>% inner_join(DIA_Flows_Aux_Long)
+
+DANU_Measures <- fread("DANU Measures 1.1/DANU Measures.txt",  integer64 = "character", stringsAsFactors = F)
+DANU_Measures <- DANU_Measures %>% filter(test=="HbA1c Level"|test=="BMI") %>% rename("patient"="patid") %>% 
+  inner_join(DIA_Flows_Aux_Long %>% select(patient) %>% distinct())
+DANU_Measures <- DANU_Measures %>% select(patient, test,  value) %>% distinct()
+DANU_Measures <- DANU_Measures %>% group_by(patient, test) %>% filter(value==max(value)) %>% distinct() %>% ungroup()
+
+
+DANU_Measures <- DANU_Measures %>% filter(test=="HbA1c Level") %>% select(-test) %>% rename("HbA1c"="value") %>%
+  full_join(
+    DANU_Measures %>% filter(test=="BMI") %>% select(-test) %>% rename("BMI"="value")
+  ) %>% distinct() %>% select(patient, HbA1c, BMI) %>% drop_na()
+
+
+DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% inner_join(DANU_Measures %>% select(patient) %>% distinct()) %>% left_join(DANU_Measures)
+
+df <- DIA_Flows_Aux_Long %>% filter(p2==48) %>% select(-p2)
+
+df %>% group_by(OralExp) %>% count()
+
+DANU_Events <- fread("DANU Events 1.1/DANU Events.txt")
+DANU_Events <- DANU_Events %>% filter(grepl("E11", code))
+DANU_Events <- DANU_Events %>% select(patid, claimed) %>% distinct() %>% mutate(claimed=as.Date(claimed)) %>%
+  filter(claimed>="2020-07-01" & claimed<="2021-07-01") %>% group_by(patid) %>% count() %>% rename("Dx_dates"="n")
+
+df <- df %>% left_join(DANU_Events, by=c("patient"="patid")) %>% mutate(Dx_dates=ifelse(is.na(Dx_dates),0,Dx_dates))
+
+
+library(randomForest)
+library(xgboost)
+library(caret)
+
+sum(is.na(df))
+df[is.na(df)] <- 0 
+
+names(df)
+df <- df %>% select(-flow)
+
+train <- df %>% ungroup() %>% sample_n(60000) 
+test <- df %>% ungroup() %>% anti_join(train) 
+
+train %>% group_by(OralExp) %>% count()
+test %>% group_by(OralExp) %>% count()
+
+train <- train %>% select(-c(patient))
+test <- test %>% select(-c(patient))
+
+train <- train %>% group_by(OralExp) %>% sample_n(250) %>% ungroup()
+test <- test %>% group_by(OralExp) %>% sample_n(125, replace = T) %>% ungroup()
+
+train$OralExp <- as.factor(train$OralExp)
+test$OralExp <- as.factor(test$OralExp)
+
+modelAll_1_randomForest <- randomForest(as.factor(OralExp) ~ . , data = train, type="classification")
+
+data.frame(modelAll_1_randomForest$importance) %>% arrange(-MeanDecreaseGini)
+
+predict <- predict(modelAll_1_randomForest, test, type= 'response')
+
+predict <- test %>% bind_cols(data.frame(predict))
+
+predict  %>% group_by(predict, OralExp) %>% count() 
+
+
+library(breakDown)
+library(DALEX)
+library(ranger)
+
+explainer_ranger <- explain(modelAll_1_randomForest, data = train, y =  train$OralExp, label = "model_ranger")
+
+bd_ranger <- predict_parts_break_down(explainer_ranger, new_observation = train[977,])
+head(bd_ranger)
+plot(bd_ranger)
+
+
+bd_ranger <- predict_parts_break_down(explainer_ranger, new_observation = train[232,])
+head(bd_ranger)
+plot(bd_ranger)
+
+
+
+
+
+
+
+
+
+
+shap.score.rank <- function(xgb_model = xgb_mod, shap_approx = TRUE, 
+                            X_train = mydata$train_mm){
+  require(xgboost)
+  require(data.table)
+  shap_contrib <- predict(xgb_model, X_train,
+                          predcontrib = TRUE, approxcontrib = shap_approx)
+  shap_contrib <- as.data.table(shap_contrib)
+  shap_contrib[,BIAS:=NULL]
+  cat('make SHAP score by decreasing order\n\n')
+  mean_shap_score <- colMeans(abs(shap_contrib))[order(colMeans(abs(shap_contrib)), decreasing = T)]
+  return(list(shap_score = shap_contrib,
+              mean_shap_score = (mean_shap_score)))
+}
+
+# a function to standardize feature values into same range
+std1 <- function(x){
+  return ((x - min(x, na.rm = T))/(max(x, na.rm = T) - min(x, na.rm = T)))
+}
+
+
+# prep shap data
+shap.prep <- function(shap  = shap_result, X_train = mydata$train_mm, top_n){
+  require(ggforce)
+  # descending order
+  if (missing(top_n)) top_n <- dim(X_train)[2] # by default, use all features
+  if (!top_n%in%c(1:dim(X_train)[2])) stop('supply correct top_n')
+  require(data.table)
+  shap_score_sub <- as.data.table(shap$shap_score)
+  shap_score_sub <- shap_score_sub[, names(shap$mean_shap_score)[1:top_n], with = F]
+  shap_score_long <- melt.data.table(shap_score_sub, measure.vars = colnames(shap_score_sub))
+  
+  # feature values: the values in the original dataset
+  fv_sub <- as.data.table(X_train)[, names(shap$mean_shap_score)[1:top_n], with = F]
+  # standardize feature values
+  fv_sub_long <- melt.data.table(fv_sub, measure.vars = colnames(fv_sub))
+  fv_sub_long[, stdfvalue := std1(value), by = "variable"]
+  # SHAP value: value
+  # raw feature value: rfvalue; 
+  # standarized: stdfvalue
+  names(fv_sub_long) <- c("variable", "rfvalue", "stdfvalue" )
+  shap_long2 <- cbind(shap_score_long, fv_sub_long[,c('rfvalue','stdfvalue')])
+  shap_long2[, mean_value := mean(abs(value)), by = variable]
+  setkey(shap_long2, variable)
+  return(shap_long2) 
+}
+
+plot.shap.summary <- function(data_long){
+  x_bound <- max(abs(data_long$value))
+  require('ggforce') # for `geom_sina`
+  plot1 <- ggplot(data = data_long)+
+    coord_flip() + 
+    # sina plot: 
+    geom_sina(aes(x = variable, y = value, color = stdfvalue)) +
+    # print the mean absolute value: 
+    geom_text(data = unique(data_long[, c("variable", "mean_value"), with = F]),
+              aes(x = variable, y=-Inf, label = sprintf("%.3f", mean_value)),
+              size = 1, alpha = 0.5,
+              hjust = -0.2, 
+              fontface = "bold") + # bold
+    # # add a "SHAP" bar notation
+    # annotate("text", x = -Inf, y = -Inf, vjust = -0.2, hjust = 0, size = 3,
+    #          label = expression(group("|", bar(SHAP), "|"))) + 
+    scale_color_gradient(low="gold1", high="blue4", 
+                         breaks=c(0,1), labels=c("Low","High")) +
+    theme_bw() + 
+    theme(axis.line.y = element_blank(), axis.ticks.y = element_blank(), # remove axis line
+          legend.position="bottom") + 
+    geom_hline(yintercept = 0) + # the vertical line
+    scale_y_continuous(limits = c(-x_bound, x_bound)) +
+    # reverse the order of features
+    scale_x_discrete(limits = rev(levels(data_long$variable)) 
+    ) + 
+    labs(y = "SHAP value (impact on model output)", x = "", color = "Feature value") 
+  return(plot1)
+}
+
+
+
+
+
+
+var_importance <- function(shap_result, top_n=10)
+{
+  var_importance=tibble(var=names(shap_result$mean_shap_score), importance=shap_result$mean_shap_score)
+  
+  var_importance=var_importance[1:top_n,]
+  
+  ggplot(var_importance, aes(x=reorder(var,importance), y=importance)) + 
+    geom_bar(stat = "identity") + 
+    coord_flip() + 
+    theme_light() + 
+    theme(axis.title.y=element_blank()) 
+}
+
+
+names(train)
+
+model_hd = xgboost(data = as.matrix(train[,-7]),
+                   nround = 5000,
+                   objective = "binary:logistic",
+                   label=as.matrix(train[,7]))  
+
+
+
+shap_result = shap.score.rank(xgb_model = model_hd, 
+                              X_train = as.matrix(train[,-7]),
+                              shap_approx = F)
+
+var_importance(shap_result, top_n=8)
+
+shap_long_hd = shap.prep(X_train = as.matrix(train[,-8]) , top_n = 7)
+
+plot.shap.summary(data_long = shap_long_hd)
+
+
+result <- data.frame(train %>% group_by(OralExp) %>% summarise_all(mean))
+
+result <- data.frame(names(result)) %>% bind_cols(result %>% transpose())
+ 
+# -----------------

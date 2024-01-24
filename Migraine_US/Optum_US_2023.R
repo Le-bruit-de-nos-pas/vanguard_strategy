@@ -9262,3 +9262,53 @@ Boxes_V3 %>% group_by(Box) %>% summarise(n=sum(as.numeric(weight)))
 sum(as.numeric(Boxes_V3$weight))
 
 # -----------
+# Type of migraine flow - Acute vs Preventive - Add Delete Substitute ---------
+Drugs_lookup <- fread("Drugs_lookup.csv")
+
+string_Acute <- paste0("\\b(",paste0(Drugs_lookup$drug_id[Drugs_lookup$drug_group == "Triptans"|Drugs_lookup$drug_group == "Symptomatic"|Drugs_lookup$drug_class == "CGRP Oral"], collapse = "|"),")\\b")
+string_Prev <- paste0("\\b(",paste0(Drugs_lookup$drug_id[Drugs_lookup$drug_group == "CGRP Injectable"|Drugs_lookup$drug_group == "Preventive"], collapse = "|"),")\\b")
+
+All_pats <- fread("ModSev_Pats_V3.txt")
+All_pats <- All_pats %>% filter(group=="ModSev") %>% select(patient)
+flMIG <- fread("MIG_Flows_Aux._Long_v3.txt")
+flMIG <- All_pats %>% left_join(flMIG)
+
+flMIG <- flMIG %>% filter(p2>=49) %>% filter(flow==1)  
+flMIG <- flMIG %>% select(patient,weight,d1,d2,s1,s2,flow, stops)
+
+# Acute Flow 
+
+flMIG <- flMIG[, Acute_d1 := unlist(lapply(d1, function(x) ifelse(str_detect(x, string_Acute), str_c(unlist(str_extract_all(x, string_Acute)), collapse = ","),"")))]
+flMIG <- flMIG[, Acute_d2 := unlist(lapply(d2, function(x) ifelse(str_detect(x, string_Acute), str_c(unlist(str_extract_all(x, string_Acute)), collapse = ","),"")))]
+flMIG <- flMIG[, nr_Acute_d1 := unlist(lapply(d1, function(x) mapply(function (x) sum(str_detect(x, string_Acute)*1), str_split(x,","))))]
+flMIG <- flMIG[, nr_Acute_d2 := unlist(lapply(d2, function(x) mapply(function (x) sum(str_detect(x, string_Acute)*1), str_split(x,","))))]
+flMIG <- flMIG[, nr_AcuteUnq_d1d2 := .(apply(.SD, 1, function(x) sum((unique(unlist(str_split(str_c(x,","),","))) != "")*1))), ,.SDcols = c("Acute_d1","Acute_d2")] 
+flMIG <- flMIG[, Acute_flow_type := ifelse(nr_Acute_d2 < nr_Acute_d1 & nr_AcuteUnq_d1d2 > nr_Acute_d1, "D+S", 
+                                           ifelse(nr_Acute_d2 > nr_Acute_d1 & nr_AcuteUnq_d1d2 > nr_Acute_d2, "A+S",
+                                                  ifelse(nr_Acute_d2 < nr_Acute_d1, "D", 
+                                                         ifelse(nr_Acute_d2 > nr_Acute_d1, "A", 
+                                                                ifelse(nr_Acute_d2 == nr_Acute_d1 & Acute_d2 != Acute_d1, "S","-")))))] 
+
+
+
+# Prev Flow 
+flMIG <- flMIG[, Prev_d1 := unlist(lapply(d1, function(x) ifelse(str_detect(x, string_Prev), str_c(unlist(str_extract_all(x, string_Prev)), collapse = ","),"")))]
+flMIG <- flMIG[, Prev_d2 := unlist(lapply(d2, function(x) ifelse(str_detect(x, string_Prev), str_c(unlist(str_extract_all(x, string_Prev)), collapse = ","),"")))]
+flMIG <- flMIG[, nr_Prev_d1 := unlist(lapply(d1, function(x) mapply(function (x) sum(str_detect(x, string_Prev)*1), str_split(x,","))))]
+flMIG <- flMIG[, nr_Prev_d2 := unlist(lapply(d2, function(x) mapply(function (x) sum(str_detect(x, string_Prev)*1), str_split(x,","))))]
+flMIG <- flMIG[, nr_PrevUnq_d1d2 := .(apply(.SD, 1, function(x) sum((unique(unlist(str_split(str_c(x,","),","))) != "")*1))), ,.SDcols = c("Prev_d1","Prev_d2")] 
+flMIG <- flMIG[, Prev_flow_type := ifelse(nr_Prev_d2 < nr_Prev_d1 & nr_PrevUnq_d1d2 > nr_Prev_d1, "D+S", 
+                                            ifelse(nr_Prev_d2 > nr_Prev_d1 & nr_PrevUnq_d1d2 > nr_Prev_d2, "A+S",
+                                                   ifelse(nr_Prev_d2 < nr_Prev_d1, "D", 
+                                                          ifelse(nr_Prev_d2 > nr_Prev_d1, "A", 
+                                                                 ifelse(nr_Prev_d2 == nr_Prev_d1 & Prev_d2 != Prev_d1, "S","-")))))] 
+
+
+
+flMIG <- flMIG %>% mutate(ACUTE_FLOW=ifelse(Acute_flow_type!="-",1,0)) %>% mutate(PREV_FLOW=ifelse(Prev_flow_type!="-",1,0)) 
+
+flMIG %>% group_by(ACUTE_FLOW, PREV_FLOW) %>% summarise(n=sum(as.numeric(weight)))
+
+data.frame(flMIG %>% filter(stops==0) %>% group_by(Acute_flow_type, Prev_flow_type ) %>% summarise(n=sum(as.numeric(weight))))
+
+# ----------------

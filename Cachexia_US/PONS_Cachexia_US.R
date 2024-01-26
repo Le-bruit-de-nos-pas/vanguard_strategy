@@ -4312,9 +4312,113 @@ temp <- temp %>% mutate(Drop95=ifelse( (Min<(Max*0.95)) & (Month_Min>Month_Max) 
 temp <- temp %>% mutate(Drop90=ifelse( (Min<(Max*0.90)) & (Month_Min>Month_Max) & (Month_Min-Month_Max<=12) & (Month_Min>=49),1,0 ))
 temp <- temp %>% mutate(Drop2_20=ifelse( (Min<(Max*0.98)) & (Month_Min>Month_Max) & (Min<20) & (Month_Min>=49),1,0 ))
 
+temp <- temp %>% mutate(Drop95_long=ifelse(  (Min<(Max*0.95)) & Month_Max>36 & (Month_Min>Month_Max) & (Month_Min>=49),1,0 ))
+temp <- temp %>% mutate(Drop2_5_long=ifelse( (Min<(Max*0.98)) & Month_Max>36 & (Min>(Max*0.95)) & (Month_Min>Month_Max) & (Month_Min>=49),1,0 ))
+
+
+temp %>% select(patid, Drop90, Drop95, Drop2_20, Drop95_long, Drop2_5_long) %>%
+  distinct() %>% group_by(Drop90, Drop95, Drop2_20, Drop95_long, Drop2_5_long) %>% count() %>% mutate(n=n/221739)
+
+
 
 New_Cachexia_Pred <- temp %>% filter(Drop95==1 | Drop90==1 | Drop2_20==1) %>% select(patid) %>% distinct()
-New_Cachexia_Pred <- temp %>% filter( Drop90==1 | Drop2_20==1) %>% select(patid) %>% distinct()
+#New_Cachexia_Pred <- temp %>% filter( Drop90==1 | Drop2_20==1) %>% select(patid) %>% distinct()
+
+
+
+# Not sure if helpful 
+temp %>% filter(Drop95==1 | Drop90==1 | Drop2_20==1) %>% select(patid) %>% distinct() # 50017
+
+
+temp %>% filter(Drop95==1 | Drop90==1 | Drop2_20==1) %>%
+  select(patid) %>% distinct() %>%
+  left_join(temp) %>%
+  filter(Month_Min<49&Month_Min>=37&Min<Max&(Min>=(Max*0.95))) %>%
+  select(patid) %>% distinct() # 39769
+
+
+
+temp %>% filter(Month_Min<49&Month_Min>=37&Min<Max&(Min>=(Max*0.95)))  %>%
+  select(patid) %>% distinct() %>% inner_join(temp %>% filter(Month_Min>=49) %>% select(patid) %>% distinct()) %>%  # 86713
+  inner_join(
+    temp %>% filter(Drop95==1 | Drop90==1 | Drop2_20==1) %>% select(patid) %>% distinct()
+) %>%
+  select(patid) %>% distinct()  # 39769
+# 
+
+ 
+ Other <- temp %>% filter(Drop95_long==1 | Drop2_5_long==1 ) %>% select(patid) %>% distinct()
+
+temp %>% select(patid) %>% distinct() %>% left_join(Pats_to_track_BMI) %>% summarise(n=sum(weight))
+
+New_Cachexia_Pred %>% select(patid) %>% distinct() %>% left_join(Pats_to_track_BMI) %>% summarise(n=sum(weight))
+Other %>% select(patid) %>% distinct() %>% left_join(Pats_to_track_BMI) %>% summarise(n=sum(weight))
+
+Other %>% left_join(Pats_to_track_BMI) %>% select(patid, weight) %>% distinct() %>% 
+  anti_join(
+    New_Cachexia_Pred %>%  left_join(Pats_to_track_BMI) %>%
+             full_join(Pats_to_track_BMI %>% filter(cachexia_onset>="2020-08-01")) %>%
+             distinct() %>% select(patid, weight) %>% distinct()
+  ) %>% 
+   anti_join(Pats_BMI_30) %>%
+  summarise(n=sum(weight)) # 790425.5
+
+
+Other_pats <- Other %>% left_join(Pats_to_track_BMI) %>% select(patid, weight) %>% distinct() %>% 
+  anti_join(
+    New_Cachexia_Pred %>%  left_join(Pats_to_track_BMI) %>%
+             full_join(Pats_to_track_BMI %>% filter(cachexia_onset>="2020-08-01")) %>%
+             distinct() %>% select(patid, weight) %>% distinct()
+  ) %>% 
+   anti_join(Pats_BMI_30)  %>% select(patid)
+
+
+Other_pats %>% inner_join(temp %>% filter(Drop2_5_long==1) %>% select(patid) %>% distinct()) %>%
+  anti_join(
+ Other_pats %>% inner_join(temp %>% filter(Drop95_long==1) %>% select(patid) %>% distinct())
+ ) %>%
+  left_join(Pats_to_track_BMI) %>% summarise(n=sum(weight))
+
+Other_pats %>% select(patid) %>% distinct() %>% left_join(Pats_to_track_BMI) %>% summarise(n=sum(weight))
+
+
+#20-25. 25-30, 30-35, 35+
+
+
+Other_pats %>% inner_join(temp %>% filter(Drop2_5_long==1) %>% select(patid) %>% distinct()) %>%
+  anti_join(
+ Other_pats %>% inner_join(temp %>% filter(Drop95_long==1) %>% select(patid) %>% distinct())
+ ) %>% 
+  left_join(temp %>% filter(Month_Max>36)) %>% select(patid,  Min) %>%
+  group_by(patid)  %>% filter(Min==min(Min)) %>% slice(1) %>% ungroup() %>%
+   anti_join(Pats_BMI_30) %>%
+  left_join(Pats_to_track_BMI) %>% select(patid, Min, weight) %>% distinct() %>% 
+  mutate(Min=ifelse(Min<20, "<20", 
+                    ifelse(Min<22.5, "<22.5",
+                           ifelse(Min<25, "<25",
+                                  ifelse(Min<27.5, "<27.5",
+                                         ifelse(Min<30, "<30",
+                                                ifelse(Min>30, ">=30", NA))))))) %>%
+  group_by(Min) %>% summarise(pop=sum(weight)) 
+
+
+
+
+
+data.frame(New_Cachexia_Pred %>%  left_join(Pats_to_track_BMI) %>%
+             full_join(Pats_to_track_BMI %>% filter(cachexia_onset>="2020-08-01")) %>%
+   anti_join(Pats_BMI_30) %>%
+             distinct()  %>%
+  group_by(diagnosis) %>%
+  summarise(n=sum(weight)))
+
+
+data.frame(Other_pats %>%  left_join(Pats_to_track_BMI) %>%
+             distinct()  %>%
+  group_by(diagnosis) %>%
+  summarise(n=sum(weight)))
+
+
 
 
 
@@ -4347,7 +4451,7 @@ CachexiaPats_ALL_NEW <- fread("CachexiaPats_ALL_NEW.txt")
 # WHO HAS BMI>30 ?
 PONS_Measures <- fread("PONS_Measures_short.txt", sep="\t")
 PONS_Measures <- PONS_Measures %>% filter(test=="BMI")
-PONS_Measures <- New_Cachexia_Pred %>% left_join(PONS_Measures) %>% select(patid, claimed, value)
+PONS_Measures <- temp %>% select(patid) %>% distinct() %>% left_join(PONS_Measures) %>% select(patid, claimed, value)
 PONS_Measures$claimed <- as.Date(PONS_Measures$claimed)
 
 PONS_Measures <- PONS_Measures %>% group_by(patid) %>%  filter(value==min(value))
@@ -15166,3 +15270,445 @@ CAN_Drug_Histories_2  %>% select(patient, weight, cancer_metastasis) %>% distinc
 # Antiemetic -> 6.60     Antiemetic non-Mets ->  4.63
 
 # ---------
+# Time from Cancer Dx to Cachexia Pred to Cachexia Dx to Death ------------
+
+# First Cachexia Predicted
+CachexiaPats_ALL_NEW <- fread("CachexiaPats_ALL_NEW.txt")
+
+temp_max <- fread("MAX_Cachexia_BMI_Wide.txt", sep="\t", header = T)
+temp_min <- fread("MIN_Cachexia_BMI_Wide.txt", sep="\t", header = T)
+
+temp_max <- melt(temp_max) %>% drop_na() %>% arrange(patid)
+names(temp_max)[2] <- "Month_Max"
+names(temp_max)[3] <- "Max"
+temp_max$Month_Max <- as.numeric(temp_max$Month_Max)
+temp_min <- melt(temp_min) %>% drop_na() %>% arrange(patid)
+names(temp_min)[2] <- "Month_Min"
+names(temp_min)[3] <- "Min"
+temp_min$Month_Min <- as.numeric(temp_min$Month_Min)
+temp <- temp_max %>% left_join(temp_min)
+temp <- temp %>% ungroup() %>% filter(Month_Min>Month_Max)
+temp <- temp %>% mutate(Drop95=ifelse( (Min<(Max*0.95)) & (Month_Min>Month_Max) & (Month_Min-Month_Max<=6),1,0 ))
+temp <- temp %>% mutate(Drop90=ifelse( (Min<(Max*0.90)) & (Month_Min>Month_Max) & (Month_Min-Month_Max<=12),1,0 ))
+temp <- temp %>% mutate(Drop2_20=ifelse( (Min<(Max*0.98)) & (Month_Min>Month_Max) & (Min<20),1,0 ))
+
+New_Cachexia_Pred_Month <- temp %>% filter( Drop90==1 | Drop2_20==1) %>% group_by(patid) %>%
+  filter(Month_Min==min(Month_Min)) %>%  select(patid, Month_Min) %>% distinct()
+names(New_Cachexia_Pred_Month)[2] <- "First_Cachexia_Pred"
+
+# First Cachexia Dx
+PONS_Dossiers <- fread("PONS Dossiers.txt")
+Months_lookup <- fread("Months_lookup.txt",  integer64 = "character", stringsAsFactors = F)
+Months_lookup$Month <- paste0(Months_lookup$Month,"-1")
+Months_lookup$Month <- as.Date(Months_lookup$Month)
+Months_lookup$Month <- format(as.Date(Months_lookup$Month), "%Y-%m")
+Months_lookup$Month <- as.character(Months_lookup$Month)
+
+PONS_Dossiers <- PONS_Dossiers %>% filter(condition=="Cachexia") %>% 
+  inner_join(New_Cachexia_Pred_Month %>% select(patid)) %>%
+  select(patid, earliest) %>% mutate(earliest=as.Date(earliest))  
+
+PONS_Dossiers <- PONS_Dossiers %>% drop_na() %>% mutate(earliest =as.character(earliest ))
+PONS_Dossiers <- PONS_Dossiers %>% mutate(earliest =str_sub(earliest , 1L, 7L))
+PONS_Dossiers <- PONS_Dossiers %>% left_join(Months_lookup, by=c("earliest"="Month")) 
+names(PONS_Dossiers)[3] <- "First_Cachexia_Dx"
+PONS_Dossiers <- PONS_Dossiers %>% select(-earliest)
+
+# Cancer Onset and Death
+PONS_Demographics <- fread("PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% select(patid, cancer_onset, death_date)
+
+PONS_Demographics <- PONS_Demographics %>% 
+  mutate(cancer_onset =as.character(cancer_onset )) %>% 
+  mutate(cancer_onset =str_sub(cancer_onset , 1L, 7L)) %>% 
+  left_join(Months_lookup, by=c("cancer_onset"="Month"))  %>%
+  rename("Cancer_Dx"="Exact_Month") %>% select(-cancer_onset) %>%
+  mutate(death_date  =as.character(death_date  )) %>% 
+  mutate(death_date  =str_sub(death_date  , 1L, 7L)) %>% 
+  left_join(Months_lookup, by=c("death_date"="Month"))  %>%
+  rename("Death"="Exact_Month") %>% select(-death_date) 
+
+  
+PONS_Demographics %>% select(-Death) %>%
+  inner_join(New_Cachexia_Pred_Month) %>% 
+  drop_na() %>% summarise(n=mean(First_Cachexia_Pred-Cancer_Dx)) # 3.983182 # 7.262454
+
+
+PONS_Demographics %>% select(-Death) %>%
+  inner_join(New_Cachexia_Pred_Month) %>% 
+  drop_na() %>% mutate(elapsed=First_Cachexia_Pred-Cancer_Dx) %>%
+  ggplot(aes(elapsed)) +
+  geom_density(size=1, fill="deepskyblue4", color="deepskyblue4", alpha=0.6) +
+  xlim(-30,30) +
+  theme_minimal() +
+  xlab("\n Number of Elapsed Months \n Cancer Onset to Cachexia Observation") +
+  ylab("Patient density \n")
+
+
+PONS_Dossiers %>%  inner_join(New_Cachexia_Pred_Month) %>% 
+  drop_na() %>% summarise(n=mean(as.numeric(First_Cachexia_Dx) -as.numeric(First_Cachexia_Pred))) # 13.2577
+
+
+
+PONS_Dossiers %>%  inner_join(New_Cachexia_Pred_Month) %>% 
+  drop_na() %>% mutate(elapsed=First_Cachexia_Dx-First_Cachexia_Pred) %>%
+  ggplot(aes(elapsed)) +
+  geom_density(size=1, fill="deepskyblue4", color="deepskyblue4", alpha=0.6) +
+  xlim(-30,60) +
+  theme_minimal() +
+  xlab("\n Number of Elapsed Months \n Cachexia Observation to Cachexia Dx") +
+  ylab("Patient density \n")
+
+
+PONS_Dossiers %>%  inner_join(PONS_Demographics %>% select(-Cancer_Dx)) %>% 
+  drop_na() %>% summarise(n=mean(Death -First_Cachexia_Dx)) # 6.889879
+
+# --------------
+
+
+
+# Pre-cachexia sizing V2 ------------------
+At_risk <-  temp %>% filter(Month_Min<49&Month_Min>=37&Min<Max&(Min>=(Max*0.95))&(Min<(Max*0.98)))  %>% 
+  select(patid) %>% distinct() %>% inner_join(temp %>% filter(Month_Min>=49) %>% select(patid) %>% distinct())
+
+Developed <- temp %>% filter(Month_Min<49&Month_Min>=37&Min<Max&(Min>=(Max*0.95))&(Min<(Max*0.98)))  %>% select(patid) %>% distinct() %>% # 86713
+  inner_join(
+    temp %>% filter(Drop95==1 | Drop90==1 | Drop2_20==1) %>% select(patid) %>% distinct()
+) %>%
+  select(patid) %>% distinct()  # 39769
+ 
+Developed$group <- "Yes"
+
+At_risk <- At_risk %>% left_join(Developed) %>% mutate(group=ifelse(is.na(group), "No", group))
+
+At_risk %>% group_by(group) %>% count()
+
+
+
+temp %>% select(patid, Month_Min, Min) %>% distinct() %>%
+  filter(Month_Min>=24) %>%
+  inner_join(At_risk %>% select(patid, group)) %>%
+  ggplot(aes(Month_Min, Min, colour=as.factor(group), fill=as.factor(group))) +
+  geom_smooth()  +
+  theme_minimal() +
+  xlab("\n Exact Month") + ylab("Minimum BMI reached \n") +
+  scale_colour_manual(values=c("deepskyblue4", "firebrick")) +
+  scale_fill_manual(values=c("deepskyblue4", "firebrick")) 
+
+
+
+At_risk <- At_risk %>% left_join(temp %>% filter(Month_Min>=49) %>% select(patid, Month_Min) %>% distinct() %>% group_by(patid) %>% count() %>% rename("Y5_recs" = "n")) 
+
+
+At_risk <- At_risk %>% left_join(Pats_to_track_BMI %>% select(patid, diagnosis, cancer_metastasis))
+
+At_risk <- At_risk %>% mutate(diagnosis=str_replace(diagnosis, " Cancer", ""))
+
+At_risk %>% group_by(group, diagnosis) %>% count()  %>% spread(key=diagnosis, value=n)
+
+At_risk %>% group_by(group, cancer_metastasis) %>% count()  %>% spread(key=cancer_metastasis, value=n)
+
+PONS_Demographics <- fread("PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% select(patid, age, gender)
+
+At_risk <- At_risk %>% left_join(PONS_Demographics)
+
+At_risk <- At_risk %>% mutate(gender=ifelse(gender=="M", 1, 0))
+At_risk <- At_risk %>% mutate(group=ifelse(group=="Yes", 1, 0))
+
+
+# PONS_Measures <- fread("PONS Measures.txt", sep="\t")
+# 
+# PONS_Measures <- PONS_Measures %>% group_by(patid, test) %>% mutate(claimed=as.Date(claimed)) %>%
+#   filter(claimed==max(claimed)) %>% filter(value==max(value))
+
+
+At_risk <- At_risk %>% left_join(
+  temp %>% filter(Month_Min>=49) %>% group_by(patid) %>% filter(Month_Min==max(Month_Min)) %>%
+  filter(Min==min(Min)) %>% select(patid, Min) %>% distinct()
+) 
+
+
+PONS_Events <- fread("PONS Events.txt")
+range(PONS_Events$claimed)
+
+PONS_Events <- PONS_Events %>% select(patid, claimed) %>% distinct() %>% 
+  filter(claimed>="2020-08-01") %>% group_by(patid) %>% count()
+
+names(PONS_Events)[2] <- "N_Dxs"
+
+At_risk <- At_risk %>% left_join(PONS_Events)
+sum(is.na(At_risk$N_Dxs))
+At_risk[is.na(At_risk)] <- 0
+
+At_risk <- At_risk %>% mutate(exp=1) %>% distinct() %>% spread(key=diagnosis, value=exp)
+At_risk[is.na(At_risk)] <- 0
+
+
+CAN_Drug_Histories <- fread("CAN Drug Histories.txt")
+CAN_Drug_Histories <- CAN_Drug_Histories %>% select(patient, weight, month49:month60)
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Drugs, month49:month60, factor_key=TRUE)
+CAN_Drug_Histories <- CAN_Drug_Histories %>% filter(Drugs!="-")
+CAN_Drug_Histories <- separate_rows(CAN_Drug_Histories, Drugs, sep = ",", convert=T)
+
+PONS_Ingredients <- fread("PONS Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+PONS_Ingredients_JN_ChemoClass <- fread("PONS Ingredients JN with chemo class.txt", integer64 = "character", stringsAsFactors = F)
+
+PONS_Ingredients_JN_ChemoClass <- PONS_Ingredients_JN_ChemoClass %>% 
+  select(generic_name, drug_class, chemo_class) %>% mutate(chemo_class = ifelse(chemo_class=="none",drug_class, chemo_class)) %>%
+  select(generic_name, chemo_class) %>%  left_join(PONS_Ingredients)
+
+PONS_Ingredients_JN_ChemoClass <- PONS_Ingredients_JN_ChemoClass %>%  separate(drug_id, c('group', 'molecule'))
+PONS_Ingredients_JN_ChemoClass <- PONS_Ingredients_JN_ChemoClass %>% filter(indication=="Cancer") %>% select(molecule, chemo_class)
+PONS_Ingredients_JN_ChemoClass$molecule <- as.numeric(PONS_Ingredients_JN_ChemoClass$molecule)
+PONS_Ingredients_JN_ChemoClass <- PONS_Ingredients_JN_ChemoClass %>% filter(chemo_class!="Chemoprotective" & chemo_class!="Death"  & chemo_class!="Hospital Inpatient")
+
+PONS_Ingredients_JN_ChemoClass <- PONS_Ingredients_JN_ChemoClass %>% mutate(chemo_class=str_replace(chemo_class, " ", "_")) %>%
+  mutate(chemo_class=str_replace(chemo_class, "/", "_"))
+
+names(CAN_Drug_Histories)[4] <- "molecule"
+CAN_Drug_Histories <- CAN_Drug_Histories %>% inner_join(PONS_Ingredients_JN_ChemoClass) %>% select(patient, chemo_class) %>% distinct()
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% rename("patid" ="patient") %>% mutate(exp=1) %>% spread(key=chemo_class, value=exp)
+CAN_Drug_Histories[is.na(CAN_Drug_Histories)] <- 0
+
+
+At_risk <- At_risk %>% left_join(CAN_Drug_Histories)
+At_risk[is.na(At_risk)] <- 0
+
+At_risk2 <- At_risk %>% select(-patid)
+
+
+model1 <- glm(group ~ . , data=At_risk2, family = "binomial")
+summary(model1)
+
+
+exp(cbind(coef(model1), confint(model1)))
+
+library(jtools)
+
+plot_summs(model1, plot.distributions = TRUE, inner_ci_level = .9)
+
+
+ORs <- fread("ORs.csv")
+ORs <- ORs %>% arrange(-OR)
+ORs <- ORs %>% mutate(group=ifelse(OR>1&Lower>1&Upper>1, 1,
+                                   ifelse(OR<1&Lower<1&Upper<1,2,3)))
+
+ORs$group <- as.factor(ORs$group)
+
+dotCOLS = c("firebrick","deepskyblue","lightgray")
+barCOLS = c("firebrick","deepskyblue","lightgray")
+
+ORs %>%
+  mutate(Var=fct_reorder(Var, OR)) %>%
+  ggplot(aes(x=Var, y=OR, ymin=Lower, ymax=Upper,col=group,fill=group)) + 
+  geom_linerange(size=5,position=position_dodge(width = 0.5), alpha=0.5) +
+  geom_hline(yintercept=1, lty=2) +
+  geom_point(size=3, shape=21, colour="white", stroke = 0.5,position=position_dodge(width = 0.5)) +
+  scale_fill_manual(values=barCOLS)+
+  scale_color_manual(values=dotCOLS)+
+  scale_x_discrete(name="(Post)operative outcomes") +
+  scale_y_continuous(name="Odds ratio", limits = c(0.5, 2.2)) +
+  coord_flip() +
+  theme_minimal()
+
+
+library(randomForest)
+library(xgboost)
+library(caret)
+
+
+shap.score.rank <- function(xgb_model = xgb_mod, shap_approx = TRUE, 
+                            X_train = mydata$train_mm){
+  require(xgboost)
+  require(data.table)
+  shap_contrib <- predict(xgb_model, X_train,
+                          predcontrib = TRUE, approxcontrib = shap_approx)
+  shap_contrib <- as.data.table(shap_contrib)
+  shap_contrib[,BIAS:=NULL]
+  cat('make SHAP score by decreasing order\n\n')
+  mean_shap_score <- colMeans(abs(shap_contrib))[order(colMeans(abs(shap_contrib)), decreasing = T)]
+  return(list(shap_score = shap_contrib,
+              mean_shap_score = (mean_shap_score)))
+}
+
+# a function to standardize feature values into same range
+std1 <- function(x){
+  return ((x - min(x, na.rm = T))/(max(x, na.rm = T) - min(x, na.rm = T)))
+}
+
+
+# prep shap data
+shap.prep <- function(shap  = shap_result, X_train = mydata$train_mm, top_n){
+  require(ggforce)
+  # descending order
+  if (missing(top_n)) top_n <- dim(X_train)[2] # by default, use all features
+  if (!top_n%in%c(1:dim(X_train)[2])) stop('supply correct top_n')
+  require(data.table)
+  shap_score_sub <- as.data.table(shap$shap_score)
+  shap_score_sub <- shap_score_sub[, names(shap$mean_shap_score)[1:top_n], with = F]
+  shap_score_long <- melt.data.table(shap_score_sub, measure.vars = colnames(shap_score_sub))
+  
+  # feature values: the values in the original dataset
+  fv_sub <- as.data.table(X_train)[, names(shap$mean_shap_score)[1:top_n], with = F]
+  # standardize feature values
+  fv_sub_long <- melt.data.table(fv_sub, measure.vars = colnames(fv_sub))
+  fv_sub_long[, stdfvalue := std1(value), by = "variable"]
+  # SHAP value: value
+  # raw feature value: rfvalue; 
+  # standarized: stdfvalue
+  names(fv_sub_long) <- c("variable", "rfvalue", "stdfvalue" )
+  shap_long2 <- cbind(shap_score_long, fv_sub_long[,c('rfvalue','stdfvalue')])
+  shap_long2[, mean_value := mean(abs(value)), by = variable]
+  setkey(shap_long2, variable)
+  return(shap_long2) 
+}
+
+plot.shap.summary <- function(data_long){
+  x_bound <- max(abs(data_long$value))
+  require('ggforce') # for `geom_sina`
+  plot1 <- ggplot(data = data_long)+
+    coord_flip() + 
+    # sina plot: 
+    geom_sina(aes(x = variable, y = value, color = stdfvalue)) +
+    # print the mean absolute value: 
+    geom_text(data = unique(data_long[, c("variable", "mean_value"), with = F]),
+              aes(x = variable, y=-Inf, label = sprintf("%.3f", mean_value)),
+              size = 1, alpha = 0.5,
+              hjust = -0.2, 
+              fontface = "bold") + # bold
+    # # add a "SHAP" bar notation
+    # annotate("text", x = -Inf, y = -Inf, vjust = -0.2, hjust = 0, size = 3,
+    #          label = expression(group("|", bar(SHAP), "|"))) + 
+    scale_color_gradient(low="gold1", high="blue4", 
+                         breaks=c(0,1), labels=c("Low","High")) +
+    theme_bw() + 
+    theme(axis.line.y = element_blank(), axis.ticks.y = element_blank(), # remove axis line
+          legend.position="bottom") + 
+    geom_hline(yintercept = 0) + # the vertical line
+    scale_y_continuous(limits = c(-x_bound, x_bound)) +
+    # reverse the order of features
+    scale_x_discrete(limits = rev(levels(data_long$variable)) 
+    ) + 
+    labs(y = "SHAP value (impact on model output)", x = "", color = "Feature value") 
+  return(plot1)
+}
+
+
+
+
+
+
+var_importance <- function(shap_result, top_n=10)
+{
+  var_importance=tibble(var=names(shap_result$mean_shap_score), importance=shap_result$mean_shap_score)
+  
+  var_importance=var_importance[1:top_n,]
+  
+  ggplot(var_importance, aes(x=reorder(var,importance), y=importance)) + 
+    geom_bar(stat = "identity") + 
+    coord_flip() + 
+    theme_light() + 
+    theme(axis.title.y=element_blank()) 
+}
+
+
+names(At_risk2)
+
+model_hd = xgboost(data = as.matrix(At_risk2[,-1]),
+                   nround = 1000,
+                   objective = "binary:logistic",
+                   label=as.matrix(At_risk2[,1]))  
+
+
+
+shap_result = shap.score.rank(xgb_model = model_hd, 
+                              X_train = as.matrix(At_risk2[,-1]),
+                              shap_approx = F)
+
+
+var_importance(shap_result, top_n=10)
+
+shap_long_hd = shap.prep(X_train = as.matrix(At_risk2[,-1]) , top_n = 10)
+
+plot.shap.summary(data_long = shap_long_hd)
+
+
+# ---------------
+# Nutritional support usage among cachexia pats -----------
+
+CachexiaPats_ALL_NEW <- fread("CachexiaPats_ALL_NEW.txt") # All cachexia  # 51970
+
+CAN_Drug_Histories <- fread("CAN Drug Histories.txt")
+CachexiaPats_ALL_NEW %>% left_join(CAN_Drug_Histories %>% select(patient, weight), by=c("patid"="patient")) %>% summarise(n=sum(weight))
+
+CancerDrug_Experienced <- fread("CancerDrug_Experienced.txt", sep="\t")
+CancerDrug_Experienced <- CancerDrug_Experienced %>% inner_join(CachexiaPats_ALL_NEW)  # 30606
+
+CAN_Drug_Histories <- CancerDrug_Experienced %>% inner_join(CAN_Drug_Histories, by=c("patid"="patient"))
+CAN_Drug_Histories <- CAN_Drug_Histories %>% select(-disease)
+names(CAN_Drug_Histories)[1] <- "patient"
+
+sum(CAN_Drug_Histories$weight) # 935784.2
+
+
+PONS_Ingredients <- fread("PONS Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+PONS_Ingredients <- PONS_Ingredients %>%  separate(drug_id, c('group', 'molecule'))
+
+
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
+CAN_Drug_Histories$Month <- as.character(CAN_Drug_Histories$Month)
+CAN_Drug_Histories$Month <- parse_number(CAN_Drug_Histories$Month)
+CAN_Drug_Histories <- CAN_Drug_Histories %>% filter(Drugs!="-")
+
+string_Appetite <- paste0("\\b(",paste0(PONS_Ingredients$molecule[PONS_Ingredients$generic_name %in% c("Testosterone", "Nutrition Therapy", "Cyproheptadine", "Dronabinol", "Medroxyprogesterone", "Megestrol")], collapse = "|"),")\\b")
+
+Appetite_Exp <- CAN_Drug_Histories %>% filter(grepl(string_Appetite, Drugs)) %>% select(patient, weight) %>% distinct()
+sum(Appetite_Exp$weight) # 178944.3   
+
+temp <- CAN_Drug_Histories %>% filter(grepl(string_Appetite, Drugs)) %>% group_by(patient) %>% 
+   select(patient, weight, Drugs) %>% distinct()
+temp <- separate_rows(temp, Drugs, sep = ",", convert=T)
+temp <- temp %>% filter(grepl(string_Appetite, Drugs))
+temp <- temp %>% select(patient, Drugs) %>% distinct()
+
+PONS_Ingredients <- fread("PONS Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+PONS_Ingredients <- PONS_Ingredients %>%  separate(drug_id, c('group', 'molecule'))
+PONS_Ingredients$molecule <- as.numeric(PONS_Ingredients$molecule)
+
+temp <- temp %>% left_join(PONS_Ingredients %>% select(molecule, generic_name), by=c("Drugs"="molecule")) %>%
+  select(patient, generic_name) %>% distinct()
+
+
+New_Primary_Cancer_Box <- fread("New_Primary_Cancer_Box.txt", sep="\t")
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% filter(Primary_Cancer!="-")
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% select(patid, Primary_Cancer)
+names(New_Primary_Cancer_Box)[1] <- "patient"
+
+temp <- temp %>% left_join(New_Primary_Cancer_Box)
+
+
+PONS_Demographics <- fread("PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% select(patid, cancer_metastasis) %>% mutate(cancer_metastasis = ifelse(is.na(cancer_metastasis),0,1))
+names(PONS_Demographics)[1] <- "patient"
+
+mets <- PONS_Demographics %>% filter(cancer_metastasis==1) %>% select(patient)
+no_mets <- PONS_Demographics %>% filter(cancer_metastasis==0) %>% select(patient)
+
+
+data.frame(temp %>% inner_join(no_mets) %>% group_by(generic_name, Primary_Cancer) %>% count() %>% ungroup() %>%
+               mutate(Primary_Cancer=str_replace(Primary_Cancer, " Cancer", "")) %>%
+  spread(key=Primary_Cancer, value=n))
+
+data.frame(temp %>%  inner_join(no_mets) %>%  select(-generic_name) %>% distinct() %>% group_by(Primary_Cancer) %>% count() %>% ungroup() %>%
+               mutate(Primary_Cancer=str_replace(Primary_Cancer, " Cancer", "")) %>%
+  spread(key=Primary_Cancer, value=n))
+
+CancerDrug_Experienced %>% left_join(New_Primary_Cancer_Box, by=c("patid"="patient")) %>% inner_join(no_mets, by=c("patid"="patient"))%>%
+  group_by(Primary_Cancer) %>% count()  %>%
+  mutate(Primary_Cancer=str_replace(Primary_Cancer, " Cancer", "")) %>%
+  spread(key=Primary_Cancer, value=n)
+
+
+# -----

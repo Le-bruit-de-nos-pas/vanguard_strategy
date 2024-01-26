@@ -3353,9 +3353,27 @@ head(df_id)
 
 df <- df %>% filter(elapsed>0)
 
-
 df$elapsed <- round(df$elapsed/30.5)
 df_id$Survived  <- round(df_id$Survived/30)
+
+
+PONS_Measures %>% filter(patid=="PT080342362")
+PONS_Demographics  %>% filter(patid=="PT080342362")
+
+
+data.frame(PONS_Measures %>% filter(patid=="PT608087526"))
+PONS_Demographics  %>% filter(patid=="PT608087526")
+
+
+to_remove <- df_id %>%  inner_join(
+  df %>% select(patid, elapsed) %>% distinct() %>% 
+    group_by(patid) %>% summarise(elapsed=max(elapsed)) %>% ungroup() %>% ungroup()
+  ) %>%
+  filter(Survived<elapsed) %>% select(patid) %>% distinct()
+
+
+df <- df %>% anti_join(to_remove)
+df_id <- df_id %>% anti_join(to_remove)
 
 length(unique(df$patid))
 length(unique(df_id$patid))
@@ -3367,6 +3385,17 @@ df <- df %>% left_join(df_id)
 df_short <- df %>% filter(group=="Dx")
 df_id_short <- df_id %>% filter(group=="Dx")
 
+to_remove <- df_id_short %>% filter(Survived==0) %>% select(patid)
+
+df <- df %>% anti_join(to_remove)
+df_id <- df_id %>% anti_join(to_remove)
+
+length(unique(df$patid))
+length(unique(df_id$patid))
+
+
+df_short <- df %>% filter(group=="Dx")
+df_id_short <- df_id %>% filter(group=="Dx")
 
 
 library(nlme)
@@ -3393,13 +3422,21 @@ intervals(lmeFit.p3)
 anova(lmeFit.p2, lmeFit.p3)
 
 
+
 survFit.p1 <- coxph(Surv(Survived, status) ~ 1, data = df_id_short, x = TRUE)  
 
 summary(survFit.p1)
 
-jointFit.p1 <- jointModel(lmeFit.p3, survFit.p1, timeVar = "elapsed", method = "piecewise-PH-aGH")
+jointFit.p1 <- jointModel(lmeFit.p3, survFit.p1, timeVar = "elapsed", method = "Cox-PH-GH")
 
 summary(jointFit.p1)
+
+fixef(jointFit.p1,process="Event") 
+
+coef(jointFit.p1,process="Event")
+
+plot(jointFit.p1, which = 3)
+
 
 
 

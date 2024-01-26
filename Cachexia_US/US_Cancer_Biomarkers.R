@@ -913,3 +913,390 @@ temp[is.na(temp)] <- 0
 fwrite(temp, "Breast_HormonalExp_Mets_drugMonthoverMonth.csv")
 
 # ---------
+
+# Drug usages Palbociclib after metastasis Breast Cancer -------------
+
+New_Primary_Cancer_Box <- fread("Source/New_Primary_Cancer_Box.txt", sep="\t")
+
+setDT(New_Primary_Cancer_Box)
+
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box[
+  Primary_Cancer %in% c("Breast Cancer"),
+  .(patid, Primary_Cancer)
+]
+
+
+PONS_Demographics <- fread("Source/PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% select(patid, weight, cancer_metastasis) %>% drop_na() %>% select(patid, weight, cancer_metastasis) 
+
+
+Months_lookup <- fread("Source/Months_lookup.txt",  integer64 = "character", stringsAsFactors = F)
+
+Months_lookup$Month <- as.character(
+  format(
+    as.Date(
+      paste0(Months_lookup$Month,"-1")
+      ), "%Y-%m"
+    )
+  )
+
+PONS_Demographics[, cancer_metastasis := as.character(cancer_metastasis)][, cancer_metastasis := substr(cancer_metastasis, 1L, 7L)]
+
+PONS_Demographics <- PONS_Demographics[
+  Months_lookup, on = c("cancer_metastasis" = "Month")
+  ][
+    ,.SD, .SDcols = !c("cancer_metastasis")
+    ][, {setnames(.SD, old = "Exact_Month", new = "cancer_metastasis")}]
+
+
+
+PONS_Demographics <- PONS_Demographics %>% inner_join(New_Primary_Cancer_Box) %>% select(patid, weight, cancer_metastasis)
+
+sum(as.numeric(PONS_Demographics$weight)) # 1424476
+
+PONS_Demographics <- PONS_Demographics %>% filter(cancer_metastasis<=36)
+
+CAN_Drug_Histories <- fread("Source/CAN Drug Histories.txt")
+CAN_Drug_Histories <- setDT(CAN_Drug_Histories)[PONS_Demographics[, .(patid)], on = c("patient"="patid"), nomatch = 0]
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+setDT(CAN_Drug_Histories)
+CAN_Drug_Histories <- unique(CAN_Drug_Histories[, .(patient, Month, Treat)])
+
+PONS_Ingredients_JN_ChemoClass <- fread("Source/PONS_Ingredients_JN_ChemoClass.csv", colClasses = "character")
+string_Hormonal <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[PONS_Ingredients_JN_ChemoClass$chemo_class=="Hormonal Therapy"], collapse = "|"),")\\b")
+
+Hormone_mets_pats <- CAN_Drug_Histories %>% filter(grepl(string_Hormonal, Treat)) %>% select(patient) %>% distinct()
+
+Hormone_mets_pats %>% left_join(PONS_Demographics, by=c("patient"="patid")) %>% summarise(n=sum(as.numeric(weight))) 
+
+PONS_Demographics <- Hormone_mets_pats %>% inner_join(PONS_Demographics, by=c("patient"="patid"))
+
+CAN_Drug_Histories <- Hormone_mets_pats %>% left_join(CAN_Drug_Histories)
+
+CAN_Drug_Histories$Month <- parse_number(as.character(CAN_Drug_Histories$Month))
+
+
+CAN_Drug_Histories <- PONS_Demographics %>% left_join(CAN_Drug_Histories) %>% 
+  mutate(Month=Month-cancer_metastasis) %>%
+  filter(Month>=0)
+
+CAN_Drug_Histories %>% group_by(patient) %>% count() %>% arrange(n)
+
+PONS_Ingredients_JN_ChemoClass <- setDT(PONS_Ingredients_JN_ChemoClass)[indication == "Cancer", .(molecule, generic_name, chemo_class)]
+PONS_Ingredients_JN_ChemoClass$molecule <- as.numeric(PONS_Ingredients_JN_ChemoClass$molecule)
+
+CAN_Drug_Histories %>% group_by(patient) %>% count()
+
+CAN_Drug_Histories <- separate_rows(CAN_Drug_Histories, Treat, sep = ",", convert=T)
+
+CAN_Drug_Histories
+PONS_Demographics
+length(unique(CAN_Drug_Histories$patient))
+
+
+
+PONS_Demographics_d <- fread("Source/PONS Demographics.txt")
+PONS_Demographics_d <- PONS_Demographics_d %>% select(patid, death_date) 
+
+Months_lookup <- fread("Source/Months_lookup.txt",  integer64 = "character", stringsAsFactors = F)
+
+Months_lookup$Month <- as.character(
+  format(
+    as.Date(
+      paste0(Months_lookup$Month,"-1")
+      ), "%Y-%m"
+    )
+  )
+
+PONS_Demographics_d[, death_date := as.character(death_date)][, death_date := substr(death_date, 1L, 7L)]
+
+PONS_Demographics_d <- PONS_Demographics_d %>% left_join(Months_lookup, by=c("death_date"="Month"))
+PONS_Demographics_d <- PONS_Demographics_d %>% select(patid, Exact_Month) %>% rename("death_date"="Exact_Month")
+PONS_Demographics_d <- PONS_Demographics_d %>% mutate(death_date=ifelse(is.na(death_date), 61, death_date))
+
+
+Viz <- PONS_Demographics %>% left_join(PONS_Demographics_d, by=c("patient"="patid"))
+
+
+Viz <- data.frame(Viz %>%
+  mutate(month_number = map2(cancer_metastasis , death_date, seq)) %>%
+  unnest(month_number))
+
+data.frame(Viz %>% mutate(month_number=month_number-cancer_metastasis) %>%
+  group_by(month_number) %>% summarise(n=sum(weight)))
+
+length(unique(Viz$patient))
+
+
+unique(CAN_Drug_Histories$cancer_metastasis)
+
+
+length(unique(CAN_Drug_Histories$patient))
+
+head(Viz)
+
+sort(unique(CAN_Drug_Histories$Treat))
+
+data.frame(
+  CAN_Drug_Histories %>%
+  left_join(PONS_Ingredients_JN_ChemoClass %>% mutate(molecule=as.character(molecule)), by=c("Treat"="molecule")) %>% 
+    filter(Treat=="-" | !is.na(generic_name)) %>% filter(Treat!=355) %>%
+  mutate(generic_name=ifelse(is.na(generic_name), "none",
+                             ifelse(generic_name=="Palbociclib", "Palbociclib",
+                                    ifelse(chemo_class %in% c("Biologic", "Immuno/Targeted", "PD1/PDL1"), "OtherTarget", 
+                                           ifelse(chemo_class %in% c("Radio"), "Radio",
+                                                  ifelse(chemo_class %in% c("Hormonal Therapy"), "Hormonal", "Other")))))) %>%
+  distinct() %>%
+  select(patient, weight, Month, generic_name) %>% distinct() %>%
+    mutate(rank=ifelse(generic_name=="Palbociclib", 1,
+                       ifelse(generic_name=="OtherTarget", 2,
+                              ifelse(generic_name=="Radio", 3,
+                                     ifelse(generic_name=="Other", 4,
+                                            ifelse(generic_name=="Hormonal", 5, 
+                                                   ifelse(generic_name=="none",6,7))))))) %>%
+  group_by(patient, weight, Month) %>% filter(rank==min(rank)) %>% ungroup() %>%
+  group_by(Month, generic_name) %>% summarise(n=sum(as.numeric(weight))) %>%
+  spread(key=generic_name, value=n)
+)
+
+
+
+
+
+
+CAN_Drug_Histories %>%
+  left_join(PONS_Ingredients_JN_ChemoClass %>% mutate(molecule=as.character(molecule)), by=c("Treat"="molecule")) %>% 
+    filter(Treat=="-" | !is.na(generic_name)) %>% filter(Treat!=355) %>%
+  mutate(generic_name=ifelse(is.na(generic_name), "none",
+                             ifelse(generic_name=="Palbociclib", "Palbociclib",
+                                    ifelse(chemo_class %in% c("Biologic", "Immuno/Targeted", "PD1/PDL1"), "OtherTarget", 
+                                           ifelse(chemo_class %in% c("Radio"), "Radio",
+                                                  ifelse(chemo_class %in% c("Hormonal Therapy"), "Hormonal", "Other")))))) %>%
+  distinct() %>%
+  select(patient, weight, Month, generic_name) %>% distinct() %>%
+    mutate(rank=ifelse(generic_name=="Palbociclib", 1,
+                       ifelse(generic_name=="OtherTarget", 2,
+                              ifelse(generic_name=="Radio", 3,
+                                     ifelse(generic_name=="Other", 4,
+                                            ifelse(generic_name=="Hormonal", 5, 
+                                                   ifelse(generic_name=="none",6,7))))))) %>%
+  group_by(patient, weight, Month) %>% filter(rank==min(rank)) %>% ungroup() %>% mutate(exp=1) %>%
+  spread(key=generic_name, value=exp) %>% select(-rank) %>% group_by(patient) %>%
+  filter( is.na(Palbociclib) & !is.na(lead(Palbociclib))) %>% ungroup() %>%
+  group_by(Hormonal, none, Other, OtherTarget, Palbociclib, Radio) %>% summarise(n=sum(weight))
+
+
+# Month-over-month -> Source of Drug Palbociclib
+# Month-over-month -> Destination from Drug Palbociclib
+# Profiles of Long term / Short term 
+# Drugs prior to metastasis , age, bmi, sex
+
+temp_df <- CAN_Drug_Histories %>%
+  left_join(PONS_Ingredients_JN_ChemoClass %>% mutate(molecule=as.character(molecule)), by=c("Treat"="molecule")) %>% 
+    filter(Treat=="-" | !is.na(generic_name)) %>% filter(Treat!=355) %>%
+  mutate(generic_name=ifelse(is.na(generic_name), "none",
+                             ifelse(generic_name=="Palbociclib", "Palbociclib",
+                                    ifelse(chemo_class %in% c("Biologic", "Immuno/Targeted", "PD1/PDL1"), "OtherTarget", 
+                                           ifelse(chemo_class %in% c("Radio"), "Radio",
+                                                  ifelse(chemo_class %in% c("Hormonal Therapy"), "Hormonal", "Other")))))) %>%
+  distinct() %>%
+  select(patient, weight, Month, generic_name) %>% distinct() %>%
+    mutate(rank=ifelse(generic_name=="Palbociclib", 1,
+                       ifelse(generic_name=="OtherTarget", 2,
+                              ifelse(generic_name=="Radio", 3,
+                                     ifelse(generic_name=="Other", 4,
+                                            ifelse(generic_name=="Hormonal", 5, 
+                                                   ifelse(generic_name=="none",6,7))))))) %>%
+  group_by(patient, weight, Month) %>% filter(rank==min(rank)) %>% ungroup() %>% mutate(exp=1) %>%
+  spread(key=generic_name, value=exp) %>% select(-rank) %>% group_by(patient)
+
+
+temp_df[is.na(temp_df)] <- 0
+
+
+data.frame(
+  temp_df %>% ungroup() %>% filter(Month<25) %>% group_by(patient) %>%
+  filter( Palbociclib==0 & lead(Palbociclib)==1 ) %>% ungroup() %>%
+  group_by(Month, Hormonal, none, Other, OtherTarget, Palbociclib, Radio) %>% summarise(n=sum(weight)) %>%
+  gather(class, exp, Hormonal:Radio) %>% filter(exp==1) %>%
+  arrange(Month, class) %>% select(-exp) %>%
+  group_by(Month) %>% mutate(total=sum(n)) %>% mutate(n2=round(100*n/total, 1)) %>%
+  select(Month, class, n2) %>% spread(key=class, value=n2)
+)  
+
+#    Month Hormonal none Other OtherTarget Radio
+# 1      0     30.9 51.3   5.7         9.5   2.6
+# 2      1     30.7 24.8  15.8        11.5  17.2
+# 3      2     28.8 14.7  12.1        27.2  17.3
+# 4      3     38.9 13.4  11.5        27.8   8.4
+# 5      4     35.7 13.9  14.7        28.8   6.8
+# 6      5     35.5  7.4  16.7        37.0   3.4
+# 7      6     29.7  6.0  20.8        34.6   8.9
+# 8      7     34.7 12.3   6.0        39.8   7.2
+# 9      8     27.1 19.0  10.4        39.6   3.8
+# 10     9     35.3 13.0   2.5        39.5   9.7
+# 11    10     23.1 17.5  18.5        32.8   8.1
+# 12    11     28.7 20.0  17.0        28.5   5.9
+# 13    12     58.6  7.6   7.3        26.6    NA
+# 14    13     37.1 16.7   6.5        35.8   3.9
+# 15    14     29.0 14.7  11.4        37.9   6.9
+# 16    15     38.6 24.2   7.1        26.4   3.7
+# 17    16     44.1 10.6   8.6        35.3   1.5
+# 18    17     37.2 11.4   9.1        34.2   8.2
+# 19    18     30.6 14.3  12.7        31.1  11.3
+# 20    19     37.1 21.4   2.5        36.2   2.8
+# 21    20     57.1  6.6   1.4        26.3   8.7
+# 22    21     37.8 13.0   9.0        37.5   2.7
+# 23    22     34.2 19.3   2.5        40.3   3.8
+# 24    23     30.1 22.0  18.4        27.6   1.9
+
+
+data.frame(
+  temp_df %>% ungroup() %>% filter(Month<25) %>% group_by(patient) %>%
+  filter( Palbociclib==0 & lead(Palbociclib)==1 ) %>% ungroup() %>%
+  group_by(Month, Hormonal, none, Other, OtherTarget, Palbociclib, Radio) %>% summarise(n=sum(weight)) %>%
+  gather(class, exp, Hormonal:Radio) %>% filter(exp==1) %>%
+  arrange(Month, class) %>% select(-exp) %>%
+  group_by(Month) %>% mutate(total=sum(n)) %>% mutate(n2=round(100*n/total, 1)) %>%
+  select(Month, class, n2) %>% spread(key=class, value=n2)
+)     %>%
+  gather(Class, Pan, Hormonal:Radio) %>%
+  ggplot(aes(Month, Pan, colour=Class, fill=Class)) +
+  geom_smooth() +
+  theme_minimal() +
+  xlab("\n Number of Months After Metastasis \n ") +
+  ylab("Patient Proportion (%) \n") +
+  ggsci::scale_color_jco() +
+  ggsci::scale_fill_jco() 
+
+
+data.frame(
+  temp_df %>% ungroup() %>% filter(Month<25) %>% group_by(patient) %>%
+  filter( Palbociclib==0 & lag(Palbociclib)==1 ) %>% ungroup() %>%
+  group_by(Month, Hormonal, none, Other, OtherTarget, Palbociclib, Radio) %>% summarise(n=sum(weight)) %>%
+  gather(class, exp, Hormonal:Radio) %>% filter(exp==1) %>%
+  arrange(Month, class) %>% select(-exp) %>%
+  group_by(Month) %>% mutate(total=sum(n)) %>% mutate(n2=round(100*n/total, 1)) %>%
+  select(Month, class, n2) %>% spread(key=class, value=n2)
+)   
+
+
+#    Month Hormonal none Other OtherTarget Radio
+# 1      1     27.1 15.3   9.6        42.1   5.9
+# 2      2     22.1 15.7  21.9        33.0   7.2
+# 3      3     41.1  8.5  18.8        25.6   5.9
+# 4      4     26.0 19.2  15.4        35.1   4.3
+# 5      5     32.9 16.0  12.3        34.9   3.8
+# 6      6     26.8 13.5  15.3        41.8   2.6
+# 7      7     22.5 10.9  14.4        48.2   4.0
+# 8      8     22.0 14.2  15.4        43.6   4.8
+# 9      9     17.2  7.2  19.1        51.2   5.3
+# 10    10     22.2 14.2  14.5        44.0   5.1
+# 11    11     26.8 12.8  15.2        43.7   1.6
+# 12    12     25.1  8.6  16.3        47.4   2.6
+# 13    13     15.5 10.2  24.8        45.7   3.8
+# 14    14     38.4  9.4   8.5        43.7    NA
+# 15    15     29.1 13.5  16.6        34.4   6.4
+# 16    16     24.1  9.3  12.4        52.0   2.1
+# 17    17     25.6 15.9  13.5        40.3   4.7
+# 18    18     23.9 16.7  13.5        42.2   3.7
+# 19    19     34.4 11.9   4.8        41.2   7.8
+# 20    20     26.9  8.1  14.2        48.4   2.4
+# 21    21     21.6 17.6  15.6        40.6   4.6
+# 22    22     22.8 20.9  14.2        42.2    NA
+# 23    23     31.3 14.6  15.7        36.5   1.8
+# 24    24     22.6 17.0  20.8        35.5   4.1
+
+
+data.frame(
+  temp_df %>% ungroup() %>% filter(Month<25) %>% group_by(patient) %>%
+  filter( Palbociclib==0 & lag(Palbociclib)==1 ) %>% ungroup() %>%
+  group_by(Month, Hormonal, none, Other, OtherTarget, Palbociclib, Radio) %>% summarise(n=sum(weight)) %>%
+  gather(class, exp, Hormonal:Radio) %>% filter(exp==1) %>%
+  arrange(Month, class) %>% select(-exp) %>%
+  group_by(Month) %>% mutate(total=sum(n)) %>% mutate(n2=round(100*n/total, 1)) %>%
+  select(Month, class, n2) %>% spread(key=class, value=n2)
+)   %>%
+  gather(Class, Pan, Hormonal:Radio) %>%
+  ggplot(aes(Month, Pan, colour=Class, fill=Class)) +
+  geom_smooth() +
+  theme_minimal() +
+  xlab("\n Number of Months After Metastasis \n ") +
+  ylab("Patient Proportion (%) \n") +
+  ggsci::scale_color_jco() +
+  ggsci::scale_fill_jco() 
+
+Palbociclib_months_N <-  temp_df %>% filter(Palbociclib==1) %>% group_by(patient, weight) %>% count()
+
+PONS_Demographics <- fread("Source/PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% select(patid, age, gender, died) 
+names(PONS_Demographics)[1] <- "patient"
+
+Palbociclib_months_N %>% inner_join(PONS_Demographics) %>%
+  ggplot(aes(age,n)) +
+  geom_jitter(alpha=0.5,size=0.2) +
+  geom_smooth() +
+  theme_minimal() +
+  xlab("\n Age") + ylab("Number of Months ON Palbociclib \n")
+
+Palbociclib_months_N %>% inner_join(PONS_Demographics) %>%
+  group_by(died) %>% summarise(mean=mean(n))
+
+
+Palbociclib_months_N %>% inner_join(PONS_Demographics) %>%
+  ggplot(aes(x=n)) + 
+ geom_density(fill="deepskyblue4", alpha=0.6) +
+ theme_minimal() +
+ ylab("Patient density \n") +
+ xlab("\n Number of Months ON Palbociclib \n ") 
+
+Palbociclib_months_N %>% inner_join(PONS_Demographics) %>%
+  mutate(died=ifelse(died=="Y",1,0)) %>%   
+  ggplot(aes(x=n, y=died)) + 
+  stat_smooth(method="glm", se=TRUE, method.args = list(family=binomial), colour="black", fill="#66A4B9") +
+ theme_minimal() +
+ ylab("Probability of having died \n during the follow-up") +
+ xlab("\n Number of Months ON Palbociclib \n ") 
+
+
+
+
+
+
+PONS_Demographics <- fread("Source/PONS Demographics.txt")
+
+PONS_Demographics <- PONS_Demographics[ , .(patid, diagnosis)]
+
+PONS_Demographics <- Palbociclib_months_N %>% select(patient) %>% inner_join(PONS_Demographics, by=c("patient"="patid"))
+
+setDT(PONS_Demographics)
+
+PONS_Demographics <- unique(PONS_Demographics[, .(patient, diagnosis)])
+
+PONS_Demographics <- separate_rows(PONS_Demographics, diagnosis, sep = ",", convert=T)
+
+PONS_Demographics <- setDT(PONS_Demographics)[diagnosis!="Breast Cancer", ] 
+
+PONS_Demographics <- PONS_Demographics %>% group_by(patient) %>% count() %>% filter(n==1) %>% 
+  select(patient) %>% left_join(PONS_Demographics) %>% ungroup() 
+
+PONS_Demographics$diagnosis <- str_replace_all(PONS_Demographics$diagnosis, " Cancer", "")
+
+PONS_Demographics$diagnosis <- str_replace_all(PONS_Demographics$diagnosis, " ", "")
+
+PONS_Demographics %>% inner_join(Palbociclib_months_N) %>% group_by(diagnosis) %>% summarise(mean=mean(n))
+
+
+PONS_Demographics <- PONS_Demographics %>% inner_join(Palbociclib_months_N) %>% filter(diagnosis!="Prostate")
+
+PONS_Demographics %>% ggplot(aes(diagnosis, n, colour=diagnosis, fill=diagnosis)) +
+  geom_jitter() +
+  geom_violin(alpha=.5) +
+  theme_minimal()
+
+
+
+# -----------------
+
+
+# ------------------------------

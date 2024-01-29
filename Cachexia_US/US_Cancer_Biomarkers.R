@@ -1091,6 +1091,29 @@ CAN_Drug_Histories %>%
 # Profiles of Long term / Short term 
 # Drugs prior to metastasis , age, bmi, sex
 
+
+
+
+
+data.frame(CAN_Drug_Histories %>% filter(Treat==179) %>%  mutate(Month=Month-cancer_metastasis) %>%
+  select(patient, weight, Month) %>% distinct()  %>%
+  group_by(Month) %>% summarise(total=sum(weight)))
+
+
+ignore <- data.frame(CAN_Drug_Histories %>% filter(Treat==179) %>%  mutate(Month=Month-cancer_metastasis) %>%
+             select(patient, weight, Month) %>% distinct() %>%
+  left_join(CAN_Drug_Histories  %>%  mutate(Month=Month-cancer_metastasis)) %>%
+    filter(Treat!=179) %>%
+  left_join(PONS_Ingredients_JN_ChemoClass %>% mutate(molecule=as.character(molecule)), by=c("Treat"="molecule")) %>%
+  select(patient, weight, Month, chemo_class) %>% distinct() %>%
+  group_by(Month, chemo_class) %>% summarise(n=sum(weight)) %>% 
+  spread(key=chemo_class, value=n))
+
+fwrite(ignore, "ignore.csv")
+
+
+
+
 temp_df <- CAN_Drug_Histories %>%
   left_join(PONS_Ingredients_JN_ChemoClass %>% mutate(molecule=as.character(molecule)), by=c("Treat"="molecule")) %>% 
     filter(Treat=="-" | !is.na(generic_name)) %>% filter(Treat!=355) %>%
@@ -1297,6 +1320,438 @@ PONS_Demographics %>% ggplot(aes(diagnosis, n, colour=diagnosis, fill=diagnosis)
 
 
 # -----------------
+# Percentage who used any biologic/target among all cancer types ----------------------------------
+
+# Any Primary Cancer, Cancer Rx Exp
+# % Patients used advanced Rx (biologic/immuno/target)  ~  per primary cancer + Mets vs no-mets
+
+CancerDrug_Experienced <- fread("Source/CancerDrug_Experienced.txt",  integer64 = "character", stringsAsFactors = F)
+
+New_Primary_Cancer_Box <- fread("Source/New_Primary_Cancer_Box.txt", sep="\t")
+
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% inner_join(CancerDrug_Experienced)
+
+PONS_Demographics <- fread("Source/PONS Demographics.txt")
+
+PONS_Demographics <- PONS_Demographics %>% select(patid, cancer_metastasis) %>% mutate(cancer_metastasis=ifelse(is.na(cancer_metastasis), 0,1))
+
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% left_join(PONS_Demographics)
+
+CAN_Drug_Histories <- fread("Source/CAN Drug Histories.txt")
+
+CAN_Drug_Histories <- setDT(CAN_Drug_Histories)[New_Primary_Cancer_Box[, .(patid)], on = c("patient"="patid"), nomatch = 0]
+
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+setDT(CAN_Drug_Histories)
+
+CAN_Drug_Histories <- unique(CAN_Drug_Histories[, .(patient, Treat)])
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% filter(Treat!="-")
+CAN_Drug_Histories <- separate_rows(CAN_Drug_Histories, Treat, sep = ",", convert=T)
+setDT(CAN_Drug_Histories)
+CAN_Drug_Histories <- unique(CAN_Drug_Histories[, .(patient, Treat)])
+
+PONS_Ingredients_JN_ChemoClass <- fread("Source/PONS_Ingredients_JN_ChemoClass.csv", colClasses = "character")
+
+unique(PONS_Ingredients_JN_ChemoClass$chemo_class)
+
+#string_target <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[
+#  PONS_Ingredients_JN_ChemoClass$chemo_class=="Biologic"|PONS_Ingredients_JN_ChemoClass$chemo_class=="Immuno/Targeted"], collapse = "|"),")\\b")
+
+string_target <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[PONS_Ingredients_JN_ChemoClass$chemo_class=="Immuno/Targeted"], collapse = "|"),")\\b")
 
 
-# ------------------------------
+TargetRx_pats <- CAN_Drug_Histories %>% filter(grepl(string_target, Treat)) %>% select(patient) %>% distinct()
+
+names(TargetRx_pats)[1] <- "patid"
+
+TargetRx_pats$Target <- 1
+
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% left_join(TargetRx_pats) %>% mutate(Target=ifelse(is.na(Target), 0 , 1))
+
+New_Primary_Cancer_Box$Primary_Cancer <- str_replace_all(New_Primary_Cancer_Box$Primary_Cancer, " Cancer", "")
+
+temp <- New_Primary_Cancer_Box %>% group_by(Primary_Cancer, cancer_metastasis, Target) %>% summarise(n=sum(weight))
+
+temp <- temp %>% spread(key=Target, value=n) %>% mutate(perc=`1`/(`1`+`0`))
+
+fwrite(temp, "TargetExp_AllCancers.txt")
+
+# -----------------
+# Compare patients Palbociclib vs Other target ------------------------
+
+New_Primary_Cancer_Box <- fread("Source/New_Primary_Cancer_Box.txt", sep="\t")
+
+setDT(New_Primary_Cancer_Box)
+
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box[
+  Primary_Cancer %in% c("Breast Cancer"),
+  .(patid, Primary_Cancer)
+]
+
+
+PONS_Demographics <- fread("Source/PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% select(patid, weight, cancer_metastasis) %>% drop_na() %>% select(patid, weight, cancer_metastasis) 
+
+
+Months_lookup <- fread("Source/Months_lookup.txt",  integer64 = "character", stringsAsFactors = F)
+
+Months_lookup$Month <- as.character(
+  format(
+    as.Date(
+      paste0(Months_lookup$Month,"-1")
+      ), "%Y-%m"
+    )
+  )
+
+PONS_Demographics[, cancer_metastasis := as.character(cancer_metastasis)][, cancer_metastasis := substr(cancer_metastasis, 1L, 7L)]
+
+PONS_Demographics <- PONS_Demographics[
+  Months_lookup, on = c("cancer_metastasis" = "Month")
+  ][
+    ,.SD, .SDcols = !c("cancer_metastasis")
+    ][, {setnames(.SD, old = "Exact_Month", new = "cancer_metastasis")}]
+
+
+
+PONS_Demographics <- PONS_Demographics %>% inner_join(New_Primary_Cancer_Box) %>% select(patid, weight, cancer_metastasis)
+
+sum(as.numeric(PONS_Demographics$weight)) # 1424476
+
+PONS_Demographics <- PONS_Demographics %>% filter(cancer_metastasis<=36)
+
+CancerDrug_Experienced <- fread("Source/CancerDrug_Experienced.txt",  integer64 = "character", stringsAsFactors = F)
+
+PONS_Demographics <- CancerDrug_Experienced %>% inner_join(PONS_Demographics)
+
+Breast_Mets_DrugExp <- PONS_Demographics
+
+
+
+
+
+
+
+CAN_Drug_Histories <- fread("Source/CAN Drug Histories.txt")
+CAN_Drug_Histories <- setDT(CAN_Drug_Histories)[Breast_Mets_DrugExp[, .(patid)], on = c("patient"="patid"), nomatch = 0]
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+setDT(CAN_Drug_Histories)
+CAN_Drug_Histories <- unique(CAN_Drug_Histories[, .(patient, Month, Treat)])
+CAN_Drug_Histories$Month <- parse_number(as.character(CAN_Drug_Histories$Month))
+
+
+PONS_Ingredients_JN_ChemoClass <- fread("Source/PONS_Ingredients_JN_ChemoClass.csv", colClasses = "character")
+string_target <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[PONS_Ingredients_JN_ChemoClass$chemo_class=="Immuno/Targeted"], collapse = "|"),")\\b")
+
+
+Palbociclib_pats <- CAN_Drug_Histories %>% filter(grepl("179", Treat)) %>% select(patient) %>% distinct()
+ImmunoTarget_pats <- CAN_Drug_Histories %>% filter(grepl(string_target, Treat)) %>% select(patient) %>% distinct()
+
+
+N_months_Palbociclib <- CAN_Drug_Histories %>% inner_join(Palbociclib_pats) %>%  filter(grepl("179", Treat)) %>% group_by(patient) %>% count() %>% mutate(group="Palbociclib")
+N_months_AnyTarget <- CAN_Drug_Histories %>% inner_join(ImmunoTarget_pats) %>%  filter(grepl(string_target, Treat)) %>% group_by(patient) %>% count() %>% mutate(group="Any Immuno/Target")
+
+
+N_months_Palbociclib %>% bind_rows(N_months_AnyTarget) %>% group_by(group) %>% summarise(mean=mean(n), sd=sd(n))
+
+#   group              mean    sd
+# 1 Any Immuno/Target  12.0  13.2
+# 2 Palbociclib        12.9  13.3
+
+N_months_Palbociclib %>% bind_rows(N_months_AnyTarget) %>% group_by(group) %>% summarise(median=median(n), quantiles=quantile(n))
+
+#    group             median quantiles
+#  1 Any Immuno/Target      7         1
+#  2 Any Immuno/Target      7         2
+#  3 Any Immuno/Target      7         7
+#  4 Any Immuno/Target      7        17
+#  5 Any Immuno/Target      7        60
+#  6 Palbociclib            8         1
+#  7 Palbociclib            8         3
+#  8 Palbociclib            8         8
+#  9 Palbociclib            8        19
+# 10 Palbociclib            8        60
+
+
+N_months_Palbociclib %>% bind_rows(N_months_AnyTarget) %>%
+  ggplot(aes(n, colour=group, fill=NULL)) + 
+  geom_density(size=2,adjust = 0.3, kernel="gaussian") +
+  theme_bw() +
+  scale_colour_manual(values=c("#C34C60", "#1C80D2")) +
+  xlab("\n Number of Months \n ON Pablociclib | Any Target/Immuno \n (Palbociclib/Target-experienced only)") +
+  ylab("Patient density \n") +
+  theme(legend.position = c(0.8, 0.85))
+
+
+N_months_Palbociclib %>% bind_rows(N_months_AnyTarget) %>%
+  ggplot(aes(group, n, colour=group, fill=NULL)) + 
+  geom_violin(size=2, alpha=0.01) +
+  geom_boxplot(size=1, alpha=0.01, notch = TRUE, notchwidth = 0.2, width=0.3) +
+  geom_jitter(size=0.2, width = 0.25) + 
+  theme_bw() +
+  scale_colour_manual(values=c("#C34C60", "#1C80D2")) +
+  ylab("Number of Months \n ON Pablociclib | Any Target/Immuno \n (Palbociclib/Target-experienced only) \n") +
+  xlab("Group \n") +
+  theme(legend.position = c(0.5, 0.85))
+
+
+CAN_Drug_Histories %>% left_join(Breast_Mets_DrugExp, by=c("patient"="patid")) %>%
+  inner_join(Palbociclib_pats) %>% arrange(patient, Month) %>% group_by(patient) %>%
+  filter(!grepl("179", Treat) & grepl("179", lag(Treat)) ) %>%
+  mutate(Target=ifelse(grepl(string_target, Treat), 1,  0)) %>%
+  group_by(Target) %>% summarise(n=sum(weight))
+  
+
+
+
+CAN_Drug_Histories %>% left_join(Breast_Mets_DrugExp, by=c("patient"="patid")) %>%
+  inner_join(Palbociclib_pats) %>% arrange(patient, Month) %>% group_by(patient) %>%
+  filter(!grepl("179", Treat) & grepl("179", lag(Treat)) ) %>%
+  group_by(patient) %>% count() %>% rename("Palbociclib_stops"="n") %>%
+  left_join(
+    CAN_Drug_Histories %>% left_join(Breast_Mets_DrugExp, by=c("patient"="patid")) %>%
+  inner_join(Palbociclib_pats) %>% arrange(patient, Month) %>% group_by(patient) %>%
+  filter(grepl("179", Treat) & !grepl("179", lag(Treat)) ) %>%
+  group_by(patient) %>% count() %>% rename("Palbociclib_starts"="n")
+  )  %>% filter(Palbociclib_stops==1&Palbociclib_starts) # 68%
+
+CAN_Drug_Histories %>% left_join(Breast_Mets_DrugExp, by=c("patient"="patid")) %>%
+  inner_join(Palbociclib_pats) %>% arrange(patient, Month) %>% group_by(patient) %>%
+  filter(!grepl("179", Treat) & grepl("179", lag(Treat)) ) %>%
+  group_by(patient) %>% count() %>% rename("Palbociclib_stops"="n") %>%
+  inner_join(
+    CAN_Drug_Histories %>% left_join(Breast_Mets_DrugExp, by=c("patient"="patid")) %>%
+  inner_join(Palbociclib_pats) %>% arrange(patient, Month) %>% group_by(patient) %>%
+  filter(grepl("179", Treat) & !grepl("179", lag(Treat)) ) %>%
+  group_by(patient) %>% count() %>% rename("Palbociclib_starts"="n")
+  ) %>%
+  ggplot(aes(Palbociclib_stops, Palbociclib_starts)) +
+  geom_jitter(size=0.6, alpha=0.5, colour="#1C80D2") +
+  theme_bw() +
+  xlim(0,6) + ylim(0,6) +
+  scale_colour_manual(values=c( "#1C80D2")) +
+  xlab("Number of Times a patient \n HALTED Palbociclib \n") +
+  ylab("\n Number of Times a patient was \n STARTED ON Palbociclib") 
+
+
+
+
+
+CAN_Drug_Histories %>% left_join(Breast_Mets_DrugExp, by=c("patient"="patid")) %>%
+  inner_join(ImmunoTarget_pats) %>% arrange(patient, Month) %>% group_by(patient) %>%
+  filter(!grepl(string_target, Treat) & grepl(string_target, lag(Treat)) ) %>%
+  group_by(patient) %>% count() %>% rename("Target_stops"="n") %>%
+  left_join(
+    CAN_Drug_Histories %>% left_join(Breast_Mets_DrugExp, by=c("patient"="patid")) %>%
+  inner_join(ImmunoTarget_pats) %>% arrange(patient, Month) %>% group_by(patient) %>%
+  filter(grepl(string_target, Treat) & !grepl(string_target, lag(Treat)) ) %>%
+  group_by(patient) %>% count() %>% rename("Target_starts"="n")
+  )  %>% filter(Target_stops==1&Target_starts) # 71%
+
+
+
+CAN_Drug_Histories %>% left_join(Breast_Mets_DrugExp, by=c("patient"="patid")) %>%
+  inner_join(ImmunoTarget_pats) %>% arrange(patient, Month) %>% group_by(patient) %>%
+  filter(!grepl(string_target, Treat) & grepl(string_target, lag(Treat)) ) %>%
+  group_by(patient) %>% count() %>% rename("Target_stops"="n") %>%
+  inner_join(
+    CAN_Drug_Histories %>% left_join(Breast_Mets_DrugExp, by=c("patient"="patid")) %>%
+  inner_join(ImmunoTarget_pats) %>% arrange(patient, Month) %>% group_by(patient) %>%
+  filter(grepl(string_target, Treat) & !grepl(string_target, lag(Treat)) ) %>%
+  group_by(patient) %>% count() %>% rename("Target_starts"="n")
+  ) %>%
+  ggplot(aes(Target_stops, Target_starts)) +
+  geom_jitter(size=0.6, alpha=0.5, colour="#C34C60") +
+  theme_bw() +
+  xlim(0,6) + ylim(0,6) +
+  scale_colour_manual(values=c( "#C34C60")) +
+  xlab("Number of Times a patient \n HALTED Target/Immuno \n") +
+  ylab("\n Number of Times a patient was \n STARTED ON Target/Immuno") 
+
+ImmunoTarget_pats %>% mutate(Immuno=1) %>% full_join(Palbociclib_pats %>% mutate(Palbo=1)) %>%
+  left_join(Breast_Mets_DrugExp, by=c("patient"="patid")) %>%
+  group_by(Immuno, Palbo) %>% summarise(n=sum(weight))
+
+
+First_stop <- Palbociclib_pats %>% left_join(CAN_Drug_Histories) %>% 
+  arrange(patient, Month) %>% group_by(patient) %>%
+  filter(!grepl("179", Treat) & grepl("179", lag(Treat)) ) %>% select(patient, Month) %>% filter(Month==min(Month)) %>%
+  ungroup() %>% rename("First_stop"="Month")
+
+First_stop %>% left_join(Breast_Mets_DrugExp, by=c("patient"="patid")) %>% summarise(n=sum(weight)) # 73973
+
+Palbociclib_pats %>% left_join(CAN_Drug_Histories) %>% 
+  arrange(patient, Month) %>% group_by(patient) %>%
+  inner_join(First_stop) %>% filter(Month>=First_stop) %>%
+  filter(!grepl("179", Treat)) %>% filter(grepl(string_target, Treat)) %>% select(patient) %>% distinct() %>%
+  ungroup() %>%
+  left_join(Breast_Mets_DrugExp, by=c("patient"="patid")) %>% summarise(n=sum(weight)) # 24135
+
+N_months_Palbociclib %>%  bind_rows(N_months_AnyTarget) %>% 
+  inner_join(Breast_Mets_DrugExp, by=c("patient"="patid")) %>%
+  ggplot(aes(cancer_metastasis, n,, colour=group, fill=group)) +
+  geom_jitter(alpha=0.3, size= 0.5) + 
+  geom_smooth() +
+  theme_bw() +
+  ylab("Number of Months ON Palbociclib \n") +
+  xlab("\n Exact Month of Metastasis \n (Metastatic prior to monht 36 only) \n")  +
+  scale_colour_manual(values=c("#C34C60", "#1C80D2")) +
+  scale_fill_manual(values=c("#C34C60", "#1C80D2")) +
+  theme(legend.position = c(0.8, 0.85))
+
+
+
+
+
+PONS_Demographics <- fread("Source/PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% select(patid, age) 
+
+
+N_months_Palbociclib %>% bind_rows(N_months_AnyTarget) %>% 
+  inner_join(Breast_Mets_DrugExp, by=c("patient"="patid")) %>%
+  inner_join(PONS_Demographics, by=c("patient"="patid")) %>%
+  ggplot(aes(age, n, colour=group, fill=group)) +
+  geom_jitter(alpha=0.3, size= 0.5) + 
+  geom_smooth() +
+  theme_bw() +
+  ylab("Number of Months ON Palbociclib \n") +
+  xlab("\n Age \n (years) \n") +
+  scale_colour_manual(values=c("#C34C60", "#1C80D2")) +
+  scale_fill_manual(values=c("#C34C60", "#1C80D2")) +
+  theme(legend.position = c(0.8, 0.85))
+
+
+First_Palbo <- CAN_Drug_Histories %>% inner_join(Palbociclib_pats) %>% arrange(patient, Month) %>%
+  filter(grepl("179", Treat)) %>% group_by(patient) %>% filter(Month==min(Month)) %>% ungroup()
+
+over_time_palbos <- First_Palbo %>% select(patient, Month) %>% rename("First_Palbo"="Month") %>%
+  left_join(CAN_Drug_Histories) %>% filter(Month>=First_Palbo) %>% mutate(Month=Month-First_Palbo) %>%
+  select(-First_Palbo)
+
+over_time_palbos <- separate_rows(over_time_palbos, Treat, sep = ",", convert=T)
+
+over_time_palbos <- over_time_palbos %>% 
+  left_join(PONS_Ingredients_JN_ChemoClass %>% select(molecule, chemo_class), by=c("Treat"="molecule")) %>%
+  mutate(chemo_class=ifelse(Treat=="179", "Palbociclib", chemo_class)) %>%
+  select(patient, Month, chemo_class) %>% distinct() %>% 
+  left_join(Breast_Mets_DrugExp, by=c("patient"="patid")) %>%
+  group_by(Month, chemo_class) %>% summarise(n=sum(weight)) 
+
+initial_colors <- rep("#D3D3D3", 27)
+initial_colors[21] <- "#1C80D2"
+initial_colors[17] <- "#C34C60"
+initial_colors[15] <- "#FFC529"
+initial_colors[13] <- "#000000"
+initial_colors[9] <- "#A0D366"
+
+
+
+Total_months <- First_Palbo %>% select(patient, Month) %>% rename("First_Palbo"="Month") %>%
+  left_join(CAN_Drug_Histories) %>% filter(Month>=First_Palbo) %>% mutate(Month=Month-First_Palbo) %>%
+  select(-First_Palbo) %>% ungroup() %>% 
+  filter(Treat!="355") %>%
+  left_join(Breast_Mets_DrugExp, by=c("patient"="patid")) %>%
+  group_by(Month) %>% summarise(total=sum(weight)) %>% select(Month, total)
+
+
+
+initial_colors <- rep("#D3D3D3", 26)
+initial_colors[19] <- "#1C80D2"
+initial_colors[16] <- "#C34C60"
+initial_colors[14] <- "#FFC529"
+initial_colors[9] <- "#A0D366"
+  
+over_time_palbos %>%
+  filter(chemo_class!="Death") %>%
+  left_join(Total_months) %>% mutate(n=n/total) %>%
+  mutate(chemo_class=ifelse(is.na(chemo_class), "Lapsed", chemo_class)) %>%
+  ggplot(aes(Month, n, colour=chemo_class, fill=chemo_class)) +
+  geom_line(size=1) +
+  theme_bw() +
+  xlab("\n Months relative to 1st Palbociclib Initiation") + 
+  ylab("Proportion Still Alive \n ON each class \n") +
+  scale_colour_manual(values=initial_colors) 
+
+
+
+Months_XY <- Palbociclib_pats %>% left_join(CAN_Drug_Histories) %>% 
+  arrange(patient, Month) %>% 
+  filter(grepl("179", Treat)) %>% 
+  group_by(patient) %>% count() %>% rename("Months_Palbo"="n") %>%
+  full_join(
+    ImmunoTarget_pats %>% left_join(CAN_Drug_Histories) %>% 
+  arrange(patient, Month) %>% 
+  filter(grepl(string_target, Treat) & !grepl("179", Treat)) %>% 
+  group_by(patient) %>% count() %>% rename("Months_Other"="n")
+  )
+
+Months_XY[is.na(Months_XY)] <- 0
+
+
+Firsts <- ImmunoTarget_pats %>% left_join(CAN_Drug_Histories) %>% 
+  arrange(patient, Month) %>% 
+  filter(grepl(string_target, Treat))  %>%
+   group_by(patient) %>% filter(Month==min(Month)) %>%
+   mutate(type=ifelse(grepl("179", Treat), "Palbo", "Other"))
+
+Firsts <- Firsts %>% select(patient, type) %>% ungroup()
+
+
+
+Months_XY %>%
+  filter(Months_Palbo>0&Months_Other>0) %>%
+  mutate(group=ifelse(Months_Palbo<12&Months_Other<12,1,
+                      ifelse(Months_Palbo<12&Months_Other>=12,2,
+                             ifelse(Months_Palbo>=12&Months_Other<12,3,4)))) %>%
+  inner_join(Firsts) %>% group_by(type, group) %>% count() %>%
+  spread(key=type, value=n) %>% mutate(perc=Palbo/(Palbo+Other))
+
+
+Months_XY %>%
+  filter(Months_Palbo>0&Months_Other>0) %>%
+  mutate(group=ifelse(Months_Palbo<12&Months_Other<12,1,
+                      ifelse(Months_Palbo<12&Months_Other>=12,2,
+                             ifelse(Months_Palbo>=12&Months_Other<12,3,4)))) %>%
+  ggplot(aes(Months_Palbo, Months_Other, colour=as.factor(group), fill=as.factor(group))) +
+  geom_jitter(size=2, alpha=0.3, show.legend = FALSE) +
+  theme_bw() +
+  xlim(0,60) + ylim(0,60) +
+  xlab("\n Number of Months ON Palbociclib") + 
+  ylab("Number of Months ON Other Target/Immuno \n") +
+  scale_colour_manual(values=c("#D3D3D3", "#C34C60", "#1C80D2", "#FFC529")) +
+  geom_hline(yintercept=12,linetype="dashed", size=0.5) + 
+  geom_vline(xintercept=12, linetype="dashed", size=0.5)
+
+All_classes <- ImmunoTarget_pats %>% left_join(CAN_Drug_Histories) %>% 
+   select(-Month) %>% distinct()
+ 
+All_classes <- separate_rows(All_classes, Treat, sep = ",", convert=T)
+
+All_classes <- All_classes %>% distinct() %>% left_join(PONS_Ingredients_JN_ChemoClass %>% select(molecule, chemo_class), by=c("Treat"="molecule"))
+
+All_classes <- All_classes %>% select(patient, chemo_class) %>% distinct()
+
+
+Months_XY %>%
+  filter(Months_Palbo>0&Months_Other>0) %>%
+  mutate(group=ifelse(Months_Palbo<12&Months_Other<12,1,
+                      ifelse(Months_Palbo<12&Months_Other>=12,2,
+                             ifelse(Months_Palbo>=12&Months_Other<12,3,4)))) %>%
+  ungroup() %>% group_by(group) %>% mutate(total=n()) %>%
+  inner_join(All_classes %>% drop_na()) %>% ungroup() %>%
+  group_by(group, chemo_class) %>% mutate(sub_total=n()) %>%
+  mutate(perc=sub_total/total) %>%
+  select(group, chemo_class, perc) %>% distinct() %>%
+  ggplot(aes(chemo_class, perc, colour=as.factor(group), fill=as.factor(group))) +
+  geom_col(position="dodge", show.legend = FALSE, width=0.8) +
+  theme_bw() +
+  xlab("\n Drug Classes") + 
+  ylab("Proportion ever tried \n") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  scale_colour_manual(values=c("#D3D3D3", "#C34C60", "#1C80D2", "#FFC529")) +
+  scale_fill_manual(values=c("#D3D3D3", "#C34C60", "#1C80D2", "#FFC529")) 
+
+
+
+# ----------------

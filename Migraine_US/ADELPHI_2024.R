@@ -3488,3 +3488,150 @@ groups %>% group_by(group, PhyPrimarySpeciality2) %>% summarise(total=sum(OtherP
 
 
 # ------
+
+# China compare patient and physician responses --------------------
+
+
+# PHYSICIANS
+
+Pfizer_Migraine_Pat <- read_sav("Pfizer_Migraine_Pat v.2.0.sav")
+China_df <- Pfizer_Migraine_Pat %>% filter(qcountries==7)
+
+China_df <- China_df %>% select(patNum, PhyPrimarySpeciality2, PRF_D_3a_101:PRF_D_3a_123, PRF_E_3_201:PRF_E_3_220)
+
+China_df <- gather(China_df, Drug, Molecule, PRF_D_3a_101:PRF_E_3_220)
+China_df <- China_df %>% drop_na() %>% filter(Molecule==1)
+
+China_df <- China_df %>% mutate( molecule_number = sub(".*_(\\d+)$", "\\1", Drug))
+
+China_df <- China_df %>% select(patNum, PhyPrimarySpeciality2, Molecule, molecule_number) %>% distinct()
+
+unique(China_df$molecule_number)
+
+length(unique(China_df$patNum))
+
+# other acutr 112,121,122,
+# othr prev 212,215,219
+
+
+China_df %>% mutate(molecule_number=as.numeric(molecule_number)) %>%
+  mutate(class=ifelse(molecule_number %in% c(101,102,103,104,105,106,107,108), "Triptan", 
+                              ifelse(molecule_number %in% c(109,110,111,115,116,123,220), "NSAID",
+                                     ifelse(molecule_number %in% c(112,121,122), "Other_Acute",
+                                            ifelse(molecule_number %in% c(212, 215, 219), "Other_Prev",
+                                            ifelse(molecule_number %in% c(113,114,204,205), "Gepant",
+                                                   ifelse(molecule_number %in% c(117,118,119,120), "Opioid",
+                                                          ifelse(molecule_number %in% c(201 ,202,203,206), "Mab",
+                                                                 ifelse(molecule_number %in% c(207,213,216), "Anticonvulsant",
+                                                                        ifelse(molecule_number %in% c(208,209,210), "BetaBlocker",
+                                                                               ifelse(molecule_number %in% c(211,217,218), "Antidepressant",
+                                                                                      ifelse(molecule_number %in% c(214), "Botox", NA )))))))))))) %>%
+  select(patNum, class) %>% distinct() %>% group_by(class) %>% count() %>% mutate(n=n/1018)
+
+# 1 Anticonvulsant 0.122  
+# 2 Antidepressant 0.0815 
+# 3 BetaBlocker    0.159  
+# 4 Mab            0.00982
+# 5 NSAID          0.494  
+# 6 Opioid         0.0639 
+# 7 Other_Acute    0.0845 
+# 8 Other_Prev     0.150  
+# 9 Triptan        0.447
+
+China_df %>% select(patNum, PhyPrimarySpeciality2) %>% distinct() %>% group_by(PhyPrimarySpeciality2) %>% count()
+
+# 1 1 [GP/PCP/Internist]                        288
+# 2 3 [Neurologist (headache specialist)]       522
+# 3 4 [Neurologist (non-headache specialist)]   208
+
+
+
+
+China_df %>% mutate(molecule_number=as.numeric(molecule_number)) %>%
+  mutate(class=ifelse(molecule_number %in% c(101,102,103,104,105,106,107,108), "Triptan", 
+                              ifelse(molecule_number %in% c(109,110,111,115,116,123,220), "NSAID",
+                                     ifelse(molecule_number %in% c(112,121,122), "Other_Acute",
+                                            ifelse(molecule_number %in% c(212, 215, 219), "Other_Prev",
+                                            ifelse(molecule_number %in% c(113,114,204,205), "Gepant",
+                                                   ifelse(molecule_number %in% c(117,118,119,120), "Opioid",
+                                                          ifelse(molecule_number %in% c(201 ,202,203,206), "Mab",
+                                                                 ifelse(molecule_number %in% c(207,213,216), "Anticonvulsant",
+                                                                        ifelse(molecule_number %in% c(208,209,210), "BetaBlocker",
+                                                                               ifelse(molecule_number %in% c(211,217,218), "Antidepressant",
+                                                                                      ifelse(molecule_number %in% c(214), "Botox", NA )))))))))))) %>%
+  select(patNum, PhyPrimarySpeciality2, class) %>% distinct() %>% group_by(PhyPrimarySpeciality2, class) %>% count() %>%
+  mutate(n=ifelse(PhyPrimarySpeciality2==1, n/288, ifelse(PhyPrimarySpeciality2==3, n/522, n/208))) %>%
+  spread(key=PhyPrimarySpeciality2, value=n)
+
+
+
+
+
+
+# PATIENTS 
+
+Drug_to_class_lookup <- fread("China_Drug_to_class_lookup.txt", sep="\t")
+Class_names <- fread("Class_names.txt", sep="\t")
+Molecule_names <- fread("Molecule_names.txt", sep="\t")
+
+length(unique(all_molecules_df$patNum))
+
+all_molecules_df <- fread("China_AllMolecules_OverTime_m60extended.txt", sep="\t")
+all_molecules_df <- all_molecules_df %>% distinct()
+
+Rx_exp <- all_molecules_df %>% gather(month, treat, `0`:`60`) %>% filter(treat!="-") %>%
+  select(patNum) %>% distinct()
+
+length(unique(Rx_exp$patNum)) # 1155
+
+all_molecules_df <- Rx_exp %>% left_join(all_molecules_df) %>% select(patNum, `60`) 
+
+all_molecules_df <- separate_rows(all_molecules_df, `60`, sep = ",", convert=T )
+
+all_molecules_df <- all_molecules_df %>% filter(`60` != "-") %>% distinct()
+
+current_classes <- all_molecules_df %>% mutate(`60`=as.numeric(`60`)) %>%
+  left_join(Drug_to_class_lookup, by=c("60"="Generic")) %>%
+  select(patNum, Class) %>% distinct() %>%
+  left_join(Class_names %>% mutate(class_id=as.numeric(class_id)), by=c("Class"="class_id")) %>%
+  select(patNum, class) %>% distinct()
+
+unique(current_classes$class)
+
+current_classes %>% group_by(class) %>% count() %>% arrange(-n) %>% mutate(n=n/1155) 
+
+current_classes %>% mutate(class2=ifelse(class=="Triptans", "Triptans",
+                      ifelse(class=="Anti-CGRP mAb", "CGRPInj",
+                             ifelse(class %in% c("Nsaid Inc Combs", "Non Opioid Analgesics inc combs",
+                                                 "Opioid Analgesics inc combs", "Antimigraine",
+                                                 "Triptan Combination"), "OtherAcute",
+                                    ifelse(class=="Anti-CGRP gepant", "Gepant","OtherPrev" ))))) %>%
+  select(patNum, class2) %>% distinct() %>% group_by(class2) %>% count() %>% mutate(n=n/1155) 
+
+#  1 Nsaid Inc Combs                        0.481   
+#  2 Triptans                               0.434   
+#  3 Calcium Antagonists                    0.235   
+#  4 Beta-Blockers                          0.219   
+#  5 Anticonvulsants                        0.140   
+#  6 Antidepressants / Anxiolytics / Benzos 0.0840  
+#  7 Non Opioid Analgesics inc combs        0.0745  
+#  8 Ergotamines & Derivatives              0.0693  
+#  9 Opioid Analgesics inc combs            0.0641  
+# 10 Anti-CGRP mAb                          0.0104  
+# 11 Antimigraine                           0.00346 
+# 12 Other drug therapies                   0.00173 
+# 13 Emetic W/Wo Analgesic                  0.000866
+# 14 Vitamins/Supplements                   0.000866
+
+
+# OTHER 
+
+Pfizer_Migraine_Pat <- read_sav("Pfizer_Migraine_Pat v.2.0.sav")
+
+China_df <- Pfizer_Migraine_Pat %>% filter(qcountries==7)
+China_df %>% select(patNum, Acute_vs_Prophy) %>% group_by(Acute_vs_Prophy) %>% count() %>% mutate(n=n/1201)
+China_df %>% select(patNum, PhyPrimarySpeciality2, Acute_vs_Prophy) %>% group_by(PhyPrimarySpeciality2, Acute_vs_Prophy) %>% count() %>%
+  mutate(n=ifelse(PhyPrimarySpeciality2==1, n/400, ifelse(PhyPrimarySpeciality2==3,n/581, n/220)))
+
+
+# -----------

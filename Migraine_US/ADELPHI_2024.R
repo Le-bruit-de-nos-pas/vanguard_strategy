@@ -3497,6 +3497,8 @@ groups %>% group_by(group, PhyPrimarySpeciality2) %>% summarise(total=sum(OtherP
 Pfizer_Migraine_Pat <- read_sav("Pfizer_Migraine_Pat v.2.0.sav")
 China_df <- Pfizer_Migraine_Pat %>% filter(qcountries==7)
 
+length(unique(China_df$docNum))
+
 China_df <- China_df %>% select(patNum, PhyPrimarySpeciality2, PRF_D_3a_101:PRF_D_3a_123, PRF_E_3_201:PRF_E_3_220)
 
 China_df <- gather(China_df, Drug, Molecule, PRF_D_3a_101:PRF_E_3_220)

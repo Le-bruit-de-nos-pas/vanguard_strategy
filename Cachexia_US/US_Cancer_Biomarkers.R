@@ -2453,12 +2453,13 @@ CAN_Drug_Histories <- CAN_Drug_Histories %>% filter(Treat!="-")
 CAN_Drug_Histories <- separate_rows(CAN_Drug_Histories, Treat, sep = ",", convert=T)
 CAN_Drug_Histories <- CAN_Drug_Histories %>% inner_join(PONS_Comorbidity_Inventories %>% select(patient) %>% distinct())
 
-Stim_treated <- CAN_Drug_Histories %>% filter(grepl("30", Treat)|grepl("39", Treat)|grepl("40", Treat)) %>% select(patient) %>% distinct()
+Stim_treated <- CAN_Drug_Histories %>% filter(grepl("30", Treat)|grepl("40", Treat)) %>% select(patient) %>% distinct()
 Etin_treated <- CAN_Drug_Histories %>% filter(grepl("24", Treat)|grepl("28", Treat)|grepl("29", Treat)) %>% select(patient) %>% distinct()
 
 
 PONS_Comorbidity_Inventories %>% filter(diagnosis=="D70") %>% summarise(n=sum(weight))
 PONS_Comorbidity_Inventories %>% inner_join(Stim_treated) %>% filter(diagnosis=="D70") %>% summarise(n=sum(weight)) # 0.8205553
+
 
 data.frame(PONS_Comorbidity_Inventories %>% inner_join(Stim_treated) %>% filter(diagnosis=="D70") %>%
   group_by(Primary_Cancer) %>%
@@ -2491,6 +2492,97 @@ data.frame(PONS_Comorbidity_Inventories %>% filter(diagnosis!="D70") %>%
   summarise(n=sum(weight)))
 
 
+# HOW MANY DX BEFORE CANCER; AFTER; BEFORE RX; AFTER 
+
+
+New_Primary_Cancer_Box <- fread("Source/New_Primary_Cancer_Box.txt", sep="\t")
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box[New_Primary_Cancer_Box$Primary_Cancer!="-"]
+sum(New_Primary_Cancer_Box$weight) # 22984889
+
+CancerDrug_Experienced <- fread("Source/CancerDrug_Experienced.txt",  integer64 = "character", stringsAsFactors = F)
+New_Primary_Cancer_Box %>% inner_join(CancerDrug_Experienced) %>% summarise(n=sum(weight)) # 9861087
+data.frame(New_Primary_Cancer_Box %>% inner_join(CancerDrug_Experienced) %>% group_by(Primary_Cancer) %>% summarise(n=sum(weight))) %>%
+  spread(key=Primary_Cancer, value=n)
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% inner_join(CancerDrug_Experienced)
+
+
+Dxs_Anemia_Neutropenia <- fread("Source/Dxs_Anemia_Neutropenia.txt")
+
+First_Neutro_Dx <- Dxs_Anemia_Neutropenia %>% filter(grepl("D70", diag)) %>% select(patid, date) %>% distinct() %>%
+  mutate(date=as.Date(date)) %>% group_by(patid) %>% filter(date==min(date)) %>% slice(1) %>% ungroup
+
+First_Neutro_Dx <- New_Primary_Cancer_Box %>% left_join(First_Neutro_Dx)
+
+PONS_Demographics <- fread("Source/PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% select(patid, cancer_onset)
+
+First_Neutro_Dx <- First_Neutro_Dx %>% left_join(PONS_Demographics)
+
+CAN_Doses <- fread("Source/CAN Doses.txt")
+CAN_Doses <- CAN_Doses %>% inner_join(First_Neutro_Dx %>% select(patid), by=c("pat_id"="patid"))
+unique(CAN_Doses$drug_group)
+
+CAN_Doses <- CAN_Doses %>% filter(drug_group=="Anticancer" | drug_group=="GDF15")
+CAN_Doses <- CAN_Doses %>% mutate(from_dt=as.Date(from_dt)) %>% select(pat_id, from_dt) %>% distinct() %>%
+  group_by(pat_id) %>% filter(from_dt==min(from_dt)) %>% slice(1) %>% ungroup() %>% rename("patid"="pat_id")
+
+First_Neutro_Dx <- First_Neutro_Dx %>% left_join(CAN_Doses)
+
+sum(First_Neutro_Dx$weight)  # 9861087
+First_Neutro_Dx %>% filter(!is.na(date)) %>% summarise(n=sum(weight)) # 1567510
+First_Neutro_Dx %>% filter(!is.na(date)) %>%
+  anti_join(First_Neutro_Dx %>% filter(date<cancer_onset) %>% select(patid)) %>% summarise(n=sum(weight)) # 1393404
+
+First_Neutro_Dx %>% filter(!is.na(date)) %>%
+  anti_join(First_Neutro_Dx %>% filter(date<cancer_onset) %>% select(patid)) %>%
+  anti_join(First_Neutro_Dx %>% filter(date<from_dt) %>% select(patid)) %>%
+  summarise(n=sum(weight)) # 1282776
+
+
+
+
+
+First_Anemia_Dx <- Dxs_Anemia_Neutropenia %>% filter(grepl("D50", diag)|grepl("D51", diag)|
+                                                       grepl("D52", diag)|grepl("D53", diag)|
+                                                       grepl("D60", diag)|grepl("D61", diag)|
+                                                       grepl("D63", diag)|grepl("D64", diag)) %>% select(patid, date) %>% distinct() %>%
+  mutate(date=as.Date(date)) %>% group_by(patid) %>% filter(date==min(date)) %>% slice(1) %>% ungroup
+
+First_Anemia_Dx <- New_Primary_Cancer_Box %>% left_join(First_Anemia_Dx)
+
+PONS_Demographics <- fread("Source/PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% select(patid, cancer_onset)
+
+First_Anemia_Dx <- First_Anemia_Dx %>% left_join(PONS_Demographics)
+
+CAN_Doses <- fread("Source/CAN Doses.txt")
+CAN_Doses <- CAN_Doses %>% inner_join(First_Anemia_Dx %>% select(patid), by=c("pat_id"="patid"))
+unique(CAN_Doses$drug_group)
+
+CAN_Doses <- CAN_Doses %>% filter(drug_group=="Anticancer" | drug_group=="GDF15")
+CAN_Doses <- CAN_Doses %>% mutate(from_dt=as.Date(from_dt)) %>% select(pat_id, from_dt) %>% distinct() %>%
+  group_by(pat_id) %>% filter(from_dt==min(from_dt)) %>% slice(1) %>% ungroup() %>% rename("patid"="pat_id")
+
+First_Anemia_Dx <- First_Anemia_Dx %>% left_join(CAN_Doses)
+
+sum(First_Anemia_Dx$weight)  # 9861087
+First_Anemia_Dx %>% filter(!is.na(date)) %>% summarise(n=sum(weight)) # 5601342
+First_Anemia_Dx %>% filter(!is.na(date)) %>%
+  anti_join(First_Anemia_Dx %>% filter(date<cancer_onset) %>% select(patid)) %>% summarise(n=sum(weight)) # 3460135
+
+First_Anemia_Dx %>% filter(!is.na(date)) %>%
+  anti_join(First_Anemia_Dx %>% filter(date<cancer_onset) %>% select(patid)) %>%
+  anti_join(First_Anemia_Dx %>% filter(date<from_dt) %>% select(patid)) %>%
+  summarise(n=sum(weight)) # 2581556
+
+
+
+
+
+
+
+
+
 # ANEMIA
 
 PONS_Measures <- fread("Source/PONS Measures.txt")
@@ -2506,7 +2598,8 @@ PONS_Measures <- PONS_Measures %>% left_join(PONS_Demographics) %>%
 
 length(unique(PONS_Measures$patid))
 
-Extra_Anemia <- PONS_Measures %>% filter( (gender=="F" & value<= 11.9)  |  (gender=="M" & value<= 12.9) ) %>%
+Extra_Anemia <- PONS_Measures %>%   filter(value>5 & value<20) %>%
+ filter( (gender=="F" & value<= 11.9)  |  (gender=="M" & value<= 12.9) ) %>%
   select(patid) %>% distinct() %>% rename("patient"="patid")
 
 
@@ -2516,19 +2609,27 @@ data.frame(PONS_Comorbidity_Inventories %>% filter(diagnosis!="D70") %>%
   left_join(New_Primary_Cancer_Box, by=c("patient"="patid")) %>%
     summarise(n=sum(weight)))
 
-# 5,529,369 -> 6,341,349
+# 5,529,369 -> 6,317,307
 
 
-plot <- PONS_Measures %>% left_join(PONS_Demographics) %>%
+PONS_Measures  %>%
+  select(value) %>%
+  ggplot(aes(value)) + geom_density()
+
+PONS_Measures <- data.frame(PONS_Measures)
+
+PONS_Demographics <- data.frame(PONS_Demographics)
+
+plot <- PONS_Measures %>% left_join(PONS_Demographics %>% select(-cancer_onset)) %>%
   mutate(month=as.numeric(claimed)-as.numeric(cancer_onset)) %>%
   arrange(patid, month, value) %>%
   select(patid, month, value, gender, Primary_Cancer)
 
 
 plot %>%
-  filter(Primary_Cancer=="Pancreatic Cancer") %>%
-  #select(patid) %>% distinct() %>% sample_n(100) %>%
-  #left_join(plot) %>%
+  filter(Primary_Cancer=="Intestinal Cancer") %>%
+  select(patid) %>% distinct() %>% # sample_n(10000) %>%
+  left_join(plot) %>%
   filter(value>5 & value<20) %>%
   ggplot(aes(month/30.5, value, colour=gender, fill=gender)) +
   #geom_jitter(size=0.1, colour="black", alpha=0.2) +
@@ -2540,7 +2641,7 @@ plot %>%
   scale_fill_manual(values=c("#C34C60", "#1C80D2")) +
   xlab("\n Number of Months \n Relative to Cancer Diagnosis") +
   ylab("Exact Hemoglobin \n") +
-  theme(legend.position = c(0.9, 0.9))
+  theme(legend.position = c(0.9, 0.8))
 
 
 

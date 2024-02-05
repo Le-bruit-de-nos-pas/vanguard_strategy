@@ -2539,8 +2539,29 @@ First_Neutro_Dx %>% filter(!is.na(date)) %>%
   summarise(n=sum(weight)) # 1282776
 
 
+data.frame(First_Neutro_Dx %>% filter(!is.na(date)) %>%
+  anti_join(First_Neutro_Dx %>% filter(date<cancer_onset) %>% select(patid)) %>%
+  anti_join(First_Neutro_Dx %>% filter(date<from_dt) %>% select(patid)) %>%
+  group_by(Primary_Cancer) %>%
+  summarise(n=sum(weight))) 
 
 
+First_Neutro_Dx %>% filter(!is.na(date)) %>%
+  anti_join(First_Neutro_Dx %>% filter(date<cancer_onset) %>% select(patid)) %>%
+  anti_join(First_Neutro_Dx %>% filter(date<from_dt) %>% select(patid)) %>%
+  inner_join(Stim_treated, by=c("patid"="patient")) %>%
+  summarise(n=sum(weight)) # 1282776
+
+
+data.frame(First_Neutro_Dx %>% filter(!is.na(date)) %>%
+  anti_join(First_Neutro_Dx %>% filter(date<cancer_onset) %>% select(patid)) %>%
+  anti_join(First_Neutro_Dx %>% filter(date<from_dt) %>% select(patid)) %>%
+  inner_join(Stim_treated, by=c("patid"="patient")) %>%
+      group_by(Primary_Cancer) %>%
+  summarise(n=sum(weight)))
+
+
+# Anemia
 
 First_Anemia_Dx <- Dxs_Anemia_Neutropenia %>% filter(grepl("D50", diag)|grepl("D51", diag)|
                                                        grepl("D52", diag)|grepl("D53", diag)|
@@ -2570,123 +2591,175 @@ First_Anemia_Dx %>% filter(!is.na(date)) %>% summarise(n=sum(weight)) # 5601342
 First_Anemia_Dx %>% filter(!is.na(date)) %>%
   anti_join(First_Anemia_Dx %>% filter(date<cancer_onset) %>% select(patid)) %>% summarise(n=sum(weight)) # 3460135
 
+
 First_Anemia_Dx %>% filter(!is.na(date)) %>%
   anti_join(First_Anemia_Dx %>% filter(date<cancer_onset) %>% select(patid)) %>%
   anti_join(First_Anemia_Dx %>% filter(date<from_dt) %>% select(patid)) %>%
-  summarise(n=sum(weight)) # 2581556
+  summarise(n=sum(weight))  # 2581556
+
+
+First_Anemia_Dx %>% filter(!is.na(date)) %>%
+  anti_join(First_Anemia_Dx %>% filter(date<cancer_onset) %>% select(patid)) %>%
+  anti_join(First_Anemia_Dx %>% filter(date<from_dt) %>% select(patid)) %>%
+  inner_join(Etin_treated, by=c("patid"="patient")) %>%
+  summarise(n=sum(weight))
+
+
+data.frame(First_Anemia_Dx %>% filter(!is.na(date)) %>%
+  anti_join(First_Anemia_Dx %>% filter(date<cancer_onset) %>% select(patid)) %>%
+  anti_join(First_Anemia_Dx %>% filter(date<from_dt) %>% select(patid)) %>%
+  group_by(Primary_Cancer) %>%
+  summarise(n=sum(weight)))  # 2581556
+
+data.frame(First_Anemia_Dx %>% filter(!is.na(date)) %>%
+  anti_join(First_Anemia_Dx %>% filter(date<cancer_onset) %>% select(patid)) %>%
+  anti_join(First_Anemia_Dx %>% filter(date<from_dt) %>% select(patid)) %>%
+  inner_join(Etin_treated, by=c("patid"="patient")) %>%
+    group_by(Primary_Cancer) %>%
+  summarise(n=sum(weight)))
 
 
 
+# Bone mets
+PONS_Events <- fread("Source/PONS Events.txt")
+PONS_Events <- PONS_Events %>% filter(grepl("C795", code))
+PONS_Events <- PONS_Events %>% mutate(claimed=as.Date(claimed)) %>% group_by(patid) %>% filter(claimed==min(claimed)) %>% 
+  select(patid, claimed)
 
+PONS_Events <- PONS_Events %>% slice(1) %>% ungroup()
 
-
-
-
-
-# ANEMIA
-
-PONS_Measures <- fread("Source/PONS Measures.txt")
-unique(PONS_Measures$test)
-PONS_Measures <- PONS_Measures %>% filter(test=="Hemoglobin")
-PONS_Measures <- PONS_Measures %>% select(patid, value, claimed)
+First_BoneMets_Dx <- New_Primary_Cancer_Box %>% left_join(PONS_Events)
 
 PONS_Demographics <- fread("Source/PONS Demographics.txt")
-PONS_Demographics <- PONS_Demographics %>% select(patid, gender, cancer_onset)
+PONS_Demographics <- PONS_Demographics %>% select(patid, cancer_onset)
 
-PONS_Measures <- PONS_Measures %>% left_join(PONS_Demographics) %>% 
-  inner_join(New_Primary_Cancer_Box) %>% inner_join(CancerDrug_Experienced)
+First_BoneMets_Dx <- First_BoneMets_Dx %>% left_join(PONS_Demographics)
 
-length(unique(PONS_Measures$patid))
+CAN_Doses <- fread("Source/CAN Doses.txt")
+CAN_Doses <- CAN_Doses %>% inner_join(First_BoneMets_Dx %>% select(patid), by=c("pat_id"="patid"))
+unique(CAN_Doses$drug_group)
 
-Extra_Anemia <- PONS_Measures %>%   filter(value>5 & value<20) %>%
- filter( (gender=="F" & value<= 11.9)  |  (gender=="M" & value<= 12.9) ) %>%
-  select(patid) %>% distinct() %>% rename("patient"="patid")
+CAN_Doses <- CAN_Doses %>% filter(drug_group=="Anticancer" | drug_group=="GDF15")
+CAN_Doses <- CAN_Doses %>% mutate(from_dt=as.Date(from_dt)) %>% select(pat_id, from_dt) %>% distinct() %>%
+  group_by(pat_id) %>% filter(from_dt==min(from_dt)) %>% slice(1) %>% ungroup() %>% rename("patid"="pat_id")
 
-
-data.frame(PONS_Comorbidity_Inventories %>% filter(diagnosis!="D70") %>%    
-  select(patient) %>% distinct() %>%
-    full_join(Extra_Anemia) %>% distinct() %>%
-  left_join(New_Primary_Cancer_Box, by=c("patient"="patid")) %>%
-    summarise(n=sum(weight)))
-
-# 5,529,369 -> 6,317,307
+First_BoneMets_Dx <- First_BoneMets_Dx %>% left_join(CAN_Doses)
 
 
-PONS_Measures  %>%
-  select(value) %>%
-  ggplot(aes(value)) + geom_density()
-
-PONS_Measures <- data.frame(PONS_Measures)
-
-PONS_Demographics <- data.frame(PONS_Demographics)
-
-plot <- PONS_Measures %>% left_join(PONS_Demographics %>% select(-cancer_onset)) %>%
-  mutate(month=as.numeric(claimed)-as.numeric(cancer_onset)) %>%
-  arrange(patid, month, value) %>%
-  select(patid, month, value, gender, Primary_Cancer)
-
-
-plot %>%
-  filter(Primary_Cancer=="Intestinal Cancer") %>%
-  select(patid) %>% distinct() %>% # sample_n(10000) %>%
-  left_join(plot) %>%
-  filter(value>5 & value<20) %>%
-  ggplot(aes(month/30.5, value, colour=gender, fill=gender)) +
-  #geom_jitter(size=0.1, colour="black", alpha=0.2) +
-  coord_cartesian(ylim = c(8, 18))+
-  #geom_line(aes(group=patid), col="black" , alpha=0.2) +
-  geom_smooth(method="gam",  formula = y ~ s(x, bs = "cs", k =5)) +
-  theme_bw() +
-  scale_colour_manual(values=c("#C34C60", "#1C80D2")) +
-  scale_fill_manual(values=c("#C34C60", "#1C80D2")) +
-  xlab("\n Number of Months \n Relative to Cancer Diagnosis") +
-  ylab("Exact Hemoglobin \n") +
-  theme(legend.position = c(0.9, 0.8))
+sum(First_BoneMets_Dx$weight)  # 9861087
+First_BoneMets_Dx %>% filter(!is.na(claimed)) %>% summarise(n=sum(weight)) # 1290929
+First_BoneMets_Dx %>% filter(!is.na(claimed)) %>%
+  anti_join(First_BoneMets_Dx %>% filter(claimed<cancer_onset) %>% select(patid)) %>% summarise(n=sum(weight)) # 1279656
 
 
 
 
 
 
+# # ANEMIA
+# 
+# PONS_Measures <- fread("Source/PONS Measures.txt")
+# unique(PONS_Measures$test)
+# PONS_Measures <- PONS_Measures %>% filter(test=="Hemoglobin")
+# PONS_Measures <- PONS_Measures %>% select(patid, value, claimed)
+# 
+# PONS_Demographics <- fread("Source/PONS Demographics.txt")
+# PONS_Demographics <- PONS_Demographics %>% select(patid, gender, cancer_onset)
+# 
+# PONS_Measures <- PONS_Measures %>% left_join(PONS_Demographics) %>% 
+#   inner_join(New_Primary_Cancer_Box) %>% inner_join(CancerDrug_Experienced)
+# 
+# length(unique(PONS_Measures$patid))
+# 
+# Extra_Anemia <- PONS_Measures %>%   filter(value>5 & value<20) %>%
+#  filter( (gender=="F" & value<= 11.9)  |  (gender=="M" & value<= 12.9) ) %>%
+#   select(patid) %>% distinct() %>% rename("patient"="patid")
+# 
+# 
+# data.frame(PONS_Comorbidity_Inventories %>% filter(diagnosis!="D70") %>%    
+#   select(patient) %>% distinct() %>%
+#     full_join(Extra_Anemia) %>% distinct() %>%
+#   left_join(New_Primary_Cancer_Box, by=c("patient"="patid")) %>%
+#     summarise(n=sum(weight)))
+# 
+# # 5,529,369 -> 6,317,307
+# 
+# 
+# PONS_Measures  %>%
+#   select(value) %>%
+#   ggplot(aes(value)) + geom_density()
+# 
+# PONS_Measures <- data.frame(PONS_Measures)
+# 
+# PONS_Demographics <- data.frame(PONS_Demographics)
+# 
+# plot <- PONS_Measures %>% left_join(PONS_Demographics %>% select(-cancer_onset)) %>%
+#   mutate(month=as.numeric(claimed)-as.numeric(cancer_onset)) %>%
+#   arrange(patid, month, value) %>%
+#   select(patid, month, value, gender, Primary_Cancer)
+# 
+# 
+# plot %>%
+#   filter(Primary_Cancer=="Intestinal Cancer") %>%
+#   select(patid) %>% distinct() %>% # sample_n(10000) %>%
+#   left_join(plot) %>%
+#   filter(value>5 & value<20) %>%
+#   ggplot(aes(month/30.5, value, colour=gender, fill=gender)) +
+#   #geom_jitter(size=0.1, colour="black", alpha=0.2) +
+#   coord_cartesian(ylim = c(8, 18))+
+#   #geom_line(aes(group=patid), col="black" , alpha=0.2) +
+#   geom_smooth(method="gam",  formula = y ~ s(x, bs = "cs", k =5)) +
+#   theme_bw() +
+#   scale_colour_manual(values=c("#C34C60", "#1C80D2")) +
+#   scale_fill_manual(values=c("#C34C60", "#1C80D2")) +
+#   xlab("\n Number of Months \n Relative to Cancer Diagnosis") +
+#   ylab("Exact Hemoglobin \n") +
+#   theme(legend.position = c(0.9, 0.8))
 
 
-# NEUROPENIA
-
-labs_Anemia_Neutropenia <- fread("Source/labs_Anemia_Neutropenia.txt")
 
 
-# 26499-4	Neutrophils [#/volume] in Blood	Neutrophils
-# 751-8	Neutrophils [#/volume] in Blood by Automated count	Neutrophils
-# 752-6	Deprecated Neutrophils [#/volume] in Blood by Automated count	Neutrophils
-# 753-4	Neutrophils [#/volume] in Blood by Manual count	Neutrophils
-# 26464-8	Leukocytes [#/volume] in Blood	Leukocytes
-# 30406-3	Leukocytes other [#/volume] in Blood	Leukocytes other
-# 49498-9	Leukocytes [#/volume] in Blood by Estimate	Leukocytes
-# 51383-8	Leukocytes other [#/volume] in Blood by Automated count	Leukocytes other
-# 6690-2	Leukocytes [#/volume] in Blood by Automated count	Leukocytes
-# 729-4	Leukocytes other [#/volume] in Blood by Manual count	Leukocytes other
-# 26453-1	Erythrocytes [#/volume] in Blood	Erythrocytes
-# 789-8	Erythrocytes [#/volume] in Blood by Automated count	Erythrocytes
-# 790-6	Erythrocytes [#/volume] in Blood by Manual count	Erythrocytes
-# 20570-8	Hematocrit [Volume Fraction] of Blood	Hematocrit
-# 41654-5	Hematocrit [Volume Fraction] of Venous blood	Hematocrit
-# 4544-3	Hematocrit [Volume Fraction] of Blood by Automated count	Hematocrit
-# 4545-0	Hematocrit [Volume Fraction] of Blood by Centrifugation	Hematocrit
-# 48703-3	Hematocrit [Volume Fraction] of Blood by Estimated	Hematocrit
-# 71829-6	Hematocrit [Pure volume fraction] of Venous blood	Hematocrit
-
-Neutros_labs <- labs_Anemia_Neutropenia %>% filter(loinc_cd %in% c("26499-4", "751-8", "752-6", "753-4")) 
-length(unique(Neutros_labs$patid))
-
-unique(Neutros_labs$hi_nrml)
-
-unique(Neutros_labs$rslt_unit_nm)
-
-Neutros_labs %>% ggplot(aes(rslt_nbr)) + geom_histogram(bins=30)
-
-data.frame(Neutros_labs %>% group_by(rslt_unit_nm) %>% count()  %>% arrange(-n))
-
-Neutros_labs %>% filter()
 
 
-# --------------
+
+
+# # NEUROPENIA
+# 
+# labs_Anemia_Neutropenia <- fread("Source/labs_Anemia_Neutropenia.txt")
+# 
+# 
+# # 26499-4	Neutrophils [#/volume] in Blood	Neutrophils
+# # 751-8	Neutrophils [#/volume] in Blood by Automated count	Neutrophils
+# # 752-6	Deprecated Neutrophils [#/volume] in Blood by Automated count	Neutrophils
+# # 753-4	Neutrophils [#/volume] in Blood by Manual count	Neutrophils
+# # 26464-8	Leukocytes [#/volume] in Blood	Leukocytes
+# # 30406-3	Leukocytes other [#/volume] in Blood	Leukocytes other
+# # 49498-9	Leukocytes [#/volume] in Blood by Estimate	Leukocytes
+# # 51383-8	Leukocytes other [#/volume] in Blood by Automated count	Leukocytes other
+# # 6690-2	Leukocytes [#/volume] in Blood by Automated count	Leukocytes
+# # 729-4	Leukocytes other [#/volume] in Blood by Manual count	Leukocytes other
+# # 26453-1	Erythrocytes [#/volume] in Blood	Erythrocytes
+# # 789-8	Erythrocytes [#/volume] in Blood by Automated count	Erythrocytes
+# # 790-6	Erythrocytes [#/volume] in Blood by Manual count	Erythrocytes
+# # 20570-8	Hematocrit [Volume Fraction] of Blood	Hematocrit
+# # 41654-5	Hematocrit [Volume Fraction] of Venous blood	Hematocrit
+# # 4544-3	Hematocrit [Volume Fraction] of Blood by Automated count	Hematocrit
+# # 4545-0	Hematocrit [Volume Fraction] of Blood by Centrifugation	Hematocrit
+# # 48703-3	Hematocrit [Volume Fraction] of Blood by Estimated	Hematocrit
+# # 71829-6	Hematocrit [Pure volume fraction] of Venous blood	Hematocrit
+# 
+# Neutros_labs <- labs_Anemia_Neutropenia %>% filter(loinc_cd %in% c("26499-4", "751-8", "752-6", "753-4")) 
+# length(unique(Neutros_labs$patid))
+# 
+# unique(Neutros_labs$hi_nrml)
+# 
+# unique(Neutros_labs$rslt_unit_nm)
+# 
+# Neutros_labs %>% ggplot(aes(rslt_nbr)) + geom_histogram(bins=30)
+# 
+# data.frame(Neutros_labs %>% group_by(rslt_unit_nm) %>% count()  %>% arrange(-n))
+# 
+# Neutros_labs %>% filter()
+
+
+# ----------------------------

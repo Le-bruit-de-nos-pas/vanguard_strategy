@@ -2652,7 +2652,14 @@ First_BoneMets_Dx %>% filter(!is.na(claimed)) %>%
   anti_join(First_BoneMets_Dx %>% filter(claimed<cancer_onset) %>% select(patid)) %>% summarise(n=sum(weight)) # 1279656
 
 
+Zoledronic_Acid_procedures <- fread("Source/Zoledronic_Acid_procedures.txt")
+Zoledronic_Acid_procedures <- Zoledronic_Acid_procedures %>% select(patid) %>% distinct()
+Zoledronic_Acid_rxs <- fread("Source/Zoledronic_Acid_rxs.txt")
+Zoledronic_Acid_rxs <- Zoledronic_Acid_rxs %>% select(patid) %>% distinct()
 
+First_BoneMets_Dx %>% filter(!is.na(claimed)) %>%
+  inner_join(Zoledronic_Acid_rxs %>% full_join(Zoledronic_Acid_procedures)) %>%
+  summarise(n=sum(weight)) # 252053
 
 
 

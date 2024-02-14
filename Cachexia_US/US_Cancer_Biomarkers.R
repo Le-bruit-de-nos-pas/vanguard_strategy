@@ -3601,6 +3601,472 @@ fwrite(temp2, "temp_for_Sankey_HRPosHER2Pos_12m.csv", sep=",")
 
 
 # -----------
+# Parse Neutrophiles data --------------
+
+labs_Anemia_Neutropenia <- fread("Source/labs_Anemia_Neutropenia.txt")
+
+unique(labs_Anemia_Neutropenia$rslt_unit_nm)
+
+data.frame(labs_Anemia_Neutropenia %>% group_by(rslt_unit_nm) %>% count() %>% arrange(-n))
+
+labs_Anemia_Neutropenia <- labs_Anemia_Neutropenia %>%
+  mutate(rslt_unit_nm_V2 = ifelse(rslt_unit_nm=="%", "%",
+                                  ifelse(rslt_unit_nm=="x10E3/uL", "x10E3/uL",
+                                         ifelse(rslt_unit_nm=="x10E6/uL", "x10E6/uL",
+                                                ifelse(rslt_unit_nm==" ", " ",
+                                                       ifelse(rslt_unit_nm=="Million/uL", "x10E6/uL",
+                                                              ifelse(rslt_unit_nm=="Thousand/uL", "x10E3/uL",
+                                                                     ifelse(rslt_unit_nm=="K/MM3", "x10E3/uL",
+                                                                            ifelse(rslt_unit_nm=="cells/uL", "/uL",
+                                                                                   ifelse(rslt_unit_nm=="M/MM3", "x10E6/uL",
+                                                                                          ifelse(rslt_unit_nm=="10*3/uL", "x10E3/uL", NA)))))))))))
+
+labs_Anemia_Neutropenia <- labs_Anemia_Neutropenia %>%
+  mutate(rslt_unit_nm_V2 = ifelse(rslt_unit_nm=="x10/3 uL", "x10E3/uL",
+                                  ifelse(rslt_unit_nm=="X10E3/UL", "x10E3/uL",
+                                         ifelse(rslt_unit_nm=="x10exp12/L", "x10E6/uL",
+                                                ifelse(rslt_unit_nm=="K/uL", "x10E3/uL",
+                                                       ifelse(rslt_unit_nm=="K/UL", "x10E3/uL",
+                                                              ifelse(rslt_unit_nm=="10*6/uL", "x10E6/uL",
+                                                                     ifelse(rslt_unit_nm=="x10/6 uL", "x10E6/uL",
+                                                                            ifelse(rslt_unit_nm=="x 10/3", "x10E3/uL",
+                                                                                   ifelse(rslt_unit_nm=="K/CUMM", "x10E3/uL",
+                                                                                          ifelse(rslt_unit_nm=="X10E6/UL", "x10E6/uL", rslt_unit_nm_V2)))))))))))
+                                  
+
+
+labs_Anemia_Neutropenia <- labs_Anemia_Neutropenia %>%
+  mutate(rslt_unit_nm_V2 = ifelse(rslt_unit_nm=="K/mcL", "x10E3/uL",
+                                  ifelse(rslt_unit_nm=="M/U", "x10E6/uL",
+                                         ifelse(rslt_unit_nm=="k/uL", "x10E3/uL",
+                                                ifelse(rslt_unit_nm=="M/u", "x10E6/uL",
+                                                       ifelse(rslt_unit_nm=="THOUS/uL", "x10E3/uL",
+                                                              ifelse(rslt_unit_nm=="x10(3)/uL", "x10E3/uL",
+                                                                     ifelse(rslt_unit_nm=="x10(6)/uL", "x10E6/uL",
+                                                                            ifelse(rslt_unit_nm=="M/CUMM", "x10E6/uL",
+                                                                                   ifelse(rslt_unit_nm=="MIL/uL", "x10E6/uL",
+                                                                                          ifelse(rslt_unit_nm=="k/mm3", "x10E3/uL", rslt_unit_nm_V2)))))))))))
+                                  
+
+labs_Anemia_Neutropenia <- labs_Anemia_Neutropenia %>%
+  mutate(rslt_unit_nm_V2 = ifelse(rslt_unit_nm=="m/mm3", "x10E6/uL",
+                                  ifelse(rslt_unit_nm=="M/mcL", "x10E6/uL",
+                                         ifelse(rslt_unit_nm=="x10e3/uL", "x10E3/uL",
+                                                ifelse(rslt_unit_nm=="THDS/CMM", "x10E3/uL",
+                                                       ifelse(rslt_unit_nm=="MILL/CMM", "x10E6/uL",
+                                                              ifelse(rslt_unit_nm=="10 6 uL", "x10E6/uL",
+                                                                     ifelse(rslt_unit_nm=="Thous/mcL", "x10E3/uL",
+                                                                            ifelse(rslt_unit_nm=="Mill/mcL", "x10E6/uL",
+                                                                                   ifelse(rslt_unit_nm=="THO/uL", "x10E3/uL",
+                                                                                          ifelse(rslt_unit_nm=="10E3/uL", "x10E3/uL", rslt_unit_nm_V2)))))))))))
+                                  
+
+
+labs_Anemia_Neutropenia <- labs_Anemia_Neutropenia %>%
+  mutate(rslt_unit_nm_V2 = ifelse(rslt_unit_nm=="Cells/mcL", "/uL",
+                                  ifelse(rslt_unit_nm=="k/cu mm", "x10E3/uL",
+                                         ifelse(rslt_unit_nm=="X10(3)/UL", "x10E3/uL",
+                                                ifelse(rslt_unit_nm=="X10(6)/UL", "x10E6/uL", 
+                                                       ifelse(rslt_unit_nm=="10 3 uL", "x10E3/uL",
+                                                              ifelse(rslt_unit_nm=="k/ul", "x10E3/uL",
+                                                                     ifelse(rslt_unit_nm=="x10e6/uL", "x10E6/uL",
+                                                                            ifelse(rslt_unit_nm=="m/uL", "x10E6/uL",
+                                                                                   ifelse(rslt_unit_nm=="mill/cmm", "x10E6/uL",
+                                                                                          ifelse(rslt_unit_nm=="10 3 ul", "x10E3/uL", rslt_unit_nm_V2)))))))))))
+                                  
+
+
+labs_Anemia_Neutropenia <- labs_Anemia_Neutropenia %>%
+  mutate(rslt_unit_nm_V2 = ifelse(rslt_unit_nm=="thou/cmm", "x10E3/uL",
+                                  ifelse(rslt_unit_nm=="percent", "%",
+                                         ifelse(rslt_unit_nm=="K/ul", "x10E3/uL",
+                                                ifelse(rslt_unit_nm=="10e6/uL", "x10E6/uL", 
+                                                       ifelse(rslt_unit_nm=="x10", "x10",
+                                                              ifelse(rslt_unit_nm=="Mill/uL", "x10E6/uL",
+                                                                     ifelse(rslt_unit_nm=="k/mcL", "x10E3/uL",
+                                                                            ifelse(rslt_unit_nm=="10E6/uL", "x10E6/uL",
+                                                                                   ifelse(rslt_unit_nm=="THOU/uL", "x10E3/uL",
+                                                                                          ifelse(rslt_unit_nm=="MILLION/uL", "x10E6/uL", rslt_unit_nm_V2)))))))))))
+                                  
+
+labs_Anemia_Neutropenia <- labs_Anemia_Neutropenia %>%
+  mutate(rslt_unit_nm_V2 = ifelse(rslt_unit_nm=="m/cu mm", "x10E6/uL",
+                                  ifelse(rslt_unit_nm=="Thous/mm3", "x10E3/uL",
+                                         ifelse(rslt_unit_nm=="10n3 ul", "x10E3/uL",
+                                                ifelse(rslt_unit_nm=="Percent", "%", 
+                                                       ifelse(rslt_unit_nm=="Thou/uL", "x10E3/uL",
+                                                              ifelse(rslt_unit_nm=="bil/L", "x10E3/uL",
+                                                                     ifelse(rslt_unit_nm=="X10E12/L", "x10E6/uL",
+                                                                            ifelse(rslt_unit_nm=="K/mm3", "x10E3/uL", 
+                                                                                   ifelse(rslt_unit_nm=="X10E9/L", "x10E3/uL",
+                                                                                          ifelse(rslt_unit_nm=="PERCENT", "%", rslt_unit_nm_V2)))))))))))
+                                  
+
+labs_Anemia_Neutropenia <- labs_Anemia_Neutropenia %>%
+  mutate(rslt_unit_nm_V2 = ifelse(rslt_unit_nm=="tril/L", "x10E6/uL",
+                                  ifelse(rslt_unit_nm=="Million/mcL", "x10E6/uL",
+                                         ifelse(rslt_unit_nm=="X10", "x10",
+                                                ifelse(rslt_unit_nm=="Cells/uL", "/uL", 
+                                                       ifelse(rslt_unit_nm=="THOUS/MCL", "x10E3/uL",
+                                                              ifelse(rslt_unit_nm=="MILL/MCL", "x10E6/uL",
+                                                                     ifelse(rslt_unit_nm=="10e3/uL", "x10E3/uL",
+                                                                            ifelse(rslt_unit_nm=="CELLS/MCL", "/uL", 
+                                                                                   ifelse(rslt_unit_nm=="m/mcL", "x10E6/uL",
+                                                                                          ifelse(rslt_unit_nm=="M/mm3", "x10E6/uL", rslt_unit_nm_V2)))))))))))
+                                  
+
+
+labs_Anemia_Neutropenia <- labs_Anemia_Neutropenia %>%
+  mutate(rslt_unit_nm_V2 = ifelse(rslt_unit_nm=="thous/uL", "x10E3/uL",
+                                  ifelse(rslt_unit_nm=="thou/mcL", "x10E3/uL",
+                                         ifelse(rslt_unit_nm=="X10//S//3/uL", "x10E3/uL",
+                                                ifelse(rslt_unit_nm=="10(3)/uL", "x10E3/uL", 
+                                                       ifelse(rslt_unit_nm=="K/cumm", "x10E3/uL",
+                                                              ifelse(rslt_unit_nm=="{x10E3/uL}", "x10E3/uL",
+                                                                     ifelse(rslt_unit_nm=="Mil/mm3", "x10E6/uL",
+                                                                            ifelse(rslt_unit_nm=="M/??L", "x10E6/uL", 
+                                                                                   ifelse(rslt_unit_nm=="million/uL", "x10E6/uL",
+                                                                                          ifelse(rslt_unit_nm=="M/ul", "x10E6/uL", rslt_unit_nm_V2)))))))))))
+                                  
+
+
+
+
+labs_Anemia_Neutropenia <- labs_Anemia_Neutropenia %>%
+  mutate(rslt_unit_nm_V2 = ifelse(rslt_unit_nm=="x1000/??L", "x10E3/uL",
+                                  ifelse(rslt_unit_nm=="thousand/uL", "x10E3/uL",
+                                         ifelse(rslt_unit_nm=="x 1000/??L", "x10E3/uL",
+                                                ifelse(rslt_unit_nm=="thous/mm3", "x10E3/uL", 
+                                                       ifelse(rslt_unit_nm=="x10(9)/L", "x10E3/uL",
+                                                              ifelse(rslt_unit_nm=="mil/mm3", "x10E3/uL",
+                                                                     ifelse(rslt_unit_nm=="M/cumm", "x10E6/uL",
+                                                                            ifelse(rslt_unit_nm=="X 10*3/uL", "x10E3/uL", 
+                                                                                   ifelse(rslt_unit_nm=="/uL", "/uL",
+                                                                                          ifelse(rslt_unit_nm=="Thous/uL", "x10E3/uL", rslt_unit_nm_V2)))))))))))
+                                  
+
+
+
+
+labs_Anemia_Neutropenia <- labs_Anemia_Neutropenia %>%
+  mutate(rslt_unit_nm_V2 = ifelse(rslt_unit_nm=="th/mm3", "x10E3/uL",
+                                  ifelse(rslt_unit_nm=="k/cumm", "x10E3/uL",
+                                         ifelse(rslt_unit_nm=="10(6)/uL", "x10E6/uL",
+                                                ifelse(rslt_unit_nm=="10*6/mm3", "x10E6/uL", 
+                                                       ifelse(rslt_unit_nm=="x10(12)/L", "x10E6/uL",
+                                                              ifelse(rslt_unit_nm=="x10(3)/mcL", "x10E3/uL",
+                                                                     ifelse(rslt_unit_nm=="10*3/mm3", "x10E3/uL",
+                                                                            ifelse(rslt_unit_nm=="{x10E6/uL}", "x10E6/uL", 
+                                                                                   ifelse(rslt_unit_nm=="x10*3/uL", "x10E3/uL",
+                                                                                          ifelse(rslt_unit_nm=="K/CMM", "x10E3/uL", rslt_unit_nm_V2)))))))))))
+                                  
+
+
+labs_Anemia_Neutropenia <- labs_Anemia_Neutropenia %>%
+  mutate(rslt_unit_nm_V2 = ifelse(rslt_unit_nm=="Th/mm3", "x10E3/uL",
+                                  ifelse(rslt_unit_nm=="X10E3/uL", "x10E3/uL",
+                                         ifelse(rslt_unit_nm=="x 1000/L", "x10E3/uL",
+                                                ifelse(rslt_unit_nm=="x10 3/uL", "x10E3/uL", 
+                                                       ifelse(rslt_unit_nm=="x1000/L", "x10E3/uL",
+                                                              ifelse(rslt_unit_nm=="M/CMM", "x10E6/uL",
+                                                                     ifelse(rslt_unit_nm=="10//S//3/uL", "x10E3/uL",
+                                                                            ifelse(rslt_unit_nm=="10//S//6/uL", "x10E6/uL", 
+                                                                                   ifelse(rslt_unit_nm=="M/L", "x10E6/uL",
+                                                                                          ifelse(rslt_unit_nm=="x10(6)/mcL", "x10E6/uL", rslt_unit_nm_V2))))))))))) # 128
+
+
+labs_Anemia_Neutropenia %>% group_by(rslt_unit_nm_V2) %>% count() %>% arrange(-n) # leaving 370k behind
+
+labs_Anemia_Neutropenia %>%
+  filter( (rslt_unit_nm_V2=="x10E3/uL" & rslt_nbr!=0 & rslt_nbr<50) | 
+            (rslt_unit_nm_V2=="x10E6/uL" & rslt_nbr!=0 ) ) %>%
+ # mutate(rslt_nbr = ifelse(rslt_unit_nm_V2=="x10E6/uL", rslt_nbr/1000, rslt_nbr) ) %>%
+  ggplot(aes(rslt_nbr)) + geom_density() + facet_wrap(~rslt_unit_nm_V2)
+
+  
+
+Labs_Neutrophiles <- labs_Anemia_Neutropenia %>%
+  filter( (rslt_unit_nm_V2=="x10E3/uL" & rslt_nbr!=0 & rslt_nbr<100) ) %>%
+  select(patid, fst_dt, rslt_nbr) %>% distinct()
+
+
+fwrite(Labs_Neutrophiles, "Source/Labs_Neutrophiles.txt")
+
+
+
+
+
+
+# ----------------------
+# Parse eGFR ---------
+
+labs_Breast_Cancer_pts <- fread("Source/labs_Breast_Cancer_pts.txt")
+
+Anion_gap <- labs_Breast_Cancer_pts %>% filter(loinc_cd %in% c("10466-1","1863-0",
+                                                  "33037-3","41276-7","47561-6","73578-7",
+                                                  "73582-9","77341-6","95718-3"))
+
+length(unique(Anion_gap$patid))
+
+
+Bicarb <- labs_Breast_Cancer_pts %>% filter(loinc_cd %in% c("14627-4","19229-4",
+                                                  "19232-8","19233-6","1959-6","1962-0",
+                                                  "1963-8","69964-5","97543-3", "97544-1"))
+
+length(unique(Bicarb$patid))
+
+
+eGFR <- labs_Breast_Cancer_pts %>% filter(loinc_cd %in% c("69406-7","33914-3","48642-3",
+                                                          "48643-1","50044-7","50210-4","50383-9",
+                                                          "50384-7","62238-1","69405-9",
+                                                          "70969-1","76633-7","77147-7",
+                                                          "78006-4","88293-6","88294-4",
+                                                          "94677-2","96591-3","96592-1",
+                                                          "97952-6","98979-8","98980-6"))
+
+length(unique(eGFR$patid))
+
+data.frame(eGFR %>% group_by(rslt_unit_nm) %>% count() %>% arrange(-n))
+
+eGFR <- eGFR %>% filter(rslt_nbr!=0)
+eGFR <- eGFR %>% select(patid, fst_dt, rslt_nbr) %>% distinct()
+
+fwrite(eGFR, "Source/eGFR.txt")
+
+# ------------------
+# Parse Bicarb  ---------
+
+
+Bicarb <- labs_Breast_Cancer_pts %>% filter(loinc_cd %in% c("14627-4","19229-4",
+                                                  "19232-8","19233-6","1959-6","1962-0",
+                                                  "1963-8","69964-5","97543-3", "97544-1"))
+
+length(unique(Bicarb$patid))
+Bicarb <- Bicarb %>% filter(rslt_nbr!=0)
+unique(Bicarb$rslt_unit_nm) 
+Bicarb %>% group_by(rslt_unit_nm) %>% count() %>% arrange(-n)
+range(Bicarb$rslt_nbr)
+
+Bicarb <- Bicarb %>% select(patid, fst_dt, rslt_nbr) %>% distinct()
+
+Bicarb %>% ggplot(aes(fst_dt, rslt_nbr)) + geom_smooth() 
+
+fwrite(Bicarb, "Source/Bicarb.txt")
+
+
+
+# ---------
+# Parse Lymphocytes  ---------
+
+labs_Anemia_Neutropenia <- fread("Source/labs_Anemia_Neutropenia.txt")
+
+Lymphs <- labs_Breast_Cancer_pts %>% filter(loinc_cd %in% c("11130-2", "20585-6", "26474-7",
+                                                            "30364-4",  "6744-7",  "731-0", "732-8"))
+
+length(unique(Lymphs$patid))
+Lymphs <- Lymphs %>% filter(rslt_nbr!=0)
+unique(Lymphs$rslt_unit_nm) 
+data.frame(Lymphs %>% group_by(rslt_unit_nm) %>% count() %>% arrange(-n))
+range(Lymphs$rslt_nbr)
+
+
+
+Lymphs <- Lymphs %>%
+  mutate(rslt_unit_nm_V2 = ifelse(rslt_unit_nm=="K/MM3", "x10E3/uL",
+                                  ifelse(rslt_unit_nm=="x10E3/uL", "x10E3/uL",
+                                         ifelse(rslt_unit_nm=="cells/uL", "/uL",
+                                                ifelse(rslt_unit_nm==" ", " ",
+                                                       ifelse(rslt_unit_nm=="X10E3/UL", "x10E3/uL",
+                                                              ifelse(rslt_unit_nm=="10*3/uL", "x10E3/uL",
+                                                                     ifelse(rslt_unit_nm=="x10/3 uL", "x10E3/uL",
+                                                                            ifelse(rslt_unit_nm=="x10exp9/L", "x10E3/uL",
+                                                                                   ifelse(rslt_unit_nm=="K/uL", "x10E3/uL",
+                                                                                          ifelse(rslt_unit_nm=="k/uL", "x10E3/uL", NA)))))))))))
+
+
+
+Lymphs <- Lymphs %>%
+  mutate(rslt_unit_nm_V2 = ifelse(rslt_unit_nm=="K/UL", "x10E3/uL",
+                                  ifelse(rslt_unit_nm=="K/CUMM", "x10E3/uL",
+                                         ifelse(rslt_unit_nm=="K/mcL", "x10E3/uL",
+                                                ifelse(rslt_unit_nm=="Cells/mcL", "/uL",
+                                                       ifelse(rslt_unit_nm=="THOUS/uL", "x10E3/uL",
+                                                              ifelse(rslt_unit_nm=="thou/cmm", "x10E3/uL",
+                                                                     ifelse(rslt_unit_nm=="x10e3/uL", "x10E3/uL",
+                                                                            ifelse(rslt_unit_nm=="Thou/uL", "x10E3/uL",
+                                                                                   ifelse(rslt_unit_nm=="k/cu mm", "x10E3/uL",
+                                                                                          ifelse(rslt_unit_nm=="k/cu mm", "x10E3/uL", rslt_unit_nm_V2)))))))))))
+
+
+Lymphs <- Lymphs %>%
+  mutate(rslt_unit_nm_V2 = ifelse(rslt_unit_nm=="10E3/uL", "x10E3/uL",
+                                  ifelse(rslt_unit_nm=="10 3 uL", "x10E3/uL",
+                                         ifelse(rslt_unit_nm=="thou/mcL", "x10E3/uL",
+                                                ifelse(rslt_unit_nm=="X10E9/L", "x10E3/uL",
+                                                       ifelse(rslt_unit_nm=="X10(3)/UL", "x10E3/uL",
+                                                              ifelse(rslt_unit_nm=="10e3/uL", "x10E3/uL",
+                                                                     ifelse(rslt_unit_nm=="K/ul", "x10E3/uL",
+                                                                            ifelse(rslt_unit_nm=="x 1000/??L", "x10E3/uL",
+                                                                                   ifelse(rslt_unit_nm=="10 3 ul", "x10E3/uL",
+                                                                                          ifelse(rslt_unit_nm=="K/mm3", "x10E3/uL", rslt_unit_nm_V2)))))))))))
+
+
+
+Lymphs <- Lymphs %>%
+  mutate(rslt_unit_nm_V2 = ifelse(rslt_unit_nm=="10(3)/uL", "x10E3/uL",
+                                  ifelse(rslt_unit_nm=="k/mcL", "x10E3/uL",
+                                         ifelse(rslt_unit_nm=="bil/L", "x10E3/uL",
+                                                ifelse(rslt_unit_nm=="THOU/uL", "x10E3/uL",
+                                                       ifelse(rslt_unit_nm=="X 10*3/uL", "x10E3/uL",
+                                                              ifelse(rslt_unit_nm=="thous/uL", "x10E3/uL",
+                                                                     ifelse(rslt_unit_nm=="x 1000/L", "x10E3/uL",
+                                                                            ifelse(rslt_unit_nm=="Thous/mm3", "x10E3/uL",
+                                                                                   ifelse(rslt_unit_nm=="THO/uL", "x10E3/uL",
+                                                                                          ifelse(rslt_unit_nm=="X10E3/uL", "x10E3/uL", rslt_unit_nm_V2)))))))))))
+
+
+data.frame(Lymphs %>% group_by(rslt_unit_nm_V2) %>% count() %>% arrange(-n))
+
+Lymphs <- Lymphs %>% mutate(rslt_nbr=ifelse(rslt_unit_nm_V2=="/uL", rslt_nbr/1000, rslt_nbr)) %>%
+  mutate(rslt_unit_nm_V2=ifelse(rslt_unit_nm_V2=="/uL", "x10E3/uL", rslt_unit_nm_V2 ))
+
+Lymphs %>% filter(!is.na(rslt_unit_nm_V2)) %>%
+  select(rslt_nbr) %>% 
+  ggplot(aes(rslt_nbr)) + geom_density() + xlim(0,10) 
+
+Lymphs <- Lymphs %>% filter(!is.na(rslt_unit_nm_V2))  %>% filter(rslt_nbr<10 & rslt_nbr>0) %>%
+  select(patid, fst_dt, rslt_nbr) %>% distinct()
+
+fwrite(Lymphs, "Source/Lymphs.txt")
+
+
+
+# ---------
+# Parse Bilirub  ---------
+
+labs_Anemia_Neutropenia <- fread("Source/labs_Anemia_Neutropenia.txt")
+
+Bilirub <- labs_Breast_Cancer_pts %>% filter(loinc_cd %in% c("14629-0","14630-8","14631-6","15152-2",
+                                                            "15153-0","18264-2","1968-7","1971-1",
+                                                            "1975-2","22665-4","29760-6","33898-8",
+                                                            "33899-6","34442-4","35191-6","35192-4",
+                                                            "35672-5","42719-5","54363-7","59828-4",
+                                                            "77137-8","89871-8"))
+
+length(unique(Bilirub$patid))
+Bilirub <- Bilirub %>% filter(rslt_nbr!=0)
+unique(Bilirub$rslt_unit_nm) 
+data.frame(Bilirub %>% group_by(rslt_unit_nm) %>% count() %>% arrange(-n))
+range(Bilirub$rslt_nbr)
+Bilirub <- Bilirub %>% filter(rslt_nbr<30)
+
+
+Bilirub <- Bilirub %>% select(patid, fst_dt, rslt_nbr) %>% distinct()
+
+fwrite(Bilirub, "Source/Bilirub.txt")
+
+Bilirub %>% ggplot(aes(fst_dt, rslt_nbr)) + geom_smooth(method="lm")
+
+
+# ---------
+# Parse WBC  ---------
+
+labs_Anemia_Neutropenia <- fread("Source/labs_Anemia_Neutropenia.txt")
+
+WBC <- labs_Breast_Cancer_pts %>% filter(loinc_cd %in% c("12227-5","15190-2","26466-3","33028-2",
+                                                             "30406-3","33765-9","49498-9","57845-0",
+                                                             "6690-2","6743-9", "804-5"))
+
+length(unique(WBC$patid))
+WBC <- WBC %>% filter(rslt_nbr!=0)
+unique(WBC$rslt_unit_nm) 
+data.frame(WBC %>% group_by(rslt_unit_nm) %>% count() %>% arrange(-n))
+range(Bilirub$rslt_nbr)
+
+WBC <- WBC %>%
+  mutate(rslt_unit_nm_V2 = ifelse(rslt_unit_nm=="K/MM3", "x10E3/uL",
+                                  ifelse(rslt_unit_nm=="x10E3/uL", "x10E3/uL",
+                                         ifelse(rslt_unit_nm=="Thousand/uL", "/uL",
+                                                ifelse(rslt_unit_nm==" ", " ",
+                                                       ifelse(rslt_unit_nm=="X10E3/UL", "x10E3/uL",
+                                                              ifelse(rslt_unit_nm=="10*3/uL", "x10E3/uL",
+                                                                     ifelse(rslt_unit_nm=="x10/3 uL", "x10E3/uL",
+                                                                            ifelse(rslt_unit_nm=="x 10/3", "x10E3/uL",
+                                                                                   ifelse(rslt_unit_nm=="x10(3)/uL", "x10E3/uL",
+                                                                                          ifelse(rslt_unit_nm=="K/CUMM", "x10E3/uL", NA)))))))))))
+
+
+
+WBC <- WBC %>%
+  mutate(rslt_unit_nm_V2 = ifelse(rslt_unit_nm=="K/uL", "x10E3/uL",
+                                  ifelse(rslt_unit_nm=="K/mcL", "x10E3/uL",
+                                         ifelse(rslt_unit_nm=="K/mcL", "x10E3/uL",
+                                                ifelse(rslt_unit_nm=="k/mm3", "x10E3/u",
+                                                       ifelse(rslt_unit_nm=="THDS/CMM", "x10E3/uL",
+                                                              ifelse(rslt_unit_nm=="X10(3)/UL", "x10E3/uL",
+                                                                     ifelse(rslt_unit_nm=="THOUS/uL", "x10E3/uL",
+                                                                            ifelse(rslt_unit_nm=="Thous/mcL", "x10E3/uL",
+                                                                                   ifelse(rslt_unit_nm=="k/ul", "x10E3/uL",
+                                                                                          ifelse(rslt_unit_nm=="10 3 ul", "x10E3/uL", rslt_unit_nm_V2)))))))))))
+
+
+
+
+
+WBC <- WBC %>%
+  mutate(rslt_unit_nm_V2 = ifelse(rslt_unit_nm=="10E3/uL", "x10E3/uL",
+                                  ifelse(rslt_unit_nm=="x10e3/uL", "x10E3/uL",
+                                         ifelse(rslt_unit_nm=="k/cu mm", "x10E3/uL",
+                                                ifelse(rslt_unit_nm=="THO/uL", "x10E3/u",
+                                                       ifelse(rslt_unit_nm=="bil/L", "x10E3/uL",
+                                                              ifelse(rslt_unit_nm=="k/uL", "x10E3/uL",
+                                                                     ifelse(rslt_unit_nm=="THOUS/MCL", "x10E3/uL",
+                                                                            ifelse(rslt_unit_nm=="10n3 ul", "x10E3/uL",
+                                                                                   ifelse(rslt_unit_nm=="x1000/??L", "x10E3/uL",
+                                                                                          ifelse(rslt_unit_nm=="K/ul", "x10E3/uL", rslt_unit_nm_V2)))))))))))
+
+
+
+
+data.frame(WBC %>% group_by(rslt_unit_nm_V2) %>% count() %>% arrange(-n))
+
+
+WBC %>% filter(rslt_unit_nm_V2=="x10E3/uL") %>%
+  ggplot(aes(rslt_nbr)) + geom_density() + xlim(0,30)
+
+
+WBC <- WBC %>% filter(rslt_unit_nm_V2=="x10E3/uL" & rslt_nbr<=30) %>%
+  select(patid, fst_dt, rslt_nbr) %>% distinct()
+
+fwrite(WBC, "Source/WBC.txt")
+
+
+# ---------
+# Parse AST ALT  ---------
+
+labs_Anemia_Neutropenia <- fread("Source/labs_Anemia_Neutropenia.txt")
+
+Liver <- labs_Breast_Cancer_pts %>% filter(loinc_cd %in% c("1742-6","1743-4","1744-2","1919-0",
+                                                         "1920-8","25302-1","30239-8","48134-1",
+                                                         "48136-6","54500-4","76625-3","77144-4", "88112-8"))
+
+
+AST <- labs_Breast_Cancer_pts %>% filter(loinc_cd %in% c("1919-0","1920-8","30239-8",
+                                                         "48136-6","54500-4", "88112-8"))
+
+AST <- AST %>% filter(rslt_nbr!=0 & rslt_nbr<200)  %>% select(patid, fst_dt, rslt_nbr) %>% distinct() 
+
+
+ALT <- labs_Breast_Cancer_pts %>% filter(loinc_cd %in% c("1742-6","1743-4","1744-2",
+                                                         "25302-1","48134-1","76625-3","77144-4"))
+
+ALT <- ALT %>% filter(rslt_nbr!=0 & rslt_nbr<200)  %>% select(patid, fst_dt, rslt_nbr) %>% distinct() 
+
+fwrite(AST, "Source/AST.txt")
+fwrite(ALT, "Source/ALT.txt")
+
+
+# ---------
 # Biomarkers vs persitency ON Palbociclib MIXED MODELS  --------------
 CancerDrug_Experienced <- fread("Source/CancerDrug_Experienced.txt",  integer64 = "character", stringsAsFactors = F)
 New_Primary_Cancer_Box <- fread("Source/New_Primary_Cancer_Box.txt", sep="\t")
@@ -3765,15 +4231,35 @@ temp <- CAN_Drug_Histories %>%
     distinct()
   ) 
 
+fwrite(temp, "Source/AfterPalbo_Month_Over_Month_Markers.txt")
+temp <- fread("Source/AfterPalbo_Month_Over_Month_Markers.txt")
 
 library(lme4)
 
 
+model_All <- glmer(ON_Palbo ~ 
+                 Elapsed  + Albumin  + BMI + Hemoglobin + `C-Reactive Protein`  + (1 |patient)  , 
+                  data = temp, family = binomial)
+
+summary(model_All)
+
+
+
+
+model_Elapsed <- glmer(ON_Palbo ~ 
+                 Elapsed  +  (Elapsed |patient)  , 
+                  data = temp, family = binomial)
+
+summary(model_Elapsed)
+
+
+
 model_Alb <- glmer(ON_Palbo ~ 
-                 Elapsed + Albumin + (Albumin |patient)  , 
+                 Elapsed + Albumin +  (Albumin |patient)  , 
                   data = temp, family = binomial)
 
 summary(model_Alb)
+
 
 
 model_BMI <- glmer(ON_Palbo ~ 
@@ -3790,12 +4276,338 @@ model_Hemoglobin <- glmer(ON_Palbo ~
 summary(model_Hemoglobin)
 
 
+
 model_CRP <- glmer(ON_Palbo ~ 
-                 Elapsed + `C-Reactive Protein` + (`C-Reactive Protein` |patient)  , 
+                 Elapsed + `C-Reactive Protein` + (1|patient)  , 
                   data = temp, family = binomial)
 
 summary(model_CRP)
 
+
+# TODO
+# https://stats.oarc.ucla.edu/r/dae/mixed-effects-logistic-regression/
+
+
+
+
+to_predict <- temp %>% filter(!is.na(Albumin)) %>% 
+  select(patient, Elapsed, Albumin, ON_Palbo) %>% distinct()
+
+to_predict %>% bind_cols(data.frame(predict(model_Alb, data=to_predict, type="response"))) %>%
+  ggplot(aes(Albumin, `predict.model_Alb..data...to_predict..type....response..`)) +
+  geom_smooth(colour="black", fill="black") +
+  theme_minimal() +
+  xlab("\n Albumin level") + 
+      coord_cartesian(ylim=c(0,1)) +
+  ylab("Probability of \n STILL being ON Palbociclib \n")
+
+
+
+
+to_predict <- temp %>% filter(!is.na(BMI)) %>% 
+  select(patient, Elapsed, BMI, ON_Palbo) %>% distinct()
+
+to_predict %>% bind_cols(data.frame(predict(model_BMI, data=to_predict, type="response"))) %>%
+  ggplot(aes(BMI, `predict.model_BMI..data...to_predict..type....response..`)) +
+  geom_smooth(colour="black", fill="black") +
+  theme_minimal() +
+  xlab("\n BMI level") + 
+    coord_cartesian(ylim=c(0,1)) +
+  ylab("Probability of \n STILL being ON Palbociclib \n")
+
+
+
+
+to_predict <- temp %>% filter(!is.na(Hemoglobin)) %>% 
+  select(patient, Elapsed, Hemoglobin, ON_Palbo) %>% distinct()
+
+to_predict %>% bind_cols(data.frame(predict(model_Hemoglobin, data=to_predict, type="response"))) %>%
+  ggplot(aes(Hemoglobin, `predict.model_Hemoglobin..data...to_predict..type....response..`)) +
+  geom_smooth(colour="black", fill="black") +
+  theme_minimal() +
+  xlab("\n Hemoglobin level") + 
+  coord_cartesian(ylim=c(0,1)) +
+  ylab("Probability of \n STILL being ON Palbociclib \n")
+
+
+
+
+to_predict <- temp %>% filter(!is.na(`C-Reactive Protein`)) %>% 
+  select(patient, Elapsed, `C-Reactive Protein`, ON_Palbo) %>% distinct()
+
+to_predict %>% bind_cols(data.frame(predict(model_CRP, data=to_predict, type="response"))) %>%
+  ggplot(aes(`C-Reactive Protein`, `predict.model_CRP..data...to_predict..type....response..`)) +
+  geom_smooth(colour="black", fill="black") +
+  theme_minimal() +
+  xlab("\n CRP level") + 
+  coord_cartesian(ylim=c(0,1)) +
+  ylab("Probability of \n STILL being ON Palbociclib \n")
+
+
+
+
+to_predict <- temp %>% filter(!is.na(Elapsed)) %>% 
+  select(patient, Elapsed, ON_Palbo) %>% distinct()
+
+to_predict %>% bind_cols(data.frame(predict(model_Elapsed, data=to_predict, type="response"))) %>%
+  ggplot(aes(Elapsed, `predict.model_Elapsed..data...to_predict..type....response..`)) +
+  geom_smooth(colour="black", fill="black") +
+  theme_minimal() +
+  xlab("\n Number of Elapsed Months \n Since Palbociclib Initiation") + 
+  coord_cartesian(ylim=c(0,1)) +
+  ylab("Probability of \n STILL being ON Palbociclib \n")
+
+
+
+
+Labs_Neutrophiles <- fread("Source/Labs_Neutrophiles.txt")
+
+Labs_Neutrophiles[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
+Labs_Neutrophiles <- Labs_Neutrophiles %>% group_by(patid, fst_dt) %>% summarise(rslt_nbr=min(rslt_nbr))
+Labs_Neutrophiles <- Labs_Neutrophiles %>% ungroup()
+
+Labs_Neutrophiles <- setDT(Labs_Neutrophiles)[Months_lookup, on = c("fst_dt" = "Month")]
+
+temp <- temp %>% select(-Neutrophiles)
+
+Labs_Neutrophiles %>% inner_join(temp %>% select(patient) %>% distinct(), by=c("patid"="patient")) %>%
+  ggplot(aes(Exact_Month, rslt_nbr)) + geom_smooth()
+
+# get temp model from before with the other tests, see above
+
+temp %>% left_join(Labs_Neutrophiles %>% select(-fst_dt), by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+   ggplot(aes(rslt_nbr, ON_Palbo)) +
+  stat_smooth(method="glm", se=TRUE, method.args = list(family=binomial), colour="black", fill="black") +
+  xlab("\n Lab Result") + ylab("Probability / Proporiton of \n STILL being ON Palbo\n ") +
+  theme_minimal() 
+
+temp <- temp %>% left_join(Labs_Neutrophiles %>% select(-fst_dt), by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  rename("Neutrophiles"="rslt_nbr")
+
+
+
+
+eGFR <- fread("Source/eGFR.txt")
+
+eGFR[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
+eGFR <- eGFR %>% group_by(patid, fst_dt) %>% summarise(rslt_nbr=min(rslt_nbr))
+eGFR <- eGFR %>% ungroup()
+eGFR <- eGFR %>% filter(rslt_nbr>10&rslt_nbr<150)
+
+eGFR <- setDT(eGFR)[Months_lookup, on = c("fst_dt" = "Month")]
+
+
+eGFR %>% inner_join(tem %>% select(patient) %>% distinct(), by=c("patid"="patient")) %>%
+  ggplot(aes(Exact_Month, rslt_nbr)) + geom_smooth()
+
+# get temp model from before with the other tests, see above
+
+temp %>% left_join(eGFR %>% select(-fst_dt), by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+   ggplot(aes(rslt_nbr, ON_Palbo)) +
+  stat_smooth(method="glm", se=TRUE, method.args = list(family=binomial), colour="black", fill="black") +
+  xlab("\n Lab Result") + ylab("Probability / Proporiton of \n STILL being ON Palbo\n ") +
+  theme_minimal() 
+
+temp <- temp %>% left_join(eGFR %>% select(-fst_dt), by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  rename("eGFR"="rslt_nbr")
+
+
+
+
+model_eGFR <- glmer(ON_Palbo ~ 
+                 Elapsed + eGFR + (eGFR|patient)  , 
+                  data = temp, family = binomial)
+
+summary(model_eGFR)
+
+to_predict <- temp %>% filter(!is.na(eGFR)) %>% 
+  select(patient, Elapsed, eGFR, ON_Palbo) %>% distinct()
+
+to_predict %>% bind_cols(data.frame(predict(model_eGFR, data=to_predict, type="response"))) %>%
+  ggplot(aes(eGFR, `predict.model_eGFR..data...to_predict..type....response..`)) +
+  geom_smooth(colour="black", fill="black", method="lm") +
+  theme_minimal() +
+  xlab("\n eGFR level") + 
+  coord_cartesian(ylim=c(0,1)) +
+  ylab("Probability of \n STILL being ON Palbociclib \n")
+
+
+
+
+
+# ---------
+
+# Albumin by buckets ---------------
+
+temp2 <- temp %>% filter(!is.na(Albumin)) %>% select(patient) %>% distinct() %>%
+  sample_n(100) %>% left_join(temp) %>% 
+  mutate(Albumin2=ifelse(Albumin<=3,"<3", 
+                                ifelse(Albumin<=4,"<4",
+                                       ifelse(Albumin<=5,"<5", ">5")))) %>%
+  select(patient, Elapsed, ON_Palbo, Albumin2) %>% mutate(Albumin2=as.factor(Albumin2))
+
+temp2 <- temp %>% mutate(Albumin2=round(Albumin)) %>%
+  select(patient, Elapsed, ON_Palbo, Albumin2) %>% mutate(Albumin2=as.factor(Albumin2))
+
+model_Alb2 <- glmer(ON_Palbo ~ 
+                 Elapsed + Albumin2 +  (Albumin2 |patient)  , 
+                  data = temp2, family = binomial)
+
+summary(model_Alb2)
+
+
+to_predict <- temp2 %>% filter(!is.na(Albumin2)) %>% 
+  select(patient, Elapsed, Albumin2, ON_Palbo) %>% distinct()
+
+to_predict %>% bind_cols(data.frame(predict(model_Alb2, data=to_predict, type="response"))) %>%
+  ggplot(aes(Elapsed, `predict.model_Alb2..data...to_predict..type....response..`, 
+             colour=Albumin2 , fill=Albumin2 ) ) +
+  geom_smooth() +
+  theme_minimal() +
+  scale_colour_manual(values=c("#003366","#1A5276","#3498DB","#5DADE2","#AED6F1")) +
+  scale_fill_manual(values=c("#003366","#1A5276","#3498DB","#5DADE2","#AED6F1")) +
+  xlab("\n Number of Elapsed Months \n Since Palbociclib Initiation") + 
+  coord_cartesian(ylim=c(0,1)) +
+  ylab("Probability of \n STILL being ON Palbociclib \n")
+
+  
+plot(random.effects(model_Alb))
+  
+
+# -----------------------
+# Add all markers together ---------
+
+Months_lookup <- fread("Source/Months_lookup.txt",  integer64 = "character", stringsAsFactors = F)
+
+Months_lookup$Month <- as.character(
+  format(
+    as.Date(
+      paste0(Months_lookup$Month,"-1")
+      ), "%Y-%m"
+    )
+  )
+
+
+temp <- fread("Source/AfterPalbo_Month_Over_Month_Markers.txt")
+
+
+AST <- fread("Source/AST.txt")
+ALT <- fread("Source/ALT.txt")
+WBC <- fread("Source/WBC.txt")
+Bilirub <- fread("Source/Bilirub.txt")
+Lymphs <- fread("Source/Lymphs.txt")
+Bicarb <- fread("Source/Bicarb.txt")
+eGFR <- fread("Source/eGFR.txt")
+Labs_Neutrophiles <- fread("Source/Labs_Neutrophiles.txt")
+
+
+
+AST[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
+AST <- AST %>% group_by(patid, fst_dt) %>% summarise(rslt_nbr=min(rslt_nbr))
+AST <- AST %>% ungroup()
+AST <- setDT(AST)[Months_lookup, on = c("fst_dt" = "Month")]
+AST <- AST %>% select(-fst_dt)
+AST <- AST %>% rename("AST"="rslt_nbr")
+
+
+ALT[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
+ALT <- ALT %>% group_by(patid, fst_dt) %>% summarise(rslt_nbr=min(rslt_nbr))
+ALT <- ALT %>% ungroup()
+ALT <- setDT(ALT)[Months_lookup, on = c("fst_dt" = "Month")]
+ALT <- ALT %>% select(-fst_dt)
+ALT <- ALT %>% rename("ALT"="rslt_nbr")
+
+
+WBC[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
+WBC <- WBC %>% group_by(patid, fst_dt) %>% summarise(rslt_nbr=min(rslt_nbr))
+WBC <- WBC %>% ungroup()
+WBC <- setDT(WBC)[Months_lookup, on = c("fst_dt" = "Month")]
+WBC <- WBC %>% select(-fst_dt)
+WBC <- WBC %>% rename("WBC"="rslt_nbr")
+
+
+
+Bilirub[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
+Bilirub <- Bilirub %>% group_by(patid, fst_dt) %>% summarise(rslt_nbr=min(rslt_nbr))
+Bilirub <- Bilirub %>% ungroup()
+Bilirub <- setDT(Bilirub)[Months_lookup, on = c("fst_dt" = "Month")]
+Bilirub <- Bilirub %>% select(-fst_dt)
+Bilirub <- Bilirub %>% rename("Bilirub"="rslt_nbr")
+
+
+
+Lymphs[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
+Lymphs <- Lymphs %>% group_by(patid, fst_dt) %>% summarise(rslt_nbr=min(rslt_nbr))
+Lymphs <- Lymphs %>% ungroup()
+Lymphs <- setDT(Lymphs)[Months_lookup, on = c("fst_dt" = "Month")]
+Lymphs <- Lymphs %>% select(-fst_dt)
+Lymphs <- Lymphs %>% rename("Lymphs"="rslt_nbr")
+
+
+
+Bicarb[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
+Bicarb <- Bicarb %>% group_by(patid, fst_dt) %>% summarise(rslt_nbr=min(rslt_nbr))
+Bicarb <- Bicarb %>% ungroup()
+Bicarb <- setDT(Bicarb)[Months_lookup, on = c("fst_dt" = "Month")]
+Bicarb <- Bicarb %>% select(-fst_dt)
+Bicarb <- Bicarb %>% rename("Bicarb"="rslt_nbr")
+
+
+eGFR[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
+eGFR <- eGFR %>% group_by(patid, fst_dt) %>% summarise(rslt_nbr=min(rslt_nbr))
+eGFR <- eGFR %>% ungroup()
+eGFR <- eGFR %>% filter(rslt_nbr>10&rslt_nbr<150)
+eGFR <- setDT(eGFR)[Months_lookup, on = c("fst_dt" = "Month")]
+eGFR <- eGFR %>% select(-fst_dt)
+eGFR <- eGFR %>% rename("eGFR"="rslt_nbr")
+
+
+Labs_Neutrophiles[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
+Labs_Neutrophiles <- Labs_Neutrophiles %>% group_by(patid, fst_dt) %>% summarise(rslt_nbr=min(rslt_nbr))
+Labs_Neutrophiles <- Labs_Neutrophiles %>% ungroup()
+Labs_Neutrophiles <- setDT(Labs_Neutrophiles)[Months_lookup, on = c("fst_dt" = "Month")]
+Labs_Neutrophiles <- Labs_Neutrophiles %>% select(-fst_dt)
+Labs_Neutrophiles <- Labs_Neutrophiles %>% rename("Neutrophiles"="rslt_nbr")
+
+
+
+temp <- temp %>% 
+  left_join(AST, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  left_join(ALT, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  left_join(WBC, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  left_join(Bilirub, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  left_join(Lymphs, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  left_join(Bicarb, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  left_join(eGFR, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  left_join(Labs_Neutrophiles, by=c("patient"="patid", "Elapsed"="Exact_Month"))  
+
+temp %>%
+  gather(Test, Result, Albumin:Neutrophiles) %>%
+  ggplot(aes(Result, ON_Palbo, colour=Test, fill=Test))+ 
+  stat_smooth(method="glm", se=TRUE, method.args = list(family=binomial), colour="black", fill="black") +
+  facet_wrap(~Test, scales="free_x") +
+  theme_minimal() +
+  xlab("\n Test result") +
+  ylab("Probability of \n STILL being ON Palbociblib \n")
+
+
+library(lme4)
+ 
+
+model_All <- glmer(ON_Palbo ~  Elapsed  + Albumin  + BMI + Hemoglobin + AST + eGFR + Neutrophiles + (1 |patient)  , data = temp, family = binomial)
+
+summary(model_All)
+
+temp2 <- temp %>% filter(!is.na(Albumin) & !is.na(BMI) & !is.na(Hemoglobin) & !is.na(AST) & !is.na(eGFR) & !is.na(Neutrophiles))
+
+temp2 <- temp2 %>% bind_cols(
+  data.frame(predict(model_All, data=temp2, type="response")) %>% 
+  rename("pred"="predict.model_All..data...temp2..type....response..")
+)
+
+
+temp2 %>% ggplot(aes(Albumin, pred)) + geom_point() + geom_smooth() +
+        coord_cartesian(ylim=c(0,1))  + geom_line(aes(group=patient))
 
 
 # ---------

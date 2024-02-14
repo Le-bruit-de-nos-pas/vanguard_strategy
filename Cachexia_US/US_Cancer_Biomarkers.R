@@ -4611,3 +4611,36 @@ temp2 %>% ggplot(aes(Albumin, pred)) + geom_point() + geom_smooth() +
 
 
 # ---------
+
+# Therapy in bone cancer patients V2, 2+ Dxs --------------
+
+PONS_Events <- fread("Source/PONS Events.txt")
+PONS_Events <- PONS_Events %>% filter(grepl("C795", code)) %>% group_by(patid) %>% count() %>% filter(n>1) 
+PONS_Events <-  PONS_Events %>% select(patid) %>% distinct() %>% ungroup()
+
+
+New_Primary_Cancer_Box <- fread("Source/New_Primary_Cancer_Box.txt", sep="\t")
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box[New_Primary_Cancer_Box$Primary_Cancer!="-"]
+sum(New_Primary_Cancer_Box$weight) # 22984889
+
+
+PONS_Events %>% left_join(New_Primary_Cancer_Box) %>% summarise(n=sum(weight, na.rm=T)) # 1518477 or # 1285656
+
+PONS_Events <- PONS_Events %>% left_join(New_Primary_Cancer_Box)
+
+
+Zoledronic_Acid_procedures <- fread("Source/Zoledronic_Acid_procedures.txt")
+Zoledronic_Acid_procedures <- Zoledronic_Acid_procedures %>% select(patid) %>% distinct()
+Zoledronic_Acid_rxs <- fread("Source/Zoledronic_Acid_rxs.txt")
+Zoledronic_Acid_rxs <- Zoledronic_Acid_rxs %>% select(patid) %>% distinct()
+Zoledronic <- Zoledronic_Acid_procedures %>% full_join(Zoledronic_Acid_rxs)  %>% distinct()
+
+
+CAN_Doses <- fread("Source/CAN Doses.txt")
+CAN_Doses <- CAN_Doses %>% filter(drug_class=="Radiotherapy") %>% select(pat_id) %>% distinct() %>% rename("patid"="pat_id")
+ 
+PONS_Events %>% inner_join(Zoledronic) %>%  summarise(n=sum(weight, na.rm=T)) # 243101
+PONS_Events %>% inner_join(CAN_Doses) %>%  summarise(n=sum(weight, na.rm=T)) # 717690
+PONS_Events %>% inner_join(CAN_Doses %>% full_join(Zoledronic) %>% distinct()) %>%  summarise(n=sum(weight, na.rm=T)) # 808005
+
+# --------

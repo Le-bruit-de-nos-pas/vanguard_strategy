@@ -1276,19 +1276,19 @@ data.frame(PONS_Measures %>% ungroup() %>% filter( (min<max*0.98 & min<20 & mind
 
 PONS_Measures_selected_cachexia <- PONS_Measures %>% ungroup() %>% filter( (min<max*0.98 & min<20 & mindate>maxdate) | (min<max*0.90 & mindate>maxdate & abs(mindate-maxdate)<=366)| (min<max*0.95 & mindate>maxdate & abs(mindate-maxdate)<=183)) %>%
   select(patid, weight) %>% distinct() %>%  
-  # bind_rows(Pats_to_track_BMI %>% filter(cachexia_onset==1) %>% select(patid)) %>%
+  bind_rows(Pats_to_track_BMI %>% filter(cachexia_onset==1) %>% select(patid)) %>%
   distinct() %>% inner_join(PONS_Measures)
 
 
 
 
-# PONS_Measures_selected_cachexia <- PONS_Measures_selected_cachexia %>% mutate(difference=min-max)
-# 
-# temp <- PONS_Measures_selected_cachexia %>% select(patid, weight, difference) %>%
-#   group_by(patid) %>% filter(difference==min(difference)) %>% slice(1) %>% arrange(difference)
-# 
-# weighted.mean(temp$difference, temp$weight) # -5.587503
-# weighted.median(temp$difference, temp$weight) # -4.4
+PONS_Measures_selected_cachexia <- PONS_Measures_selected_cachexia %>% mutate(difference=min-max)
+
+temp <- PONS_Measures_selected_cachexia %>% select(patid, weight, difference) %>%
+  group_by(patid) %>% filter(difference==min(difference)) %>% slice(1) %>% arrange(difference)
+
+weighted.mean(temp$difference, temp$weight) # -5.587503
+weighted.median(temp$difference, temp$weight) # -4.4
 
 
 PONS_Measures_selected_cachexia %>% mutate(PercentMax = 100*value/max)
@@ -1304,6 +1304,12 @@ temp %>% select(difference) %>%
   ylab("Proportion of patients \n")
 
 
+
+
+
+
+
+
 temp %>% mutate(Group=ifelse(abs(difference)>15,"-15",
                              ifelse(abs(difference)>10,"-10",
                                     ifelse(abs(difference)>5,"-5","0-5")))) %>%
@@ -1311,6 +1317,40 @@ temp %>% mutate(Group=ifelse(abs(difference)>15,"-15",
 
 
 PONS_Measures_selected_cachexia %>% select(patid, weight) %>% distinct() %>% summarise(n=sum(weight))
+
+
+
+temp2 <- PONS_Measures_selected_cachexia %>% group_by(patid) %>% 
+  mutate(PercentMax = 100*(min-max)/max) %>% 
+  select(patid, weight, PercentMax) %>%
+  group_by(patid) %>% filter(PercentMax==max(PercentMax)) %>% slice(1) %>% arrange(PercentMax)
+
+
+temp2 %>% select(PercentMax) %>%
+  ggplot(aes(PercentMax))+
+  geom_density(size=2, colour="brown4", fill="brown4", alpha=0.7) +
+  xlim(-50,0)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n MAX % BMI Drop")+
+  ylab("Proportion of patients \n")
+
+
+
+
+temp2 %>% mutate(Group=ifelse(PercentMax<(-30),"<-30",
+                             ifelse(PercentMax<(-20),"<-20",
+                                    ifelse(PercentMax<(-10),"<-10",">-10")))) %>%
+  ungroup %>% group_by(Group) %>% summarise(n=sum(weight)/3555450)
+
+
+
+
+weighted.mean(temp2$PercentMax, temp2$weight) # -5.587503
+weighted.median(temp2$PercentMax, temp2$weight) # -4.4
+
+
 
 
 temp <- temp %>% inner_join(Pats_to_track_BMI %>% select(-cancer_metastasis, -cachexia_onset))
@@ -15712,3 +15752,192 @@ CancerDrug_Experienced %>% left_join(New_Primary_Cancer_Box, by=c("patid"="patie
 
 
 # -----
+# Cachexia population estimate only after Dx -----------------------------------------------
+
+PONS_Demographics <- fread("PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% select(patid, weight, age, died, cancer_metastasis, cachexia_onset)
+PONS_Demographics <- PONS_Demographics %>% filter(age>=18)
+PONS_Demographics <- PONS_Demographics %>% mutate(cancer_metastasis=ifelse(is.na(cancer_metastasis),0,1))
+
+New_Primary_Cancer_Box <- fread("New_Primary_Cancer_Box.txt", sep="\t")
+PONS_Demographics <- New_Primary_Cancer_Box %>% inner_join(PONS_Demographics)
+names(PONS_Demographics)[4] <- "diagnosis"
+
+Pats_to_track_BMI <- PONS_Demographics  %>% select(patid, weight, diagnosis, died,  cancer_metastasis, cachexia_onset)
+Pats_to_track_BMI <- Pats_to_track_BMI %>% filter(diagnosis!="-") 
+
+PONS_Measures <- fread("PONS_Measures_short.txt", sep="\t")
+PONS_Measures <- PONS_Measures %>% filter(test=="BMI")
+
+PONS_Measures <- PONS_Measures %>% select(-weight) %>% inner_join(Pats_to_track_BMI %>% select(patid, weight))
+
+Summary_vals_pats <- PONS_Measures %>% group_by(patid) %>% summarise(mean=mean(value), median=median(value))
+
+PONS_Measures <- PONS_Measures %>% left_join(Summary_vals_pats)
+
+PONS_Measures <- PONS_Measures %>% arrange(patid, claimed)
+
+PONS_Measures$claimed <- as.Date(PONS_Measures$claimed)
+
+PONS_Measures <- PONS_Measures %>% ungroup() %>% filter(value<1.5*median&value>0.5*median) 
+
+Summary_vals_pats <- PONS_Measures %>% ungroup() %>% group_by(patid) %>% summarise(mean=mean(value), median=median(value), min=min(value), max=max(value))
+
+PONS_Measures <- PONS_Measures %>% select(-c(mean, median)) %>% left_join(Summary_vals_pats)
+
+Min_Max_Dates <- PONS_Measures %>% ungroup() %>% filter(value==min) %>% mutate(mindate=claimed) %>% select(patid, claimed, mindate) %>% 
+  full_join(PONS_Measures %>% ungroup() %>% filter(value==max) %>% mutate(maxdate=claimed) %>% select(patid, claimed, maxdate),
+            by="patid") %>% select(patid, mindate, maxdate)
+
+Min_Max_Dates <- Min_Max_Dates %>% distinct()
+
+PONS_Measures <- PONS_Measures %>% left_join(Min_Max_Dates) %>% select(-c(test, mean, median))
+
+PONS_Measures$mindate <- as.Date(PONS_Measures$mindate)
+PONS_Measures$maxdate <- as.Date(PONS_Measures$maxdate)
+
+PONS_Measures <- PONS_Measures %>% select(patid, weight) %>% group_by(patid) %>% count() %>% filter(n>=10) %>% select(patid) %>% inner_join(PONS_Measures)
+
+PONS_Demographics <- fread("PONS_Time_Series_Groups.txt", sep="\t")
+
+PONS_Measures <- PONS_Demographics %>% filter(Exact_Month==60 & (Status=="Earliest" | Status=="Metastasis" | Status=="Death")) %>% select(patid) %>% inner_join(PONS_Measures)
+
+Pats_to_track_BMI <- Pats_to_track_BMI %>% select(patid, weight, diagnosis, cancer_metastasis, cachexia_onset)
+Pats_to_track_BMI$cachexia_onset <- as.Date(Pats_to_track_BMI$cachexia_onset)
+PONS_Measures <- PONS_Measures %>% select(-weight)
+
+
+
+
+
+# Convert BMI records to wide format
+
+temp <- PONS_Measures
+temp <- temp %>% select(patid, claimed, value)
+
+Months_lookup <- fread("Months_lookup.txt",  integer64 = "character", stringsAsFactors = F)
+Months_lookup$Month <- paste0(Months_lookup$Month,"-1")
+Months_lookup$Month <- as.Date(Months_lookup$Month)
+Months_lookup$Month <- format(as.Date(Months_lookup$Month), "%Y-%m")
+Months_lookup$Month <- as.character(Months_lookup$Month)
+
+temp <- temp %>% mutate(claimed=as.character(claimed))
+temp <- temp %>% mutate(claimed=str_sub(claimed, 1L, 7L))
+
+temp <- temp %>% left_join(Months_lookup, by=c("claimed"="Month")) %>% select(patid, value, Exact_Month) %>% distinct()
+
+temp_max <- temp %>% group_by(patid, Exact_Month) %>% summarise(n=max(value))
+temp_min <- temp %>% group_by(patid, Exact_Month) %>% summarise(n=min(value))
+
+temp_max <- temp_max %>% ungroup() %>% spread(key=Exact_Month, value=n)
+temp_min <- temp_min %>% ungroup() %>% spread(key=Exact_Month, value=n)
+
+
+fwrite(temp_max, "MAX_Cachexia_BMI_Wide.txt", sep="\t")
+fwrite(temp_min, "MIN_Cachexia_BMI_Wide.txt", sep="\t")
+
+temp_max <- fread("MAX_Cachexia_BMI_Wide.txt", sep="\t", header = T)
+temp_min <- fread("MIN_Cachexia_BMI_Wide.txt", sep="\t", header = T)
+
+
+temp_max <- melt(temp_max) %>% drop_na() %>% arrange(patid)
+names(temp_max)[2] <- "Month_Max"
+names(temp_max)[3] <- "Max"
+temp_max$Month_Max <- as.numeric(temp_max$Month_Max)
+
+temp_min <- melt(temp_min) %>% drop_na() %>% arrange(patid)
+names(temp_min)[2] <- "Month_Min"
+names(temp_min)[3] <- "Min"
+temp_min$Month_Min <- as.numeric(temp_min$Month_Min)
+
+temp <- temp_max %>% left_join(temp_min)
+
+temp <- temp %>% ungroup() %>% filter(Month_Min>Month_Max)
+
+temp <- temp %>% mutate(Drop95=ifelse( (Min<(Max*0.95)) & (Month_Min>Month_Max) & (Month_Min-Month_Max<=6) & (Month_Min>=49),1,0 ))
+temp <- temp %>% mutate(Drop90=ifelse( (Min<(Max*0.90)) & (Month_Min>Month_Max) & (Month_Min-Month_Max<=12) & (Month_Min>=49),1,0 ))
+temp <- temp %>% mutate(Drop2_20=ifelse( (Min<(Max*0.98)) & (Month_Min>Month_Max) & (Min<20) & (Month_Min>=49),1,0 ))
+
+# temp <- temp %>% mutate(Drop95_long=ifelse(  (Min<(Max*0.95)) & Month_Max>36 & (Month_Min>Month_Max) & (Month_Min>=49),1,0 ))
+# temp <- temp %>% mutate(Drop2_5_long=ifelse( (Min<(Max*0.98)) & Month_Max>36 & (Min>(Max*0.95)) & (Month_Min>Month_Max) & (Month_Min>=49),1,0 ))
+# 
+# 
+# temp %>% select(patid, Drop90, Drop95, Drop2_20, Drop95_long, Drop2_5_long) %>%
+#   distinct() %>% group_by(Drop90, Drop95, Drop2_20, Drop95_long, Drop2_5_long) %>% count() %>% mutate(n=n/221739)
+
+
+
+New_Cachexia_Pred <- temp %>% filter(Drop95==1 | Drop90==1 | Drop2_20==1) %>% select(patid) %>% distinct()
+#New_Cachexia_Pred <- temp %>% filter( Drop90==1 | Drop2_20==1) %>% select(patid) %>% distinct()
+
+
+PONS_Demographics <- fread("PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% select(patid, cancer_onset)
+PONS_Demographics <- PONS_Demographics %>% mutate(cancer_onset=as.character(cancer_onset))
+PONS_Demographics <- PONS_Demographics %>% mutate(cancer_onset=str_sub(cancer_onset, 1L, 7L))
+PONS_Demographics <- PONS_Demographics %>% left_join(Months_lookup, by=c("cancer_onset"="Month")) %>% select(patid, Exact_Month) %>% distinct()
+
+New_Cachexia_Pred_postDx <- temp %>% left_join(PONS_Demographics) %>% filter(Month_Min<Exact_Month) %>%
+  filter(Drop95==1 | Drop90==1 | Drop2_20==1) %>% select(patid) %>% distinct()
+
+dim(New_Cachexia_Pred_postDx)
+dim(New_Cachexia_Pred)
+
+temp <- temp %>% mutate(Drop95_any=ifelse( (Min<(Max*0.95)) & (Month_Min>Month_Max) & (Month_Min-Month_Max<=6) ,1,0 ))
+temp <- temp %>% mutate(Drop90_any=ifelse( (Min<(Max*0.90)) & (Month_Min>Month_Max) & (Month_Min-Month_Max<=12),1,0 ))
+temp <- temp %>% mutate(Drop2_20_any=ifelse( (Min<(Max*0.98)) & (Month_Min>Month_Max) & (Min<20) ,1,0 ))
+
+
+New_Cachexia_Pred_postDx <- temp %>% left_join(PONS_Demographics) %>% filter(Month_Min>Exact_Month & Month_Max>Exact_Month) %>%
+  filter(Drop95_any==1 | Drop90_any==1 | Drop2_20_any==1) %>% select(patid) %>% distinct()
+
+dim(New_Cachexia_Pred_postDx)
+dim(New_Cachexia_Pred_postDx %>% inner_join(New_Cachexia_Pred))
+dim(New_Cachexia_Pred)
+
+
+
+
+
+data.frame(New_Cachexia_Pred %>% left_join(Pats_to_track_BMI) %>%
+             inner_join(New_Cachexia_Pred_postDx) %>%
+             full_join(Pats_to_track_BMI %>% filter(cachexia_onset>="2020-08-01")) %>%
+             distinct() %>% 
+  group_by(diagnosis,cancer_metastasis) %>% summarise(POP_Mets=sum(weight)) %>%
+             arrange(diagnosis, -cancer_metastasis)  %>% ungroup()) %>%
+  summarise(n=sum(POP_Mets))  # 1603718
+
+
+
+data.frame(New_Cachexia_Pred %>% left_join(Pats_to_track_BMI) %>%
+          inner_join(New_Cachexia_Pred_postDx) %>%
+             full_join(Pats_to_track_BMI %>% filter(cachexia_onset>="2020-08-01")) %>%
+             distinct() %>% 
+             anti_join(Pats_BMI_30) %>%
+             mutate(cancer_metastasis=ifelse(cancer_metastasis==1,"Mets", "No Mets")) %>%
+  group_by(diagnosis,cancer_metastasis) %>% summarise(POP_Mets=sum(weight))) 
+
+
+
+
+
+# WHO HAS BMI>30 ?
+PONS_Measures <- fread("PONS_Measures_short.txt", sep="\t")
+PONS_Measures <- PONS_Measures %>% filter(test=="BMI")
+PONS_Measures <- temp %>% select(patid) %>% distinct() %>% left_join(PONS_Measures) %>% select(patid, claimed, value)
+PONS_Measures$claimed <- as.Date(PONS_Measures$claimed)
+
+PONS_Measures <- PONS_Measures %>% group_by(patid) %>%  filter(value==min(value))
+
+Pats_BMI_30 <- PONS_Measures %>% ungroup() %>% filter(value>=30) %>% select(patid) %>% distinct()
+
+
+data.frame(New_Cachexia_Pred %>% left_join(Pats_to_track_BMI) %>%
+             full_join(Pats_to_track_BMI %>% filter(cachexia_onset>="2020-08-01")) %>%
+             distinct() %>%  anti_join(Pats_BMI_30) %>%
+  group_by(diagnosis,cancer_metastasis) %>% summarise(POP_Mets=sum(weight)) %>%
+             arrange(diagnosis, -cancer_metastasis)  ) 
+
+
+
+# ---------------------------------

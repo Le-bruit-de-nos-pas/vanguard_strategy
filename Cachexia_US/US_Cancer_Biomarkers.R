@@ -4067,6 +4067,213 @@ fwrite(ALT, "Source/ALT.txt")
 
 
 # ---------
+# Add NLP LABS --------------------------
+
+labs_NLPMeas_Breast_Cancer_pts <- fread("Source/labs_NLPMeas_Breast_Cancer_pts.txt")
+
+unique(labs_NLPMeas_Breast_Cancer_pts$measurement_type)
+
+#  [1] "ABSOLUTE LYMPHOCYTE COUNT" "ABSOLUTE MONOCYTE COUNT"   "ABSOLUTE NEUTROPHIL COUNT" "ALKALINE PHOSPHATASE"     
+#  [5] "ALP"                       "ALT"                       "ANION GAP"                 "AST"                      
+#  [9] "BICARBONATE"               "BILIRUBIN"                 "BUN"                       "CALCIUM"                  
+# [13] "CREATININE"                "EGFR"                      "FREE T4"                   "GFR"                      
+# [17] "INR"                       "K"                         "K+"                        "LYMPHOCYTE"               
+# [21] "MAGNESIUM"                 "MONOCYTES"                 "NEUTROPHILS"               "PLATELETS"                
+# [25] "POTASSIUM"                 "POTASSIUM LEVEL"           "TOTAL BILIRUBIN"  
+
+labs_NLPMeas_Breast_Cancer_pts <- labs_NLPMeas_Breast_Cancer_pts %>% filter(measurement_value!=0)
+
+labs_NLPMeas_Breast_Cancer_pts <- labs_NLPMeas_Breast_Cancer_pts %>% mutate(measurement_value=as.numeric(measurement_value)) %>% drop_na()
+
+labs_NLPMeas_Breast_Cancer_pts %>% group_by(measurement_detail) %>% count()
+
+
+Lymphs <- fread("Source/Lymphs.txt")
+
+Lymphs <- Lymphs %>%
+  bind_rows(
+    labs_NLPMeas_Breast_Cancer_pts %>%
+  filter(measurement_type=="ABSOLUTE LYMPHOCYTE COUNT"|measurement_type=="LYMPHOCYTE") %>%
+  filter(measurement_value<10) %>%
+  select(patid, note_date, measurement_value) %>%
+  distinct() %>% rename("fst_dt"="note_date", "rslt_nbr"="measurement_value")
+  ) %>% distinct()
+
+fwrite(Lymphs, "Source/Lymphs.txt")
+
+
+
+
+Labs_Neutrophiles <- fread("Source/Labs_Neutrophiles.txt")
+
+range(Labs_Neutrophiles$rslt_nbr)
+
+Labs_Neutrophiles <- Labs_Neutrophiles %>% filter(rslt_nbr<30) %>%
+  bind_rows(
+    labs_NLPMeas_Breast_Cancer_pts %>%
+  filter(measurement_type=="ABSOLUTE NEUTROPHIL COUNT"|measurement_type=="NEUTROPHILS") %>%
+  filter(measurement_value<30) %>%
+  select(patid, note_date, measurement_value) %>%
+  distinct() %>% rename("fst_dt"="note_date", "rslt_nbr"="measurement_value")
+  ) %>% distinct()
+
+fwrite(Labs_Neutrophiles, "Source/Labs_Neutrophiles.txt")
+
+
+
+
+
+eGFR <- fread("Source/eGFR.txt")
+
+range(eGFR$rslt_nbr)
+eGFR <- eGFR %>% filter(rslt_nbr>10&rslt_nbr<150)
+
+eGFR <- eGFR %>% 
+  bind_rows(
+    labs_NLPMeas_Breast_Cancer_pts %>%
+  filter(measurement_type=="GFR"|measurement_type=="EGFR") %>%
+  filter(measurement_value<150&measurement_value>10) %>%
+  select(patid, note_date, measurement_value) %>%
+  distinct() %>% rename("fst_dt"="note_date", "rslt_nbr"="measurement_value")
+  ) %>% distinct()
+
+fwrite(eGFR, "Source/eGFR.txt")
+
+
+
+AST <- fread("Source/AST.txt")
+
+range(AST$rslt_nbr)
+AST <- AST %>% filter(rslt_nbr>0&rslt_nbr<200)
+
+AST <- AST %>% 
+  bind_rows(
+    labs_NLPMeas_Breast_Cancer_pts %>%
+  filter(measurement_type=="AST") %>%
+  filter(measurement_value<200&measurement_value>0) %>%
+  select(patid, note_date, measurement_value) %>%
+  distinct() %>% rename("fst_dt"="note_date", "rslt_nbr"="measurement_value")
+  ) %>% distinct()
+
+fwrite(AST, "Source/AST.txt")
+
+
+
+
+ALT <- fread("Source/ALT.txt")
+
+range(ALT$rslt_nbr)
+ALT <- ALT %>% filter(rslt_nbr>0&rslt_nbr<200)
+
+ALT <- ALT %>% 
+  bind_rows(
+    labs_NLPMeas_Breast_Cancer_pts %>%
+  filter(measurement_type=="ALT") %>%
+  filter(measurement_value<200&measurement_value>0) %>%
+  select(patid, note_date, measurement_value) %>%
+  distinct() %>% rename("fst_dt"="note_date", "rslt_nbr"="measurement_value")
+  ) %>% distinct()
+
+fwrite(ALT, "Source/ALT.txt")
+
+
+
+Bicarb <- fread("Source/Bicarb.txt")
+
+range(Bicarb$rslt_nbr)
+Bicarb <- Bicarb %>% filter(rslt_nbr>0&rslt_nbr<50)
+
+Bicarb <- Bicarb %>% 
+  bind_rows(
+    labs_NLPMeas_Breast_Cancer_pts %>%
+  filter(measurement_type=="BICARBONATE") %>%
+  filter(measurement_value<50&measurement_value>0) %>%
+  select(patid, note_date, measurement_value) %>%
+  distinct() %>% rename("fst_dt"="note_date", "rslt_nbr"="measurement_value")
+  ) %>% distinct()
+
+fwrite(Bicarb, "Source/Bicarb.txt")
+
+
+
+
+Bilirub <- fread("Source/Bilirub.txt")
+
+range(Bilirub$rslt_nbr)
+Bilirub <- Bilirub %>% filter(rslt_nbr>0&rslt_nbr<30)
+
+Bilirub <- Bilirub %>% 
+  bind_rows(
+    labs_NLPMeas_Breast_Cancer_pts %>%
+  filter(measurement_type=="BILIRUBIN") %>%
+  filter(measurement_value<30&measurement_value>0) %>%
+  select(patid, note_date, measurement_value) %>%
+  distinct() %>% rename("fst_dt"="note_date", "rslt_nbr"="measurement_value")
+  ) %>% distinct()
+
+fwrite(Bicarb, "Source/Bilirub.txt")
+
+
+
+
+
+ALP <- labs_NLPMeas_Breast_Cancer_pts %>%
+  filter(measurement_type=="ALKALINE PHOSPHATASE") %>%
+  filter(measurement_value<500&measurement_value>0) %>%
+  select(patid, note_date, measurement_value) %>%
+  distinct() %>% rename("fst_dt"="note_date", "rslt_nbr"="measurement_value") %>% distinct()
+
+fwrite(ALP, "Source/ALP.txt")
+
+
+
+
+
+
+PLATELETS <- labs_NLPMeas_Breast_Cancer_pts %>%
+  filter(measurement_type=="PLATELETS") %>%
+  filter(measurement_value<1000&measurement_value>0) %>%
+  select(patid, note_date, measurement_value) %>%
+  distinct() %>% rename("fst_dt"="note_date", "rslt_nbr"="measurement_value") %>% distinct()
+
+fwrite(PLATELETS, "Source/PLATELETS.txt")
+
+
+
+
+
+CALCIUM <- labs_NLPMeas_Breast_Cancer_pts %>%
+  filter(measurement_type=="CALCIUM") %>%
+  filter(measurement_value<15&measurement_value>5) %>%
+  select(patid, note_date, measurement_value) %>%
+  distinct() %>% rename("fst_dt"="note_date", "rslt_nbr"="measurement_value") %>% distinct()
+
+fwrite(CALCIUM, "Source/CALCIUM.txt")
+
+
+POTASSIUM <- labs_NLPMeas_Breast_Cancer_pts %>%
+  filter(measurement_type=="POTASSIUM"|measurement_type=="K"|measurement_type=="K+") %>%
+  filter(measurement_value<10&measurement_value>1) %>%
+  select(patid, note_date, measurement_value) %>%
+  distinct() %>% rename("fst_dt"="note_date", "rslt_nbr"="measurement_value") %>% distinct()
+
+fwrite(POTASSIUM, "Source/POTASSIUM.txt")
+
+
+
+
+ANIONGAP <- labs_NLPMeas_Breast_Cancer_pts %>%
+  filter(measurement_type=="ANION GAP") %>%
+  filter(measurement_value<30&measurement_value>1) %>%
+  select(patid, note_date, measurement_value) %>%
+  distinct() %>% rename("fst_dt"="note_date", "rslt_nbr"="measurement_value") %>% distinct()
+
+fwrite(ANIONGAP, "Source/ANIONGAP.txt")
+
+# --------------------
+
+
+
 # Biomarkers vs persitency ON Palbociclib MIXED MODELS  --------------
 CancerDrug_Experienced <- fread("Source/CancerDrug_Experienced.txt",  integer64 = "character", stringsAsFactors = F)
 New_Primary_Cancer_Box <- fread("Source/New_Primary_Cancer_Box.txt", sep="\t")
@@ -4499,7 +4706,52 @@ Lymphs <- fread("Source/Lymphs.txt")
 Bicarb <- fread("Source/Bicarb.txt")
 eGFR <- fread("Source/eGFR.txt")
 Labs_Neutrophiles <- fread("Source/Labs_Neutrophiles.txt")
+ANIONGAP <- fread("Source/ANIONGAP.txt")
+POTASSIUM <- fread("Source/POTASSIUM.txt")
+CALCIUM <- fread("Source/CALCIUM.txt")
+PLATELETS <- fread("Source/PLATELETS.txt")
+ALP <- fread("Source/ALP.txt")
 
+
+
+
+ANIONGAP[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
+ANIONGAP <- ANIONGAP %>% group_by(patid, fst_dt) %>% summarise(rslt_nbr=min(rslt_nbr))
+ANIONGAP <- ANIONGAP %>% ungroup()
+ANIONGAP <- setDT(ANIONGAP)[Months_lookup, on = c("fst_dt" = "Month")]
+ANIONGAP <- ANIONGAP %>% select(-fst_dt)
+ANIONGAP <- ANIONGAP %>% rename("ANIONGAP"="rslt_nbr")
+
+
+POTASSIUM[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
+POTASSIUM <- POTASSIUM %>% group_by(patid, fst_dt) %>% summarise(rslt_nbr=min(rslt_nbr))
+POTASSIUM <- POTASSIUM %>% ungroup()
+POTASSIUM <- setDT(POTASSIUM)[Months_lookup, on = c("fst_dt" = "Month")]
+POTASSIUM <- POTASSIUM %>% select(-fst_dt)
+POTASSIUM <- POTASSIUM %>% rename("POTASSIUM"="rslt_nbr")
+
+
+CALCIUM[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
+CALCIUM <- CALCIUM %>% group_by(patid, fst_dt) %>% summarise(rslt_nbr=min(rslt_nbr))
+CALCIUM <- CALCIUM %>% ungroup()
+CALCIUM <- setDT(CALCIUM)[Months_lookup, on = c("fst_dt" = "Month")]
+CALCIUM <- CALCIUM %>% select(-fst_dt)
+CALCIUM <- CALCIUM %>% rename("CALCIUM"="rslt_nbr")
+
+
+PLATELETS[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
+PLATELETS <- PLATELETS %>% group_by(patid, fst_dt) %>% summarise(rslt_nbr=min(rslt_nbr))
+PLATELETS <- PLATELETS %>% ungroup()
+PLATELETS <- setDT(PLATELETS)[Months_lookup, on = c("fst_dt" = "Month")]
+PLATELETS <- PLATELETS %>% select(-fst_dt)
+PLATELETS <- PLATELETS %>% rename("PLATELETS"="rslt_nbr")
+
+ALP[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
+ALP <- ALP %>% group_by(patid, fst_dt) %>% summarise(rslt_nbr=min(rslt_nbr))
+ALP <- ALP %>% ungroup()
+ALP <- setDT(ALP)[Months_lookup, on = c("fst_dt" = "Month")]
+ALP <- ALP %>% select(-fst_dt)
+ALP <- ALP %>% rename("ALP"="rslt_nbr")
 
 
 AST[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
@@ -4579,10 +4831,16 @@ temp <- temp %>%
   left_join(Lymphs, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
   left_join(Bicarb, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
   left_join(eGFR, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
-  left_join(Labs_Neutrophiles, by=c("patient"="patid", "Elapsed"="Exact_Month"))  
+  left_join(Labs_Neutrophiles, by=c("patient"="patid", "Elapsed"="Exact_Month"))    %>%
+  left_join(ALP, by=c("patient"="patid", "Elapsed"="Exact_Month"))    %>%
+  left_join(CALCIUM, by=c("patient"="patid", "Elapsed"="Exact_Month"))    %>%
+  left_join(POTASSIUM, by=c("patient"="patid", "Elapsed"="Exact_Month"))    %>%
+  left_join(PLATELETS, by=c("patient"="patid", "Elapsed"="Exact_Month"))    %>%
+  left_join(ANIONGAP, by=c("patient"="patid", "Elapsed"="Exact_Month"))  
 
 temp %>%
-  gather(Test, Result, Albumin:Neutrophiles) %>%
+  gather(Test, Result, Albumin:ANIONGAP) %>%
+  filter(Test!="Bicarb"&Test!="Bilirub"&Test!="WBC"&Test!="PLATELETS"&Test!="eGFR") %>%
   ggplot(aes(Result, ON_Palbo, colour=Test, fill=Test))+ 
   stat_smooth(method="glm", se=TRUE, method.args = list(family=binomial), colour="black", fill="black") +
   facet_wrap(~Test, scales="free_x") +
@@ -4615,14 +4873,18 @@ temp2 %>% ggplot(aes(Albumin, pred)) + geom_point() + geom_smooth() +
 # Therapy in bone cancer patients V2, 2+ Dxs --------------
 
 PONS_Events <- fread("Source/PONS Events.txt")
-PONS_Events <- PONS_Events %>% filter(grepl("C795", code)) %>% group_by(patid) %>% count() %>% filter(n>1) 
-PONS_Events <-  PONS_Events %>% select(patid) %>% distinct() %>% ungroup()
 
+PONS_Events <- PONS_Events %>% filter(grepl("C795", code)) %>% 
+  group_by(patid) %>% count() %>% filter(n>1) %>% 
+  select(patid) %>% distinct() %>% ungroup() %>% left_join(PONS_Events) %>%
+  group_by(patid) %>%
+  filter(grepl("C795", code)) %>% filter(claimed==min(claimed)) %>% select(patid, claimed) %>% distinct()
+
+PONS_Events$claimed <- as.Date(PONS_Events$claimed)
 
 New_Primary_Cancer_Box <- fread("Source/New_Primary_Cancer_Box.txt", sep="\t")
 New_Primary_Cancer_Box <- New_Primary_Cancer_Box[New_Primary_Cancer_Box$Primary_Cancer!="-"]
 sum(New_Primary_Cancer_Box$weight) # 22984889
-
 
 PONS_Events %>% left_join(New_Primary_Cancer_Box) %>% summarise(n=sum(weight, na.rm=T)) # 1518477 or # 1285656
 
@@ -4636,11 +4898,83 @@ Zoledronic_Acid_rxs <- Zoledronic_Acid_rxs %>% select(patid) %>% distinct()
 Zoledronic <- Zoledronic_Acid_procedures %>% full_join(Zoledronic_Acid_rxs)  %>% distinct()
 
 
+
+data.frame(Zoledronic %>% inner_join(New_Primary_Cancer_Box) %>% 
+  group_by(Primary_Cancer) %>% summarise(n=100*sum(weight)/614009))
+
+
+data.frame(Zoledronic %>% left_join(New_Primary_Cancer_Box)) %>% summarise(n=sum(weight, na.rm=T))  #614008.9
+
+data.frame(Zoledronic %>% inner_join(PONS_Events)) %>% summarise(n=sum(weight, na.rm=T))  #243100.8
+   
+
+
+
+
 CAN_Doses <- fread("Source/CAN Doses.txt")
-CAN_Doses <- CAN_Doses %>% filter(drug_class=="Radiotherapy") %>% select(pat_id) %>% distinct() %>% rename("patid"="pat_id")
+CAN_Doses <- CAN_Doses %>% filter(drug_class=="Radiotherapy") %>% 
+  select(pat_id, from_dt) %>% distinct() %>% rename("patid"="pat_id") %>%
+  inner_join(PONS_Events) %>% filter(from_dt>claimed) %>% select(patid) %>% distinct()
  
+
+
+
 PONS_Events %>% inner_join(Zoledronic) %>%  summarise(n=sum(weight, na.rm=T)) # 243101
 PONS_Events %>% inner_join(CAN_Doses) %>%  summarise(n=sum(weight, na.rm=T)) # 717690
 PONS_Events %>% inner_join(CAN_Doses %>% full_join(Zoledronic) %>% distinct()) %>%  summarise(n=sum(weight, na.rm=T)) # 808005
 
-# --------
+
+# SREs
+PONS_Comorbidity_Inventories <- fread("Source/PONS Comorbidity Inventories.txt")
+
+SREs <- PONS_Comorbidity_Inventories %>% filter(grepl("M48", diagnosis)|
+                                  grepl("M49", diagnosis)|
+                                  grepl("M80", diagnosis)|
+                                  grepl("M84", diagnosis)|
+                                  grepl("M84", diagnosis)|
+                                  grepl("M90", diagnosis)|
+                                  grepl("M96", diagnosis)|
+                                  grepl("S02", diagnosis)|
+                                  grepl("S12", diagnosis)|
+                                  grepl("S22", diagnosis)|
+                                  grepl("S32", diagnosis)|
+                                  grepl("S42", diagnosis)|
+                                  grepl("S52", diagnosis)|
+                                  grepl("S62", diagnosis)|
+                                  grepl("S72", diagnosis)|
+                                  grepl("S82", diagnosis)|
+                                  grepl("S92", diagnosis)|
+                                  grepl("T02", diagnosis)|
+                                  grepl("T08", diagnosis)|
+                                  grepl("T10", diagnosis)|
+                                  grepl("T12", diagnosis)|
+                                  grepl("T14", diagnosis)) %>% select(patid) %>% distinct()
+
+data.frame(Zoledronic %>% left_join(New_Primary_Cancer_Box)) %>% summarise(n=sum(weight, na.rm=T))  #614008.9
+
+data.frame(Zoledronic %>% inner_join(SREs))%>% left_join(New_Primary_Cancer_Box) %>% summarise(n=sum(weight, na.rm=T))  #353701
+   
+data.frame(
+  SREs %>% inner_join(PONS_Events) %>% inner_join(Zoledronic) %>%
+    left_join(New_Primary_Cancer_Box)
+  ) %>% 
+    summarise(n=sum(weight, na.rm=T))  #715311
+
+
+# 2 Dxs bone mets  SRE
+# % Zol or Radio
+
+
+
+data.frame(
+  SREs %>% inner_join(PONS_Events) %>%
+    inner_join(Zoledronic %>% full_join(CAN_Doses) %>% distinct()) %>%
+    left_join(New_Primary_Cancer_Box)
+  ) %>% 
+    summarise(n=sum(weight, na.rm=T))  #715311 # 438261.2
+
+
+
+
+
+# --------------------

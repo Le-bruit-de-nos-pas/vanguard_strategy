@@ -4978,3 +4978,366 @@ data.frame(
 
 
 # --------------------
+# Fulvestrant vs Palbociclib - biomarkers over time probability of being ON it ------
+
+temp_Fulvestrant <- fread("Source/AfterFulvestrant_Month_Over_Month_Markers.txt")
+temp_Palbociclib <- fread("Source/AfterPalbo_Month_Over_Month_Markers.txt")
+
+Months_lookup <- fread("Source/Months_lookup.txt",  integer64 = "character", stringsAsFactors = F)
+
+Months_lookup$Month <- as.character(
+  format(
+    as.Date(
+      paste0(Months_lookup$Month,"-1")
+      ), "%Y-%m"
+    )
+  )
+
+
+
+AST <- fread("Source/AST.txt")
+ALT <- fread("Source/ALT.txt")
+WBC <- fread("Source/WBC.txt")
+Bilirub <- fread("Source/Bilirub.txt")
+Lymphs <- fread("Source/Lymphs.txt")
+Bicarb <- fread("Source/Bicarb.txt")
+eGFR <- fread("Source/eGFR.txt")
+Labs_Neutrophiles <- fread("Source/Labs_Neutrophiles.txt")
+ANIONGAP <- fread("Source/ANIONGAP.txt")
+POTASSIUM <- fread("Source/POTASSIUM.txt")
+CALCIUM <- fread("Source/CALCIUM.txt")
+PLATELETS <- fread("Source/PLATELETS.txt")
+ALP <- fread("Source/ALP.txt")
+
+
+
+
+ANIONGAP[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
+ANIONGAP <- ANIONGAP %>% group_by(patid, fst_dt) %>% summarise(rslt_nbr=min(rslt_nbr))
+ANIONGAP <- ANIONGAP %>% ungroup()
+ANIONGAP <- setDT(ANIONGAP)[Months_lookup, on = c("fst_dt" = "Month")]
+ANIONGAP <- ANIONGAP %>% select(-fst_dt)
+ANIONGAP <- ANIONGAP %>% rename("ANIONGAP"="rslt_nbr")
+
+
+POTASSIUM[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
+POTASSIUM <- POTASSIUM %>% group_by(patid, fst_dt) %>% summarise(rslt_nbr=min(rslt_nbr))
+POTASSIUM <- POTASSIUM %>% ungroup()
+POTASSIUM <- setDT(POTASSIUM)[Months_lookup, on = c("fst_dt" = "Month")]
+POTASSIUM <- POTASSIUM %>% select(-fst_dt)
+POTASSIUM <- POTASSIUM %>% rename("POTASSIUM"="rslt_nbr")
+
+
+CALCIUM[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
+CALCIUM <- CALCIUM %>% group_by(patid, fst_dt) %>% summarise(rslt_nbr=min(rslt_nbr))
+CALCIUM <- CALCIUM %>% ungroup()
+CALCIUM <- setDT(CALCIUM)[Months_lookup, on = c("fst_dt" = "Month")]
+CALCIUM <- CALCIUM %>% select(-fst_dt)
+CALCIUM <- CALCIUM %>% rename("CALCIUM"="rslt_nbr")
+
+
+PLATELETS[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
+PLATELETS <- PLATELETS %>% group_by(patid, fst_dt) %>% summarise(rslt_nbr=min(rslt_nbr))
+PLATELETS <- PLATELETS %>% ungroup()
+PLATELETS <- setDT(PLATELETS)[Months_lookup, on = c("fst_dt" = "Month")]
+PLATELETS <- PLATELETS %>% select(-fst_dt)
+PLATELETS <- PLATELETS %>% rename("PLATELETS"="rslt_nbr")
+
+ALP[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
+ALP <- ALP %>% group_by(patid, fst_dt) %>% summarise(rslt_nbr=min(rslt_nbr))
+ALP <- ALP %>% ungroup()
+ALP <- setDT(ALP)[Months_lookup, on = c("fst_dt" = "Month")]
+ALP <- ALP %>% select(-fst_dt)
+ALP <- ALP %>% rename("ALP"="rslt_nbr")
+
+
+AST[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
+AST <- AST %>% group_by(patid, fst_dt) %>% summarise(rslt_nbr=min(rslt_nbr))
+AST <- AST %>% ungroup()
+AST <- setDT(AST)[Months_lookup, on = c("fst_dt" = "Month")]
+AST <- AST %>% select(-fst_dt)
+AST <- AST %>% rename("AST"="rslt_nbr")
+
+
+ALT[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
+ALT <- ALT %>% group_by(patid, fst_dt) %>% summarise(rslt_nbr=min(rslt_nbr))
+ALT <- ALT %>% ungroup()
+ALT <- setDT(ALT)[Months_lookup, on = c("fst_dt" = "Month")]
+ALT <- ALT %>% select(-fst_dt)
+ALT <- ALT %>% rename("ALT"="rslt_nbr")
+
+
+WBC[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
+WBC <- WBC %>% group_by(patid, fst_dt) %>% summarise(rslt_nbr=min(rslt_nbr))
+WBC <- WBC %>% ungroup()
+WBC <- setDT(WBC)[Months_lookup, on = c("fst_dt" = "Month")]
+WBC <- WBC %>% select(-fst_dt)
+WBC <- WBC %>% rename("WBC"="rslt_nbr")
+
+
+
+Bilirub[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
+Bilirub <- Bilirub %>% group_by(patid, fst_dt) %>% summarise(rslt_nbr=min(rslt_nbr))
+Bilirub <- Bilirub %>% ungroup()
+Bilirub <- setDT(Bilirub)[Months_lookup, on = c("fst_dt" = "Month")]
+Bilirub <- Bilirub %>% select(-fst_dt)
+Bilirub <- Bilirub %>% rename("Bilirub"="rslt_nbr")
+
+
+
+Lymphs[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
+Lymphs <- Lymphs %>% group_by(patid, fst_dt) %>% summarise(rslt_nbr=min(rslt_nbr))
+Lymphs <- Lymphs %>% ungroup()
+Lymphs <- setDT(Lymphs)[Months_lookup, on = c("fst_dt" = "Month")]
+Lymphs <- Lymphs %>% select(-fst_dt)
+Lymphs <- Lymphs %>% rename("Lymphs"="rslt_nbr")
+
+
+
+Bicarb[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
+Bicarb <- Bicarb %>% group_by(patid, fst_dt) %>% summarise(rslt_nbr=min(rslt_nbr))
+Bicarb <- Bicarb %>% ungroup()
+Bicarb <- setDT(Bicarb)[Months_lookup, on = c("fst_dt" = "Month")]
+Bicarb <- Bicarb %>% select(-fst_dt)
+Bicarb <- Bicarb %>% rename("Bicarb"="rslt_nbr")
+
+
+eGFR[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
+eGFR <- eGFR %>% group_by(patid, fst_dt) %>% summarise(rslt_nbr=min(rslt_nbr))
+eGFR <- eGFR %>% ungroup()
+eGFR <- eGFR %>% filter(rslt_nbr>10&rslt_nbr<150)
+eGFR <- setDT(eGFR)[Months_lookup, on = c("fst_dt" = "Month")]
+eGFR <- eGFR %>% select(-fst_dt)
+eGFR <- eGFR %>% rename("eGFR"="rslt_nbr")
+
+
+Labs_Neutrophiles[, fst_dt := as.character(fst_dt)][, fst_dt := substr(fst_dt, 1L, 7L)]
+Labs_Neutrophiles <- Labs_Neutrophiles %>% group_by(patid, fst_dt) %>% summarise(rslt_nbr=min(rslt_nbr))
+Labs_Neutrophiles <- Labs_Neutrophiles %>% ungroup()
+Labs_Neutrophiles <- setDT(Labs_Neutrophiles)[Months_lookup, on = c("fst_dt" = "Month")]
+Labs_Neutrophiles <- Labs_Neutrophiles %>% select(-fst_dt)
+Labs_Neutrophiles <- Labs_Neutrophiles %>% rename("Neutrophiles"="rslt_nbr")
+
+
+temp_Palbociclib <- temp_Palbociclib %>% 
+  left_join(AST, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  left_join(ALT, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  left_join(WBC, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  left_join(Bilirub, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  left_join(Lymphs, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  left_join(Bicarb, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  left_join(eGFR, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  left_join(Labs_Neutrophiles, by=c("patient"="patid", "Elapsed"="Exact_Month"))    %>%
+  left_join(ALP, by=c("patient"="patid", "Elapsed"="Exact_Month"))    %>%
+  left_join(CALCIUM, by=c("patient"="patid", "Elapsed"="Exact_Month"))    %>%
+  left_join(POTASSIUM, by=c("patient"="patid", "Elapsed"="Exact_Month"))    %>%
+  left_join(PLATELETS, by=c("patient"="patid", "Elapsed"="Exact_Month"))    %>%
+  left_join(ANIONGAP, by=c("patient"="patid", "Elapsed"="Exact_Month"))  
+
+
+
+temp_Fulvestrant <- temp_Fulvestrant %>% 
+  left_join(AST, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  left_join(ALT, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  left_join(WBC, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  left_join(Bilirub, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  left_join(Lymphs, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  left_join(Bicarb, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  left_join(eGFR, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  left_join(Labs_Neutrophiles, by=c("patient"="patid", "Elapsed"="Exact_Month"))    %>%
+  left_join(ALP, by=c("patient"="patid", "Elapsed"="Exact_Month"))    %>%
+  left_join(CALCIUM, by=c("patient"="patid", "Elapsed"="Exact_Month"))    %>%
+  left_join(POTASSIUM, by=c("patient"="patid", "Elapsed"="Exact_Month"))    %>%
+  left_join(PLATELETS, by=c("patient"="patid", "Elapsed"="Exact_Month"))    %>%
+  left_join(ANIONGAP, by=c("patient"="patid", "Elapsed"="Exact_Month"))  
+
+
+
+temp_Carboplatin <- temp_Carboplatin %>% 
+  left_join(AST, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  left_join(ALT, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  left_join(WBC, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  left_join(Bilirub, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  left_join(Lymphs, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  left_join(Bicarb, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  left_join(eGFR, by=c("patient"="patid", "Elapsed"="Exact_Month"))  %>%
+  left_join(Labs_Neutrophiles, by=c("patient"="patid", "Elapsed"="Exact_Month"))    %>%
+  left_join(ALP, by=c("patient"="patid", "Elapsed"="Exact_Month"))    %>%
+  left_join(CALCIUM, by=c("patient"="patid", "Elapsed"="Exact_Month"))    %>%
+  left_join(POTASSIUM, by=c("patient"="patid", "Elapsed"="Exact_Month"))    %>%
+  left_join(PLATELETS, by=c("patient"="patid", "Elapsed"="Exact_Month"))    %>%
+  left_join(ANIONGAP, by=c("patient"="patid", "Elapsed"="Exact_Month"))  
+
+length(unique(temp_Palbociclib$patient))
+length(unique(temp_Carboplatin$patient))
+
+
+temp <- temp_Fulvestrant %>% rename("ON"="ON_Fulvestrant") %>% mutate(group="Fulvestrant") %>%
+  bind_rows(temp_Palbociclib %>% rename("ON"="ON_Palbo") %>% mutate(group="Palbociclib")) 
+
+temp %>%
+  gather(Test, Result, Albumin:ANIONGAP) %>%
+  filter(Test!="Bicarb"&Test!="Bilirub"&Test!="WBC"&Test!="PLATELETS"&Test!="eGFR") %>%
+  ggplot(aes(Result, ON, colour=group, fill=group, group=group))+ 
+  stat_smooth(method="glm", se=TRUE, method.args = list(family=binomial)) +
+  facet_wrap(~Test, scales="free_x") +
+  theme_minimal() +
+  xlab("\n Test result") +
+  ylab("Probability of \n STILL being ON Drug \n") +
+  scale_fill_manual(values=c("firebrick", "midnightblue")) +
+  scale_colour_manual(values=c("firebrick", "midnightblue")) 
+
+
+temp %>%
+  ggplot(aes(Elapsed, ON, colour=group, fill=group, group=group)) +
+    stat_smooth(method="glm", se=TRUE, method.args = list(family=binomial)) +
+  theme_minimal() + xlab("\n Number of Elapsed Months \n Since Palbociclib / Fulvestrant Initiation") +
+  ylab("Probability of STILL being ON Drug \n") +
+  scale_fill_manual(values=c("firebrick", "midnightblue")) +
+  scale_colour_manual(values=c("firebrick", "midnightblue")) 
+
+
+temp %>%
+  ggplot(aes(Elapsed, BMI, colour=group, fill=group, group=group)) +
+    geom_smooth() + ylim(5,15)
+
+
+
+model_Elapsed <- glmer(ON ~ 
+                 Elapsed  + group +  (Elapsed |patient)  , 
+                  data = temp, family = binomial)
+
+summary(model_Elapsed)
+
+model_Alb <- glmer(ON ~ 
+                 Elapsed + Albumin + group +  (Albumin |patient)  , 
+                  data = temp, family = binomial)
+
+summary(model_Alb)
+
+# ------------
+# Model palbociclib --------------------------
+
+CancerDrug_Experienced <- fread("Source/CancerDrug_Experienced.txt",  integer64 = "character", stringsAsFactors = F)
+New_Primary_Cancer_Box <- fread("Source/New_Primary_Cancer_Box.txt", sep="\t")
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% inner_join(CancerDrug_Experienced)
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% filter(Primary_Cancer=="Breast Cancer") %>% select(patid)
+
+PONS_Demographics <- fread("Source/PONS Demographics.txt")
+Metastatic <- PONS_Demographics%>% filter(!is.na(cancer_metastasis))  %>% select(patid)
+New_Primary_Cancer_Box <- Metastatic %>% inner_join(New_Primary_Cancer_Box)
+
+CAN_Drug_Histories <- fread("Source/CAN Drug Histories.txt")
+CAN_Drug_Histories <- setDT(CAN_Drug_Histories)[New_Primary_Cancer_Box[, .(patid)], on = c("patient"="patid"), nomatch = 0]
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+setDT(CAN_Drug_Histories)
+CAN_Drug_Histories <- unique(CAN_Drug_Histories[, .(patient, Month, Treat)])
+CAN_Drug_Histories$Month <- parse_number(as.character(CAN_Drug_Histories$Month))
+
+PONS_Ingredients_JN_ChemoClass <- fread("Source/PONS_Ingredients_JN_ChemoClass.csv", colClasses = "character")
+
+Palbociclib_pats <- CAN_Drug_Histories %>% filter(grepl("179", Treat)) %>% select(patient) %>% distinct()
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% filter(Treat!="-") %>% select(-Month) %>% distinct()
+CAN_Drug_Histories <- separate_rows(CAN_Drug_Histories, Treat, sep = ",", convert=T)
+CAN_Drug_Histories <- CAN_Drug_Histories %>%  filter(Treat!="179")
+CAN_Drug_Histories <- CAN_Drug_Histories %>% mutate(Treat=as.character(Treat)) %>%
+  left_join(PONS_Ingredients_JN_ChemoClass %>% select(molecule, chemo_class), by=c("Treat"="molecule"))
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% select(-Treat) %>% distinct()
+CAN_Drug_Histories <- CAN_Drug_Histories %>% mutate(Exp=1) %>% spread(key=chemo_class, value=Exp)
+CAN_Drug_Histories[is.na(CAN_Drug_Histories)] <- 0
+
+names(CAN_Drug_Histories) <- str_replace_all(names(CAN_Drug_Histories), " ", "_")
+names(CAN_Drug_Histories) <- str_replace_all(names(CAN_Drug_Histories), "/", "_")
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% left_join(Palbociclib_pats %>% mutate(Palbo=1)) %>%
+  select(patient, Palbo, Alkylating_Agent:Topoisomerase_Inhibitor)
+
+CAN_Drug_Histories[is.na(CAN_Drug_Histories)] <- 0
+
+PONS_Demographics <- PONS_Demographics %>% select(patid, diagnosis)
+PONS_Demographics <- PONS_Demographics %>% inner_join(CAN_Drug_Histories %>% select(patient), by=c("patid"="patient"))
+PONS_Demographics <- separate_rows(PONS_Demographics, diagnosis, sep = ",", convert=T)
+PONS_Demographics$diagnosis <- str_replace_all(PONS_Demographics$diagnosis, " Cancer", "")
+PONS_Demographics$diagnosis <- str_replace_all(PONS_Demographics$diagnosis, " ", "")
+PONS_Demographics <- PONS_Demographics %>% mutate(Exp=1) %>% spread(key=diagnosis, value=Exp) 
+PONS_Demographics[is.na(PONS_Demographics)] <- 0
+PONS_Demographics <- PONS_Demographics %>% select(-Breast)
+names(PONS_Demographics)[1] <- "patient"
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% left_join(PONS_Demographics)
+CAN_Drug_Histories %>% group_by(Palbo) %>% count()
+
+All_Discrete <- CAN_Drug_Histories
+
+
+PONS_Demographics <- fread("Source/PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% select(patid, diagnosis)
+PONS_Demographics <- PONS_Demographics %>% inner_join(CAN_Drug_Histories %>% select(patient), by=c("patid"="patient"))
+PONS_Demographics <- separate_rows(PONS_Demographics, diagnosis, sep = ",", convert=T)
+Mets_sites <- PONS_Demographics %>% group_by(patid) %>% count() %>% rename("Mets_Sites"="n") 
+
+PONS_Events <- fread("Source/PONS Events.txt")
+PONS_Events <- PONS_Events %>% inner_join(All_Discrete %>% select(patient), by=c("patid"="patient"))
+Number_Cancer_Dx <- PONS_Events %>% filter(grepl("C", code)) %>% select(patid, claimed) %>% distinct() %>%
+  group_by(patid) %>% count() %>% rename("Number_Cancer_Dx"="n")
+
+
+All_Discrete <- All_Discrete %>% left_join(Number_Cancer_Dx, by=c("patient"="patid")) %>% left_join(Mets_sites, by=c("patient"="patid"))
+
+setDT(All_Discrete)
+
+CAN_Drug_Histories <- fread("Source/CAN Drug Histories.txt")
+CAN_Drug_Histories <- setDT(CAN_Drug_Histories)[All_Discrete[, .(patient)], on = c("patient"), nomatch = 0]
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+setDT(CAN_Drug_Histories)
+CAN_Drug_Histories <- unique(CAN_Drug_Histories[, .(patient, Month, Treat)])
+CAN_Drug_Histories$Month <- parse_number(as.character(CAN_Drug_Histories$Month))
+
+PONS_Ingredients_JN_ChemoClass <- fread("Source/PONS_Ingredients_JN_ChemoClass.csv", colClasses = "character")
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% filter(Treat!="-")
+CAN_Drug_Histories <- separate_rows(CAN_Drug_Histories, Treat, sep = ",", convert=T)
+CAN_Drug_Histories <- CAN_Drug_Histories %>% mutate(Treat=as.character(Treat)) %>%
+  left_join(PONS_Ingredients_JN_ChemoClass %>% select(molecule, chemo_class), by=c("Treat"="molecule"))
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% select(patient, Month, chemo_class) %>% distinct()
+CAN_Drug_Histories <- CAN_Drug_Histories %>% group_by(patient, chemo_class) %>% count() %>%
+spread(key=chemo_class, value=n)
+CAN_Drug_Histories[is.na(CAN_Drug_Histories)] <- 0
+
+names(CAN_Drug_Histories) <- str_replace_all(names(CAN_Drug_Histories), " ", "_")
+names(CAN_Drug_Histories) <- str_replace_all(names(CAN_Drug_Histories), "/", "_")
+
+temp2_Conts <- All_Discrete %>% select(patient, Palbo,  Number_Cancer_Dx, Mets_Sites) %>% left_join(CAN_Drug_Histories)
+
+sum(is.na(temp2_Conts))
+
+
+temp2_Conts[is.na(temp2_Conts)] <- 0
+
+
+
+temp <- temp2_Conts %>% select(-patient) 
+
+temp <- temp %>% group_by(Palbo) %>% sample_n(3000) %>% ungroup()
+
+modelAll_1_rf <- randomForest::randomForest(as.factor(Palbo) ~ ., data = temp)
+
+summary(modelAll_1_rf)
+
+data.frame(modelAll_1_rf$importance) %>% arrange(-MeanDecreaseGini)
+
+result <- data.frame(variable = character(), group_1_mean = numeric(), group_2_mean = numeric())
+
+
+for (col_name in names(temp)[-1]) {
+  
+  means <- tapply(temp[[col_name]], temp$Palbo, mean)
+  
+  result <- rbind(result, data.frame(variable = col_name, group_1_mean = means[1], group_2_mean = means[2]))
+}
+
+# ------------------------
+

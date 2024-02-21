@@ -16125,6 +16125,154 @@ New_Primary_Cancer_Box %>%
   inner_join(CAN_Doses %>% filter(med_ingredient=="PEGFILGRASTIM") %>% select(pat_id) %>% distinct(), by=c("patid"="pat_id")) %>%
   group_by(Primary_Cancer) %>% summarise(n=sum(weight))
 
+
+
+CAN_Doses %>%  inner_join(New_Primary_Cancer_Box, by=c("pat_id"="patid")) %>%
+  group_by(med_ingredient) %>% summarise(vol=sum(weight.x))
+
+
 # ----------- -
 
 # -------------
+# Persistency ON Denosumab ----------
+
+New_Primary_Cancer_Box <- fread("New_Primary_Cancer_Box.txt", sep="\t")
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% filter(Primary_Cancer!="-")
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% select(patid, Primary_Cancer, weight)
+
+PONS_Demographics <- fread("PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% filter(!is.na(cancer_metastasis)) %>% select(patid, diagnosis)
+
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% inner_join(PONS_Demographics) 
+
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% filter(grepl("Bone", diagnosis)) %>% select(patid, Primary_Cancer, weight)
+
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% filter(Primary_Cancer!="-"&Primary_Cancer!="Leukemia Cancer"&
+                                                    Primary_Cancer!="Lymphoma Cancer"&Primary_Cancer!="Myeloma Cancer") %>%
+  mutate(Primary_Cancer=ifelse(Primary_Cancer %in% 
+                            c("Breast Cancer", "Prostate Cancer", "Intestinal Cancer", "Lung Cancer", "Pancreatic Cancer"), 
+                          Primary_Cancer, "Other"))
+
+
+
+CAN_Drug_Histories <- fread("CAN Drug Histories.txt")
+PONS_Ingredients <- fread("PONS Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
+CAN_Drug_Histories$Month <- as.character(CAN_Drug_Histories$Month)
+CAN_Drug_Histories$Month <- parse_number(CAN_Drug_Histories$Month)
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% inner_join(New_Primary_Cancer_Box, by=c("patient"="patid", "weight"="weight"))
+CAN_Drug_Histories <- CAN_Drug_Histories %>% mutate(Drugs=ifelse(grepl("265", Drugs), 1,0))
+
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% filter(Drugs==1) %>% select(patient) %>% distinct() %>% left_join(CAN_Drug_Histories)
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% select(patient, weight, Month, Drugs, Primary_Cancer) %>% distinct() %>%
+   group_by(patient, weight) %>% mutate(grp = rle(Drugs)$lengths %>% {rep(seq(length(.)), .)})
+
+
+CAN_Drug_Histories %>% filter(Drugs==1) %>% group_by(patient, weight) %>% count() %>% ungroup() %>% summarise(mean=mean(n))
+
+CAN_Drug_Histories %>% filter(Drugs==1) %>%
+  group_by(patient) %>% filter(grp==min(grp)) %>% ungroup() %>%
+  group_by(patient, weight) %>% count() %>% ungroup() %>% summarise(mean=mean(n))
+
+# --------------
+
+# Nutrition treatment rate - months on anticancer vs no anticancer ? -----------
+
+New_Primary_Cancer_Box <- fread("New_Primary_Cancer_Box.txt", sep="\t")
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% filter(Primary_Cancer!="-") 
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% select(patid)
+
+PONS_Demographics <- fread("PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% select(patid, weight, cachexia_onset)
+PONS_Demographics <- PONS_Demographics %>% inner_join(New_Primary_Cancer_Box)
+PONS_Demographics <- PONS_Demographics %>% drop_na()
+
+
+Months_lookup <- fread("Months_lookup.txt",  integer64 = "character", stringsAsFactors = F)
+Months_lookup$Month <- paste0(Months_lookup$Month,"-1")
+Months_lookup$Month <- as.Date(Months_lookup$Month)
+Months_lookup$Month <- format(as.Date(Months_lookup$Month), "%Y-%m")
+Months_lookup$Month <- as.character(Months_lookup$Month)
+
+PONS_Demographics <- PONS_Demographics %>% mutate(cachexia_onset=as.character(cachexia_onset))
+PONS_Demographics <- PONS_Demographics %>% mutate(cachexia_onset=str_sub(cachexia_onset, 1L, 7L))
+
+PONS_Demographics <- PONS_Demographics %>% left_join(Months_lookup, by=c("cachexia_onset"="Month")) %>% 
+  select(patid, Exact_Month) %>% distinct()
+
+
+CAN_Drug_Histories <- fread("CAN Drug Histories.txt")
+PONS_Ingredients <- fread("PONS Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+PONS_Ingredients <- PONS_Ingredients %>%  separate(drug_id, c('group', 'molecule'))
+PONS_Ingredients <- PONS_Ingredients %>% select(molecule, generic_name, drug_class, drug_group)
+PONS_Ingredients$molecule <- as.numeric(PONS_Ingredients$molecule)
+
+CAN_Drug_Histories <- PONS_Demographics %>%  left_join(CAN_Drug_Histories, by=c("patid"="patient"))
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% select(patid, Exact_Month, weight, month1:month60)
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
+CAN_Drug_Histories$Month <- as.character(CAN_Drug_Histories$Month)
+CAN_Drug_Histories$Month <- parse_number(CAN_Drug_Histories$Month)
+CAN_Drug_Histories <- CAN_Drug_Histories %>% filter(Month>=Exact_Month)
+
+unique(PONS_Ingredients$drug_group) 
+
+
+string_CancerDrugs <- paste0("\\b(",paste0(PONS_Ingredients$molecule[PONS_Ingredients$drug_group == "GDF15"|
+                                                                       PONS_Ingredients$drug_group == "Anticancer"], collapse = "|"),")\\b")
+
+
+string_Megestrol <- paste0("\\b(",paste0(PONS_Ingredients$molecule[PONS_Ingredients$generic_name == "Megestrol"], collapse = "|"),")\\b")
+string_Dronabinol <- paste0("\\b(",paste0(PONS_Ingredients$molecule[PONS_Ingredients$generic_name == "Dronabinol"], collapse = "|"),")\\b")
+string_Nabilone <- paste0("\\b(",paste0(PONS_Ingredients$molecule[PONS_Ingredients$generic_name == "Nabilone"], collapse = "|"),")\\b")
+string_Nutrition <- paste0("\\b(",paste0(PONS_Ingredients$molecule[PONS_Ingredients$drug_class == "Nutrition"|
+                                                                     PONS_Ingredients$drug_class == "Appetite Stimulant"|
+                                                                     PONS_Ingredients$drug_class == "Cannabinoid"|
+                                                                     PONS_Ingredients$drug_class == "Progestin"], collapse = "|"),")\\b")
+
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% mutate(CancerRx=ifelse(grepl(string_CancerDrugs, Drugs),1,0)) %>% 
+  mutate(MegestrolRx=ifelse(grepl(string_Megestrol, Drugs),1,0))  %>%
+  mutate(DronabinolRx=ifelse(grepl(string_Dronabinol, Drugs),1,0))  %>%
+  mutate(NabiloneRx=ifelse(grepl(string_Nabilone, Drugs),1,0))
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>%   mutate(NutritioneRx=ifelse(grepl(string_Nutrition, Drugs),1,0))
+
+CAN_Drug_Histories %>% group_by(CancerRx, MegestrolRx) %>% summarise(n=sum(weight))
+
+#   CancerRx MegestrolRx         n
+# 1        0           0 14555334.
+# 2        0           1    91439.
+# 3        1           0  1291013.
+# 4        1           1    48713.
+
+CAN_Drug_Histories %>% group_by(CancerRx, DronabinolRx) %>% summarise(n=sum(weight))
+
+#   CancerRx DronabinolRx         n
+# 1        0            0 14598307.
+# 2        0            1    48466.
+# 3        1            0  1294931.
+# 4        1            1    44795.
+
+CAN_Drug_Histories %>% group_by(CancerRx, NabiloneRx) %>% summarise(n=sum(weight))
+
+#   CancerRx NabiloneRx         n
+# 1        0          0 14646773.
+# 2        1          0  1339726.
+
+CAN_Drug_Histories %>% group_by(CancerRx, NutritioneRx) %>% summarise(n=sum(weight))
+
+#   CancerRx NutritioneRx         n
+# 1        0            0 14437924.
+# 2        0            1   208849.
+# 3        1            0  1222807.
+# 4        1            1   116919.
+
+
+CAN_Drug_Histories %>% group_by(patid) %>% filter(Month==min(Month)+1) %>% ungroup() %>%
+  group_by(CancerRx, NutritioneRx) %>% summarise(n=sum(weight))
+# ---------------

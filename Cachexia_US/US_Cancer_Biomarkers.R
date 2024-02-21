@@ -5834,12 +5834,62 @@ temp_Palbociclib <- temp_Palbociclib %>% mutate(group=ifelse(Treat=="355", "Dead
 
 
 temp_Palbociclib %>%
-  # mutate(group=ifelse(group=="Palbo", group, "no")) %>%
+   mutate(group=ifelse(group=="Palbo", group, "no")) %>%
    ggplot(aes(Elapsed, Albumin, 
                                 colour=as.factor(group), 
                                 fill=as.factor(group))) +
     geom_smooth() +
     xlim(0,24)
+
+
+
+
+temp_Palbociclib %>% filter(ON_Palbo==1) %>% group_by(patient) %>%
+  filter(!is.na(Albumin) & Elapsed==max(Elapsed)) %>%
+  select(patient, Albumin) %>% mutate(cutoff=ifelse(Albumin<=3.5, "Lower", "Upper")) %>%
+  left_join(temp_Palbociclib) %>%
+  filter(OtherTarget==1) %>% group_by(cutoff, patient) %>% count() %>% ungroup() %>%
+  group_by(cutoff) %>% summarise(mean=mean(n))
+
+
+temp_Palbociclib %>%
+  group_by(patient) %>% mutate(grp = rle(ON_Palbo)$lengths %>% {rep(seq(length(.)), .)}) %>%
+  group_by(patient) %>% filter(grp==min(grp)) %>% filter(Elapsed==max(Elapsed)) %>%
+  select(patient, Elapsed) %>% mutate(lookup=Elapsed+1) %>% select(-Elapsed) %>%
+  left_join(temp_Palbociclib) %>%
+  filter(Elapsed<lookup) %>%  group_by(patient) %>%
+  filter(Elapsed==max(Elapsed)) %>%
+  filter(!is.na(Albumin)) %>% mutate(cutoff=ifelse(Albumin<=3.5, "Lower", "Upper")) %>% 
+  select(-Albumin) %>% select(patient, cutoff, lookup) %>%
+  left_join(temp_Palbociclib) %>% filter(Elapsed==lookup) %>%
+  group_by(cutoff, OtherTarget, OtherChemo, Hormonal, Lapsed ) %>% count() %>%
+  mutate(n=ifelse(cutoff=="Lower", 100*n/129, 100*n/436))
+   
+
+  
+  filter(ON_Palbo==1) %>% group_by(patient) %>%
+  filter(!is.na(Albumin) & Elapsed==max(Elapsed)) %>%
+  select(patient, Albumin) %>% mutate(cutoff=ifelse(Albumin<=3.5, "Lower", "Upper")) %>%
+  left_join(temp_Palbociclib) %>%
+  filter(OtherTarget==1) %>% group_by(cutoff, patient) %>% count() %>% ungroup() %>%
+  group_by(cutoff) %>% summarise(mean=mean(n))
+
+
+
+
+
+
+temp_Palbociclib %>% filter(ON_Palbo==1) %>% group_by(patient) %>%
+  filter(!is.na(Albumin) & Elapsed==max(Elapsed)) %>%
+  select(patient, Albumin) %>% mutate(cutoff=ifelse(Albumin<=3.5, "Lower", "Upper")) %>%
+  left_join(temp_Palbociclib) %>%
+  filter(cutoff=="Upper") %>%
+  ggplot(aes(Albumin, colour=as.factor(group), fill=as.factor(group))) +
+  geom_density(alpha=0.3) +
+  ggsci::scale_colour_futurama() +
+  ggsci::scale_fill_futurama() +
+  theme_minimal() +
+  facet_wrap(~group)
 
 
 # ----------------------

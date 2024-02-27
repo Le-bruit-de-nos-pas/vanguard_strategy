@@ -4869,6 +4869,18 @@ temp <- temp %>%
 temp %>%
   gather(Test, Result, Albumin:ANIONGAP) %>%
   filter(Test!="Bicarb"&Test!="Bilirub"&Test!="WBC"&Test!="PLATELETS"&Test!="eGFR") %>%
+  mutate(Test=ifelse(Test=="Albumin", "'1- Albumin",
+                     ifelse(Test=="ANIONGAP", "'2- ANIONGAP",
+                            ifelse(Test=="BMI", "'3- BMI",
+                                   ifelse(Test=="CALCIUM", "'4- CALCIUM",
+                                          ifelse(Test=="Hemoglobin", "'5- Hemoglocin",
+                                                 ifelse(Test=="Lymphs", "'6- Lymphs",
+                                                        ifelse(Test=="POTASSIUM", "'7- POTASSIUM",
+                                                               ifelse(Test=="ALP", "'8- ALP",
+                                                                      ifelse(Test=="ALT", "'9- ALT",
+                                                                             ifelse(Test=="AST", "10- AST",
+                                                                                    ifelse(Test=="C-Reactive Protein", "11- C-Reactive Protein",
+                                                                                           ifelse(Test=="Neutrophiles", "12- Neutrophiles", NA))))))))))))) %>%
   ggplot(aes(Result, ON_Palbo, colour=Test, fill=Test))+ 
   stat_smooth(method="glm", se=TRUE, method.args = list(family=binomial), colour="black", fill="black") +
   facet_wrap(~Test, scales="free_x") +
@@ -6550,6 +6562,235 @@ groups %>% inner_join(Last) %>%
   ylab("Patient density \n") +
   scale_colour_manual(values=c("#D3D3D3","#FFEFCA", "#C86060", "#66A4B9" )) +
   scale_fill_manual(values=c("#D3D3D3","#FFEFCA", "#C86060", "#66A4B9" ))
+
+PONS_Demographics %>% 
+  filter(grepl("Liver", diagnosis)|grepl("Lung", diagnosis)|grepl("Bone", diagnosis)) %>%
+  select(patid) %>% distinct() %>% mutate(Aggressive="YES")  
+
+groups %>% inner_join(Last) %>%
+  left_join(PONS_Demographics %>% 
+  filter(grepl("Liver", diagnosis)|grepl("Lung", diagnosis)|grepl("Bone", diagnosis)) %>%
+  select(patid) %>% distinct() %>% mutate(Aggressive="YES"), by=c("patient"="patid")) %>%
+  mutate(Aggressive=ifelse(is.na(Aggressive), "NO", Aggressive)) %>%
+  filter( (test=="Albumin"&value>1&value<5)|
+            (test=="Labs_Neutrophiles"&value>1&value<14)|
+            (test=="BMI"&value>15&value<60) |
+            (test=="POTASSIUM"&value>2&value<6)|
+            (test=="CALCIUM"&value>6.2&value<11.2)|
+            (test=="Hemoglobin"&value>5&value<16)|
+            (test=="AST"&value>0&value<100) | 
+            (test=="ALT"&value>0&value<100) | 
+            (test=="ALP"&value>0&value<250) ) %>%
+  ggplot(aes(value, colour=Aggressive, fill=Aggressive)) + 
+  geom_density(alpha=0.5) +
+  facet_wrap(~test, scales="free") +
+  theme_minimal() +
+  xlab("\n LAST Lab test result observed") +
+  ylab("Patient density \n") +
+  scale_colour_manual(values=c("#66A4B9", "#C86060")) +
+  scale_fill_manual(values=c("#66A4B9", "#C86060" ))
+
+
+
+
+PONS_Demographics_surv <- fread("Source/PONS Demographics.txt")
+PONS_Demographics_surv <- PONS_Demographics_surv %>% select(patid, cancer_onset, cancer_metastasis , death_date )
+
+PONS_Demographics_surv$cancer_onset <- as.Date(PONS_Demographics_surv$cancer_onset)
+PONS_Demographics_surv$cancer_metastasis <- as.Date(PONS_Demographics_surv$cancer_metastasis)
+PONS_Demographics_surv$death_date  <- as.Date(PONS_Demographics_surv$death_date)
+
+missingDeathDay <- ymd("2025-07-31")
+
+PONS_Demographics_surv <- PONS_Demographics_surv %>% mutate(death_date = case_when(is.na(death_date) ~ missingDeathDay, TRUE ~ death_date))
+
+PONS_Demographics_surv <- PONS_Demographics_surv %>% inner_join(groups %>% select(patient), by=c("patid"="patient"))
+
+PONS_Demographics_surv <- PONS_Demographics_surv %>% mutate(Survived = as.numeric(death_date)-as.numeric(cancer_onset)) %>%
+  mutate(Survived=ifelse(Survived>1825,1825,Survived))
+
+PONS_Demographics_surv <- PONS_Demographics_surv %>% mutate(Survived_Mets = as.numeric(death_date)-as.numeric(cancer_metastasis)) %>%
+  mutate(Survived_Mets=ifelse(Survived_Mets>1825,1825,Survived_Mets))
+
+
+
+groups %>% 
+  left_join(PONS_Demographics %>% 
+              filter(grepl("Liver", diagnosis)|grepl("Lung", diagnosis)|grepl("Bone", diagnosis)) %>%
+  select(patid) %>% distinct() %>% mutate(Aggressive="YES"), by=c("patient"="patid")) %>%
+    mutate(Aggressive=ifelse(is.na(Aggressive), "NO", Aggressive)) %>%
+  inner_join(PONS_Demographics_surv, by=c("patient"="patid")) %>%
+  group_by(Aggressive) %>% summarise(n=mean(Survived/30.5))
+  
+
+
+groups %>% 
+  left_join(PONS_Demographics %>% 
+              filter(grepl("Liver", diagnosis)|grepl("Lung", diagnosis)|grepl("Bone", diagnosis)) %>%
+  select(patid) %>% distinct() %>% mutate(Aggressive="YES"), by=c("patient"="patid")) %>%
+    mutate(Aggressive=ifelse(is.na(Aggressive), "NO", Aggressive)) %>%
+  inner_join(PONS_Demographics_surv, by=c("patient"="patid")) %>%
+  group_by(Aggressive) %>% summarise(n=mean(Survived_Mets/30.5))
+  
+
+
+PONS_Demographics %>% 
+              filter(grepl("Liver", diagnosis)|grepl("Lung", diagnosis)|grepl("Bone", diagnosis)) %>%
+  select(patid) %>% distinct() %>% mutate(Aggressive="YES") %>%
+    mutate(Aggressive=ifelse(is.na(Aggressive), "NO", Aggressive)) %>%
+    inner_join(PONS_Demographics_surv) %>%
+  group_by(Aggressive) %>% summarise(n=mean(as.numeric(cancer_onset)))
+
+
+CAN_Drug_Histories <- fread("Source/CAN Drug Histories.txt")
+CAN_Drug_Histories <- setDT(CAN_Drug_Histories)[New_Primary_Cancer_Box[, .(patid)], on = c("patient"="patid"), nomatch = 0]
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+CAN_Drug_Histories <- CAN_Drug_Histories %>% select(patient, weight, Treat) %>% distinct()
+CAN_Drug_Histories <- CAN_Drug_Histories %>% inner_join(groups %>% select(patient))
+
+
+N_months_Hormonal <- CAN_Drug_Histories %>% filter(grepl(string_Hormonal, Treat)) %>%  group_by(patient) %>% count()
+
+groups %>% left_join(N_months_Hormonal) %>%
+  left_join(PONS_Demographics %>% 
+              filter(grepl("Liver", diagnosis)|grepl("Lung", diagnosis)|grepl("Bone", diagnosis)) %>%
+  select(patid) %>% distinct() %>% mutate(Aggressive="YES"), by=c("patient"="patid") ) %>%
+  # mutate(n=ifelse(is.na(n),0,n)) %>%
+  group_by(Aggressive) %>% summarise(mean=mean(n, na.rm=T))
+
+
+
+CAN_Drug_Histories <- fread("Source/CAN Drug Histories.txt")
+setDT(groups)
+CAN_Drug_Histories <- setDT(CAN_Drug_Histories)[groups[, .(patient)], on = c("patient"), nomatch = 0]
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+CAN_Drug_Histories$Month <- parse_number(as.character(CAN_Drug_Histories$Month))
+CAN_Drug_Histories <- CAN_Drug_Histories %>% arrange(patient, Month)
+
+stop <- CAN_Drug_Histories %>% filter(!grepl(string_OtherChemo, Treat) & grepl(string_OtherChemo, lag(Treat))) %>%
+  select(patient, weight) %>% distinct()
+
+sum(stop$weight)
+
+temp <- CAN_Drug_Histories %>% filter(!grepl(string_OtherChemo, Treat) & grepl(string_OtherChemo, lag(Treat)) &
+                              !grepl(string_target, Treat)  & !grepl("179", Treat)   ) %>%
+  select(patient, Month) %>% group_by(patient) %>% filter(Month==min(Month)) %>% rename("Drop"="Month") %>%
+  left_join(CAN_Drug_Histories)
+
+
+
+
+CAN_Drug_Histories %>% select(patient, weight) %>% ungroup() %>% distinct() %>% summarise(n=sum(weight))
+temp %>% select(patient, weight) %>% ungroup() %>% distinct() %>% summarise(n=sum(weight))
+  
+To_Target %>% inner_join(temp) %>% select(patient, weight) %>% ungroup() %>% distinct() %>% summarise(n=sum(weight))
+Remain_no_Target %>% inner_join(temp) %>% select(patient, weight) %>% ungroup() %>% distinct() %>% summarise(n=sum(weight))
+
+length(unique(temp$patient))
+
+To_Target <- temp %>% filter(Month>=Drop) %>% filter(grepl("179", Treat) | grepl(string_target, Treat)) %>%
+  select(patient) %>% distinct()
+
+Remain_no_Target <- temp %>% select(patient) %>% distinct() %>% anti_join(To_Target)
+
+plot <- To_Target %>% left_join(temp) %>% filter(Month>=Drop) %>% 
+  filter(grepl("179", Treat) | grepl(string_target, Treat)) 
+
+plot %>%
+  group_by(patient, weight) %>% filter(Month==min(Month)) %>% 
+  mutate(Elapsed=Month-Drop) %>% 
+  ungroup() %>% 
+  ggplot(aes(disease, Elapsed)) +
+  geom_violin(alpha=0.5, fill="deepskyblue4") +
+  geom_boxplot(alpha=0.5,  fill="deepskyblue4", notch = TRUE, size=1.5, width=0.5) +
+  theme_minimal() +
+  xlab("") + ylab("Number of Months From \n Chemo STOP to Target START \n")
+  
+
+
+To_Target %>% mutate(group="Started_Target") %>%
+  bind_rows(Remain_no_Target %>% mutate(group="No")) %>%
+  inner_join(Last) %>%
+    filter( (test=="Albumin"&value>1&value<5)|
+            (test=="Labs_Neutrophiles"&value>1&value<14)|
+            (test=="BMI"&value>15&value<60) |
+            (test=="POTASSIUM"&value>2&value<6)|
+            (test=="CALCIUM"&value>6.2&value<11.2)|
+            (test=="Hemoglobin"&value>5&value<16)|
+            (test=="AST"&value>0&value<100) | 
+            (test=="ALT"&value>0&value<100) | 
+            (test=="ALP"&value>0&value<250) ) %>%
+  ggplot(aes(value, colour=group, fill=group)) + 
+  geom_density(alpha=0.5) +
+  facet_wrap(~test, scales="free") +
+  theme_minimal() +
+  xlab("\n LAST Lab test result observed") +
+  ylab("Patient density \n") +
+  scale_colour_manual(values=c("#66A4B9", "#C86060")) +
+  scale_fill_manual(values=c("#66A4B9", "#C86060" ))
+
+
+
+Palbo <- CAN_Drug_Histories %>% filter(grepl("179", Treat)) %>% select(patient) %>% distinct()
+CAN_Drug_Histories <- Palbo %>% left_join(CAN_Drug_Histories)
+
+
+CAN_Drug_Histories <- separate_rows(CAN_Drug_Histories, Treat, sep = ",", convert=T)
+
+
+string_Cancer <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[(PONS_Ingredients_JN_ChemoClass$drug_group=="GDF15"|
+                                                                                     PONS_Ingredients_JN_ChemoClass$drug_group=="Anticancer" )], collapse = "|"),")\\b")
+
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% filter(grepl(string_Cancer, Treat))
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% select(-disease) %>% arrange(patient, weight, Month, Treat) %>%
+  group_by(patient, weight, Month) %>% mutate(Treat=paste0(Treat, collapse=",")) %>% distinct()
+
+
+
+PONS_Demographics <- fread("Source/PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics%>% select(patid, cancer_metastasis) 
+setDT(PONS_Demographics)
+PONS_Demographics[, cancer_metastasis := as.character(cancer_metastasis)][, cancer_metastasis := substr(cancer_metastasis, 1L, 7L)]
+PONS_Demographics <- PONS_Demographics %>% drop_na()
+
+Months_lookup <- fread("Source/Months_lookup.txt",  integer64 = "character", stringsAsFactors = F)
+
+Months_lookup$Month <- as.character(
+  format(
+    as.Date(
+      paste0(Months_lookup$Month,"-1")
+      ), "%Y-%m"
+    )
+  )
+
+PONS_Demographics <- PONS_Demographics[Months_lookup, on = c("cancer_metastasis" = "Month")]
+PONS_Demographics <- PONS_Demographics %>% select(-cancer_metastasis) %>% rename("Mets"="Exact_Month")
+
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% left_join(PONS_Demographics, by=c("patient"="patid")) %>%
+  filter(Month>=Mets)
+
+
+data.frame(CAN_Drug_Histories %>% select(patient, Treat) %>% distinct() %>% filter(Treat!="-") %>%
+  group_by(patient) %>% mutate(line=row_number()) %>%
+  left_join(CAN_Drug_Histories)) %>%
+  left_join(
+   CAN_Drug_Histories %>% filter(grepl("179", Treat)) %>%  group_by(patient) %>% filter(Month==min(Month)) %>%
+     select(patient, Month) %>% rename("Start"="Month")
+  ) %>%
+  left_join(
+       CAN_Drug_Histories %>% filter(grepl("179", Treat)) %>%  group_by(patient) %>% count()
+  ) %>% filter(Month==Start) %>%  # summarise(meanline=mean(line), medianline=median(line)) %>% 
+  ggplot(aes(line, n)) +
+  #geom_jitter() +
+  xlim(0,16) +
+  theme_minimal() +
+  geom_smooth(colour="black", fill="black",level = 0.8) +
+  xlab("\n Therapy Line at which \n Palbociclib was initiated \n ") +
+  ylab("Number of Months spent ON Palbo \n")
+
 
 
 # -----------

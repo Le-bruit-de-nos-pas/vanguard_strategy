@@ -6,11 +6,13 @@ library(splitstackshape)
 library(spatstat)
 library(lubridate)
 library(openxlsx)
-library(survminer)
-library(survival)
-library(ggsurvfit)
-library(ggrepel)
-#library(lessR)
+
+# Load whenever needed
+# library(survminer)
+# library(survival)
+# library(ggsurvfit)
+# library(ggrepel)
+# library(lessR)
 
 options(scipen = 999)
 
@@ -237,7 +239,8 @@ fwrite(temp, "All_drops.txt")
 
 # Pick one option
 
-New_Cachexia_Pred <- temp %>% filter(Drop90==1 | Drop95==1 | Drop2_20==1) %>% select(patid, Drop95, Drop90, Drop2_20) %>% distinct()
+New_Cachexia_Pred <- temp %>% filter(Drop90==1 | Drop95==1 | Drop2_20==1) %>% 
+  select(patid, Drop95, Drop90, Drop2_20) %>% distinct()
 
 Drop95 <- New_Cachexia_Pred %>% filter(Drop95==1) %>% select(patid) %>% distinct()
 Drop90 <- New_Cachexia_Pred %>% filter(Drop90==1) %>% select(patid) %>% distinct()

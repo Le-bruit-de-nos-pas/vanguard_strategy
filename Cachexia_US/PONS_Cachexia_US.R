@@ -4300,6 +4300,7 @@ Pats_to_track_BMI <- Pats_to_track_BMI %>% select(patid, weight, diagnosis, canc
 Pats_to_track_BMI$cachexia_onset <- as.Date(Pats_to_track_BMI$cachexia_onset)
 PONS_Measures <- PONS_Measures %>% select(-weight)
 
+sum(Pats_to_track_BMI$weight)
 
 
 
@@ -16072,9 +16073,10 @@ groups <- Drop2_BMI20 %>% mutate(group="Drop2_BMI20") %>%
   full_join(Drop5 %>% mutate(group="Drop5")) 
 
 
+Pats_to_track_BMI
 
 data.frame(
-  PONS_Demographics %>% select(patid, weight, diagnosis, cancer_metastasis) %>%
+  Pats_to_track_BMI %>% select(patid, weight, diagnosis, cancer_metastasis) %>%
   filter(diagnosis!="-"&diagnosis!="Leukemia Cancer"&
                                                     diagnosis!="Lymphoma Cancer"&diagnosis!="Myeloma Cancer") %>%
   mutate(diagnosis=ifelse(diagnosis %in% 
@@ -16445,3 +16447,794 @@ temp %>% select(patid, Month_Min) %>% distinct() %>% group_by(patid) %>% count()
 
 
 # ------------------
+# % of time ON Anticancer and Supportive ? -----------------
+
+
+Months_lookup <- fread("Months_lookup.txt",  integer64 = "character", stringsAsFactors = F)
+Months_lookup$Month <- paste0(Months_lookup$Month,"-1")
+Months_lookup$Month <- as.Date(Months_lookup$Month)
+Months_lookup$Month <- format(as.Date(Months_lookup$Month), "%Y-%m")
+Months_lookup$Month <- as.character(Months_lookup$Month)
+
+PONS_Demographics <- fread("PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% select(patid, cancer_onset, cancer_metastasis)
+PONS_Demographics <- PONS_Demographics %>% mutate(cancer_onset=str_sub(as.character(cancer_onset), 1L, 7L))
+
+PONS_Demographics <- PONS_Demographics %>% left_join(Months_lookup, by=c("cancer_onset"="Month")) %>% 
+  select(-cancer_onset) %>% rename("cancer_onset"="Exact_Month")
+
+PONS_Demographics <- PONS_Demographics %>% mutate(cancer_metastasis=ifelse(is.na(cancer_metastasis), 0, 1))
+
+CancerDrug_Experienced <- fread("CancerDrug_Experienced.txt", sep="\t")
+
+PONS_Demographics <- CancerDrug_Experienced %>% inner_join(PONS_Demographics)
+
+
+CAN_Drug_Histories <- fread("CAN Drug Histories.txt")
+CAN_Drug_Histories <- CAN_Drug_Histories %>% inner_join(PONS_Demographics , by=c("patient"="patid"))
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+CAN_Drug_Histories$Month <- as.character(CAN_Drug_Histories$Month)
+CAN_Drug_Histories$Month <- parse_number(CAN_Drug_Histories$Month)
+CAN_Drug_Histories <- CAN_Drug_Histories %>% select(-disease)
+
+PONS_Ingredients_JN_ChemoClass <- fread("PONS_Ingredients_JN_ChemoClass.csv", colClasses = "character")
+PONS_Ingredients_JN_ChemoClass$molecule <- as.numeric(PONS_Ingredients_JN_ChemoClass$molecule)
+
+string_cancer <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[
+  PONS_Ingredients_JN_ChemoClass$drug_group=="Anticancer"|
+    PONS_Ingredients_JN_ChemoClass$drug_group=="GDF15"], collapse = "|"),")\\b")
+
+
+string_support <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[
+  #PONS_Ingredients_JN_ChemoClass$drug_group=="Symptomatic"|
+    PONS_Ingredients_JN_ChemoClass$drug_group=="Anticachexia"], collapse = "|"),")\\b")
+
+
+CAN_Drug_Histories_temp <- CAN_Drug_Histories %>% 
+  filter(cancer_onset<=36) %>% 
+  filter(Month>=cancer_onset) %>%
+  filter(Month-cancer_onset<=24)
+
+CAN_Drug_Histories_temp <- CAN_Drug_Histories_temp %>% filter(Treat!="355")
+
+
+Lengths <- CAN_Drug_Histories_temp %>% group_by(patient) %>% count() %>% rename("VIZ"="n") %>%
+  left_join(CAN_Drug_Histories_temp %>% filter(Treat!="-") %>% filter(grepl(string_cancer, Treat)) %>%
+            group_by(patient) %>% count() %>% rename("Cancer"="n")) %>%
+  left_join(CAN_Drug_Histories_temp %>% filter(Treat!="-") %>% filter(grepl(string_support, Treat)) %>%
+            group_by(patient) %>% count() %>% rename("Support"="n"))
+
+Lengths[is.na(Lengths)] <- 0
+
+
+Lengths <- Lengths %>% left_join(CAN_Drug_Histories %>% select(patient, weight, cancer_metastasis)) %>% distinct()
+
+Lengths <- Lengths %>% mutate(CancerPerc=Cancer/VIZ)
+Lengths <- Lengths %>% mutate(SupportPerc=Support/VIZ)
+
+Lengths <- Lengths %>% left_join(CAN_Drug_Histories_temp %>% filter(Treat!="-") %>% 
+                        filter(grepl(string_support, Treat)&grepl(string_cancer, Treat)) %>%
+                        group_by(patient) %>% count() %>% rename("Cancer_Support"="n")) %>%
+left_join(CAN_Drug_Histories_temp %>% filter(Treat!="-") %>% 
+                        filter(grepl(string_support, Treat)&!grepl(string_cancer, Treat)) %>%
+                        group_by(patient) %>% count() %>% rename("Support_only"="n")) 
+
+Lengths[is.na(Lengths)] <- 0
+
+Lengths <- Lengths %>% mutate(SupportPerc_wCan=Cancer_Support/Cancer) %>%
+  mutate(Support_only_Perc=Support_only /(VIZ-Cancer))
+
+Lengths <- Lengths %>% mutate(SupportPerc_wCan=ifelse(is.na(SupportPerc_wCan), 0, SupportPerc_wCan)) %>%
+  mutate(Support_only_Perc=ifelse(is.na(Support_only_Perc), 0, Support_only_Perc))
+
+
+
+Lengths %>% group_by(cancer_metastasis) %>% summarise(mean=mean(CancerPerc))
+
+#   cancer_metastasis  mean
+# 1                 0 0.352
+# 2                 1 0.347
+
+#   cancer_metastasis  mean
+# 1                 0 0.359
+# 2                 1 0.373
+
+# 1                 0 0.359
+# 2                 1 0.373
+
+
+Lengths %>% ggplot(aes(CancerPerc, 
+                      colour=as.factor(cancer_metastasis), 
+                      fill=as.factor(cancer_metastasis))) + 
+  geom_density(alpha=0.5 , adjust = 2) +
+  theme_minimal() +
+  scale_fill_manual(values= c("#355C7D", "#F67280")) +
+  scale_colour_manual(values= c("#355C7D", "#F67280")) +
+  xlab("\n Proportion of the time \n Treated with ANTICANCER") +
+  ylab("Patient density \n")
+  
+
+
+Lengths %>% group_by(cancer_metastasis) %>% summarise(mean=mean(SupportPerc))
+
+#   cancer_metastasis  mean
+# 1                 0 0.183
+# 2                 1 0.253
+
+#   cancer_metastasis  mean
+# 1                 0 0.192
+# 2                 1 0.283
+
+# 1                 0 0.151
+# 2                 1 0.222
+
+Lengths %>% ggplot(aes(SupportPerc, 
+                      colour=as.factor(cancer_metastasis), 
+                      fill=as.factor(cancer_metastasis))) + 
+  geom_density(alpha=0.5, adjust = 2) +
+  theme_minimal() +
+  scale_fill_manual(values= c("#355C7D", "#F67280")) +
+  scale_colour_manual(values= c("#355C7D", "#F67280")) +
+  xlab("\n Proportion of the time \n Treated with SUPPORTIVE THERAPY") +
+  ylab("Patient density \n")
+  
+ 
+ 
+Lengths %>% group_by(cancer_metastasis) %>% summarise(mean=mean(SupportPerc_wCan))
+
+#   cancer_metastasis  mean
+# 1                 0 0.240
+# 2                 1 0.382
+
+#   cancer_metastasis  mean
+# 1                 0 0.240
+# 2                 1 0.382
+
+# 1                 0 0.184
+# 2                 1 0.308
+
+
+  
+Lengths %>% ggplot(aes(SupportPerc_wCan, 
+                      colour=as.factor(cancer_metastasis), 
+                      fill=as.factor(cancer_metastasis))) + 
+  geom_density(alpha=0.5, adjust = 2) +
+  theme_minimal() +
+  scale_fill_manual(values= c("#355C7D", "#F67280")) +
+  scale_colour_manual(values= c("#355C7D", "#F67280")) +
+  xlab("\n Proportion of the ANTICANCER time \n Treated with SUPPORTIVE THERAPY") +
+  ylab("Patient density \n")
+
+
+
+ 
+Lengths %>% group_by(cancer_metastasis) %>% summarise(mean=mean(Support_only_Perc))
+
+#   cancer_metastasis  mean
+# 1                 0 0.155
+# 2                 1 0.173
+
+#   cancer_metastasis  mean
+# 1                 0 0.163
+# 2                 1 0.200
+
+# 1                 0 0.125
+# 2                 1 0.144
+
+Lengths %>% ggplot(aes(Support_only_Perc, 
+                      colour=as.factor(cancer_metastasis), 
+                      fill=as.factor(cancer_metastasis))) + 
+  geom_density(alpha=0.5, adjust = 2) +
+  theme_minimal() +
+  scale_fill_manual(values= c("#355C7D", "#F67280")) +
+  scale_colour_manual(values= c("#355C7D", "#F67280")) +
+  xlab("\n Proportion of the LAPSED time \n Treated with SUPPORTIVE THERAPY") +
+  ylab("Patient density \n")
+
+
+New_Primary_Cancer_Box <- fread("New_Primary_Cancer_Box.txt", sep="\t")
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% select(patid, Primary_Cancer)
+
+data.frame(Lengths %>% left_join(New_Primary_Cancer_Box, by=c("patient"="patid")) %>%
+  group_by(cancer_metastasis, Primary_Cancer) %>%
+  summarise(mean=mean(CancerPerc)) %>%
+  spread(key=cancer_metastasis, value=mean))
+
+
+data.frame(Lengths %>% left_join(New_Primary_Cancer_Box, by=c("patient"="patid")) %>%
+  group_by(cancer_metastasis, Primary_Cancer) %>%
+  summarise(mean=mean(SupportPerc)) %>%
+  spread(key=cancer_metastasis, value=mean))
+
+
+
+data.frame(Lengths %>% left_join(New_Primary_Cancer_Box, by=c("patient"="patid")) %>%
+  group_by(cancer_metastasis, Primary_Cancer) %>%
+  summarise(mean=mean(SupportPerc_wCan)) %>%
+  spread(key=cancer_metastasis, value=mean))
+
+
+
+data.frame(Lengths %>% left_join(New_Primary_Cancer_Box, by=c("patient"="patid")) %>%
+  group_by(cancer_metastasis, Primary_Cancer) %>%
+  summarise(mean=mean(Support_only_Perc)) %>%
+  spread(key=cancer_metastasis, value=mean))
+
+# ------------
+  
+# Cachexia population estimate NAIVE pats vs EXPERIENCED pats ------ 
+
+PONS_Demographics <- fread("PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% select(patid, weight, age, died, cancer_metastasis, cachexia_onset)
+PONS_Demographics <- PONS_Demographics %>% filter(age>=18)
+PONS_Demographics <- PONS_Demographics %>% mutate(cancer_metastasis=ifelse(is.na(cancer_metastasis),0,1))
+
+New_Primary_Cancer_Box <- fread("New_Primary_Cancer_Box.txt", sep="\t")
+PONS_Demographics <- New_Primary_Cancer_Box %>% inner_join(PONS_Demographics)
+names(PONS_Demographics)[4] <- "diagnosis"
+
+Pats_to_track_BMI <- PONS_Demographics  %>% select(patid, weight, diagnosis, died,  cancer_metastasis, cachexia_onset)
+Pats_to_track_BMI <- Pats_to_track_BMI %>% filter(diagnosis!="-") 
+
+PONS_Measures <- fread("PONS_Measures_short.txt", sep="\t")
+PONS_Measures <- PONS_Measures %>% filter(test=="BMI")
+
+PONS_Measures <- PONS_Measures %>% select(-weight) %>% inner_join(Pats_to_track_BMI %>% select(patid, weight))
+
+Summary_vals_pats <- PONS_Measures %>% group_by(patid) %>% summarise(mean=mean(value), median=median(value))
+
+PONS_Measures <- PONS_Measures %>% left_join(Summary_vals_pats)
+
+PONS_Measures <- PONS_Measures %>% arrange(patid, claimed)
+
+PONS_Measures$claimed <- as.Date(PONS_Measures$claimed)
+
+PONS_Measures <- PONS_Measures %>% ungroup() %>% filter(value<1.5*median&value>0.5*median) 
+
+Summary_vals_pats <- PONS_Measures %>% ungroup() %>% group_by(patid) %>% summarise(mean=mean(value), median=median(value), min=min(value), max=max(value))
+
+PONS_Measures <- PONS_Measures %>% select(-c(mean, median)) %>% left_join(Summary_vals_pats)
+
+Min_Max_Dates <- PONS_Measures %>% ungroup() %>% filter(value==min) %>% mutate(mindate=claimed) %>% select(patid, claimed, mindate) %>% 
+  full_join(PONS_Measures %>% ungroup() %>% filter(value==max) %>% mutate(maxdate=claimed) %>% select(patid, claimed, maxdate),
+            by="patid") %>% select(patid, mindate, maxdate)
+
+Min_Max_Dates <- Min_Max_Dates %>% distinct()
+
+PONS_Measures <- PONS_Measures %>% left_join(Min_Max_Dates) %>% select(-c(test, mean, median))
+
+PONS_Measures$mindate <- as.Date(PONS_Measures$mindate)
+PONS_Measures$maxdate <- as.Date(PONS_Measures$maxdate)
+
+PONS_Measures <- PONS_Measures %>% select(patid, weight) %>% group_by(patid) %>% count() %>% filter(n>=10) %>% select(patid) %>% inner_join(PONS_Measures)
+
+PONS_Demographics <- fread("PONS_Time_Series_Groups.txt", sep="\t")
+
+length(unique(PONS_Demographics$patid))
+
+PONS_Measures <- PONS_Demographics %>% filter(Exact_Month==60 & (Status=="Earliest" | Status=="Metastasis" | Status=="Death")) %>% select(patid) %>% inner_join(PONS_Measures)
+
+Pats_to_track_BMI <- Pats_to_track_BMI %>% select(patid, weight, diagnosis, cancer_metastasis, cachexia_onset)
+Pats_to_track_BMI$cachexia_onset <- as.Date(Pats_to_track_BMI$cachexia_onset)
+PONS_Measures <- PONS_Measures %>% select(-weight)
+
+
+
+
+
+# Convert BMI records to wide format
+
+temp <- PONS_Measures
+temp <- temp %>% select(patid, claimed, value)
+
+Months_lookup <- fread("Months_lookup.txt",  integer64 = "character", stringsAsFactors = F)
+Months_lookup$Month <- paste0(Months_lookup$Month,"-1")
+Months_lookup$Month <- as.Date(Months_lookup$Month)
+Months_lookup$Month <- format(as.Date(Months_lookup$Month), "%Y-%m")
+Months_lookup$Month <- as.character(Months_lookup$Month)
+
+temp <- temp %>% mutate(claimed=as.character(claimed))
+temp <- temp %>% mutate(claimed=str_sub(claimed, 1L, 7L))
+
+temp <- temp %>% left_join(Months_lookup, by=c("claimed"="Month")) %>% select(patid, value, Exact_Month) %>% distinct()
+
+temp_max <- temp %>% group_by(patid, Exact_Month) %>% summarise(n=max(value))
+temp_min <- temp %>% group_by(patid, Exact_Month) %>% summarise(n=min(value))
+
+temp_max <- temp_max %>% ungroup() %>% spread(key=Exact_Month, value=n)
+temp_min <- temp_min %>% ungroup() %>% spread(key=Exact_Month, value=n)
+
+
+fwrite(temp_max, "MAX_Cachexia_BMI_Wide.txt", sep="\t")
+fwrite(temp_min, "MIN_Cachexia_BMI_Wide.txt", sep="\t")
+
+temp_max <- fread("MAX_Cachexia_BMI_Wide.txt", sep="\t", header = T)
+temp_min <- fread("MIN_Cachexia_BMI_Wide.txt", sep="\t", header = T)
+
+
+temp_max <- melt(temp_max) %>% drop_na() %>% arrange(patid)
+names(temp_max)[2] <- "Month_Max"
+names(temp_max)[3] <- "Max"
+temp_max$Month_Max <- as.numeric(temp_max$Month_Max)
+
+temp_min <- melt(temp_min) %>% drop_na() %>% arrange(patid)
+names(temp_min)[2] <- "Month_Min"
+names(temp_min)[3] <- "Min"
+temp_min$Month_Min <- as.numeric(temp_min$Month_Min)
+
+temp <- temp_max %>% left_join(temp_min)
+
+temp <- temp %>% ungroup() %>% filter(Month_Min>Month_Max)
+
+temp <- temp %>% mutate(Drop95=ifelse( (Min<(Max*0.95)) & (Month_Min>Month_Max) & (Month_Min-Month_Max<=6) & (Month_Min>=49),1,0 ))
+temp <- temp %>% mutate(Drop90=ifelse( (Min<(Max*0.90)) & (Month_Min>Month_Max) & (Month_Min-Month_Max<=12) & (Month_Min>=49),1,0 ))
+temp <- temp %>% mutate(Drop2_20=ifelse( (Min<(Max*0.98)) & (Month_Min>Month_Max) & (Min<20) & (Month_Min>=49),1,0 ))
+
+
+
+
+New_Cachexia_Pred <- temp %>% filter(Drop95==1 | Drop90==1 | Drop2_20==1) %>% select(patid) %>% distinct()
+
+
+
+
+
+
+New_Cachexia_Pred %>% left_join(Pats_to_track_BMI) %>%
+  group_by(diagnosis,cancer_metastasis) %>% summarise(POP_Mets=sum(weight)) %>%
+             arrange(diagnosis, -cancer_metastasis)  %>% ungroup() %>%
+  summarise(n=sum(POP_Mets)) # 1524333
+
+
+data.frame(New_Cachexia_Pred %>% left_join(Pats_to_track_BMI) %>%
+             full_join(Pats_to_track_BMI %>% filter(cachexia_onset>="2020-08-01")) %>%
+             distinct() %>% 
+  group_by(diagnosis,cancer_metastasis) %>% summarise(POP_Mets=sum(weight)) %>%
+             arrange(diagnosis, -cancer_metastasis)  %>% ungroup()) %>%
+  summarise(n=sum(POP_Mets))  # 1603718
+
+
+CachexiaPats_ALL_NEW <- New_Cachexia_Pred %>% left_join(Pats_to_track_BMI) %>%
+             full_join(Pats_to_track_BMI %>% filter(cachexia_onset>="2020-08-01")) %>%
+             distinct() %>% select(patid) %>% distinct()
+
+fwrite(CachexiaPats_ALL_NEW, "CachexiaPats_ALL_NEW.txt")
+
+CachexiaPats_ALL_NEW <- fread("CachexiaPats_ALL_NEW.txt")
+
+
+
+
+
+# WHO HAS BMI>30 ?
+PONS_Measures <- fread("PONS_Measures_short.txt", sep="\t")
+PONS_Measures <- PONS_Measures %>% filter(test=="BMI")
+PONS_Measures <- temp %>% select(patid) %>% distinct() %>% left_join(PONS_Measures) %>% select(patid, claimed, value)
+PONS_Measures$claimed <- as.Date(PONS_Measures$claimed)
+
+PONS_Measures <- PONS_Measures %>% group_by(patid) %>%  filter(value==min(value))
+
+Pats_BMI_30 <- PONS_Measures %>% ungroup() %>% filter(value>=30) %>% select(patid) %>% distinct()
+
+
+data.frame(New_Cachexia_Pred %>% left_join(Pats_to_track_BMI) %>%
+             full_join(Pats_to_track_BMI %>% filter(cachexia_onset>="2020-08-01")) %>%
+             distinct() %>%  anti_join(Pats_BMI_30) %>%
+  group_by(diagnosis,cancer_metastasis) %>% summarise(POP_Mets=sum(weight)) %>%
+             arrange(diagnosis, -cancer_metastasis)  ) 
+
+
+
+
+# Naive vs Rx-exp
+
+New_Primary_Cancer_Box <- fread("New_Primary_Cancer_Box.txt", sep="\t")
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% select(patid, Primary_Cancer) %>% filter(Primary_Cancer!="-")
+
+CAN_Drug_Histories <- fread("CAN Drug Histories.txt")
+CAN_Drug_Histories <- CAN_Drug_Histories %>% inner_join(New_Primary_Cancer_Box, by=c("patient"="patid"))
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+CAN_Drug_Histories <- CAN_Drug_Histories %>% select(-c(disease, Month)) %>% distinct()
+
+All_pats <- CAN_Drug_Histories %>% select(patient) %>% distinct()
+
+PONS_Ingredients_JN_ChemoClass <- fread("PONS_Ingredients_JN_ChemoClass.csv", colClasses = "character")
+PONS_Ingredients_JN_ChemoClass$molecule <- as.numeric(PONS_Ingredients_JN_ChemoClass$molecule)
+
+unique(PONS_Ingredients_JN_ChemoClass$drug_group)
+
+string_cancer <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[
+  PONS_Ingredients_JN_ChemoClass$drug_group=="Anticancer"|
+    PONS_Ingredients_JN_ChemoClass$drug_group=="GDF15"], collapse = "|"),")\\b")
+
+# Surgery = 354
+
+AnticancerRx <- CAN_Drug_Histories %>% filter(Treat!="-") %>% filter(grepl(string_cancer, Treat)) %>% select(patient) %>% distinct()
+fwrite(AnticancerRx, "AnticancerRx.txt")
+SurgeryPats <- CAN_Drug_Histories %>% filter(Treat!="-") %>% filter(grepl("354", Treat)) %>% select(patient) %>% distinct() %>%
+  anti_join(AnticancerRx)
+fwrite(SurgeryPats, "SurgeryPats.txt")
+OtherPats <- All_pats %>% anti_join(AnticancerRx) %>% anti_join(SurgeryPats)
+fwrite(OtherPats, "OtherPats.txt")
+
+
+Pats_to_track_BMI %>% group_by(diagnosis, cancer_metastasis) %>% summarise(n=sum(weight))
+
+
+data.frame(New_Cachexia_Pred %>% left_join(Pats_to_track_BMI) %>%
+             #inner_join(OtherPats %>% rename("patid"="patient")) %>%
+             inner_join(AnticancerRx %>% full_join(SurgeryPats) %>% rename("patid"="patient")) %>%
+             full_join(Pats_to_track_BMI %>% filter(cachexia_onset>="2020-08-01")) %>%
+             #inner_join(Pats_to_track_BMI_Active %>% select(patid)) %>%
+             distinct() %>%  anti_join(Pats_BMI_30) %>%
+  group_by(diagnosis,cancer_metastasis) %>% summarise(POP_Mets=sum(weight)) %>%
+             arrange(diagnosis, -cancer_metastasis)  ) 
+
+
+
+PONS_Demographics <- fread("PONS_Time_Series_Groups.txt", sep="\t")
+
+Active_Last3y <- PONS_Demographics %>% filter(Exact_Month>=25) %>% filter(Status=="Earliest"|Status=="Metastasis") %>% select(patid) %>% distinct()
+NaiveFirst3y <- PONS_Demographics %>% filter(Exact_Month==24) %>% filter(Status=="Naive") %>% select(patid) %>% distinct()
+
+New_Primary_Cancer_Box <- fread("New_Primary_Cancer_Box.txt", sep="\t")
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% filter(Primary_Cancer!="-")
+
+Pats_to_track_BMI_Active <- Active_Last3y %>% inner_join(NaiveFirst3y) %>% inner_join(Pats_to_track_BMI)  
+
+sum(Pats_to_track_BMI_Active$weight)
+
+data.frame(Pats_to_track_BMI_Active %>% 
+  #inner_join(OtherPats %>% rename("patid"="patient")) %>%
+  #inner_join(AnticancerRx %>% full_join(SurgeryPats) %>%  rename("patid"="patient")) %>%
+    group_by(diagnosis, cancer_metastasis) %>% summarise(n=sum(weight)))  %>%
+  arrange(diagnosis, desc(cancer_metastasis))
+
+
+
+# ALIVE & ACTIVE
+# 
+# PONS_Demographics <- fread("PONS_Time_Series_Groups.txt", sep="\t")
+# unique(PONS_Demographics$Status)
+# PONS_Demographics <- PONS_Demographics %>% filter(Exact_Month==60 & (Status=="Earliest" | Status=="Metastasis")) %>% select(patid)
+#   
+# data.frame(PONS_Measures %>% 
+#              select(patid) %>% distinct() %>%  
+#              bind_rows(Pats_to_track_BMI %>% filter(cachexia_onset==1) %>% select(patid)) %>%
+#              distinct() %>%
+#              inner_join(Pats_to_track_BMI) %>%
+#              inner_join(PONS_Demographics) %>%
+#              #inner_join(AnticancerRx %>% full_join(SurgeryPats) %>% rename("patid"="patient")) %>%
+#              inner_join(OtherPats  %>% rename("patid"="patient")) %>%
+#              group_by(diagnosis,cancer_metastasis) %>% summarise(POP_Mets=sum(weight)) %>%
+#              arrange(diagnosis, -cancer_metastasis))
+# 
+#
+
+
+# ---------------
+
+
+# Denosumab and Epeitine use based on anticancer drug history ------------
+New_Primary_Cancer_Box <- fread("New_Primary_Cancer_Box.txt", sep="\t")
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% select(patid, Primary_Cancer) %>% filter(Primary_Cancer!="-")
+
+CAN_Drug_Histories <- fread("CAN Drug Histories.txt")
+CAN_Drug_Histories <- CAN_Drug_Histories %>% inner_join(New_Primary_Cancer_Box, by=c("patient"="patid"))
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+CAN_Drug_Histories <- CAN_Drug_Histories %>% select(-c(disease, Month)) %>% distinct()
+
+All_pats <- CAN_Drug_Histories %>% select(patient) %>% distinct()
+
+PONS_Ingredients <- fread("PONS Ingredients.txt", colClasses = "character")
+PONS_Ingredients <- PONS_Ingredients %>%  separate(drug_id, c('group', 'molecule'))
+
+
+string_cancer <- paste0("\\b(",paste0(PONS_Ingredients$molecule[
+  (PONS_Ingredients$drug_group=="Anticancer"|
+    PONS_Ingredients$drug_group=="GDF15") & PONS_Ingredients$generic_name!="Denosumab"], collapse = "|"),")\\b")
+
+
+AnticancerRx <- CAN_Drug_Histories %>% filter(Treat!="-") %>% filter(grepl(string_cancer, Treat)) %>% select(patient) %>% distinct()
+
+OtherPats <- All_pats %>% anti_join(AnticancerRx) 
+
+groups <- AnticancerRx %>% mutate(group="Exp") %>%
+  bind_rows(OtherPats %>% mutate(group="Naive"))
+
+
+New_Primary_Cancer_Box <- fread("New_Primary_Cancer_Box.txt", sep="\t")
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% select(patid, weight, Primary_Cancer)
+
+groups <- groups %>% left_join(New_Primary_Cancer_Box, by=c("patient"="patid"))
+
+
+PONS_Demographics <- fread("PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% select(patid, cancer_metastasis) %>% mutate(cancer_metastasis=ifelse(is.na(cancer_metastasis), 0 ,1))
+
+groups <- groups %>% left_join(PONS_Demographics, by=c("patient"="patid"))
+
+PONS_Demographics <- fread("PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% select(patid, diagnosis) %>% filter(grepl("Bone", diagnosis)) %>%
+  select(patid) %>% mutate(Bone=1)
+
+groups <- groups %>% left_join(PONS_Demographics, by=c("patient"="patid"))
+
+# Denosumab
+
+CAN_Drug_Histories <- fread("CAN Drug Histories.txt")
+PONS_Ingredients <- fread("PONS Ingredients.txt", sep="\t")
+
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
+CAN_Drug_Histories$Month <- as.character(CAN_Drug_Histories$Month)
+CAN_Drug_Histories$Month <- parse_number(CAN_Drug_Histories$Month)
+CAN_Drug_Histories <- CAN_Drug_Histories %>% filter(Drugs!="-") %>% select(-Month) %>% distinct()
+CAN_Drug_Histories <- CAN_Drug_Histories %>% filter(grepl("265", Drugs)) %>% select(patient) %>% distinct()
+
+groups <- groups %>% left_join(CAN_Drug_Histories %>% mutate(Denosumab=1))
+
+groups[is.na(groups)] <- 0
+
+
+data.frame(
+  groups %>% filter(Primary_Cancer!="Bone Cancer"&Bone==1) %>%
+  group_by(Primary_Cancer, group, cancer_metastasis, Denosumab) %>% summarise(n=sum(weight)) %>%
+  spread(key=Denosumab, value=n) %>% mutate(perc=`1`/(`1`+`0`)) %>% select(-c(`1`, `0`)) %>%
+    spread(key=group, value=perc)
+  )
+
+
+CAN_Drug_Histories <- fread("CAN Drug Histories.txt")
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
+CAN_Drug_Histories$Month <- as.character(CAN_Drug_Histories$Month)
+CAN_Drug_Histories$Month <- parse_number(CAN_Drug_Histories$Month)
+CAN_Drug_Histories <- CAN_Drug_Histories %>% filter(Drugs!="-") %>% distinct()
+CAN_Drug_Histories <- CAN_Drug_Histories %>% filter(grepl("265", Drugs)) %>% group_by(patient) %>% count()
+mean(CAN_Drug_Histories$n)
+median(CAN_Drug_Histories$n)
+
+groups <- groups %>% left_join(CAN_Drug_Histories)
+
+persistency <- groups %>% filter(Primary_Cancer!="Bone Cancer"&Bone==1) %>% select(-c(Bone, cancer_metastasis)) %>% filter(!is.na(n))
+unique(persistency$group)
+
+data.frame(persistency %>% group_by(Primary_Cancer, group) %>% summarise(mean=mean(n)) %>%
+             spread(key=group, value=mean))
+
+#             Primary_Cancer       Exp     Naive
+# 1             Brain Cancer 11.702128 36.000000
+# 2            Breast Cancer 20.653100 25.350000
+# 3  Gastroesophageal Cancer  9.139535 19.000000
+# 4              Head Cancer 10.688525  2.666667
+# 5        Intestinal Cancer 11.860104 14.000000
+# 6            Kidney Cancer 14.905263 10.500000
+# 7          Leukemia Cancer 13.788889 18.444444
+# 8             Liver Cancer 13.201493 20.500000
+# 9              Lung Cancer 12.603654 17.051282
+# 10         Lymphoma Cancer 12.782609 24.411765
+# 11          Myeloma Cancer 15.221870 17.750000
+# 12            Other Cancer 14.247863 23.600000
+# 13       Pancreatic Cancer 11.541667 19.500000
+# 14         Prostate Cancer 18.511948 17.812500
+# 15     Reproductive Cancer 12.882353 20.750000
+# 16      Respiratory Cancer 11.210526 14.000000
+# 17         Salivary Cancer  7.285714        NA
+# 18             Skin Cancer 11.257732  8.666667
+# 19          Thyroid Cancer 18.803571 20.400000
+# 20          Urinary Cancer 10.146853 31.200000
+
+
+data.frame(persistency %>% group_by(Primary_Cancer, group) %>% summarise(median=median(n)) %>%
+             spread(key=group, value=median))
+
+#             Primary_Cancer Exp Naive
+# 1             Brain Cancer   9  36.0
+# 2            Breast Cancer  17  22.5
+# 3  Gastroesophageal Cancer   6  19.0
+# 4              Head Cancer   9   1.0
+# 5        Intestinal Cancer   7   6.0
+# 6            Kidney Cancer  11   6.5
+# 7          Leukemia Cancer  10  13.0
+# 8             Liver Cancer   9  20.5
+# 9              Lung Cancer   9  12.0
+# 10         Lymphoma Cancer  11  21.0
+# 11          Myeloma Cancer  12  11.0
+# 12            Other Cancer  11  24.0
+# 13       Pancreatic Cancer   7  18.0
+# 14         Prostate Cancer  15   9.5
+# 15     Reproductive Cancer   9  17.5
+# 16      Respiratory Cancer  12  14.0
+# 17         Salivary Cancer   7    NA
+# 18             Skin Cancer   8   6.0
+# 19          Thyroid Cancer  17  14.0
+# 20          Urinary Cancer   8  24.0
+
+library(survival)
+
+# Get unique values of Primary_Cancer
+cancer_types <- unique(persistency$Primary_Cancer)
+
+# Iterate over each cancer type
+for (type in cancer_types) {
+  km_fit_group1 <- survfit(Surv(time = persistency$n[persistency$group == "Exp" & persistency$Primary_Cancer == type], 
+                                 event = rep(1, sum(persistency$group == "Exp" & persistency$Primary_Cancer == type))) ~ 1)
+  km_fit_group2 <- survfit(Surv(time = persistency$n[persistency$group == "Naive" & persistency$Primary_Cancer == type], 
+                                 event = rep(1, sum(persistency$group == "Naive" & persistency$Primary_Cancer == type))) ~ 1)
+  
+  par(mar = c(5, 5, 2, 2))  
+  plot(km_fit_group1, col = "#355C7D", lwd = 2, 
+       main = type, xlab = "Months ON Denosumab", ylab = "Persistency Probability", 
+       frame.plot = FALSE, axes = FALSE, conf.int = FALSE, lty = 1, xlim = c(0, 60))
+  lines(km_fit_group2, col = "#F67280", lwd = 2)
+  
+  axis(1, at = pretty(range(c(0, 60))), labels = TRUE, tick = TRUE, col.axis = "black", line = -1.5)
+  axis(2, labels = TRUE, tick = TRUE, col.axis = "black", line = -1.5)
+  
+  legend("topright", legend = c("Anticancer Exp", "Naive"), col = c("#355C7D", "#F67280"), lwd = 2)
+  
+  par(mar = c(5, 4, 4, 2) + 0.1)
+}
+
+
+
+
+# Get unique values of Primary_Cancer
+
+persistency <- persistency %>% mutate(Primary_Cancer_v2=ifelse(Primary_Cancer %in% c("Breast Cancer",
+                                                                                  "Prostate Cancer",
+                                                                                  "Lung Cancer",
+                                                                                  "Intestinal Cancer",
+                                                                                  "Pancreatic Cancer"), Primary_Cancer, "Other"))
+
+cancer_types <- unique(persistency$Primary_Cancer_v2)
+
+# Iterate over each cancer type
+for (type in cancer_types) {
+  km_fit_group1 <- survfit(Surv(time = persistency$n[persistency$group == "Exp" & persistency$Primary_Cancer_v2 == type], 
+                                 event = rep(1, sum(persistency$group == "Exp" & persistency$Primary_Cancer_v2 == type))) ~ 1)
+  km_fit_group2 <- survfit(Surv(time = persistency$n[persistency$group == "Naive" & persistency$Primary_Cancer_v2 == type], 
+                                 event = rep(1, sum(persistency$group == "Naive" & persistency$Primary_Cancer_v2 == type))) ~ 1)
+  
+  par(mar = c(5, 5, 2, 2))  
+  plot(km_fit_group1, col = "#355C7D", lwd = 2, 
+       main = type, xlab = "Months ON Denosumab", ylab = "Persistency Probability", 
+       frame.plot = FALSE, axes = FALSE, conf.int = FALSE, lty = 1)
+  lines(km_fit_group2, col = "#F67280", lwd = 2)
+  
+  axis(1, at = pretty(range(c(km_fit_group1$time, km_fit_group2$time))), 
+       labels = TRUE, tick = TRUE, col.axis = "black", line = -1.5)
+  axis(2, labels = TRUE, tick = TRUE, col.axis = "black", line = -1.5)
+  
+  legend("topright", legend = c("Anticancer Exp", "Naive"), col = c("#355C7D", "#F67280"), lwd = 2)
+  
+  par(mar = c(5, 4, 4, 2) + 0.1)
+}
+
+data.frame(persistency %>% group_by(Primary_Cancer_v2, group) %>% summarise(mean=mean(n, na.rm=T)) %>%
+             spread(key=group, value=mean))
+
+#             Primary_Cancer       Exp     Naive
+# 1     Breast Cancer 20.65310 25.35000
+# 2 Intestinal Cancer 11.86010 14.00000
+# 3       Lung Cancer 12.60365 17.05128
+# 4             Other 13.61739 19.16667
+# 5 Pancreatic Cancer 11.54167 19.50000
+# 6   Prostate Cancer 18.51195 17.81250
+
+
+data.frame(persistency %>% group_by(Primary_Cancer_v2, group) %>% summarise(median=median(n, na.rm=T)) %>%
+             spread(key=group, value=median))
+# 
+# 1     Breast Cancer  17  22.5
+# 2 Intestinal Cancer   7   6.0
+# 3       Lung Cancer   9  12.0
+# 4             Other  10  14.0
+# 5 Pancreatic Cancer   7  18.0
+# 6   Prostate Cancer  15   9.5
+
+
+
+# Epo
+
+CAN_Drug_Histories <- fread("CAN Drug Histories.txt")
+PONS_Ingredients <- fread("PONS Ingredients.txt", sep="\t")
+
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
+CAN_Drug_Histories$Month <- as.character(CAN_Drug_Histories$Month)
+CAN_Drug_Histories$Month <- parse_number(CAN_Drug_Histories$Month)
+CAN_Drug_Histories <- CAN_Drug_Histories %>% filter(Drugs!="-") %>% select(-Month) %>% distinct()
+
+CAN_Drug_Histories <- separate_rows(CAN_Drug_Histories, Drugs, sep = ",", convert=T )
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% select(patient, Drugs) %>% distinct()
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% filter( Drugs=="28") %>% select(patient) %>% distinct()
+
+groups <- groups %>% left_join(CAN_Drug_Histories %>% mutate(Epo=1))
+
+groups[is.na(groups)] <- 0
+
+
+data.frame(
+  groups %>% 
+  group_by(Primary_Cancer, group, cancer_metastasis, Epo) %>% summarise(n=sum(weight)) %>%
+  spread(key=Epo, value=n) %>% mutate(perc=`1`/(`1`+`0`)) %>% select(-c(`1`, `0`)) %>%
+    spread(key=group, value=perc)
+  )
+
+
+CAN_Drug_Histories <- fread("CAN Drug Histories.txt")
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
+CAN_Drug_Histories$Month <- as.character(CAN_Drug_Histories$Month)
+CAN_Drug_Histories$Month <- parse_number(CAN_Drug_Histories$Month)
+CAN_Drug_Histories <- CAN_Drug_Histories %>% filter(Drugs!="-") %>% distinct()
+CAN_Drug_Histories  <- CAN_Drug_Histories %>% inner_join(groups %>% filter(Epo==1) %>% select(patient) %>% distinct())
+CAN_Drug_Histories <- separate_rows(CAN_Drug_Histories, Drugs, sep = ",", convert=T )
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% select(patient, Drugs, Month) %>% distinct()
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% filter( Drugs=="28") %>% group_by(patient) %>% count() %>% rename("n_epo"="n")
+
+mean(CAN_Drug_Histories$n_epo)
+median(CAN_Drug_Histories$n_epo)
+
+groups <- groups %>% left_join(CAN_Drug_Histories)
+
+persistency <- groups %>% filter(Epo==1) %>% select(-c(Bone, cancer_metastasis)) %>% filter(!is.na(n_epo))
+unique(persistency$group)
+
+
+persistency <- persistency %>% mutate(Primary_Cancer_v2=ifelse(Primary_Cancer %in% c("Breast Cancer",
+                                                                                  "Prostate Cancer",
+                                                                                  "Lung Cancer",
+                                                                                  "Intestinal Cancer",
+                                                                                  "Pancreatic Cancer"), Primary_Cancer, "Other"))
+
+cancer_types <- unique(persistency$Primary_Cancer_v2)
+
+# Iterate over each cancer type
+for (type in cancer_types) {
+  km_fit_group1 <- survfit(Surv(time = persistency$n_epo[persistency$group == "Exp" & persistency$Primary_Cancer_v2 == type], 
+                                 event = rep(1, sum(persistency$group == "Exp" & persistency$Primary_Cancer_v2 == type))) ~ 1)
+  km_fit_group2 <- survfit(Surv(time = persistency$n_epo[persistency$group == "Naive" & persistency$Primary_Cancer_v2 == type], 
+                                 event = rep(1, sum(persistency$group == "Naive" & persistency$Primary_Cancer_v2 == type))) ~ 1)
+  
+  par(mar = c(5, 5, 2, 2))  
+  plot(km_fit_group1, col = "#355C7D", lwd = 2, xlim = c(0, 60),
+       main = type, xlab = "Months ON Epoetin", ylab = "Persistency Probability", 
+       frame.plot = FALSE, axes = FALSE, conf.int = FALSE, lty = 1)
+  lines(km_fit_group2, col = "#F67280", lwd = 2)
+  
+  axis(1, at = pretty(range(c(km_fit_group1$time, km_fit_group2$time))), 
+       labels = TRUE, tick = TRUE, col.axis = "black", line = -1.5)
+  axis(2, labels = TRUE, tick = TRUE, col.axis = "black", line = -1.5)
+  
+  legend("topright", legend = c("Anticancer Exp", "Naive"), col = c("#355C7D", "#F67280"), lwd = 2)
+  
+  par(mar = c(5, 4, 4, 2) + 0.1)
+}
+
+data.frame(persistency %>% group_by(Primary_Cancer_v2, group) %>% summarise(mean=mean(n_epo, na.rm=T)) %>%
+             spread(key=group, value=mean))
+
+#   Primary_Cancer_v2      Exp    Naive
+# 1     Breast Cancer 6.028316 9.325893
+# 2 Intestinal Cancer 5.852201 7.242424
+# 3       Lung Cancer 4.740806 7.202020
+# 4             Other 7.271214 8.681548
+# 5 Pancreatic Cancer 4.703947 5.977273
+# 6   Prostate Cancer 7.096220 7.110048
+
+data.frame(persistency %>% group_by(Primary_Cancer_v2, group) %>% summarise(median=median(n_epo, na.rm=T)) %>%
+             spread(key=group, value=median))
+
+# 
+#   Primary_Cancer_v2 Exp Naive
+# 1     Breast Cancer   3     4
+# 2 Intestinal Cancer   2     3
+# 3       Lung Cancer   3     3
+# 4             Other   3     4
+# 5 Pancreatic Cancer   3     2
+# 6   Prostate Cancer   3     3
+
+# --------------------

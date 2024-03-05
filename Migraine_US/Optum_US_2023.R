@@ -9504,3 +9504,105 @@ N_pats %>% ungroup() %>% mutate(Ratio=N_Rx/(N_Rx+N_Dx)) %>%
 
 
 # -------------------------------
+# Month over Month source of Dx and Scripts ------------- 
+Unique_provcats <- fread("Unique_provcats.csv")
+unique(Unique_provcats$TYPE)
+Unique_provcats <- Unique_provcats %>% filter(TYPE!="EXCLUDE")
+Unique_provcats <- Unique_provcats %>% mutate(TYPE=ifelse(TYPE=="NEUROLOGY", "NEUROLOGY",
+                                                          ifelse(TYPE=="PRIMARY CARE", "PCP", "OTHER")))
+
+
+
+RIMUS23_Doses <- read.table("RIMUS23 Doses.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Doses <- RIMUS23_Doses %>% mutate(from_dt=as.Date(from_dt)) 
+unique(RIMUS23_Doses$drug_class)
+RIMUS23_Doses <- RIMUS23_Doses %>% select(patid, from_dt, drug_class, provider , provcat, drug_group) %>% distinct() 
+RIMUS23_Doses <- RIMUS23_Doses %>% select(patid, from_dt, provider , provcat) %>% distinct() 
+
+RIMUS23_Doses$TYPE <- paste0("Rx_", RIMUS23_Doses$TYPE)
+
+RIMUS23_Doses <- RIMUS23_Doses %>% mutate(provcat=as.numeric(provcat)) %>%
+  inner_join(Unique_provcats %>% select(PROVCAT, TYPE), by=c("provcat"="PROVCAT"))
+
+RIMUS23_Doses <- RIMUS23_Doses %>% select(patid, from_dt, TYPE) %>% distinct()
+
+names(RIMUS23_Doses)[2] <- "date"
+
+length(unique(RIMUS23_Doses$patid))
+RIMUS23_Doses %>% filter(grepl("NEURO", TYPE)) %>% select(patid) %>% distinct()
+
+
+RIMUS23_Migraine_Dxs  <- fread("RIMUS23 Migraine Dxs.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Migraine_Dxs <- RIMUS23_Migraine_Dxs %>% mutate(date  =as.Date(date))
+RIMUS23_Migraine_Dxs <- RIMUS23_Migraine_Dxs %>% select(patid, date, provider, provcat) %>% distinct()
+
+RIMUS23_Migraine_Dxs <- RIMUS23_Migraine_Dxs %>% mutate(provcat=as.numeric(provcat)) %>%
+  inner_join(Unique_provcats %>% select(PROVCAT, TYPE), by=c("provcat"="PROVCAT"))
+
+RIMUS23_Migraine_Dxs <- RIMUS23_Migraine_Dxs %>% select(patid, date, TYPE) %>% distinct() 
+
+RIMUS23_Migraine_Dxs$TYPE <- paste0("Dx_", RIMUS23_Migraine_Dxs$TYPE)
+
+All_over_time <- RIMUS23_Doses %>% bind_rows(RIMUS23_Migraine_Dxs)
+
+All_over_time$Month_Yr <- format(as.Date(All_over_time$date), "%Y-%m")
+#All_over_time <- All_over_time %>%  mutate(date=str_sub(as.character(date), 1L, 7L))
+
+All_over_time <- All_over_time %>% select(-date) %>% distinct() 
+All_over_time <- All_over_time %>% arrange(patid, Month_Yr, TYPE)
+range(All_over_time$Month_Yr)
+All_over_time$Exp <- 1
+All_over_time_wide <- All_over_time %>% spread(key=Month_Yr, value=Exp)
+
+
+All_over_time_all_months <- All_over_time %>% select(patid) %>% distinct() %>% mutate(link=1)  %>%
+  left_join(All_over_time %>% select(Month_Yr) %>% distinct() %>% mutate(link=1)) %>%
+  select(-link) %>% left_join(All_over_time) %>% select(-Exp)
+
+All_over_time_all_months[is.na(All_over_time_all_months)] <- "0"
+
+All_over_time_all_months <- All_over_time_all_months %>% mutate(Exp=1) %>% spread(key=TYPE, value=Exp)
+All_over_time_all_months <- All_over_time_all_months %>% select(-`0`)
+
+All_over_time_all_months[is.na(All_over_time_all_months)] <- 0
+
+All_over_time_all_months <- All_over_time_all_months %>%
+  group_by(patid) %>%
+  mutate(CUM_Dx_NEUROLOGY=cumsum(Dx_NEUROLOGY)) %>% mutate(CUM_Dx_NEUROLOGY=ifelse(CUM_Dx_NEUROLOGY==0,0,1)) %>%
+  mutate(CUM_Dx_OTHER =cumsum(Dx_OTHER )) %>% mutate(CUM_Dx_OTHER=ifelse(CUM_Dx_OTHER ==0,0,1)) %>%
+  mutate(CUM_Dx_PCP =cumsum(Dx_PCP )) %>% mutate(CUM_Dx_PCP=ifelse(CUM_Dx_PCP==0,0,1)) %>%
+  mutate(CUM_Rx_NEUROLOGY =cumsum(Rx_NEUROLOGY )) %>% mutate(CUM_Rx_NEUROLOGY=ifelse(CUM_Rx_NEUROLOGY==0,0,1)) %>%
+  mutate(CUM_Rx_OTHER=cumsum(Rx_OTHER)) %>% mutate(CUM_Rx_OTHER=ifelse(CUM_Rx_OTHER==0,0,1)) %>%
+  mutate(CUM_Rx_PCP=cumsum(Rx_PCP)) %>% mutate(CUM_Rx_PCP=ifelse(CUM_Rx_PCP==0,0,1))  %>% ungroup()
+
+data.frame(All_over_time_all_months %>% filter(Month_Yr==max(Month_Yr)) %>%
+  group_by(  CUM_Dx_PCP, CUM_Dx_NEUROLOGY, CUM_Rx_PCP, CUM_Rx_NEUROLOGY) %>%
+  count() %>% arrange(-n) )
+
+
+All_pats <- fread("ModSev_Pats_V3.txt", colClasses = "character", stringsAsFactors = FALSE)
+All_pats <- All_pats %>% filter(group=="ModSev") %>% select(patient)
+
+ 
+data.frame(All_over_time_all_months %>%
+             inner_join(All_pats, by=c("patid"="patient")) %>%
+             filter(Month_Yr==max(Month_Yr)) %>%
+  group_by(  CUM_Dx_PCP, CUM_Dx_NEUROLOGY, CUM_Rx_PCP, CUM_Rx_NEUROLOGY) %>%
+  count() %>% arrange(-n) )
+
+
+
+All_over_time_all_months %>%
+  inner_join(All_pats, by=c("patid"="patient")) %>%
+  filter(CUM_Dx_PCP==1 |CUM_Dx_NEUROLOGY==1) %>%
+  group_by(patid) %>% filter(Month_Yr==min(Month_Yr)) %>% select(patid, CUM_Dx_NEUROLOGY, CUM_Dx_PCP) %>%
+  left_join(
+    All_over_time_all_months %>%
+      inner_join(All_pats, by=c("patid"="patient")) %>%
+                   filter(Month_Yr==max(Month_Yr)) %>% select(patid, CUM_Dx_NEUROLOGY, CUM_Dx_PCP) %>%
+                   rename("FINAL_CUM_Dx_NEUROLOGY"="CUM_Dx_NEUROLOGY", "FINAL_CUM_Dx_PCP"="CUM_Dx_PCP")
+  ) %>%
+  group_by(CUM_Dx_NEUROLOGY, CUM_Dx_PCP, FINAL_CUM_Dx_NEUROLOGY,FINAL_CUM_Dx_PCP) %>% count() %>% arrange(-n)
+  
+# ------------
+

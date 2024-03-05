@@ -9312,3 +9312,195 @@ flMIG %>% group_by(ACUTE_FLOW, PREV_FLOW) %>% summarise(n=sum(as.numeric(weight)
 data.frame(flMIG %>% filter(stops==0) %>% group_by(Acute_flow_type, Prev_flow_type ) %>% summarise(n=sum(as.numeric(weight))))
 
 # ----------------
+# Physicians with vs without CGRP -------------------------
+
+Unique_provcats <- fread("Unique_provcats.csv")
+RIMUS23_Doses <- read.table("RIMUS23 Doses.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Doses <- RIMUS23_Doses %>% filter(status!="G") %>% mutate(from_dt=as.Date(from_dt))
+RIMUS23_Doses <- RIMUS23_Doses %>%  select(patid, weight, provider, provcat, from_dt, drug_class) 
+
+Year5 <- RIMUS23_Doses %>% filter(grepl("CGRP",drug_class  )) %>% filter(from_dt>="2022-06-01"&from_dt<="2023-05-31") %>% select(provider, provcat) %>% distinct()
+Before5 <- RIMUS23_Doses %>% filter(grepl("CGRP",drug_class  )) %>% filter(from_dt<="2022-05-31") %>% select(provider, provcat) %>% distinct()
+
+Year5 <- Year5 %>% anti_join(Before5)
+
+NO_CGRP <- RIMUS23_Doses %>% select(provider, provcat) %>% distinct()  %>%
+  anti_join(Year5) %>% anti_join(Before5)
+
+Year5 <- Year5 %>% mutate(provcat=as.numeric(provcat)) %>%
+  inner_join(Unique_provcats %>% filter(TYPE=="PRIMARY CARE") %>% select(PROVCAT), by=c("provcat"="PROVCAT"))
+
+NO_CGRP <- NO_CGRP %>% mutate(provcat=as.numeric(provcat)) %>%
+  inner_join(Unique_provcats %>% filter(TYPE=="PRIMARY CARE") %>% select(PROVCAT), by=c("provcat"="PROVCAT"))
+
+Plus5Pats <- RIMUS23_Doses %>% select(provider, patid) %>% distinct() %>% group_by(provider) %>% count() %>% filter(n>20)
+
+
+Year5 <- Year5 %>% inner_join(Plus5Pats %>% select(provider))
+NO_CGRP <- NO_CGRP %>% inner_join(Plus5Pats %>% select(provider))
+
+Scripts_first4years <-  RIMUS23_Doses %>% filter(from_dt<="2022-05-31") %>%
+   group_by(provider) %>% count()
+
+Scripts_first4years %>% inner_join(Year5) %>% ungroup() %>% summarise(mean=mean(n)) # 165
+Scripts_first4years %>% inner_join(NO_CGRP) %>% ungroup() %>% summarise(mean=mean(n)) # 90
+
+ClassesVolume <- RIMUS23_Doses %>% filter(from_dt<="2022-05-31") %>%
+   group_by(provider, drug_class) %>% count() 
+
+ClassesVolume <- ClassesVolume %>% ungroup() %>% group_by(provider) %>% mutate(total=sum(n))
+ClassesVolume <- ClassesVolume %>% mutate(perc=n/total)
+
+
+
+Year5 %>% inner_join(ClassesVolume %>% select(provider, drug_class,n)) %>% ungroup() %>%
+  group_by(drug_class) %>% count() %>% ungroup() %>% mutate(total=sum(n)) %>% mutate(perc=100*n/total) %>%
+  select(drug_class, perc)
+
+
+# 1 Analgesic        0.901 
+#  2 Antiemetic       7.62  
+#  3 Antiepileptic   10.3   
+#  4 Antipsychotic    1.12  
+#  5 Beta Blocker     6.29  
+#  6 Calcium Blocker  2.58  
+#  7 Cardiovascular   4.65  
+#  8 Ditan            0.0368
+#  9 Ergot            0.156 
+# 10 Muscle Relaxant  8.15  
+# 11 NSAID            8.29  
+# 12 Neural           1.00  
+# 13 SNRI             5.45  
+# 14 SSRI             6.41  
+# 15 Sedative         5.22  
+# 16 Steroid          6.53  
+# 17 Strong Opioid    4.07  
+# 18 Tricyclic        5.79  
+# 19 Triptan          8.77  
+# 20 Weak Opioid      6.62  
+
+NO_CGRP %>% inner_join(ClassesVolume %>% select(provider, drug_class,n)) %>% ungroup() %>%
+  group_by(drug_class) %>% count() %>% ungroup() %>% mutate(total=sum(n)) %>% mutate(perc=100*n/total) %>%
+  select(drug_class, perc)
+
+#  1 Analgesic        1.40   
+#  2 Antiemetic      10.0    
+#  3 Antiepileptic    7.94   
+#  4 Antipsychotic    1.68   
+#  5 Beta Blocker     5.32   
+#  6 Calcium Blocker  2.12   
+#  7 Cardiovascular   4.42   
+#  8 Ditan            0.00165
+#  9 Ergot            0.0819 
+# 10 Muscle Relaxant  7.87   
+# 11 NSAID           10.9    
+# 12 Neural           0.472  
+# 13 SNRI             4.11   
+# 14 SSRI             5.38   
+# 15 Sedative         4.59   
+# 16 Steroid          9.10   
+# 17 Strong Opioid    6.98   
+# 18 Tricyclic        3.07   
+# 19 Triptan          4.91   
+# 20 Weak Opioid      9.61  
+
+Pats_seen <- RIMUS23_Doses %>% filter(from_dt<="2022-05-31") %>%  select(provider, patid) %>% distinct()
+
+flMIG <- fread("MIG_Flows_Aux._Long_v2.txt")
+flMIG <- flMIG %>% filter(p2>=36&p2<48)
+flMIG <- flMIG %>% group_by(patient) %>% summarise(flows=sum(flow))
+
+Year5 %>% inner_join(Pats_seen) %>% 
+  inner_join(flMIG %>% mutate(patient=as.character(patient)), by=c("patid"="patient")) %>%
+  summarise(mean=mean(flows)) # 18.29121
+  
+NO_CGRP %>% inner_join(Pats_seen) %>% 
+  inner_join(flMIG %>% mutate(patient=as.character(patient)), by=c("patid"="patient")) %>%
+  summarise(mean=mean(flows)) # 18.52801
+
+# ----------
+ 
+# Number of Dx patients vs Rx patients per physician -------------------
+
+
+Unique_provcats <- fread("Unique_provcats.csv")
+unique(Unique_provcats$TYPE)
+Unique_provcats <- Unique_provcats %>% filter(TYPE!="EXCLUDE")
+Unique_provcats <- Unique_provcats %>% mutate(TYPE=ifelse(TYPE=="NEUROLOGY", "NEUROLOGY",
+                                                          ifelse(TYPE=="PRIMARY CARE", "PCP", "OTHER")))
+
+
+`%notin%` <- Negate(`%in%`)
+
+RIMUS23_Doses <- read.table("RIMUS23 Doses.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Doses <- RIMUS23_Doses %>% mutate(from_dt=as.Date(from_dt)) 
+unique(RIMUS23_Doses$drug_class)
+RIMUS23_Doses <- RIMUS23_Doses %>% select(patid, from_dt, drug_class, provider , provcat, drug_group) %>% distinct() %>%
+  filter(drug_class %notin% c("Ditan", "Ergot", "Triptan", "CGRP Oral", "CGRP Injectable"))
+
+RIMUS23_Doses <- RIMUS23_Doses %>% mutate(provcat=as.numeric(provcat)) %>%
+  inner_join(Unique_provcats %>% select(PROVCAT, TYPE), by=c("provcat"="PROVCAT"))
+
+N_pats_Rx <- RIMUS23_Doses %>% select(provider, TYPE, patid) %>% distinct() %>% group_by(provider, TYPE) %>% count()
+names(N_pats_Rx)[3] <- "N_Rx"
+
+
+RIMUS23_Migraine_Dxs  <- fread("RIMUS23 Migraine Dxs.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Migraine_Dxs <- RIMUS23_Migraine_Dxs %>% mutate(date  =as.Date(date))
+RIMUS23_Migraine_Dxs <- RIMUS23_Migraine_Dxs %>% select(patid, date, provider, provcat) %>% distinct()
+
+RIMUS23_Migraine_Dxs <- RIMUS23_Migraine_Dxs %>% mutate(provcat=as.numeric(provcat)) %>%
+  inner_join(Unique_provcats %>% select(PROVCAT, TYPE), by=c("provcat"="PROVCAT"))
+
+N_pats_Dx <- RIMUS23_Migraine_Dxs %>% select(provider, TYPE, patid) %>% distinct() %>% group_by(provider, TYPE) %>% count()
+names(N_pats_Dx)[3] <- "N_Dx"
+
+N_pats <- N_pats_Dx %>% full_join(N_pats_Rx)
+sum(is.na(N_pats))
+
+N_pats[is.na(N_pats)] <- 0
+
+
+N_pats %>% ungroup() %>%
+  filter(TYPE=="NEUROLOGY") %>%
+  sample_n(25000) %>%
+  ggplot(aes((N_Dx), (N_Rx) )) +
+  xlim(-1,10) + ylim(-1,10) +
+  geom_jitter(alpha=0.5, size=0.2, colour="#FFBFBF") + 
+  theme_minimal() +
+  xlab("\n Number of Dx Patients") + ylab("Number of Rx Patients \n")
+
+
+N_pats %>% ungroup() %>%
+  filter(TYPE=="PCP") %>%
+  sample_n(25000) %>%
+  ggplot(aes((N_Dx), (N_Rx) )) +
+  xlim(-1,10) + ylim(-1,10) +
+  geom_jitter(alpha=0.5, size=0.2, colour="#B2D1DC") + 
+  theme_minimal() +
+  xlab("\n Number of Dx Patients") + ylab("Number of Rx Patients \n")
+
+
+
+N_pats %>% ungroup() %>%
+  filter(TYPE=="OTHER") %>%
+  sample_n(25000) %>%
+  ggplot(aes((N_Dx), (N_Rx) )) +
+  xlim(-1,20) + ylim(-1,20) +
+  geom_jitter(alpha=0.5, size=0.2, colour="#FFEFCA") + 
+  theme_minimal() +
+  xlab("\n Number of Dx Patients") + ylab("Number of Rx Patients \n")
+
+
+
+N_pats %>% ungroup() %>% mutate(Ratio=N_Rx/(N_Rx+N_Dx)) %>%
+  filter(TYPE!="OTHER") %>%
+  ggplot(aes((Ratio), colour=TYPE, fill=TYPE )) +
+  geom_density(alpha=0.75) + 
+  theme_minimal() +
+  xlab("\n Ratio of Rx to Rx+Dx Patients") + ylab("Physician Density \n") +
+  scale_colour_manual(values=c("#FFBFBF", "#B2D1DC")) +
+  scale_fill_manual(values=c("#FFBFBF", "#B2D1DC")) 
+
+
+# -------------------------------

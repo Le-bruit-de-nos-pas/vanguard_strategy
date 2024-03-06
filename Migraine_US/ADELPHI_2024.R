@@ -3637,3 +3637,40 @@ China_df %>% select(patNum, PhyPrimarySpeciality2, Acute_vs_Prophy) %>% group_by
 
 
 # -----------
+# Physician breakdown Dx and Rx per country ---------
+
+PRF_B_3a_YRC. First consultation (Healthcare professionals (HCPs) responsible for this patient's migraine)
+PRF_B_3b_YRC. Diagnosis of migraine (Healthcare professionals (HCPs) responsible for this patient's migraine)
+PRF_B_3c_YRC. Initiated first acute treatment (Healthcare professionals (HCPs) responsible for this patient's migraine)
+PRF_B_3d_YRC. Initiated first preventive treatment (Healthcare professionals (HCPs) responsible for this patient's migraine)
+
+
+data.frame(Pfizer_Migraine_Pat %>% select(patNum, PhyPrimarySpeciality2, qcountries,  PRF_B_3a_YRC) %>%
+  group_by(qcountries, PhyPrimarySpeciality2) %>% count())
+
+Pfizer_Migraine_Pat %>% select(qcountries) %>% distinct()
+Pfizer_Migraine_Pat %>% select(PhyPrimarySpeciality2) %>% distinct()
+
+Pfizer_Migraine_Pat %>% select(PRF_B_3a_YRC) %>% distinct()
+Pfizer_Migraine_Pat %>% select(PRF_B_3b_YRC) %>% distinct()
+Pfizer_Migraine_Pat %>% select(PRF_B_3c_YRC) %>% distinct()
+Pfizer_Migraine_Pat %>% select(PRF_B_3d_YRC) %>% distinct()
+
+data.frame(
+  Pfizer_Migraine_Pat %>% select(patNum, qcountries,  PRF_B_3a_YRC) %>%
+  group_by(qcountries, PRF_B_3a_YRC) %>% count() %>% rename("PRF_B_3a_YRC_n"="n") %>% rename("PRF_B"="PRF_B_3a_YRC") %>%
+  full_join(
+     Pfizer_Migraine_Pat %>% select(patNum, qcountries,  PRF_B_3b_YRC) %>%
+  group_by(qcountries, PRF_B_3b_YRC) %>% count() %>% rename("PRF_B_3b_YRC_n"="n")  %>% rename("PRF_B"="PRF_B_3b_YRC")
+  ) %>%
+    full_join(
+     Pfizer_Migraine_Pat %>% select(patNum, qcountries,  PRF_B_3c_YRC) %>%
+  group_by(qcountries, PRF_B_3c_YRC) %>% count() %>% rename("PRF_B_3c_YRC_n"="n")  %>% rename("PRF_B"="PRF_B_3c_YRC")
+  ) %>%
+    full_join(
+     Pfizer_Migraine_Pat %>% select(patNum, qcountries,  PRF_B_3d_YRC) %>%
+  group_by(qcountries, PRF_B_3d_YRC) %>% count() %>% rename("PRF_B_3d_YRC_n"="n")  %>% rename("PRF_B"="PRF_B_3d_YRC")
+  )
+) %>% arrange(qcountries, PRF_B)
+
+# --------

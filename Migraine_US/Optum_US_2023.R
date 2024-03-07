@@ -9854,3 +9854,106 @@ RIMUS23_Migraine_Dxs %>% select(patid, TYPE, First_Dx, Lines) %>% distinct() %>%
 
 
 # -----------
+
+# Depression and Anxiety and PCP ModSev patients and Oral CGRPs -------------
+
+ModSev_vector <- fread("ModSev_vector.txt", colClasses = "character", stringsAsFactors = FALSE)
+ModSev_vector <- ModSev_vector %>% filter(group=="ModSev") %>% select(patient, weight)
+sum(as.numeric(ModSev_vector$weight)) # 11,856,517
+
+
+Unique_provcats <- fread("Unique_provcats.csv")
+unique(Unique_provcats$TYPE)
+Unique_provcats <- Unique_provcats %>% filter(TYPE!="EXCLUDE")
+Unique_provcats <- Unique_provcats %>% mutate(TYPE=ifelse(TYPE=="NEUROLOGY", "NEUROLOGY",
+                                                          ifelse(TYPE=="PRIMARY CARE", "PCP", 
+                                                                 ifelse(TYPE=="INTERNAL MEDICINE", "OTHER",
+                                                                        ifelse(TYPE=="INTERAL MEDICINE", "OTHER",
+                                                                               ifelse(TYPE=="OBG", "OTHER",
+                                                                                      ifelse(TYPE=="PSYCHIATRY", "OTHER", "EXCLUDE")))))))
+Unique_provcats <- Unique_provcats %>% filter(TYPE!="EXCLUDE")
+Unique_provcats <- Unique_provcats %>% filter(TYPE=="PCP")
+Unique_provcats <- Unique_provcats %>% select(PROVCAT)
+
+
+RIMUS23_Migraine_Dxs  <- fread("RIMUS23 Migraine Dxs.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Migraine_Dxs <- RIMUS23_Migraine_Dxs %>% mutate(date  =as.Date(date))
+RIMUS23_Migraine_Dxs <- RIMUS23_Migraine_Dxs %>% select(patid, date, provider, provcat) %>% distinct()
+RIMUS23_Migraine_Dxs$date <- as.Date(RIMUS23_Migraine_Dxs$date)
+range(RIMUS23_Migraine_Dxs$date)
+RIMUS23_Migraine_Dxs <- RIMUS23_Migraine_Dxs %>% filter(date>"2021-05-15")
+RIMUS23_Migraine_Dxs <- RIMUS23_Migraine_Dxs %>% mutate(provcat=as.numeric(provcat)) %>% inner_join(Unique_provcats, by=c("provcat"="PROVCAT"))
+PCP_last_2_years <- RIMUS23_Migraine_Dxs %>% select(patid) %>% distinct()
+names(PCP_last_2_years) <- "patient"
+
+PCP_last_2_years %>% inner_join(ModSev_vector) %>% summarise(tot=sum(as.numeric(weight))) # 3,369,484
+
+
+
+RIMUS23_Comorbidities_Extended_Dxs <- read.table("RIMUS23 Comorbidities Extended Dxs.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+names(RIMUS23_Comorbidities_Extended_Dxs)[1] <- "patient"
+RIMUS23_Comorbidities_Extended_Dxs$date <- as.Date(RIMUS23_Comorbidities_Extended_Dxs$date)
+range(RIMUS23_Comorbidities_Extended_Dxs$date)
+RIMUS23_Comorbidities_Extended_Dxs <- RIMUS23_Comorbidities_Extended_Dxs %>% filter(date>"2021-05-15")
+
+RIMUS23_Comorbidities_Extended_Dxs <- RIMUS23_Comorbidities_Extended_Dxs %>% select(patient, ICD10_diag) %>% distinct() %>% 
+  inner_join(ModSev_vector %>% select(patient))
+
+RIMUS23_Comorbidities_Extended_Dxs <- RIMUS23_Comorbidities_Extended_Dxs %>%
+  filter(grepl("F3",ICD10_diag)| grepl("F4",ICD10_diag))
+
+
+RIMUS23_Comorbidities_Extended_Dxs %>% left_join(ModSev_vector) %>% inner_join(PCP_last_2_years) %>%
+  filter(grepl("F3",ICD10_diag)) %>%
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 1,403,637
+
+
+RIMUS23_Comorbidities_Extended_Dxs %>% left_join(ModSev_vector) %>%  inner_join(PCP_last_2_years) %>%
+  filter(grepl("F4",ICD10_diag)) %>%
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 1,851,299
+
+
+# Up to 50% each one would be okayish
+# https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9719608/
+# https://bmcneurol.biomedcentral.com/articles/10.1186/s12883-014-0238-4#:~:text=Anxiety%20is%20the%20most%20common,12%5D%2C%5B13%5D.
+
+
+RIMUS23_Comorbidities_Extended_Dxs %>% left_join(ModSev_vector) %>%  inner_join(PCP_last_2_years) %>%
+   filter(grepl("F33",ICD10_diag)) %>%
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 743,777
+
+
+RIMUS23_Comorbidities_Extended_Dxs %>% left_join(ModSev_vector) %>% inner_join(PCP_last_2_years) %>%
+   filter(grepl("F41",ICD10_diag)) %>%
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 1,670,385
+
+
+RIMUS23_Comorbidities_Extended_Dxs %>% left_join(ModSev_vector) %>% inner_join(PCP_last_2_years) %>%
+   filter(grepl("F41",ICD10_diag)|grepl("F33",ICD10_diag)) %>%
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 1,828,165
+
+
+RIMUS23_Doses <- read.table("RIMUS23 Doses.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Doses <- RIMUS23_Doses %>% select(patid, from_dt, drug_class) %>% distinct() %>% 
+  mutate(from_dt=as.Date(from_dt)) %>% filter(from_dt>"2021-05-15")
+RIMUS23_Doses <- RIMUS23_Doses %>% filter(drug_class=="CGRP Oral") %>% select(patid) %>% rename("patient"="patid") %>% distinct()
+
+RIMUS23_Doses %>% inner_join(ModSev_vector) %>%  inner_join(PCP_last_2_years) %>% summarise(n=sum(as.numeric(weight))) # 342443
+
+
+RIMUS23_Comorbidities_Extended_Dxs %>% left_join(ModSev_vector) %>%  inner_join(PCP_last_2_years) %>%
+   filter(grepl("F33",ICD10_diag)) %>% inner_join(RIMUS23_Doses) %>%
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 93,566
+
+
+RIMUS23_Comorbidities_Extended_Dxs %>% left_join(ModSev_vector) %>% inner_join(PCP_last_2_years) %>%
+   filter(grepl("F41",ICD10_diag)) %>% inner_join(RIMUS23_Doses) %>%
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 199,370
+
+
+RIMUS23_Comorbidities_Extended_Dxs %>% left_join(ModSev_vector) %>% inner_join(PCP_last_2_years) %>%
+   filter(grepl("F41",ICD10_diag)|grepl("F33",ICD10_diag)) %>% inner_join(RIMUS23_Doses) %>%
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 216,259
+
+
+# --------

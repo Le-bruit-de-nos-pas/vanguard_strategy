@@ -3639,10 +3639,10 @@ China_df %>% select(patNum, PhyPrimarySpeciality2, Acute_vs_Prophy) %>% group_by
 # -----------
 # Physician breakdown Dx and Rx per country ---------
 
-PRF_B_3a_YRC. First consultation (Healthcare professionals (HCPs) responsible for this patient's migraine)
-PRF_B_3b_YRC. Diagnosis of migraine (Healthcare professionals (HCPs) responsible for this patient's migraine)
-PRF_B_3c_YRC. Initiated first acute treatment (Healthcare professionals (HCPs) responsible for this patient's migraine)
-PRF_B_3d_YRC. Initiated first preventive treatment (Healthcare professionals (HCPs) responsible for this patient's migraine)
+# PRF_B_3a_YRC. First consultation (Healthcare professionals (HCPs) responsible for this patient's migraine)
+# PRF_B_3b_YRC. Diagnosis of migraine (Healthcare professionals (HCPs) responsible for this patient's migraine)
+# PRF_B_3c_YRC. Initiated first acute treatment (Healthcare professionals (HCPs) responsible for this patient's migraine)
+# PRF_B_3d_YRC. Initiated first preventive treatment (Healthcare professionals (HCPs) responsible for this patient's migraine)
 
 
 data.frame(Pfizer_Migraine_Pat %>% select(patNum, PhyPrimarySpeciality2, qcountries,  PRF_B_3a_YRC) %>%
@@ -3674,3 +3674,36 @@ data.frame(
 ) %>% arrange(qcountries, PRF_B)
 
 # --------
+
+# First Diagnosed vs First Rx ------------
+
+Pfizer_Migraine_Pat <- read_sav("Pfizer_Migraine_Pat v.2.0.sav")
+Pfizer_Migraine_Pat %>% select(qcountries) %>% distinct()
+Pfizer_Migraine_Pat <- Pfizer_Migraine_Pat %>% filter(qcountries==24)
+
+Pfizer_Migraine_Pat <- Pfizer_Migraine_Pat %>% select(patNum,  PRF_B_3b_YRC, PRF_B_3c_YRC, PRF_B_3d_YRC)
+
+Pfizer_Migraine_Pat %>% select(PRF_B_3b_YRC) %>% distinct()
+Pfizer_Migraine_Pat %>% select(PRF_B_3c_YRC) %>% distinct()
+
+data.frame(Pfizer_Migraine_Pat %>%
+             mutate(PRF_B_3b_YRC=ifelse(PRF_B_3b_YRC==2,2,
+                                        ifelse(PRF_B_3b_YRC==3,3,
+                                               ifelse(PRF_B_3b_YRC==4,4,9501)))) %>%
+             mutate(PRF_B_3c_YRC=ifelse(PRF_B_3c_YRC==2,2,
+                                        ifelse(PRF_B_3c_YRC==3,3,
+                                               ifelse(PRF_B_3c_YRC==4,4,9501)))) %>%
+             group_by(PRF_B_3b_YRC, PRF_B_3c_YRC) %>% count())
+
+
+data.frame(Pfizer_Migraine_Pat %>%
+             mutate(PRF_B_3d_YRC=ifelse(PRF_B_3d_YRC==2,2,
+                                        ifelse(PRF_B_3d_YRC==3,3,
+                                               ifelse(PRF_B_3d_YRC==4,4,9501)))) %>%
+             mutate(PRF_B_3c_YRC=ifelse(PRF_B_3c_YRC==2,2,
+                                        ifelse(PRF_B_3c_YRC==3,3,
+                                               ifelse(PRF_B_3c_YRC==4,4,9501)))) %>%
+             group_by(PRF_B_3c_YRC, PRF_B_3d_YRC) %>% count())
+
+
+# -----------

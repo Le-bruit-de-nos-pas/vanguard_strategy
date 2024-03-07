@@ -9957,3 +9957,29 @@ RIMUS23_Comorbidities_Extended_Dxs %>% left_join(ModSev_vector) %>% inner_join(P
 
 
 # --------
+
+# Create vector acute vs preventive last 48 months ------
+All_pats <- fread("ModSev_Pats_V3.txt", colClasses = "character", stringsAsFactors = FALSE)
+All_pats <- All_pats %>% filter(group=="ModSev") %>% select(patient)
+
+Drugs_lookup <- fread("Drugs_lookup.csv")
+RIMUS23_Drug_Histories <- read.table("RIMUS23_Drug_Histories_NEW_short_2.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Drug_Histories <- All_pats %>% left_join(RIMUS23_Drug_Histories) 
+RIMUS23_Drug_Histories <- gather(RIMUS23_Drug_Histories, Month, Treat, X1:X60, factor_key=TRUE)
+RIMUS23_Drug_Histories$Month <- parse_number(as.character(RIMUS23_Drug_Histories$Month))
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% filter(Month>=13) 
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% select(-c(Month))
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% filter(Treat != "-")  %>% distinct()
+RIMUS23_Drug_Histories <- separate_rows(RIMUS23_Drug_Histories, Treat, sep = ",", convert=T )
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% distinct() %>% left_join(Drugs_lookup %>% select(drug_id, drug_group), by=c("Treat"="drug_id"))
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% select(patient, weight, drug_group) %>% distinct()
+RIMUS23_Drug_Histories$exp <- 1
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% spread(key=drug_group, value=exp)
+RIMUS23_Drug_Histories[is.na(RIMUS23_Drug_Histories)] <- 0
+Experience <- RIMUS23_Drug_Histories
+
+Experience <- Experience %>% mutate(group=ifelse(`CGRP Injectable`==1|Preventive==1, "Prev", "Acute"))
+
+fwrite(Experience, "Experience_Acute_vs_Prev_last48m.txt")
+
+# ------

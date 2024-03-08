@@ -9983,3 +9983,145 @@ Experience <- Experience %>% mutate(group=ifelse(`CGRP Injectable`==1|Preventive
 fwrite(Experience, "Experience_Acute_vs_Prev_last48m.txt")
 
 # ------
+# First Specialty vs Subsequent ones  Acute vs Prev pats ------------
+
+# Using Dx only 
+Unique_provcats <- fread("Unique_provcats.csv")
+unique(Unique_provcats$TYPE)
+Unique_provcats <- Unique_provcats %>% filter(TYPE!="EXCLUDE")
+Unique_provcats <- Unique_provcats %>% mutate(TYPE=ifelse(TYPE=="NEUROLOGY", "NEUROLOGY",
+                                                          ifelse(TYPE=="PRIMARY CARE", "PCP", 
+                                                                 ifelse(TYPE=="INTERNAL MEDICINE", "OTHER",
+                                                                        ifelse(TYPE=="INTERAL MEDICINE", "OTHER",
+                                                                               ifelse(TYPE=="OBG", "OTHER",
+                                                                                      ifelse(TYPE=="PSYCHIATRY", "OTHER", "EXCLUDE")))))))
+Unique_provcats <- Unique_provcats %>% filter(TYPE!="EXCLUDE")
+
+
+
+# ALl Dx and Rx  MIG spec
+
+RIMUS23_Migraine_Dxs  <- fread("RIMUS23 Migraine Dxs.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Migraine_Dxs <- RIMUS23_Migraine_Dxs %>% mutate(date  =as.Date(date))
+RIMUS23_Migraine_Dxs <- RIMUS23_Migraine_Dxs %>% select(patid, date, provider, provcat) %>% distinct()
+
+range(RIMUS23_Migraine_Dxs$date)
+
+
+
+RIMUS23_Doses <- read.table("RIMUS23 Doses.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Doses <- RIMUS23_Doses %>% mutate(from_dt=as.Date(from_dt)) 
+unique(RIMUS23_Doses$drug_class)
+RIMUS23_Doses <- RIMUS23_Doses %>% filter(drug_class %in% c("Ditan", "Ergot", "Triptan", "CGRP Oral", "CGRP Injectable"))
+RIMUS23_Doses <- RIMUS23_Doses %>% select(patid, from_dt, provider , provcat) %>% distinct()  %>% rename("date"="from_dt")
+
+RIMUS23_Migraine_Dxs <- RIMUS23_Migraine_Dxs %>% bind_rows(RIMUS23_Doses)
+RIMUS23_Migraine_Dxs <- RIMUS23_Migraine_Dxs %>% distinct() 
+
+
+# Remove those with Rx first 12m
+RIMUS23_Migraine_Dxs <- RIMUS23_Migraine_Dxs %>% anti_join(RIMUS23_Migraine_Dxs %>% filter(date<"2019-06-16") %>% select(patid) %>% distinct())
+
+# Select thos ewith first on yera 2 or year 3
+RIMUS23_Migraine_Dxs <- RIMUS23_Migraine_Dxs %>% inner_join(RIMUS23_Migraine_Dxs %>% filter(date<"2021-06-16") %>% select(patid) %>% distinct())
+
+
+
+RIMUS23_Migraine_Dxs <- RIMUS23_Migraine_Dxs %>% mutate(provcat=as.numeric(provcat)) %>%
+  inner_join(Unique_provcats %>% select(PROVCAT, TYPE), by=c("provcat"="PROVCAT"))
+
+RIMUS23_Migraine_Dxs <- RIMUS23_Migraine_Dxs %>% select(patid, date, TYPE) %>% distinct() 
+
+RIMUS23_Migraine_Dxs <- RIMUS23_Migraine_Dxs %>% left_join(
+  RIMUS23_Migraine_Dxs %>% group_by(patid) %>% filter(date==min(date)) %>% filter(TYPE==min(TYPE)) %>% distinct() %>%
+  select(patid, TYPE) %>% rename("First_Dx"="TYPE") 
+  )
+
+RIMUS23_Migraine_Dxs <- RIMUS23_Migraine_Dxs %>% arrange(patid, date, TYPE)
+
+RIMUS23_Migraine_Dxs <- RIMUS23_Migraine_Dxs %>%  group_by(patid) %>% mutate(grp = rle(TYPE)$lengths %>% {rep(seq(length(.)), .)}) 
+
+RIMUS23_Migraine_Dxs <- RIMUS23_Migraine_Dxs %>% left_join(
+  RIMUS23_Migraine_Dxs %>% group_by(patid) %>% filter(grp==max(grp)) %>% distinct() %>%
+  select(patid, grp) %>% rename("Lines"="grp") %>% distinct() 
+  )
+
+
+RIMUS23_Migraine_Dxs %>% select(patid, TYPE, First_Dx, Lines) %>% distinct() %>% ungroup() %>%
+  filter(Lines==1) %>% select(patid, First_Dx) %>% distinct() %>% group_by(First_Dx) %>% count()
+
+
+RIMUS23_Migraine_Dxs %>% select(patid, TYPE, First_Dx, Lines) %>% distinct() %>% ungroup() %>%
+  filter(Lines!=1) %>% select(patid, First_Dx, TYPE) %>% distinct() %>%
+  arrange(patid, First_Dx, TYPE) %>% group_by(patid) %>% mutate(TYPE=paste0(TYPE, collapse=",")) %>% distinct() %>%
+  group_by(First_Dx, TYPE) %>% count()
+
+
+
+RIMUS23_Migraine_Dxs %>% select(patid, TYPE, date, First_Dx, Lines) %>% distinct() %>% ungroup() %>%
+  filter(Lines!=1) %>% select(patid, First_Dx, date, TYPE) %>% distinct() %>%
+  group_by(patid, First_Dx) %>% summarise(last=max(date)) %>%
+  filter(First_Dx=="PCP") %>%
+  mutate(elapsed=as.numeric(as.Date("2023-07-15")-last)/30) %>% # ungroup() %>% summarise(median=median(elapsed)) #9
+  ggplot(aes(elapsed)) +
+  geom_density(alpha=0.7, fill="firebrick", colour="firebrick") +
+  theme_minimal() +
+  xlab("\n Number of months since last event") + ylab("Patient density")
+
+
+
+temp <- RIMUS23_Migraine_Dxs %>% select(patid, TYPE, date, First_Dx, Lines) %>% distinct() %>% ungroup() %>%
+  filter(Lines!=1) %>% select(patid, First_Dx, date, TYPE) %>% distinct() %>% 
+  group_by(patid, First_Dx, TYPE) %>% count() %>%
+  filter(First_Dx=="PCP") %>% ungroup() %>%
+  group_by(patid, First_Dx) %>% mutate(total=sum(n)) %>%
+  spread(key=TYPE, value=n)
+
+temp[is.na(temp)] <- 0
+
+median(temp$total) ; mean(temp$total)
+
+temp %>% ggplot(aes(total)) + geom_density()
+
+data.frame(temp %>% group_by(PCP, NEUROLOGY, OTHER) %>% count() %>% arrange(-n))
+
+Experience_Acute_vs_Prev_last48m <- fread("Experience_Acute_vs_Prev_last48m.txt")
+
+Experience_Acute_vs_Prev_last48m <- Experience_Acute_vs_Prev_last48m %>% 
+  mutate(group2=ifelse(`CGRP Injectable`==1 | `CGRP Oral`==1, "Prev",
+                       ifelse(Triptans==1, "Acute", NA))) %>% drop_na()
+
+Experience_Acute_vs_Prev_last48m <- Experience_Acute_vs_Prev_last48m %>% select(patient, group2) %>% 
+  rename("patid"="patient") %>% filter(group2=="Acute") %>% select(patid)
+
+Experience_Acute_vs_Prev_last48m$patid <- as.character(Experience_Acute_vs_Prev_last48m$patid)
+
+RIMUS23_Migraine_Dxs %>% inner_join(Experience_Acute_vs_Prev_last48m) %>%
+  filter(Lines==1) %>% filter(First_Dx=="PCP")  %>%   select(patid)  %>% distinct()
+
+RIMUS23_Migraine_Dxs %>% inner_join(Experience_Acute_vs_Prev_last48m) %>%
+  filter(Lines!=1) %>% filter(First_Dx=="PCP") %>% 
+  group_by(patid) %>% count() # 916
+
+Pats_10_rec <- RIMUS23_Migraine_Dxs %>% inner_join(Experience_Acute_vs_Prev_last48m) %>%
+  filter(Lines!=1) %>% filter(First_Dx=="PCP") %>% 
+  group_by(patid) %>% count() %>% filter(n>=6) %>%   select(patid)  # 
+
+RIMUS23_Migraine_Dxs %>% inner_join(Pats_10_rec) %>% select(patid, TYPE, date, First_Dx, Lines) %>% distinct() %>% ungroup() %>%
+  filter(Lines!=1) %>% filter(First_Dx=="PCP") %>%  select(patid, date, TYPE) %>% distinct() %>%
+  filter(date>"2022-06-16" & TYPE =="PCP") %>% select(patid) %>% distinct() # 
+
+
+#  596 44% PCP last year -> LEFT AND return
+#  770 56% NO PCP last year -> LEFT long time ( 476 35% with other last year)
+
+
+RIMUS23_Migraine_Dxs %>% inner_join(Pats_10_rec) %>% anti_join(
+  RIMUS23_Migraine_Dxs %>% select(patid, TYPE, date, First_Dx, Lines) %>% distinct() %>% ungroup() %>%
+  filter(Lines!=1) %>% filter(First_Dx=="PCP") %>%  select(patid, date, TYPE) %>% distinct() %>%
+  filter(date>"2022-06-16" & TYPE =="PCP") %>% select(patid) %>% distinct()
+) %>% select(patid, TYPE, date, First_Dx, Lines) %>% distinct() %>% ungroup() %>%
+  filter(Lines!=1) %>% filter(First_Dx=="PCP") %>%  select(patid, date, TYPE) %>% distinct() %>% 
+  filter(date>"2022-06-16") %>% select(patid) %>% distinct()
+
+# -------------------

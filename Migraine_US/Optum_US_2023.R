@@ -10092,24 +10092,24 @@ Experience_Acute_vs_Prev_last48m <- Experience_Acute_vs_Prev_last48m %>%
                        ifelse(Triptans==1, "Acute", NA))) %>% drop_na()
 
 Experience_Acute_vs_Prev_last48m <- Experience_Acute_vs_Prev_last48m %>% select(patient, group2) %>% 
-  rename("patid"="patient") %>% filter(group2=="Acute") %>% select(patid)
+  rename("patid"="patient") %>%  select(patid)
 
 Experience_Acute_vs_Prev_last48m$patid <- as.character(Experience_Acute_vs_Prev_last48m$patid)
 
 RIMUS23_Migraine_Dxs %>% inner_join(Experience_Acute_vs_Prev_last48m) %>%
-  filter(Lines==1) %>% filter(First_Dx=="PCP")  %>%   select(patid)  %>% distinct()
+  filter(Lines==1) %>% filter(First_Dx=="OTHER")  %>%   select(patid)  %>% distinct()
 
 RIMUS23_Migraine_Dxs %>% inner_join(Experience_Acute_vs_Prev_last48m) %>%
-  filter(Lines!=1) %>% filter(First_Dx=="PCP") %>% 
-  group_by(patid) %>% count() # 916
+  filter(Lines!=1) %>% filter(First_Dx=="OTHER") %>% 
+  group_by(patid) %>% count() # 1075
 
 Pats_10_rec <- RIMUS23_Migraine_Dxs %>% inner_join(Experience_Acute_vs_Prev_last48m) %>%
-  filter(Lines!=1) %>% filter(First_Dx=="PCP") %>% 
+  filter(Lines!=1) %>% filter(First_Dx=="OTHER") %>% 
   group_by(patid) %>% count() %>% filter(n>=6) %>%   select(patid)  # 
 
 RIMUS23_Migraine_Dxs %>% inner_join(Pats_10_rec) %>% select(patid, TYPE, date, First_Dx, Lines) %>% distinct() %>% ungroup() %>%
-  filter(Lines!=1) %>% filter(First_Dx=="PCP") %>%  select(patid, date, TYPE) %>% distinct() %>%
-  filter(date>"2022-06-16" & TYPE =="PCP") %>% select(patid) %>% distinct() # 
+  filter(Lines!=1) %>% filter(First_Dx=="OTHER") %>%  select(patid, date, TYPE) %>% distinct() %>%
+  filter(date>"2022-06-16" & TYPE =="OTHER") %>% select(patid) %>% distinct() # 
 
 
 #  596 44% PCP last year -> LEFT AND return

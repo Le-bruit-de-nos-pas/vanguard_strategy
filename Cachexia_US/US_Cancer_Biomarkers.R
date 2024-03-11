@@ -6794,3 +6794,390 @@ data.frame(CAN_Drug_Histories %>% select(patient, Treat) %>% distinct() %>% filt
 
 
 # -----------
+
+# Stock month over month All breast cancer metastatic NAIVE vs EXP before mets GET GROUPS  -------------------------
+
+CancerDrug_Experienced <- fread("Source/CancerDrug_Experienced.txt",  integer64 = "character", stringsAsFactors = F)
+New_Primary_Cancer_Box <- fread("Source/New_Primary_Cancer_Box.txt", sep="\t")
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% inner_join(CancerDrug_Experienced)
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% filter(Primary_Cancer=="Breast Cancer") %>% select(patid)
+
+CAN_Drug_Histories <- fread("Source/CAN Drug Histories.txt")
+CAN_Drug_Histories <- setDT(CAN_Drug_Histories)[New_Primary_Cancer_Box[, .(patid)], on = c("patient"="patid"), nomatch = 0]
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+setDT(CAN_Drug_Histories)
+CAN_Drug_Histories <- unique(CAN_Drug_Histories[, .(patient, weight, Month, Treat)])
+CAN_Drug_Histories$Month <- parse_number(as.character(CAN_Drug_Histories$Month))
+
+PONS_Ingredients_JN_ChemoClass <- fread("Source/PONS_Ingredients_JN_ChemoClass.csv", colClasses = "character")
+
+
+string_target <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[
+  PONS_Ingredients_JN_ChemoClass$chemo_class=="Biologic"|PONS_Ingredients_JN_ChemoClass$chemo_class=="Immuno/Targeted"], collapse = "|"),")\\b")
+
+
+string_OtherChemo <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[(PONS_Ingredients_JN_ChemoClass$drug_group=="GDF15"|
+                                                                                     PONS_Ingredients_JN_ChemoClass$drug_group=="Anticancer" ) &
+                                                                               PONS_Ingredients_JN_ChemoClass$chemo_class!="Immuno/Targeted"&
+                                                                               PONS_Ingredients_JN_ChemoClass$chemo_class!="Biologic"&
+                                                                                 PONS_Ingredients_JN_ChemoClass$chemo_class!="Hormonal Therapy"], collapse = "|"),")\\b")
+
+string_Hormonal <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[
+  PONS_Ingredients_JN_ChemoClass$chemo_class=="Hormonal Therapy"], collapse = "|"),")\\b")
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% mutate(ON_Palbo=ifelse(grepl("179", Treat), 1,0))
+
+PONS_Demographics <- fread("Source/PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% filter(!is.na(cancer_metastasis))  %>% select(patid, cancer_metastasis)
+setDT(PONS_Demographics)
+PONS_Demographics[, cancer_metastasis := as.character(cancer_metastasis)][, cancer_metastasis := substr(cancer_metastasis, 1L, 7L)]
+
+Months_lookup <- fread("Source/Months_lookup.txt",  integer64 = "character", stringsAsFactors = F)
+
+Months_lookup$Month <- as.character(
+  format(
+    as.Date(
+      paste0(Months_lookup$Month,"-1")
+      ), "%Y-%m"
+    )
+  )
+
+PONS_Demographics <- PONS_Demographics[Months_lookup, on = c("cancer_metastasis" = "Month")]
+PONS_Demographics <- PONS_Demographics %>% select(-cancer_metastasis) %>% rename("metastasis_onset"="Exact_Month")
+
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% inner_join(PONS_Demographics %>% rename("patient"="patid"))
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% select(patient, weight, metastasis_onset, Month, Treat, ON_Palbo)
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% group_by(patient) %>% 
+  mutate(Drug_Exp=cumsum(grepl(string_target, Treat)|
+                           grepl(string_OtherChemo, Treat)|
+                           grepl(string_Hormonal, Treat))) %>%
+  mutate(Drug_Exp=ifelse(Drug_Exp>=1,1,0))
+
+
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% mutate(Box=ifelse(grepl("179", Treat), "Palbo",
+                                         ifelse(grepl(string_target, Treat), "OtherTarget",
+                                                ifelse(grepl(string_OtherChemo, Treat), "OtherChemo",
+                                                       ifelse(grepl(string_Hormonal, Treat), "Hormonal", "Lapsed")))))
+
+
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% mutate(ElapsedMets=Month-metastasis_onset)
+
+
+
+groups <- CAN_Drug_Histories %>% filter(ElapsedMets==(-1)) %>% select(patient, Drug_Exp) %>% ungroup()
+
+Exp_vs_naive <- groups
+
+data.frame(CAN_Drug_Histories %>%
+             inner_join(groups %>% filter(Drug_Exp==1) %>% select(patient)) %>%
+  mutate(Box=ifelse(Box=="Lapsed"&Drug_Exp ==1, "Lapsed",
+                               ifelse(Box=="Lapsed"&Drug_Exp==0, "Naive", Box))) %>%
+  group_by(ElapsedMets, Box) %>% summarise(n=sum(weight)) %>%
+  spread(key=Box, value=n))
+           
+
+
+CAN_Drug_Histories %>% filter(ON_Palbo==1) %>% select(patient) %>% distinct() %>%
+  left_join(CAN_Drug_Histories) %>% filter(ON_Palbo==1) %>% group_by(patient)  %>%
+  filter(ElapsedMets==min(ElapsedMets)) %>%
+  select(patient, ElapsedMets) %>%
+  left_join(
+    CAN_Drug_Histories %>% filter(ON_Palbo==1) %>% group_by(patient) %>% count()
+  ) %>% ungroup() %>%
+  filter(ElapsedMets>=0) %>%
+  ggplot(aes(ElapsedMets, n)) +
+  geom_jitter(size=0.5, alpha=0.5, colour="deepskyblue4") +
+  geom_smooth(colour="black", fill="black") +
+  theme_minimal() +
+  xlim(0,24) +
+  xlab("\n Month of Palbociclib Initiation \n (Relative to Metastasis)") +
+  ylab("Number of Month Spent ON Palbociclib \n")
+
+
+# Compare the red series NAIVE vs EXT, BEFORE vs AFTER
+
+# CAN_Drug_Histories
+# 
+# Exp_vs_naive %>% inner_join(CAN_Drug_Histories) %>%
+#   filter(OtherTarget==1) %>%
+#   filter(Period<0)
+# 
+# 
+# ignore_df <- Exp_vs_naive %>% inner_join(CAN_Drug_Histories) %>%
+#   filter(OtherTarget==1) %>%
+#   select(patient, Drug_Exp, Treat)
+# 
+# ignore_df <- separate_rows(ignore_df, Treat, sep = ",", convert=T)
+# 
+# 
+# ignore_df %>% select(patient, Drug_Exp) %>% distinct() %>% group_by(Drug_Exp) %>% count()
+# 
+# data.frame(ignore_df %>% select(patient, Drug_Exp, Treat) %>% distinct() %>%
+#   group_by(Drug_Exp, Treat) %>% count() %>% distinct() %>%
+#   spread(Drug_Exp, value=n))
+#  
+# ignore_df <- Exp_vs_naive %>% filter(Drug_Exp==1) %>%
+#   inner_join(CAN_Drug_Histories) %>%
+#   filter(OtherTarget==1) %>% mutate(Period=ifelse(Period<0, "Before", "After")) %>%
+#   select(patient, Period, Treat) %>% distinct()
+# 
+# ignore_df %>% select(patient, Period) %>% distinct() %>% group_by(Period) %>% count()
+# 
+# ignore_df <- separate_rows(ignore_df, Treat, sep = ",", convert=T)
+# 
+# data.frame(ignore_df %>% select(patient, Period, Treat) %>% distinct() %>%
+#   group_by(Period, Treat) %>% count() %>% distinct() %>%
+#   spread(Period, value=n) %>% filter(grepl(string_target, Treat)))
+ 
+# 
+
+# -------------
+# Flows every 12 months before after mets Therapy Lines Breast Cancer With Rank 12m VIZ  EXP vs NAIVE at METS ---------------------
+New_Primary_Cancer_Box <- fread("Source/New_Primary_Cancer_Box.txt", sep="\t")
+setDT(New_Primary_Cancer_Box)
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box[Primary_Cancer %in% c("Breast Cancer"), .(patid, Primary_Cancer)]
+
+CAN_Drug_Histories <- fread("Source/CAN Drug Histories.txt")
+CAN_Drug_Histories <- setDT(CAN_Drug_Histories)[New_Primary_Cancer_Box[, .(patid)], on = c("patient"="patid"), nomatch = 0]
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+setDT(CAN_Drug_Histories)
+CAN_Drug_Histories$Month <- parse_number(as.character(CAN_Drug_Histories$Month))
+
+PONS_Demographics <- fread("Source/PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics[ , .(patid, cancer_metastasis)]
+PONS_Demographics <- PONS_Demographics[!is.na(cancer_metastasis)]
+
+Months_lookup <- fread("Source/Months_lookup.txt",  integer64 = "character", stringsAsFactors = F)
+
+Months_lookup$Month <- as.character(
+  format(
+    as.Date(
+      paste0(Months_lookup$Month,"-1")
+      ), "%Y-%m"
+    )
+  )
+
+PONS_Demographics[, cancer_metastasis := as.character(cancer_metastasis)][, cancer_metastasis := substr(cancer_metastasis, 1L, 7L)]
+
+PONS_Demographics <- PONS_Demographics[
+  Months_lookup, on = c("cancer_metastasis" = "Month")
+  ][
+    ,.SD, .SDcols = !c("cancer_metastasis")
+    ][, {setnames(.SD, old = "Exact_Month", new = "cancer_metastasis")}]
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% inner_join(PONS_Demographics, by=c("patient"="patid")) %>% 
+  select(-disease) %>% filter(Month>= (cancer_metastasis-12) )
+
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% arrange(patient, Month)
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% group_by(patient) %>% mutate(Month2=Month-cancer_metastasis) %>% 
+  select(-c(Month, cancer_metastasis))
+
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% filter(Month2>=(-12)) %>% filter(Month2<=12) %>%
+  group_by(patient) %>% count() %>%
+  filter(n==25) %>% select(patient) %>%
+  left_join(CAN_Drug_Histories)  %>% filter(Month2>=(-12)) %>% filter(Month2<=12)
+
+PONS_Ingredients_JN_ChemoClass <- fread("Source/PONS_Ingredients_JN_ChemoClass.csv", colClasses = "character")
+PONS_Ingredients_JN_ChemoClass$molecule <- as.numeric(PONS_Ingredients_JN_ChemoClass$molecule)
+
+unique(PONS_Ingredients_JN_ChemoClass$generic_name)
+
+string_Hormonal <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[PONS_Ingredients_JN_ChemoClass$chemo_class=="Hormonal Therapy"], collapse = "|"),")\\b")
+
+string_CDK <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[PONS_Ingredients_JN_ChemoClass$generic_name=="Palbociclib"|
+                                                                             PONS_Ingredients_JN_ChemoClass$generic_name=="Ribociclib"|
+                                                                             PONS_Ingredients_JN_ChemoClass$generic_name=="Abemaciclib"], collapse = "|"),")\\b")
+
+
+string_EveroFul <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[PONS_Ingredients_JN_ChemoClass$generic_name=="Everolimus"|
+                                                                             PONS_Ingredients_JN_ChemoClass$generic_name=="Fulvestrant"], collapse = "|"),")\\b")
+
+
+string_Niche <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[PONS_Ingredients_JN_ChemoClass$generic_name=="Alpelisib"|
+                                                                             PONS_Ingredients_JN_ChemoClass$generic_name=="Elacestrant"|
+                                                                             PONS_Ingredients_JN_ChemoClass$generic_name=="Olaparib"|
+                                                                             PONS_Ingredients_JN_ChemoClass$generic_name=="Talazoparib"], collapse = "|"),")\\b")
+
+
+string_Dead <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[PONS_Ingredients_JN_ChemoClass$drug_group=="Death"], collapse = "|"),")\\b")
+
+
+string_OtherTarget <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[ (PONS_Ingredients_JN_ChemoClass$chemo_class=="Immuno/Targeted"|
+                                                                                       PONS_Ingredients_JN_ChemoClass$chemo_class=="Biologic") &
+                                                                                       PONS_Ingredients_JN_ChemoClass$generic_name!="Everolimus"&
+                                                                               PONS_Ingredients_JN_ChemoClass$generic_name!="Fulvestrant"&
+                                                                               PONS_Ingredients_JN_ChemoClass$generic_name!="Palbociclib"&
+                                                                               PONS_Ingredients_JN_ChemoClass$generic_name!="Ribociclib"&
+                                                                               PONS_Ingredients_JN_ChemoClass$generic_name!="Abemaciclib"&
+                                                                               PONS_Ingredients_JN_ChemoClass$generic_name!="Alpelisib"&
+                                                                               PONS_Ingredients_JN_ChemoClass$generic_name!="Elacestrant"&
+                                                                               PONS_Ingredients_JN_ChemoClass$generic_name!="Olaparib"&
+                                                                               PONS_Ingredients_JN_ChemoClass$generic_name!="Talazoparib"], collapse = "|"),")\\b")
+
+
+
+string_OtherChemo <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[(PONS_Ingredients_JN_ChemoClass$drug_group=="GDF15"|
+                                                                                     PONS_Ingredients_JN_ChemoClass$drug_group=="Anticancer" ) &
+                                                                               PONS_Ingredients_JN_ChemoClass$drug_group!="Death"&
+                                                                               PONS_Ingredients_JN_ChemoClass$generic_name!="Everolimus"&
+                                                                               PONS_Ingredients_JN_ChemoClass$generic_name!="Fulvestrant"&
+                                                                               PONS_Ingredients_JN_ChemoClass$generic_name!="Palbociclib"&
+                                                                               PONS_Ingredients_JN_ChemoClass$generic_name!="Ribociclib"&
+                                                                               PONS_Ingredients_JN_ChemoClass$generic_name!="Abemaciclib"&
+                                                                               PONS_Ingredients_JN_ChemoClass$generic_name!="Alpelisib"&
+                                                                               PONS_Ingredients_JN_ChemoClass$generic_name!="Elacestrant"&
+                                                                               PONS_Ingredients_JN_ChemoClass$generic_name!="Olaparib"&
+                                                                               PONS_Ingredients_JN_ChemoClass$generic_name!="Talazoparib"&
+                                                                               PONS_Ingredients_JN_ChemoClass$chemo_class!="Hormonal Therapy"&
+                                                                               PONS_Ingredients_JN_ChemoClass$chemo_class!="Immuno/Targeted"&
+                                                                               PONS_Ingredients_JN_ChemoClass$chemo_class!="Biologic"], collapse = "|"),")\\b")
+
+
+range(CAN_Drug_Histories$Month2)
+# 
+# CAN_Drug_Histories <- CAN_Drug_Histories %>% mutate(Period=
+#                                                       ifelse(Month2<0,1,
+#                                                       ifelse(Month2<=6,2, 
+#                                                       ifelse(Month2<=12,3,
+#                                                       ifelse(Month2<=18,4,NA)))))
+
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% mutate(Period=Month2)
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% # filter(Treat != "-") %>%
+  mutate(Dead=ifelse(grepl(string_Dead, Treat), 1, 0)) %>%
+  mutate(Hormone=ifelse(grepl(string_Hormonal, Treat), 1, 0)) %>%
+  mutate(CDK=ifelse(grepl(string_CDK, Treat), 1, 0)) %>%
+  mutate(OtherTarget=ifelse(grepl(string_OtherTarget, Treat), 1, 0)) %>%
+  mutate(OtherCCh=ifelse(grepl(string_OtherChemo, Treat), 1, 0)) %>%
+  mutate(EveroFul=ifelse(grepl(string_EveroFul, Treat), 1, 0)) %>%
+  mutate(Niche=ifelse(grepl(string_Niche, Treat), 1, 0)) 
+
+# CAN_Drug_Histories <- CAN_Drug_Histories %>% filter(Dead==1|Hormone==1|CDK==1|OtherTarget==1|OtherCCh==1|EveroFul==1|Niche==1)
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% mutate(rank=
+                                                      ifelse(Dead==1, 1,
+                                                      ifelse(Niche==1, 2,
+                                                      ifelse(EveroFul==1, 3,
+                                                      ifelse(CDK==1,4, 
+                                                      ifelse(OtherTarget==1,5,
+                                                      ifelse(Hormone==1,6,
+                                                      ifelse(OtherCCh==1,7,8))))))))
+
+temp <- CAN_Drug_Histories %>% select(patient, weight, Month2, Period, rank)
+
+temp <- temp %>% group_by(patient, Period) %>% mutate(cumrank=cummin(rank))
+
+groups <- fread("Source/Groups_HR_HER2_status.txt")
+groups <- groups %>% filter(group=="HRPosHER2Neg") %>% select(patid) %>% rename("patient"="patid") 
+#groups <- groups %>% filter(group=="HRNegHER2Pos") %>% select(patid) %>% rename("patient"="patid") 
+#groups <- groups %>% filter(group=="HRPosHER2Pos") %>% select(patid) %>% rename("patient"="patid") 
+
+temp2 <- temp %>% mutate(cumrank=paste0("S", cumrank)) %>% 
+  inner_join(groups) %>%
+  select(patient, Period, cumrank) %>% mutate(Period=paste0("M_", Period)) %>% ungroup() %>%
+  spread(key=Period, value=cumrank) %>% 
+  select(patient, `M_-12`, `M_-11`, `M_-10`, `M_-9`, `M_-8`, `M_-7`, `M_-6`, `M_-5`, `M_-4`, `M_-3`,`M_-2`,`M_-1`,`M_0`,
+                                               `M_1`,`M_2`,`M_3`,`M_4`,`M_5`,`M_6`,`M_7`,`M_8`,`M_9`,`M_10`,`M_11`,`M_12`)
+
+temp_exp <- temp2 %>% inner_join(Exp_vs_naive %>% filter(Drug_Exp==1) %>% select(patient))
+temp_naive <- temp2 %>% inner_join(Exp_vs_naive %>% filter(Drug_Exp==0) %>% select(patient))
+
+fwrite(temp_exp, "temp_for_Sankey_HRPosHER2Neg_ExpMets_12m.csv", sep=",")
+fwrite(temp_naive, "temp_for_Sankey_HRPosHER2Neg_NaiveMets_12m.csv", sep=",")
+
+# ----------
+
+# Compare Naive at Mets vs Exp at Mets -------------
+Exp_vs_naive
+Exp_vs_naive %>% group_by(Drug_Exp) %>% count()
+
+#   Drug_Exp     n
+# 1        0 17149
+# 2        1 16145
+
+
+PONS_Demographics <- fread("Source/PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% select(patid, diagnosis)
+PONS_Demographics <- separate_rows(PONS_Demographics, diagnosis, sep = ",", convert=T)
+PONS_Demographics$diagnosis <- str_replace_all(PONS_Demographics$diagnosis, " Cancer", "")
+PONS_Demographics <- PONS_Demographics %>% inner_join(Exp_vs_naive %>% select(patient), by=c("patid"="patient"))
+
+PONS_Demographics <-  PONS_Demographics %>%
+  group_by(patid) %>% count() %>% filter(n>=2) %>% select(patid) %>%
+  left_join(PONS_Demographics) %>% filter(diagnosis != "Breast")
+
+data.frame(PONS_Demographics %>% inner_join(Exp_vs_naive, by=c("patid"="patient")) %>%
+  group_by(diagnosis, Drug_Exp) %>% count() %>% spread(key=Drug_Exp, value=n) %>%
+  mutate(`0`=ifelse(is.na(`0`),0,`0`)) %>% mutate(`1`=ifelse(is.na(`1`),0,`1`))) 
+  
+
+
+PONS_Demographics <- fread("Source/PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% select(patid, died, cancer_onset, death_date)
+
+PONS_Demographics$cancer_onset <- as.Date(PONS_Demographics$cancer_onset)
+PONS_Demographics$death_date  <- as.Date(PONS_Demographics$death_date)
+
+missingDeathDay <- ymd("2025-07-31")
+
+PONS_Demographics <- PONS_Demographics %>% mutate(death_date = case_when(is.na(death_date) ~ missingDeathDay, TRUE ~ death_date))
+
+PONS_Demographics <- PONS_Demographics %>% mutate(Survived = as.numeric(death_date)-as.numeric(cancer_onset)) %>%
+  mutate(Survived=ifelse(Survived>1825,1825,Survived))
+
+Exp_vs_naive %>% inner_join(PONS_Demographics, by=c("patient"="patid")) %>% group_by(Drug_Exp) %>% summarise(mean=mean(Survived))
+
+#   Drug_Exp  mean
+# 1        0 1689.
+# 2        1 1702.
+
+groups_to_compare <- groups_to_compare %>% inner_join(PONS_Demographics, by=c("patient"="patid"))
+
+Exp_vs_naive %>% inner_join(PONS_Demographics, by=c("patient"="patid")) %>%
+  mutate(status=ifelse(died=="Y",1,0)) %>%  
+  group_by(Drug_Exp, died) %>% count()
+
+#   Drug_Exp died      n
+# 1        0 N     15031
+# 2        0 Y      2118
+# 3        1 N     13897
+# 4        1 Y      2248
+
+
+
+CAN_Drug_Histories <- fread("Source/CAN Drug Histories.txt")
+CAN_Drug_Histories <- CAN_Drug_Histories %>% inner_join(Exp_vs_naive)
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+setDT(CAN_Drug_Histories)
+CAN_Drug_Histories <- unique(CAN_Drug_Histories[, .(patient, Treat, Drug_Exp)])
+CAN_Drug_Histories <- separate_rows(CAN_Drug_Histories, Treat, sep = ",", convert=T)
+CAN_Drug_Histories <- CAN_Drug_Histories %>% distinct() %>% filter(Treat!="-")
+PONS_Ingredients_JN_ChemoClass <- fread("Source/PONS_Ingredients_JN_ChemoClass.csv", colClasses = "character")
+PONS_Ingredients_JN_ChemoClass <- PONS_Ingredients_JN_ChemoClass %>% select(molecule, chemo_class)
+CAN_Drug_Histories <- CAN_Drug_Histories %>% left_join(PONS_Ingredients_JN_ChemoClass, by=c("Treat"="molecule")) %>% select(-Treat) %>% distinct()
+
+data.frame(CAN_Drug_Histories %>% group_by(Drug_Exp, chemo_class) %>% count() %>%
+  spread(key=Drug_Exp, value=n)) %>% mutate(X0=X0/17149, X1=X1/16145)
+
+
+PONS_Comorbidity_Inventories <- fread("Source/PONS Comorbidity Inventories.txt")
+PONS_Comorbidity_Inventories <- PONS_Comorbidity_Inventories %>% select(patid, diagnosis) %>% 
+  inner_join(Exp_vs_naive, by=c("patid"="patient"))
+
+ignore <- data.frame(PONS_Comorbidity_Inventories %>% group_by(Drug_Exp, diagnosis) %>% count() %>%
+  spread(key=Drug_Exp, value=n))
+
+ignore[is.na(ignore)] <- 0
+
+ignore %>% filter(X1>1000) %>% mutate(X0=round(X0/17149,2), X1=round(X1/16145, 2))
+
+# --------

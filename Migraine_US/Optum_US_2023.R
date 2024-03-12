@@ -10125,3 +10125,39 @@ RIMUS23_Migraine_Dxs %>% inner_join(Pats_10_rec) %>% anti_join(
   filter(date>"2022-06-16") %>% select(patid) %>% distinct()
 
 # -------------------
+
+# Destination stock of Outflows from Oral CGRP - Acute vs Preventive patients -----------
+All_pats <- fread("ModSev_Pats_V3.txt")
+All_pats <- All_pats %>% filter(group=="ModSev") %>% select(patient)
+
+flMIG <- fread("MIG_Flows_Aux._Long_v2.txt")
+
+flMIG <- flMIG %>% select(patient, weight, s1, s2, p2, p2, stops, starts)
+
+flMIG %>% inner_join(All_pats) %>% 
+  filter(p2>=49 ) %>% filter(s1=="O"&s2!="O") %>% group_by(s2) %>% summarise(n=sum(weight))
+
+
+RIMUS23_Doses <- read.table("RIMUS23 Doses.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Doses <- RIMUS23_Doses %>% filter(drug_class=="CGRP Oral")
+RIMUS23_Doses <- RIMUS23_Doses %>% filter(status != "G") %>% select(-c( status, code, NPI))
+RIMUS23_Doses <- RIMUS23_Doses %>% mutate(from_dt = as.Date(from_dt))  %>% filter(from_dt>="2022-06-16"&from_dt<="2023-05-15") %>% filter(days_sup  != "")
+RIMUS23_Doses <- RIMUS23_Doses %>% arrange(patid,  from_dt) 
+RIMUS23_Doses <- RIMUS23_Doses %>% group_by(patid) %>% mutate(elapsed=as.numeric(lead(from_dt)-from_dt))
+RIMUS23_Doses <- RIMUS23_Doses %>% drop_na()
+data.frame(RIMUS23_Doses) 
+RIMUS23_Doses <- RIMUS23_Doses %>% filter(elapsed <= 92)
+RIMUS23_Doses <- RIMUS23_Doses %>% mutate(rate=30*(as.numeric(qty)/elapsed))
+
+RIMUS23_Doses <- RIMUS23_Doses %>% mutate(rate=ifelse(elapsed==0, 0, rate)) %>%
+  group_by(generic, patid, weight) %>% summarise(mean=mean(rate)) %>%
+ mutate(mean=ifelse(mean>=13, "Prev", "Acute")) %>%
+  ungroup() 
+
+RIMUS23_Doses %>% select(patid, generic, mean) %>% mutate(patid=as.numeric(patid)) %>%
+  inner_join(flMIG  %>% mutate(patient=as.numeric(patient)) , by=c("patid"="patient")) %>%
+  filter(p2>=49 ) %>% filter(s1=="O"&s2!="O") %>% group_by(mean, s2) %>% summarise(n=sum(weight)) %>%
+  spread(key=mean, value=n)
+
+
+# -----------

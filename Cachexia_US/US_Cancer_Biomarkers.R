@@ -7181,3 +7181,234 @@ ignore[is.na(ignore)] <- 0
 ignore %>% filter(X1>1000) %>% mutate(X0=round(X0/17149,2), X1=round(X1/16145, 2))
 
 # --------
+
+# Inflows and Outflows to palbo over time - How many drugs of each class? ---------
+
+
+CancerDrug_Experienced <- fread("Source/CancerDrug_Experienced.txt",  integer64 = "character", stringsAsFactors = F)
+New_Primary_Cancer_Box <- fread("Source/New_Primary_Cancer_Box.txt", sep="\t")
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% inner_join(CancerDrug_Experienced)
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% filter(Primary_Cancer=="Breast Cancer") %>% select(patid)
+
+CAN_Drug_Histories <- fread("Source/CAN Drug Histories.txt")
+CAN_Drug_Histories <- setDT(CAN_Drug_Histories)[New_Primary_Cancer_Box[, .(patid)], on = c("patient"="patid"), nomatch = 0]
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+setDT(CAN_Drug_Histories)
+CAN_Drug_Histories <- unique(CAN_Drug_Histories[, .(patient, weight, Month, Treat)])
+CAN_Drug_Histories$Month <- parse_number(as.character(CAN_Drug_Histories$Month))
+
+PONS_Ingredients_JN_ChemoClass <- fread("Source/PONS_Ingredients_JN_ChemoClass.csv", colClasses = "character")
+
+# 
+# string_target <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[
+#   PONS_Ingredients_JN_ChemoClass$chemo_class=="Biologic"|PONS_Ingredients_JN_ChemoClass$chemo_class=="Immuno/Targeted"], collapse = "|"),")\\b")
+# 
+# 
+# string_OtherChemo <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[(PONS_Ingredients_JN_ChemoClass$drug_group=="GDF15"|
+#                                                                                      PONS_Ingredients_JN_ChemoClass$drug_group=="Anticancer" ) &
+#                                                                                PONS_Ingredients_JN_ChemoClass$chemo_class!="Immuno/Targeted"&
+#                                                                                PONS_Ingredients_JN_ChemoClass$chemo_class!="Biologic"&
+#                                                                                  PONS_Ingredients_JN_ChemoClass$chemo_class!="Hormonal Therapy"], collapse = "|"),")\\b")
+# 
+# string_Hormonal <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[
+#   PONS_Ingredients_JN_ChemoClass$chemo_class=="Hormonal Therapy"], collapse = "|"),")\\b")
+
+
+Palbociclib_pats <- CAN_Drug_Histories %>% filter(grepl("179", Treat)) %>% select(patient) %>% distinct()
+
+CAN_Drug_Histories <- Palbociclib_pats %>% inner_join(CAN_Drug_Histories) 
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% mutate(ON_Palbo=ifelse(grepl("179", Treat), 1,0))
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% filter(ON_Palbo==1) %>% group_by(patient) %>% filter(Month==min(Month)) %>%
+  select(patient, Month) %>% distinct() %>% rename("First_Palbo"="Month") %>%
+  left_join(CAN_Drug_Histories)
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% filter(Month<=First_Palbo)
+CAN_Drug_Histories <- CAN_Drug_Histories %>% arrange(patient, Month)
+
+PONS_Demographics <- fread("Source/PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% filter(!is.na(cancer_metastasis))  %>% select(patid, cancer_metastasis)
+setDT(PONS_Demographics)
+PONS_Demographics[, cancer_metastasis := as.character(cancer_metastasis)][, cancer_metastasis := substr(cancer_metastasis, 1L, 7L)]
+
+Months_lookup <- fread("Source/Months_lookup.txt",  integer64 = "character", stringsAsFactors = F)
+
+Months_lookup$Month <- as.character(
+  format(
+    as.Date(
+      paste0(Months_lookup$Month,"-1")
+      ), "%Y-%m"
+    )
+  )
+
+PONS_Demographics <- PONS_Demographics[Months_lookup, on = c("cancer_metastasis" = "Month")]
+PONS_Demographics <- PONS_Demographics %>% select(-cancer_metastasis) %>% rename("metastasis_onset"="Exact_Month")
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% inner_join(PONS_Demographics %>% rename("patient"="patid"))
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% mutate(Month=Month-metastasis_onset) %>% select(-metastasis_onset)
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% select(-First_Palbo)
+
+CAN_Drug_Histories %>% filter(ON_Palbo==1) %>%
+  group_by(Month) %>% summarise(starts=sum(weight)) %>%
+  ggplot(aes(Month, starts)) + geom_col() + xlim(0,36)
+
+
+working_df <- CAN_Drug_Histories %>% select(patient, Month, Treat) 
+working_df <- separate_rows(working_df, Treat, sep = ",", convert=T)
+working_df <- working_df %>% mutate(Exp=1) %>% spread(key=Treat, value=Exp)
+working_df[is.na(working_df)] <- 0
+working_df <- working_df %>% select(-`-`)
+range(working_df$Month)
+
+working_df_duplicate <- working_df[, 3:118]
+
+names(working_df_duplicate) <- paste0("CUM_", names(working_df_duplicate))
+
+working_df_duplicate[] <- 0
+
+working_df <- cbind(working_df, working_df_duplicate)
+
+cumulative_cols <-  working_df %>%
+  group_by(patient) %>%
+  mutate(across(3:118, cumsum)) %>%
+  select(patient, 3:118) %>% ungroup() %>% select(-patient)
+
+cumulative_cols <- ifelse(cumulative_cols > 0, 1, 0)
+
+working_df[, 119:234] <- cumulative_cols
+
+
+data.frame(
+  working_df %>% filter(`131`==1) %>% select(patient) %>% distinct() %>%
+  left_join(working_df)  %>% select(patient, Month, `131`, `CUM_131`)
+  )
+
+working_df <- working_df[, c(1, 2, 119:234)]
+
+data.frame(names(working_df)[3:118]) %>%
+  mutate(`names.working_df..3.118.`=parse_number(names.working_df..3.118.)) %>%
+  left_join(
+    PONS_Ingredients_JN_ChemoClass %>% select(molecule, chemo_class) %>% distinct() %>% mutate(molecule=as.numeric(molecule))
+  , by=c("names.working_df..3.118."="molecule")
+  ) %>% arrange(chemo_class)  
+
+working_df$Alkylating <- working_df$CUM_133 + working_df$CUM_314
+
+working_df$Androgen <- working_df$CUM_326 + working_df$CUM_332
+
+working_df$Antidepressant <- working_df$CUM_339 + working_df$CUM_340 + working_df$CUM_341 + working_df$CUM_342
+
+working_df$Antiemetic <- working_df$CUM_1 + working_df$CUM_10 + working_df$CUM_11 + working_df$CUM_12 +
+   working_df$CUM_14  + working_df$CUM_15 + working_df$CUM_16 + working_df$CUM_18 + working_df$CUM_19 +
+   working_df$CUM_5 + working_df$CUM_6 + working_df$CUM_7 + working_df$CUM_9
+
+working_df$Antimetabolites <- working_df$CUM_124 + working_df$CUM_128 + working_df$CUM_160 + working_df$CUM_64 +
+   working_df$CUM_81  
+
+working_df$Antimicrotubule <- working_df$CUM_105 + working_df$CUM_115 + working_df$CUM_143 + working_df$CUM_177 +
+   working_df$CUM_241 
+
+working_df$Antipsychotic <- working_df$CUM_343 + working_df$CUM_344 + working_df$CUM_346 + working_df$CUM_347 +
+   working_df$CUM_349 + working_df$CUM_350 + working_df$CUM_351
+
+working_df$Appetite <- working_df$CUM_319 + working_df$CUM_321 
+
+working_df$Biologic <- working_df$CUM_246 + working_df$CUM_255  + working_df$CUM_265  + working_df$CUM_293 +
+    working_df$CUM_297  + working_df$CUM_298  + working_df$CUM_308
+
+working_df$Cannabinoid <- working_df$CUM_322 + working_df$CUM_323  
+
+working_df$Chemoprotective <- working_df$CUM_22 + working_df$CUM_23  + working_df$CUM_24  + working_df$CUM_28 +
+   working_df$CUM_30 + working_df$CUM_32 + working_df$CUM_34 + working_df$CUM_37 + working_df$CUM_38 +  
+   working_df$CUM_39 + working_df$CUM_40 + working_df$CUM_42 
+
+working_df$Corticosteroid <- working_df$CUM_335 + working_df$CUM_336  + working_df$CUM_337  + working_df$CUM_338
+
+working_df$Growth  <- working_df$CUM_334 
+
+working_df$Hormonal <- working_df$CUM_103 + working_df$CUM_112  + working_df$CUM_120  + working_df$CUM_126 +
+  working_df$CUM_131 + working_df$CUM_145 + working_df$CUM_151 + working_df$CUM_153 + working_df$CUM_173 + 
+  working_df$CUM_212 + working_df$CUM_226 + working_df$CUM_231 + working_df$CUM_305 + working_df$CUM_58 +  
+  working_df$CUM_70 + working_df$CUM_79 
+
+working_df$Hospital <- working_df$CUM_353 + working_df$CUM_352
+
+working_df$Immuno <- working_df$CUM_119 + working_df$CUM_138  + working_df$CUM_139 + working_df$CUM_147 +
+   working_df$CUM_168  + working_df$CUM_174 + working_df$CUM_179 + working_df$CUM_197 + working_df$CUM_216 + 
+   working_df$CUM_229 + working_df$CUM_46 + working_df$CUM_49 + working_df$CUM_54 + working_df$CUM_99
+
+working_df$Nutrition <- working_df$CUM_317
+
+working_df$Other <- working_df$CUM_152 + working_df$CUM_245 + working_df$CUM_60
+
+working_df$PD1 <- working_df$CUM_251 + working_df$CUM_292 
+
+working_df$Platinum <- working_df$CUM_312 + working_df$CUM_313
+
+working_df$Progestin <- working_df$CUM_324 + working_df$CUM_325
+
+working_df$Radio <- working_df$CUM_309 + working_df$CUM_310 + working_df$CUM_311
+
+working_df$Surgery <- working_df$CUM_354 
+
+working_df$Topoisomerase <- working_df$CUM_106 + working_df$CUM_113 + working_df$CUM_118  + working_df$CUM_225
+
+
+
+working_df <- working_df[, c(1, 2, 119:142)]
+
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% left_join(working_df)
+
+
+temp <- data.frame(
+  data.frame(CAN_Drug_Histories %>% filter(ON_Palbo==1) %>%
+  group_by(Month) %>% summarise(starts=sum(weight))) %>%
+  left_join(
+  CAN_Drug_Histories %>%
+  filter(ON_Palbo == 1) %>%
+  group_by(Month) %>%
+  summarise(across(Alkylating:Topoisomerase, \(x) mean(x, na.rm = TRUE)))
+  )
+)
+
+fwrite(temp, "temp.csv")
+
+
+#  --------------------------------
+# Number of metastasis vs metastasis site - All Breast Mets vs palbociclib --------
+New_Primary_Cancer_Box <- fread("Source/New_Primary_Cancer_Box.txt", sep="\t")
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% filter(Primary_Cancer=="Breast Cancer") %>% select(patid)
+
+
+
+PONS_Demographics <- fread("Source/PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% select(patid, weight, diagnosis, cancer_metastasis) %>% inner_join(New_Primary_Cancer_Box)
+PONS_Demographics <- PONS_Demographics %>% filter(!is.na(cancer_metastasis))
+PONS_Demographics <- separate_rows(PONS_Demographics, diagnosis, sep = ",", convert=T)
+PONS_Demographics$diagnosis <- str_replace_all(PONS_Demographics$diagnosis, " Cancer", "")
+PONS_Demographics$diagnosis <- str_replace_all(PONS_Demographics$diagnosis, " ", "")
+PONS_Demographics <- PONS_Demographics %>% select(-cancer_metastasis)
+
+PONS_Demographics <- PONS_Demographics %>% group_by(patid) %>% count() %>%
+  left_join(PONS_Demographics)
+
+data.frame(PONS_Demographics %>% mutate(n=n-1) %>%
+  mutate(n=ifelse(n>=8,8,n)) %>% group_by(diagnosis, n) %>% summarise(tot=sum(weight)) %>%
+  spread(key=n, value=tot))
+
+CAN_Drug_Histories <- fread("Source/CAN Drug Histories.txt")
+CAN_Drug_Histories <- CAN_Drug_Histories %>% inner_join(PONS_Demographics %>% select(patid), by=c("patient"="patid"))
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+CAN_Drug_Histories <- CAN_Drug_Histories %>% select(patient, Treat) %>% distinct() %>% filter(Treat!="-")
+Palbo_pats <- CAN_Drug_Histories %>% filter(grepl("179", Treat)) %>% select(patient) %>% distinct() %>% rename("patid"="patient")
+
+data.frame(PONS_Demographics %>% inner_join(Palbo_pats) %>% mutate(n=n-1) %>%
+  mutate(n=ifelse(n>=8,8,n)) %>% group_by(diagnosis, n) %>% summarise(tot=sum(weight)) %>%
+  spread(key=n, value=tot))
+
+
+# --------

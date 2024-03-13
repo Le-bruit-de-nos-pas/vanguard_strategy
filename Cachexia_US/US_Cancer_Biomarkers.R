@@ -7412,3 +7412,93 @@ data.frame(PONS_Demographics %>% inner_join(Palbo_pats) %>% mutate(n=n-1) %>%
 
 
 # --------
+# Procedures ----------------------------
+
+New_Primary_Cancer_Box <- fread("Source/New_Primary_Cancer_Box.txt", sep="\t")
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% filter(Primary_Cancer=="Breast Cancer") %>% select(patid)
+
+PONS_Demographics <- fread("Source/PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% filter(!is.na(cancer_metastasis))  %>% select(patid, cancer_metastasis)
+setDT(PONS_Demographics)
+PONS_Demographics[, cancer_metastasis := as.character(cancer_metastasis)][, cancer_metastasis := substr(cancer_metastasis, 1L, 7L)]
+
+Months_lookup <- fread("Source/Months_lookup.txt",  integer64 = "character", stringsAsFactors = F)
+
+Months_lookup$Month <- as.character(
+  format(
+    as.Date(
+      paste0(Months_lookup$Month,"-1")
+      ), "%Y-%m"
+    )
+  )
+
+PONS_Demographics <- PONS_Demographics[Months_lookup, on = c("cancer_metastasis" = "Month")]
+PONS_Demographics <- PONS_Demographics %>% select(-cancer_metastasis) %>% rename("metastasis_onset"="Exact_Month")
+
+PONS_Demographics <- New_Primary_Cancer_Box %>% inner_join(PONS_Demographics) 
+
+length(unique(PONS_Demographics$patid)) # 49333
+
+Breast_Cancer_Pts_Procd_events <- fread("Source/Breast_Cancer_Pts_Procd_events.txt", sep=",")
+
+library("readxl")
+Procedures_lookup_table_flags <- read_excel("Source/Procedures_lookup_table_flags.xlsx")
+Procedures_lookup_table_flags <- Procedures_lookup_table_flags %>% select(proc_cd, category_dtl_code_desc, proc_desc)
+
+Breast_Cancer_Pts_Procd_events <- Procedures_lookup_table_flags %>% 
+  inner_join(Breast_Cancer_Pts_Procd_events) %>% inner_join(PONS_Demographics)
+
+Breast_Cancer_Pts_Procd_events <- Breast_Cancer_Pts_Procd_events %>% select(4,6,5,1,2,3)
+
+length(unique(Breast_Cancer_Pts_Procd_events$patid)) # 48723
+
+category_dtl_code_desc_nums <- data.frame(Breast_Cancer_Pts_Procd_events %>% select(patid, category_dtl_code_desc) %>% distinct() %>%
+  group_by(category_dtl_code_desc) %>% count() %>% arrange(-n) %>% mutate(perc=round(n/49333,2)))
+
+proc_desc_nums <- data.frame(Breast_Cancer_Pts_Procd_events %>% select(patid, proc_desc  ) %>% distinct() %>%
+  group_by(proc_desc  ) %>% count() %>% arrange(-n) %>% mutate(perc=round(n/49333,2)))
+
+
+
+CAN_Drug_Histories <- fread("Source/CAN Drug Histories.txt")
+CAN_Drug_Histories <- CAN_Drug_Histories %>% inner_join(PONS_Demographics %>% select(patid), by=c("patient"="patid"))
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+CAN_Drug_Histories <- CAN_Drug_Histories %>% select(patient, Treat) %>% distinct() %>% filter(Treat!="-")
+Palbo_pats <- CAN_Drug_Histories %>% filter(grepl("179", Treat)) %>% select(patient) %>% distinct() %>% rename("patid"="patient")
+length(unique(Palbo_pats$patid)) # 3151
+
+data.frame(Breast_Cancer_Pts_Procd_events %>% inner_join(Palbo_pats) %>% select(patid, category_dtl_code_desc) %>% distinct() %>%
+  group_by(category_dtl_code_desc) %>% count() %>% arrange(-n) %>% mutate(perc=round(n/3151,2)) %>% rename("perc_palbo"="perc") %>% select(-n)) %>%
+full_join(
+  data.frame(Breast_Cancer_Pts_Procd_events  %>% select(patid, category_dtl_code_desc) %>% distinct() %>%
+  group_by(category_dtl_code_desc) %>% count() %>% arrange(-n) %>% mutate(perc=round(n/49333,2)) %>% rename("perc_all"="perc") %>% select(-n))
+)
+
+
+#           category_dtl_code_desc perc_palbo perc_all
+# 1                   CT SCAN CHEST       0.90     0.57
+# 2                 CT SCAN ABDOMEN       0.88     0.60
+# 3     OTHER DIAGNOSTIC ULTRASOUND       0.83     0.83
+# 4      MAGNETIC RESONANCE IMAGING       0.78     0.68
+# 5   NUCLEAR MEDICINE IMAGING BONE       0.63     0.25
+# 6  DIAGNOSTIC ULTRASOUND OF HEART       0.61     0.60
+# 7                     MAMMOGRAPHY       0.61     0.79
+# 8                    NOT ASSIGNED       0.59     0.57
+# 9                   OTHER CT SCAN       0.57     0.35
+# 10          CT SCAN HEAD AND NECK       0.45     0.36
+# 11     DIAG ULTRASOUND OF ABDOMEN       0.39     0.36
+# 12 BREAST BIOPSY AND OTHER DIAGNO       0.33     0.45
+# 13         COLONOSCOPY AND BIOPSY       0.28     0.44
+# 14   DIAG ULTRASOUND OF HEAD/NECK       0.25     0.32
+# 15                BIOPSY OF LIVER       0.15     0.04
+# 16             BONE MARROW BIOPSY       0.05     0.03
+# 17  NUCLEAR MED IMAGING PULMONARY       0.04     0.02
+# 18          LAPAROSCOPY (GI ONLY)       0.01     0.01
+# 19 OTHER NUCLEAR MEDICINE IMAGING       0.01     0.01
+# 20    DIAG ULTRASOUND OF GI TRACT       0.00     0.00
+# 21  DIAG ULTRASOUND URINARY TRACT       0.00     0.00
+# 22         EXPLORATORY LAPAROTOMY       0.00     0.00
+
+
+
+# ---------------

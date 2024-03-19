@@ -9967,7 +9967,7 @@ RIMUS23_Drug_Histories <- read.table("RIMUS23_Drug_Histories_NEW_short_2.txt", h
 RIMUS23_Drug_Histories <- All_pats %>% left_join(RIMUS23_Drug_Histories) 
 RIMUS23_Drug_Histories <- gather(RIMUS23_Drug_Histories, Month, Treat, X1:X60, factor_key=TRUE)
 RIMUS23_Drug_Histories$Month <- parse_number(as.character(RIMUS23_Drug_Histories$Month))
-RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% filter(Month>=13) 
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% filter(Month>=49) 
 RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% select(-c(Month))
 RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% filter(Treat != "-")  %>% distinct()
 RIMUS23_Drug_Histories <- separate_rows(RIMUS23_Drug_Histories, Treat, sep = ",", convert=T )
@@ -9980,7 +9980,18 @@ Experience <- RIMUS23_Drug_Histories
 
 Experience <- Experience %>% mutate(group=ifelse(`CGRP Injectable`==1|Preventive==1, "Prev", "Acute"))
 
-fwrite(Experience, "Experience_Acute_vs_Prev_last48m.txt")
+fwrite(Experience, "Experience_Acute_vs_Prev_last12m.txt")
+Experience <- fread("Experience_Acute_vs_Prev_last12m.txt")
+
+Experience %>% filter(Triptans==0&Symptomatic==0&Preventive==0&`CGRP Injectable`==0&`CGRP Oral`==0)
+
+
+Experience %>% group_by(group) %>% count()
+
+Experience <- fread("Experience_Acute_vs_Prev_last48m.txt")
+
+
+
 
 # ------
 # First Specialty vs Subsequent ones  Acute vs Prev pats ------------
@@ -10161,3 +10172,199 @@ RIMUS23_Doses %>% select(patid, generic, mean) %>% mutate(patid=as.numeric(patid
 
 
 # -----------
+
+# % Triptan Usage per comorbidity ----------------------
+RIMUS23_Comorbidities_Extended_Dxs <- read.table("RIMUS23 Comorbidities Extended Dxs.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+names(RIMUS23_Comorbidities_Extended_Dxs)[1] <- "patient"
+RIMUS23_Comorbidities_Extended_Dxs <- RIMUS23_Comorbidities_Extended_Dxs %>% select(patient, ICD10_diag) %>% distinct()
+
+
+
+CAD_pats <- RIMUS23_Comorbidities_Extended_Dxs %>% filter(grepl("I25", ICD10_diag)) %>% select(patient) %>% distinct()
+CAD_pats$CAD <- "CAD"
+MI_pats <- RIMUS23_Comorbidities_Extended_Dxs %>% filter(grepl("I20", ICD10_diag)|
+                                                           grepl("I21", ICD10_diag)|
+                                                           grepl("I22", ICD10_diag)|
+                                                           grepl("I23", ICD10_diag)|
+                                                           grepl("I24", ICD10_diag)) %>% select(patient) %>% distinct()
+MI_pats$MI <- "MI"
+HTN_pats <- RIMUS23_Comorbidities_Extended_Dxs %>% filter(grepl("I10", ICD10_diag)|
+                                                           grepl("I11", ICD10_diag)|
+                                                           grepl("I12", ICD10_diag)|
+                                                           grepl("I13", ICD10_diag)) %>% select(patient) %>% distinct()
+HTN_pats$HTN <- "HTN"
+Stroke_pats <- RIMUS23_Comorbidities_Extended_Dxs %>% filter(grepl("I63", ICD10_diag)|
+                                                           grepl("I65", ICD10_diag)|
+                                                           grepl("I66", ICD10_diag)|
+                                                           grepl("I67", ICD10_diag)|
+                                                           grepl("I68", ICD10_diag)|
+                                                           grepl("I69", ICD10_diag)) %>% select(patient) %>% distinct()
+Stroke_pats$STROKE <- "STROKE"
+
+RIMUS23_Demographics <- read.table("RIMUS23 Demographics.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Demographics <- RIMUS23_Demographics %>% select(patid, weight, AGE) %>% rename("patient"="patid")  
+# RIMUS23_Demographics <- RIMUS23_Demographics %>% mutate(AGE=ifelse(AGE<30, "18-30",
+#                                                                    ifelse(AGE<50, "30-50",
+#                                                                           ifelse(AGE<65,"50-65", ">65"))))
+# 
+
+
+
+Drugs_lookup <- fread("Drugs_lookup.csv")
+string_Triptan <- paste0("\\b(",paste0(Drugs_lookup$drug_id[Drugs_lookup$drug_class == "Triptan"], collapse = "|"),")\\b")
+
+
+RIMUS23_Drug_Histories <- read.table("RIMUS23_Drug_Histories_NEW_short_2.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Drug_Histories <- gather(RIMUS23_Drug_Histories, Month, Treat, `X1`:`X60`, factor_key=TRUE)
+RIMUS23_Drug_Histories$Month <- parse_number(as.character(RIMUS23_Drug_Histories$Month))
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% filter(Treat != "-")
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% select(-Month) %>% distinct()
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% filter(grepl(string_Triptan, Treat)) %>% select(patient) %>% distinct()
+RIMUS23_Drug_Histories$TRIPTAN <- "TRIPTAN"
+
+length(unique(RIMUS23_Demographics$patient)) # 263848
+RIMUS23_Demographics$ALL <- "ALL"
+
+RIMUS23_Demographics <- RIMUS23_Demographics %>% left_join(CAD_pats) %>% left_join(MI_pats) %>% left_join(Stroke_pats) %>% 
+  left_join(HTN_pats) %>%  left_join(RIMUS23_Drug_Histories) 
+
+
+
+RIMUS23_Demographics %>% group_by(CAD) %>% summarise(n=sum(as.numeric(weight))) # 0.103605 
+RIMUS23_Demographics %>% group_by(HTN) %>% summarise(n=sum(as.numeric(weight))) # 0.4117974 
+RIMUS23_Demographics %>% group_by(MI) %>% summarise(n=sum(as.numeric(weight))) # 0.05831457 
+RIMUS23_Demographics %>% group_by(STROKE) %>% summarise(n=sum(as.numeric(weight))) # 0.1124657 
+
+
+RIMUS23_Demographics %>% group_by(ALL, TRIPTAN) %>% summarise(n=sum(as.numeric(weight))) # 0.3910763 overall
+RIMUS23_Demographics %>% group_by(CAD, TRIPTAN) %>% summarise(n=sum(as.numeric(weight))) # 0.2568381 CAD 0.4065916 no-CAD
+RIMUS23_Demographics %>% group_by(HTN, TRIPTAN) %>% summarise(n=sum(as.numeric(weight))) # 0.3422072 HTN 0.4252893 no-HTN
+RIMUS23_Demographics %>% group_by(MI, TRIPTAN) %>% summarise(n=sum(as.numeric(weight))) # 0.2757952 MI 0.3982152 no-MI
+RIMUS23_Demographics %>% group_by(STROKE, TRIPTAN) %>% summarise(n=sum(as.numeric(weight))) # 0.2702569 STROKE 0.4063862 no-STROKE
+
+RIMUS23_Demographics %>% group_by(AGE, TRIPTAN) %>% summarise(n=sum(as.numeric(weight))) 
+# > 1635579/(1635579+2335598)
+# [1] 0.4118625
+# > 3512177/(3512177+4606653)
+# [1] 0.4325964
+# > 2503746/(2503746+3648119)
+# [1] 0.4069898
+# > 1067772/(1067772+2985935)
+# [1] 0.2634063
+
+RIMUS23_Demographics %>% group_by(AGE, HTN) %>% summarise(n=sum(as.numeric(weight))) %>%
+  spread(key=HTN, value=n) %>% mutate(perc=HTN/(HTN+`<NA>`)) %>%
+  mutate(AGE=as.numeric(AGE)) %>%
+  ggplot(aes(AGE, perc*100)) +
+  geom_point(colour="firebrick", shape = 1, size=2, stroke=2) +
+  theme_minimal() +
+  ylab("HTN Prevalence \n") + xlab("\n Age (years)") +
+  ylim(0,100)
+
+# --------------
+# Model ICD10s with Triptans vs no Triptans ------------
+Drugs_lookup <- fread("Drugs_lookup.csv")
+string_Triptan <- paste0("\\b(",paste0(Drugs_lookup$drug_id[Drugs_lookup$drug_class == "Triptan"], collapse = "|"),")\\b")
+
+RIMUS23_Drug_Histories <- read.table("RIMUS23_Drug_Histories_NEW_short_2.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Drug_Histories <- gather(RIMUS23_Drug_Histories, Month, Treat, `X1`:`X60`, factor_key=TRUE)
+RIMUS23_Drug_Histories$Month <- parse_number(as.character(RIMUS23_Drug_Histories$Month))
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% filter(Treat != "-")
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% select(-Month) %>% distinct()
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% filter(grepl(string_Triptan, Treat)) %>% select(patient) %>% distinct()
+RIMUS23_Drug_Histories$TRIPTAN <- 1
+
+RIMUS23_Comorbidities_Extended_Dxs <- read.table("RIMUS23 Comorbidities Extended Dxs.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+names(RIMUS23_Comorbidities_Extended_Dxs)[1] <- "patient"
+RIMUS23_Comorbidities_Extended_Dxs <- RIMUS23_Comorbidities_Extended_Dxs %>% select(patient, ICD10_diag) %>% distinct()
+RIMUS23_Comorbidities_Extended_Dxs <- RIMUS23_Comorbidities_Extended_Dxs  %>% mutate(ICD10_diag=str_sub(as.character(ICD10_diag), 1L, 3L)) %>% distinct()
+
+sort(unique(RIMUS23_Comorbidities_Extended_Dxs$ICD10_diag))
+
+RIMUS23_Comorbidities_Extended_Dxs <- RIMUS23_Comorbidities_Extended_Dxs %>% mutate(exp=1) %>% spread(key=ICD10_diag, value=exp)
+
+RIMUS23_Comorbidities_Extended_Dxs <- RIMUS23_Comorbidities_Extended_Dxs %>% left_join(RIMUS23_Drug_Histories)
+
+RIMUS23_Comorbidities_Extended_Dxs[is.na(RIMUS23_Comorbidities_Extended_Dxs)] <- 0
+
+dim(RIMUS23_Comorbidities_Extended_Dxs)
+
+RIMUS23_Demographics <- read.table("RIMUS23 Demographics.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Demographics <- RIMUS23_Demographics %>% select(patid, GENDER, AGE) %>% rename("patient"="patid")  
+RIMUS23_Comorbidities_Extended_Dxs <- RIMUS23_Comorbidities_Extended_Dxs %>% left_join(RIMUS23_Demographics)
+
+RIMUS23_Comorbidities_Extended_Dxs <- RIMUS23_Comorbidities_Extended_Dxs %>% select(-patient)
+
+RIMUS23_Comorbidities_Extended_Dxs <- RIMUS23_Comorbidities_Extended_Dxs %>% mutate(GENDER=ifelse(GENDER=="M",1,0)) 
+
+RIMUS23_Comorbidities_Extended_Dxs
+
+library(randomForest)
+RIMUS23_Comorbidities_Extended_Dxs <- RIMUS23_Comorbidities_Extended_Dxs %>% mutate(AGE=as.numeric(AGE))
+RIMUS23_Comorbidities_Extended_Dxs <- RIMUS23_Comorbidities_Extended_Dxs %>% mutate(TRIPTAN=as.factor(TRIPTAN))
+RIMUS23_Comorbidities_Extended_Dxs <- RIMUS23_Comorbidities_Extended_Dxs %>% sele-AGE
+train <- RIMUS23_Comorbidities_Extended_Dxs %>% group_by(TRIPTAN) %>% sample_n(5000) %>% ungroup()
+
+modelAll_1_randomForest <- randomForest(TRIPTAN ~ ., data = train)
+
+summary(modelAll_1_randomForest)
+
+Importance_df <- data.frame(modelAll_1_randomForest$importance) %>% arrange(-MeanDecreaseGini)
+Importance_df$VAR <- rownames(Importance_df)
+names(train)
+
+summary_means <- train %>%
+  group_by(TRIPTAN) %>%
+  summarize(across(everything(), mean))
+
+summary_means <- summary_means %>%
+  pivot_longer(cols = -TRIPTAN, names_to = "VAR", values_to = "Mean") %>%
+  spread(key=TRIPTAN, value=Mean) %>% mutate(Pos=ifelse(`1`>`0`,1,0))
+
+Importance_df <- Importance_df %>% left_join(summary_means)
+
+Importance_df <- Importance_df %>% mutate(MeanDecreaseGini=ifelse(Pos==1, MeanDecreaseGini, -MeanDecreaseGini))
+data.frame(Importance_df)
+
+Importance_df)
+
+RIMUS23_Comorbidities_Extended_Dxs <- RIMUS23_Comorbidities_Extended_Dxs %>% select(-c(GENDER, AGE))
+
+PCA.pr_short <- prcomp(RIMUS23_Comorbidities_Extended_Dxs[, -324], center = TRUE, scale = TRUE)
+summary(PCA.pr_short)
+
+PCA.pr_short$rotation[,1:10]
+
+my.var = varimax(PCA.pr_short$rotation)
+myvarshort <-my.var$loadings[,1:10]
+myvarshort <- as.data.frame(myvarshort)
+
+x_y_plot_comorb_prev_triptan <- fread("x_y_plot_comorb_prev_triptan.csv")
+
+
+library(ggrepel)
+library(hrbrthemes)
+library(viridis)
+
+ggplot(x_y_plot_comorb_prev_triptan[x_y_plot_comorb_prev_triptan$label!="All_Migraine"], aes(x=prev, y=triptan, size = 100*triptan, fill=label, colour=label)) +
+  geom_point(alpha=0.7, size=10)+
+  geom_text_repel(aes(label = label), 
+                  colour = "black", 
+                  size = 3,
+                  hjust = -1,
+                  vjust=0.1,
+                  fontface=2)+ 
+  scale_size(range = c(1, 2))+
+  theme(legend.position = "none",
+        panel.background = element_blank(),
+        panel.grid = element_blank(),
+        axis.ticks = element_blank(),
+        text = element_text(size = 14))+
+  ggsci::scale_color_nejm() +
+  ggsci::scale_fill_nejm() +
+  xlab("\nPrevalence Among Migraine")+
+  ylab("Prevalence used Triptans\n")+
+  ylim(0.25,0.5)+ xlim(0,0.5)
+
+
+# --------------

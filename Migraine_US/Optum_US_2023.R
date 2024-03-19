@@ -10234,6 +10234,8 @@ RIMUS23_Demographics %>% group_by(CAD) %>% summarise(n=sum(as.numeric(weight))) 
 RIMUS23_Demographics %>% group_by(HTN) %>% summarise(n=sum(as.numeric(weight))) # 0.4117974 
 RIMUS23_Demographics %>% group_by(MI) %>% summarise(n=sum(as.numeric(weight))) # 0.05831457 
 RIMUS23_Demographics %>% group_by(STROKE) %>% summarise(n=sum(as.numeric(weight))) # 0.1124657 
+RIMUS23_Demographics %>% mutate(ANY=ifelse(CAD=="CAD"|STROKE=="STROKE"|MI=="MI", "ANY", NA)) %>%
+  group_by(ANY) %>% summarise(n=sum(as.numeric(weight))) # 0.1904962 
 
 
 RIMUS23_Demographics %>% group_by(ALL, TRIPTAN) %>% summarise(n=sum(as.numeric(weight))) # 0.3910763 overall
@@ -10241,6 +10243,8 @@ RIMUS23_Demographics %>% group_by(CAD, TRIPTAN) %>% summarise(n=sum(as.numeric(w
 RIMUS23_Demographics %>% group_by(HTN, TRIPTAN) %>% summarise(n=sum(as.numeric(weight))) # 0.3422072 HTN 0.4252893 no-HTN
 RIMUS23_Demographics %>% group_by(MI, TRIPTAN) %>% summarise(n=sum(as.numeric(weight))) # 0.2757952 MI 0.3982152 no-MI
 RIMUS23_Demographics %>% group_by(STROKE, TRIPTAN) %>% summarise(n=sum(as.numeric(weight))) # 0.2702569 STROKE 0.4063862 no-STROKE
+RIMUS23_Demographics %>% mutate(ANY=ifelse(CAD=="CAD"|STROKE=="STROKE"|MI=="MI", "ANY", NA)) %>%
+  group_by(ANY,TRIPTAN) %>% summarise(n=sum(as.numeric(weight))) # 0.1904962 
 
 RIMUS23_Demographics %>% group_by(AGE, TRIPTAN) %>% summarise(n=sum(as.numeric(weight))) 
 # > 1635579/(1635579+2335598)
@@ -10260,6 +10264,44 @@ RIMUS23_Demographics %>% group_by(AGE, HTN) %>% summarise(n=sum(as.numeric(weigh
   theme_minimal() +
   ylab("HTN Prevalence \n") + xlab("\n Age (years)") +
   ylim(0,100)
+
+
+RIMUS23_Demographics %>% group_by(AGE, MI) %>% summarise(n=sum(as.numeric(weight))) %>%
+  mutate(AGE=as.numeric(AGE)) %>%
+  ggplot(aes(AGE, n, colour=MI, fill=MI)) +
+  geom_point( shape = 1, size=2, stroke=2) +
+  theme_minimal() +
+  ylab("MI Population \n") + xlab("\n Age (years)") + ylim(0,500000)
+
+
+
+
+
+
+
+
+RIMUS23_Demographics %>% mutate(ANY=ifelse(CAD=="CAD"|STROKE=="STROKE"|MI=="MI", "ANY", NA)) %>%
+  group_by(AGE, ANY) %>% summarise(n=sum(as.numeric(weight))) %>%
+  spread(key=ANY, value=n) %>% mutate(perc=ANY/(ANY+`<NA>`)) %>%
+  mutate(AGE=as.numeric(AGE)) %>%
+  ggplot(aes(AGE, perc*100)) +
+  geom_point(colour="firebrick", shape = 1, size=2, stroke=2) +
+  theme_minimal() +
+  ylab("CAD|MI|STROKE Prevalence \n") + xlab("\n Age (years)") +
+  ylim(0,100)
+
+
+
+RIMUS23_Demographics %>% mutate(ANY=ifelse(CAD=="CAD"|STROKE=="STROKE"|MI=="MI", "ANY", NA)) %>%
+  group_by(AGE, ANY) %>% summarise(n=sum(as.numeric(weight))) %>%
+  mutate(AGE=as.numeric(AGE)) %>%
+  ggplot(aes(AGE, n, colour=ANY, fill=ANY)) +
+  geom_point( shape = 1, size=2, stroke=2) +
+  theme_minimal() +
+  ylab("MI|CAD|STROKE Population \n") + xlab("\n Age (years)") + ylim(0,500000)
+
+
+
 
 # --------------
 # Model ICD10s with Triptans vs no Triptans ------------
@@ -10346,7 +10388,7 @@ library(ggrepel)
 library(hrbrthemes)
 library(viridis)
 
-ggplot(x_y_plot_comorb_prev_triptan[x_y_plot_comorb_prev_triptan$label!="All_Migraine"], aes(x=prev, y=triptan, size = 100*triptan, fill=label, colour=label)) +
+ggplot(x_y_plot_comorb_prev_triptan, aes(x=prev, y=triptan, size = 100*triptan, fill=label, colour=label)) +
   geom_point(alpha=0.7, size=10)+
   geom_text_repel(aes(label = label), 
                   colour = "black", 
@@ -10364,7 +10406,7 @@ ggplot(x_y_plot_comorb_prev_triptan[x_y_plot_comorb_prev_triptan$label!="All_Mig
   ggsci::scale_fill_nejm() +
   xlab("\nPrevalence Among Migraine")+
   ylab("Prevalence used Triptans\n")+
-  ylim(0.25,0.5)+ xlim(0,0.5)
+  ylim(0.25,0.5)+ xlim(0,1.2)
 
 
 # --------------

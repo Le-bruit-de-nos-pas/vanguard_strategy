@@ -5,6 +5,8 @@ library(hacksaw)
 library(splitstackshape)
 library(spatstat)
 library(lubridate)
+library("readxl")
+
 options(scipen = 999)
 
 # % With Oral/Inj CGRP or Nasal/triptan Spray -----------------------
@@ -102,4 +104,55 @@ ZAVUS24_Demographics %>% select(patid, fst_enr_dd) %>%
   xlab("\n Number of Visibility Months \n From Enrolment to January 2024") +
   ylab("Cumulative patient share \n")
 
+# -----------
+# Scripts per specialty last 12 months -----------------------
+
+ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
+ZAVUS24_Doses <- ZAVUS24_Doses %>% mutate(from_dt=as.Date(from_dt)) %>%
+  filter(from_dt>="2023-01-16")
+ZAVUS24_Doses <- ZAVUS24_Doses %>% filter(generic=="Zavegepant") %>% select(patid, weight, provcat)
+PROVCAT <- read_excel("Source/CDM_Data_Reference_Lookup_Tables_V81.xlsx", sheet="PROVCAT", skip = 5)
+PROVCAT <- PROVCAT %>% select(PROVCAT, DESCRIPTION)  %>% mutate(PROVCAT=as.numeric(PROVCAT))
+
+ZAVUS24_Doses %>% select(provcat) %>% distinct() %>%
+  inner_join(PROVCAT %>% select(PROVCAT) %>% distinct(), by=c("provcat"="PROVCAT"))
+
+ZAVUS24_Doses <- PROVCAT %>% inner_join(ZAVUS24_Doses, by=c("PROVCAT"="provcat"))
+
+data.frame(ZAVUS24_Doses %>% select(DESCRIPTION) %>% distinct())
+
+ZAVUS24_Doses %>% mutate(DESCRIPTION=ifelse(DESCRIPTION %in% c("UNKNOWN PROVIDER TYPE", "URGENT CARE CENTER","HOSPICE AND PALLIATIVE MEDICINE"), "Remove",
+                                            ifelse(DESCRIPTION %in% c("AUDIOLOGIST","PEDIATRIC SPECIALIST","ANESTHESIOLOGIST","PAIN MANAGEMENT SPECIALIST", "CARDIOLOGIST",
+                                                                      "EMERGENCY MEDICINE (PHYSICIANS)", "GENERAL SURGEON", "NEURO-SURGEON", "CLINICAL NEUROPHYSIOLOGIST",
+                                                                      "OTOLARYNGOLOGIST", "REHABILITATION MEDICINE SPECIALIST", "PSYCHIATRIST" ), "Other Physician",
+                                                   ifelse(DESCRIPTION %in% c("FAMILY NURSE PRACTITIONER", "NURSE PRACTITIONER", "PHYSICIANS ASSISTANT", "REGISTERED NURSE", "OTHER NON-PHYSICIAN PROVIDER"), "Other HCP",
+                                                          ifelse( DESCRIPTION %in% c("FAMILY PRACTITIONER","FAMILY PRACTICE SPECIALIST","FAMILY PRACTICE/GENERAL PRACTICE"), "PCP",
+                                                                  ifelse(DESCRIPTION %in% c("INTERNAL MEDICINE SPECIALIST","INTERNIST/GENERAL INTERNIST", "HOSPITALIST") , "IM",
+                                                                         ifelse(DESCRIPTION %in% c("NEUROLOGIST" ), "Neuro", NA ))))))) %>%
+  filter(DESCRIPTION!="Remove") %>% group_by(DESCRIPTION) %>% summarise(n=sum(weight)/(21+293+105+56+19))
+
+
+# ------------
+# Age group breakdown ------------
+ZAVUS24_Demographics <- fread("Source/ZAVUS24 Demographics.txt")
+ZAVUS24_Demographics <- ZAVUS24_Demographics %>% select(patid,age)
+ZAVUS24_Demographics <- ZAVUS24_Demographics %>% mutate(age=ifelse(age<=29, 29,
+                                                                   ifelse(age<=39,39,
+                                                                          ifelse(age<=49,49,
+                                                                                 ifelse(age<=59,59,
+                                                                                        ifelse(age<=69,69,
+                                                                                               ifelse(age<=79,79,80))))))) %>%
+  group_by(age) %>% count() %>% mutate(n=n/260)
+# ------
+# Individual Molecule penetrantion ever ------------
+ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
+ZAVUS24_Doses <- ZAVUS24_Doses %>% select(patid, generic, drug_class, drug_group) %>% distinct()
+ZAVUS24_Doses <- ZAVUS24_Doses %>% group_by(generic,drug_class, drug_group) %>% count() %>% mutate(n=n/260)
+data.frame(ZAVUS24_Doses) %>% arrange(drug_group, desc(n))
+
+# --------------
+# Number of classes ever tried ----------
+
+ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
+ZAVUS24_Doses <- ZAVUS24_Doses %>% select(patid, generic, drug_class, drug_group) %>% distinct()
 # -----------

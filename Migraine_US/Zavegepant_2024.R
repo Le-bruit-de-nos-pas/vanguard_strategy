@@ -360,4 +360,348 @@ ALL_Dxs <- RIMUS23_Comorbidities_Extended_Dxs %>% group_by(ICD10_diag) %>% count
 data.frame(ZAV_Dxs %>% inner_join(ALL_Dxs))
 
 
-# ----------
+# ----------~
+# --------------
+# Zavegepant  patients waterfall ON January 2024 --------------
+
+ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
+Drugs_lookup <- ZAVUS24_Doses %>% select(drug_id, generic, drug_class, drug_group) %>% distinct()
+Drugs_lookup <- Drugs_lookup %>% arrange(drug_id)
+unique(Drugs_lookup$drug_group)
+
+string_CGRPs <- paste0("\\b(",paste0(Drugs_lookup$drug_id[Drugs_lookup$drug_class == "CGRP Injectable"|Drugs_lookup$drug_class == "CGRP Oral"], collapse = "|"),")\\b")
+string_Acute <- paste0("\\b(",paste0(Drugs_lookup$drug_id[Drugs_lookup$drug_group == "Triptans"], collapse = "|"),")\\b")
+string_Symptomatic <- paste0("\\b(",paste0(Drugs_lookup$drug_id[Drugs_lookup$drug_group == "Symptomatic"], collapse = "|"),")\\b")
+string_Preventive <- paste0("\\b(",paste0(Drugs_lookup$drug_id[Drugs_lookup$drug_group == "Preventive"], collapse = "|"),")\\b")
+
+ZAVUS24_Drug_Histories <- read.table("Source/ZAVUS24 Drug Histories.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% select(patient, month60) 
+
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% filter(grepl("134", month60))
+
+dim(ZAVUS24_Drug_Histories)[1] # 138
+
+ZAVUS24_Drug_Histories$Zavegepant <- 1
+
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% mutate(Combo=ifelse(grepl(",", month60),1,0))
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% mutate(CGRPs=ifelse(grepl(string_CGRPs, month60),1,0))
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% mutate(Acute=ifelse(grepl(string_Acute, month60),1,0))
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% mutate(Symptomatic=ifelse(grepl(string_Symptomatic, month60),1,0))
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% mutate(Preventive=ifelse(grepl(string_Preventive, month60),1,0))
+
+ZAVUS24_Drug_Histories %>% 
+  mutate(AcuteSympt=ifelse(Acute==1|Symptomatic==1,1,0)) %>%
+  group_by(Zavegepant, Combo, CGRPs,  Preventive, AcuteSympt) %>%
+  count()
+
+# -------------
+# Zavegepant  patients LINES OF THERAPY --------------
+
+ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
+Drugs_lookup <- ZAVUS24_Doses %>% select(drug_id, generic, drug_class, drug_group) %>% distinct()
+Drugs_lookup <- Drugs_lookup %>% arrange(drug_id)
+unique(Drugs_lookup$drug_group)
+
+string_CGRPs <- paste0("\\b(",paste0(Drugs_lookup$drug_id[Drugs_lookup$drug_class == "CGRP Injectable"|Drugs_lookup$drug_class == "CGRP Oral"], collapse = "|"),")\\b")
+
+
+ZAVUS24_Drug_Histories <- read.table("Source/ZAVUS24 Drug Histories.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+ZAVUS24_Drug_Histories <- gather(ZAVUS24_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+length(unique(ZAVUS24_Drug_Histories$patient))
+
+All_Pats <- ZAVUS24_Drug_Histories %>% select(patient) %>% distinct()  %>% mutate(ZAV="ZAV")
+
+CGRPs_Pats <- ZAVUS24_Drug_Histories %>% filter(grepl(string_CGRPs, Treat)) %>% select(patient) %>% distinct() %>% mutate(CGRP="CGRP")
+
+All_Pats <- All_Pats %>% left_join(CGRPs_Pats)
+
+ZAVUS24_Drug_Histories <- read.table("Source/ZAVUS24 Drug Histories.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+ZAVUS24_Drug_Histories <- gather(ZAVUS24_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% filter(Treat!="-")
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% select(patient, Treat) %>% distinct() %>% group_by(patient) %>% count()
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% ungroup() %>% rename("Lines"="n")
+
+All_Pats <- All_Pats %>% left_join(ZAVUS24_Drug_Histories)
+mean(All_Pats$Lines)
+unique(All_Pats$Lines)
+All_Pats %>% group_by(CGRP) %>% summarise(mean=mean(Lines))
+All_Pats %>% mutate(Lines=ifelse(Lines<=3, "1to3",
+                                 ifelse(Lines<=6, "4to6",
+                                        ifelse(Lines<=9,"7to9","10+")))) %>% group_by(CGRP,Lines) %>% count()
+# -------------
+# Concomitants classes --------------
+
+ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
+Drugs_lookup <- ZAVUS24_Doses %>% select(drug_id, generic, drug_class, drug_group) %>% distinct()
+Drugs_lookup <- Drugs_lookup %>% arrange(drug_id)
+unique(Drugs_lookup$drug_group)
+
+
+ZAVUS24_Drug_Histories <- read.table("Source/ZAVUS24 Drug Histories.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+ZAVUS24_Drug_Histories <- gather(ZAVUS24_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% filter(Month=="month60")
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% filter(grepl("134", Treat))
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% select(patient, Treat)
+ZAVUS24_Drug_Histories <- separate_rows(ZAVUS24_Drug_Histories, Treat, sep = ",", convert=T )
+
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% distinct() %>% left_join(Drugs_lookup %>% select(drug_id, drug_class), by=c("Treat"="drug_id"))
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% select(patient, drug_class) %>% distinct()
+ZAVUS24_Drug_Histories$Exp <- 1
+
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% arrange(patient, drug_class)
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% filter(drug_class!="CGRP Nasal")
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% group_by(patient) %>% mutate(Exp=paste0(drug_class, collapse = " + "))
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% select(patient, Exp) %>% distinct() 
+
+data.frame(ZAVUS24_Drug_Histories %>% ungroup() %>% group_by(Exp) %>% count() %>% arrange(-n))
+
+
+
+
+# -------------
+# Generate long flows table --------------
+MIG_Drug_Histories <- read.table("Source/ZAVUS24 Drug Histories.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+MIG_Box_Histories <- read.table("Source/ZAVUS24 Box Histories.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+
+setDT(MIG_Drug_Histories)
+setDT(MIG_Box_Histories)
+
+# Flows table in long format
+flMIG <- MIG_Drug_Histories
+flMIG <- flMIG[,disease := NULL]
+
+flMIG <- melt(flMIG, id = c("patient","weight"))
+names(flMIG)[c(3,4)] <- c("p1","v1")
+flMIG <- flMIG[, p1 := str_extract(p1,"[:digit:]+")]
+flMIG$p1 <- as.numeric(flMIG$p1)
+flMIG <- data.frame(cbind(flMIG[p1 < 60], flMIG[p1 > 1,.(p2 = p1, v2 = v1)]), stringsAsFactors = F)
+flMIG <- flMIG[,c(1:3,5,4,6)]
+
+# Any flow flag and stops flag**************************************************
+flMIG <- setDT(flMIG)[, flow := (v1 != v2)*1]
+flMIG <- flMIG[, stops := (flow == 1 & v2 == "-")*1]
+
+
+# Treatment experience**********************************************************
+RxExp <- data.frame(MIG_Drug_Histories, stringsAsFactors = F)
+RxExp$month1 <- (RxExp$month1 != "-")*1
+
+for(i in 2:60){
+  cat(i)
+  RxExp[,i+2] <- (((RxExp[,i+2] != "-")*1 + RxExp[,i+2-1]) > 0)*1
+}
+
+RxExp <- setDT(RxExp)
+RxExp <- melt(RxExp, id = c("patient","weight"))
+RxExp <- RxExp[, month := str_extract(variable,"[:digit:]+")]
+RxExp$month <- as.numeric(RxExp$month)
+names(RxExp)[4] <- "MIG_RxExp"
+
+flMIG <- RxExp[,.(patient,month,MIG_RxExp)][flMIG, on = .(patient, month = p1)]
+flMIG <- flMIG[,.(patient, weight, p1 = month, p2, v1, v2, p1_RxExp = MIG_RxExp, flow, stops)]
+
+# Starts and re-starts flag*****************************************************
+flMIG <- flMIG[, starts := (flow == 1 & v1 == "-" & p1_RxExp == 0)*1]
+flMIG <- flMIG[, re_starts := (flow == 1 & v1 == "-" & p1_RxExp == 1)*1]
+flMIG <- flMIG[, disease := "ZAVUS24"]
+flMIG <- flMIG[,c(12,1:11)]
+
+# Bring Therapy classes (Stocks) to the table***********************************
+MIG_Box_Histories <- MIG_Box_Histories[,disease := NULL]
+MIG_Box_Histories <- data.frame(MIG_Box_Histories, stringsAsFactors = F)
+
+for(i in 1:60){
+  cat(i)
+  MIG_Box_Histories[,i+2] <- unlist(lapply(MIG_Box_Histories[,i+2],function(x) str_sub(x, 1L, 1L)))
+}
+
+setDT(MIG_Box_Histories) 
+MIG_Box_Histories <- melt(MIG_Box_Histories, id = c("patient","weight"))
+names(MIG_Box_Histories)[c(3,4)] <- c("p","s")
+MIG_Box_Histories <- MIG_Box_Histories[, p := str_extract(p,"[:digit:]+")]
+MIG_Box_Histories$p <- as.numeric(MIG_Box_Histories$p)
+
+flMIG <- MIG_Box_Histories[,.(patient,p,s)][flMIG, on = .(patient, p = p1)]
+names(flMIG)[c(2,3)] <- c("p1","s1")
+flMIG <- MIG_Box_Histories[,.(patient,p,s)][flMIG, on = .(patient, p = p2)]
+names(flMIG)[c(2,3)] <- c("p2","s2")
+
+flMIG <- flMIG[,.(disease, patient, weight, p1, p2, v1, v2, s1, s2, p1_RxExp, flow, stops, starts, re_starts)]
+names(flMIG)[c(6,7)] <- c("d1","d2")
+
+fwrite(flMIG,"Source/MIG_Flows_Aux_Long.txt")
+
+# --------
+# Classes Before vs After First Zavegepant ------------------
+
+flMIG <- fread("Source/MIG_Flows_Aux_Long.txt")
+flMIG <- flMIG %>% select(patient, weight, p1, p2, d1, d2, s1, s2)
+flMIG <- flMIG %>% mutate(p1 = as.numeric(p1)) %>% mutate(p2=as.numeric(p2))
+
+First_ZAV <- flMIG %>% 
+  filter(grepl("134", d2)) %>% group_by(patient) %>% filter(p2==min(p2)) %>% select(patient, p2) %>% rename("First_ZAV"="p2")
+
+flMIG <- First_ZAV %>% left_join(flMIG)
+
+flMIG <- flMIG %>% filter(First_ZAV>1&First_ZAV<60)  %>% mutate(before=First_ZAV-1) %>% mutate(after=First_ZAV+1) 
+
+before <- flMIG %>% filter(p2==before) %>% select(patient, d2)
+current <- flMIG %>% filter(p2==First_ZAV) %>% select(patient, d2)
+after <- flMIG %>% filter(p2==after) %>% select(patient, d2)
+
+before <- separate_rows(before, d2, sep = ",", convert=T )
+current <- separate_rows(current, d2, sep = ",", convert=T )
+after <- separate_rows(after, d2, sep = ",", convert=T )
+
+
+ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
+Drugs_lookup <- ZAVUS24_Doses %>% select(drug_id, generic, drug_class, drug_group) %>% distinct()
+Drugs_lookup <- Drugs_lookup %>% arrange(drug_id)
+unique(Drugs_lookup$drug_group)
+
+
+data.frame(before %>% mutate(d2=as.character(d2)) %>% left_join(Drugs_lookup %>% mutate(drug_id=as.character(drug_id)), by=c("d2"="drug_id")) %>% 
+  select(patient, drug_class) %>% distinct() %>% group_by(drug_class) %>% count() %>% mutate(n=n/length(unique(before$patient))) %>%
+  rename("before"="n") %>%
+  full_join(
+    current %>% mutate(d2=as.character(d2)) %>% left_join(Drugs_lookup %>% mutate(drug_id=as.character(drug_id)), by=c("d2"="drug_id")) %>% 
+  select(patient, drug_class) %>% distinct() %>% group_by(drug_class) %>% count() %>% mutate(n=n/length(unique(current$patient))) %>%
+  rename("current"="n")) %>%
+  full_join(
+    after %>% mutate(d2=as.character(d2)) %>% left_join(Drugs_lookup %>% mutate(drug_id=as.character(drug_id)), by=c("d2"="drug_id")) %>% 
+  select(patient, drug_class) %>% distinct() %>% group_by(drug_class) %>% count() %>% mutate(n=n/length(unique(after$patient))) %>%
+  rename("after"="n")
+  ))
+
+flMIG <- flMIG %>% select(patient, First_ZAV, p2, d2)
+length(unique(flMIG$patient)) # 133
+
+flMIG <- separate_rows(flMIG, d2, sep = ",", convert=T )
+
+flMIG %>% mutate(p2=p2-First_ZAV) %>%
+  left_join(Drugs_lookup %>% mutate(drug_id=as.character(drug_id)), by=c("d2"="drug_id")) %>%
+  select(patient, p2, generic) %>% distinct() %>%
+  group_by(patient, p2) %>% count() %>% ungroup() %>%
+  group_by(p2) %>% summarise(mean=mean(n)) %>%
+  ggplot(aes(p2, mean)) +
+  geom_point(shape = 1, size = 2, stroke = 2) +
+  geom_line(size=2, alpha=0.5, colour="deepskyblue4") +
+  theme_bw() +
+  xlab("\n Month Relative to Zavogepant Initiation") + 
+  ylab("Average Number of Different Molecules ON \n") 
+  
+
+# -----------
+# Stocks Flows to Zavegepant ------------
+
+flMIG <- fread("Source/MIG_Flows_Aux_Long.txt")
+flMIG <- flMIG %>% filter(p2>=49)
+
+flMIG %>% filter(!grepl("Z",s1) & grepl("Z",s2)) %>%
+  group_by(s1) %>% count() %>% mutate(n=round(n/192,2))
+
+flMIG %>% filter(grepl("Z",s1) & !grepl("Z",s2)) %>%
+  group_by(s2) %>% count() %>% mutate(n=round(n/54,2))
+
+flMIG <- fread("Source/MIG_Flows_Aux_Long.txt")
+flMIG <- flMIG %>% filter(!grepl("Z",s1) & grepl("Z",s2)) 
+
+data.frame(flMIG %>% group_by(p2, s1) %>% count() %>% spread(key=s1, value=n))
+
+
+# -----------------
+# Pathways to Zavegepant ------------------------------
+
+ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
+Drugs_lookup <- ZAVUS24_Doses %>% select(drug_id, generic, drug_class, drug_group) %>% distinct()
+Drugs_lookup <- Drugs_lookup %>% arrange(drug_id)
+unique(Drugs_lookup$drug_group)
+
+
+ZAVUS24_Drug_Histories <- read.table("Source/ZAVUS24 Drug Histories.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+ZAVUS24_Drug_Histories <- gather(ZAVUS24_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% filter(grepl("134", Treat)) %>% select(patient) %>% distinct() %>% left_join(ZAVUS24_Drug_Histories)
+ZAVUS24_Drug_Histories$Month <- parse_number(as.character(ZAVUS24_Drug_Histories$Month))
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% filter(Treat != "-" &  Treat != "*"  )
+
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% group_by(patient) %>% 
+  slice(if(any(grepl("134",Treat))) 1:which.max(grepl("134",Treat)) else row_number())   
+
+ZAVUS24_Drug_Histories <- separate_rows(ZAVUS24_Drug_Histories, Treat, sep = ",", convert=T )
+
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% left_join(Drugs_lookup %>% select(drug_id, drug_group), by=c("Treat"="drug_id"))
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% select(patient, Month, drug_group) %>% distinct()
+
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% anti_join(
+  ZAVUS24_Drug_Histories %>% group_by(patient)%>% filter(Month==max(Month)) %>% select(patient, Month) %>% distinct()
+  )
+
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% group_by(patient, drug_group) %>% count()
+
+ZAVUS24_Drug_Histories %>% ungroup() %>% group_by(drug_group) %>% summarise(mean=mean(n))
+
+
+#   drug_group       mean
+# 1 CGRP Injectable  19.8
+# 2 CGRP Oral        10.0
+# 3 Preventive       27.4
+# 4 Symptomatic      19.1
+# 5 Triptans         14.7
+
+ZAVUS24_Drug_Histories %>% ungroup() %>%
+  mutate(drug_group=factor(drug_group, levels=c( "CGRP Oral", "Triptans",  "Symptomatic",  "CGRP Injectable","Preventive" ))) %>%
+  ggplot(aes(drug_group,n,colour=drug_group, fill=drug_group)) +
+  geom_jitter(alpha=0.3, width=0.2, shape = 1, size = 2, stroke = 2) +
+  geom_boxplot(alpha=0.5, notch = TRUE) +
+  geom_violin(alpha=0.5) +
+  theme_minimal() +
+  ylab("Number of Months Until Rimegepant Initiation \n") + xlab("\n Drug Group") +
+  scale_fill_manual(values=c( "#ee931b",  "#1bb6ee", "#095d7b", "#f8a5de", "#6d084d")) +
+  scale_colour_manual(values=c("#ee931b",  "#1bb6ee", "#095d7b", "#f8a5de", "#6d084d")) 
+
+
+length(unique(ZAVUS24_Drug_Histories$patient))
+
+data.frame(
+  ZAVUS24_Drug_Histories %>% ungroup() %>% select(-n) %>% distinct() %>%
+    arrange(patient, drug_group) %>%
+  group_by(patient) %>% mutate(drug_group=paste0(drug_group, collapse="+")) %>% distinct() %>%
+  ungroup() %>% group_by(drug_group) %>% count() %>% arrange(-n) %>% mutate(n=n/185)
+  )
+  
+
+
+
+ZAVUS24_Drug_Histories <- read.table("Source/ZAVUS24 Drug Histories.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+ZAVUS24_Drug_Histories <- gather(ZAVUS24_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% filter(grepl("134", Treat)) %>% select(patient) %>% distinct() %>% left_join(ZAVUS24_Drug_Histories)
+ZAVUS24_Drug_Histories$Month <- parse_number(as.character(ZAVUS24_Drug_Histories$Month))
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% filter(Treat != "-" &  Treat != "*"  )
+
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% group_by(patient) %>% 
+  slice(if(any(grepl("134",Treat))) 1:which.max(grepl("134",Treat)) else row_number())   
+
+ZAVUS24_Drug_Histories <- separate_rows(ZAVUS24_Drug_Histories, Treat, sep = ",", convert=T )
+
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% left_join(Drugs_lookup %>% select(drug_id, drug_group), by=c("Treat"="drug_id"))
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% select(patient, Month, drug_group) %>% distinct()
+
+length(unique(ZAVUS24_Drug_Histories$patient))
+
+ZAVUS24_Drug_Histories %>% 
+  left_join(
+    ZAVUS24_Drug_Histories %>% group_by(patient)%>% filter(Month==max(Month)) %>% select(patient, Month) %>% distinct() %>% rename("Max"="Month")
+    ) %>%
+  mutate(Month=Month-Max) %>% filter(Month!=0) %>%
+    mutate(drug_group=factor(drug_group, levels=c( "CGRP Oral", "Triptans",  "Symptomatic",  "CGRP Injectable","Preventive" ))) %>%
+  ungroup() %>% group_by(Month, drug_group) %>% count() %>% rename("pop"="n") %>%
+  ggplot(aes(Month, 100*pop/189, colour=drug_group, fill=drug_group)) +
+  geom_smooth() +
+  theme_minimal() +
+  xlab("\n Number of Months Until Zavegepant Initiation") + ylab("Population (%) \n") +
+  scale_fill_manual(values=c( "#ee931b",  "#1bb6ee", "#095d7b", "#f8a5de", "#6d084d")) +
+  scale_colour_manual(values=c("#ee931b",  "#1bb6ee", "#095d7b", "#f8a5de", "#6d084d")) 
+
+
+# --------------

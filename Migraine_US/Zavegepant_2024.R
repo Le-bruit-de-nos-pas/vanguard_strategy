@@ -705,3 +705,73 @@ ZAVUS24_Drug_Histories %>%
 
 
 # --------------
+# ICD10 Zavegepant vs Other MIG --------------
+
+RIMUS23_Comorbidities_Extended_Dxs <- fread("RIMUS23 Comorbidities Extended Dxs.txt")
+length(unique(RIMUS23_Comorbidities_Extended_Dxs$patid)) # 262194
+RIMUS23_Comorbidities_Extended_Dxs$ICD10_diag <- str_sub(RIMUS23_Comorbidities_Extended_Dxs$ICD10_diag, 1L, 3L)
+RIMUS23_Comorbidities_Extended_Dxs <- RIMUS23_Comorbidities_Extended_Dxs %>% select(patid, ICD10_diag) %>% distinct()
+
+ZAVUS24_Comorbidities_Extended_Dxs <- fread("Source/ZAVUS24 Comorbidities Extended Dxs.txt")
+length(unique(ZAVUS24_Comorbidities_Extended_Dxs$patid)) # 251
+ZAVUS24_Comorbidities_Extended_Dxs$ICD10_diag <- str_sub(ZAVUS24_Comorbidities_Extended_Dxs$ICD10_diag, 1L, 3L)
+ZAVUS24_Comorbidities_Extended_Dxs <- ZAVUS24_Comorbidities_Extended_Dxs %>% select(patid, ICD10_diag) %>% distinct()
+
+data.frame(
+  ZAVUS24_Comorbidities_Extended_Dxs %>% group_by(ICD10_diag) %>% count() %>% mutate(n=n/251) %>% rename("ZAV"="n") %>%
+  inner_join(RIMUS23_Comorbidities_Extended_Dxs %>% group_by(ICD10_diag) %>% count() %>% mutate(n=n/262194) %>% rename("ALL"="n"))
+  ) %>% mutate(Diff=ZAV-ALL) %>% arrange(-abs(Diff))
+
+# ------------
+# Profile patients 1 refill vs 2+ refills  --------------
+
+
+ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
+ZAVUS24_Doses <- ZAVUS24_Doses %>% filter(generic=="Zavegepant")
+ZAVUS24_Doses <- ZAVUS24_Doses %>% select(patid, from_dt)
+
+Refills <- ZAVUS24_Doses %>% group_by(patid) %>% count()
+Refills <- Refills %>% mutate(n=ifelse(n==1,n,2)) %>% rename("refills"="n")
+Refills %>% group_by(refills) %>% count() # 1  166   2  94
+ 
+ZAVUS24_Comorbidities_Extended_Dxs <- fread("Source/ZAVUS24 Comorbidities Extended Dxs.txt")
+ZAVUS24_Comorbidities_Extended_Dxs$ICD10_diag <- str_sub(ZAVUS24_Comorbidities_Extended_Dxs$ICD10_diag, 1L, 3L)
+ZAVUS24_Comorbidities_Extended_Dxs <- ZAVUS24_Comorbidities_Extended_Dxs %>% select(patid, ICD10_diag) %>% distinct()
+
+data.frame(
+  ZAVUS24_Comorbidities_Extended_Dxs %>% inner_join(Refills) %>%
+    group_by(refills, ICD10_diag) %>% count() %>% 
+    mutate(n=ifelse(refills==1,n/166, n/94)) %>%
+    spread(key=refills, value=n) %>%
+    mutate(`2`=ifelse(is.na(`2`),0,`2`)) %>% mutate(`1`=ifelse(is.na(`1`),0,`1`)) %>%
+    mutate(Diff=`2`-`1`) %>% arrange(-abs(Diff))
+  )
+
+
+ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
+ZAVUS24_Doses <- ZAVUS24_Doses %>% filter(generic=="Zavegepant")
+ZAVUS24_Doses <- ZAVUS24_Doses %>% select(patid, from_dt)
+
+Refills <- ZAVUS24_Doses %>% group_by(patid) %>% count()
+Refills <- Refills %>% mutate(n=ifelse(n==1,n,2)) %>% rename("refills"="n")
+Refills %>% group_by(refills) %>% count() # 1  166   2  94
+
+ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
+ZAVUS24_Doses <- ZAVUS24_Doses %>% select(patid, drug_class) %>% distinct()
+
+data.frame(ZAVUS24_Doses %>% inner_join(Refills) %>% group_by(refills, drug_class) %>% count() %>%
+    mutate(n=ifelse(refills==1,n/166, n/94)) %>% spread(key=refills, value=n) %>%
+       mutate(Diff=`2`-`1`) %>% arrange(-abs(Diff)))
+
+
+
+ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
+ZAVUS24_Doses <- ZAVUS24_Doses %>% filter(generic=="Zavegepant")
+ZAVUS24_Doses <- ZAVUS24_Doses %>% select(patid, from_dt) %>% group_by(patid) %>% filter(from_dt==min(from_dt)) %>% distinct()
+ZAVUS24_Doses$from_dt <- as.Date(ZAVUS24_Doses$from_dt)
+
+ZAVUS24_Doses %>% inner_join(Refills) %>% group_by(refills) %>% summarise(mean=mean(from_dt))
+
+
+
+# ------------

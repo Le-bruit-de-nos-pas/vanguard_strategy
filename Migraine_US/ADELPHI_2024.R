@@ -3860,3 +3860,15 @@ Pfizer_Migraine_Pat <- Pfizer_Migraine_Pat %>% filter(qcountries==28)
 
 
 # ----------
+
+# How many MIG days per month per country ? ---------
+
+Pfizer_Migraine_Pat <- read_sav("Pfizer_Migraine_Pat v.2.0.sav")
+
+Pfizer_Migraine_Pat %>% select(patNum, qcountries ,PRF_C_4a_1) %>%
+  mutate(PRF_C_4a_1=ifelse(PRF_C_4a_1<=3, 3,
+                           ifelse(PRF_C_4a_1<=14,14,15))) %>%
+  group_by(qcountries,PRF_C_4a_1) %>%
+  count() %>% spread(key=PRF_C_4a_1, value=n)
+
+# -----------

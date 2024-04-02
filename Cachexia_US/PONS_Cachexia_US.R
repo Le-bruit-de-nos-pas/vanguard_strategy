@@ -18675,3 +18675,126 @@ data.frame(
   
 
 # -----------
+# Weight Last Seen US vs Japan ------------------
+
+CachexiaPats_ALL_NEW <- fread("CachexiaPats_ALL_NEW.txt", sep="\t")
+PONS_Measures <- fread("PONS Measures.txt", sep="\t")
+unique(PONS_Measures$test)
+PONS_Measures <- PONS_Measures %>% filter(test=="Body Weight")
+PONS_Measures <- PONS_Measures %>% select(patid, weight, value, claimed)
+PONS_Measures$claimed <- as.Date(PONS_Measures$claimed)
+PONS_Measures <- PONS_Measures %>% group_by(patid) %>% filter(claimed==max(claimed)) %>%
+  filter(value==min(value)) %>% select(-claimed) %>% distinct()
+PONS_Measures <- PONS_Measures %>% ungroup() %>% inner_join(CachexiaPats_ALL_NEW)
+
+Cachexia_identified_pts_3 <- fread("Cachexia_identified_pts_3.txt", sep=",")
+Cachexia_identified_pts_3 <- fread("Cachexia_identified_pts_3.txt", sep=",")
+sum(Cachexia_identified_pts_3$weight3)
+Cachexia_identified_pts_3 <- Cachexia_identified_pts_3 %>% select(patid, weight3)
+CANCX_Demographics_v3 <- fread("CANCX_Demographics_v3.txt", sep=",")
+CANCX_Demographics_v3 <- CANCX_Demographics_v3 %>% select(patid, last_min_weight_Kg)
+Cachexia_identified_pts_3 <- Cachexia_identified_pts_3 %>% inner_join(CANCX_Demographics_v3)
+names(Cachexia_identified_pts_3)[3] <- "value"
+names(Cachexia_identified_pts_3)[2] <- "weight"
+
+groups <- PONS_Measures %>% mutate(country="US") %>%
+  bind_rows(Cachexia_identified_pts_3 %>% mutate(country="JP") %>% mutate(patid=as.character(patid)))
+
+
+
+
+CANCX_BMI_records_v2 <- fread("CANCX_BMI_records_v2.txt", sep=",")
+CANCX_BMI_records_v2 <- CANCX_BMI_records_v2 %>% group_by(patid) %>% filter(bmi==max(bmi)) %>% select(patid, bmi) %>% distinct()
+CANCX_BMI_records_v2 <- CANCX_BMI_records_v2 %>% filter(bmi>=30) %>% select(patid) %>% mutate(patid=as.character(patid))
+
+PONS_Measures <- fread("PONS_Measures_short.txt", sep="\t")
+PONS_Measures <- PONS_Measures %>% filter(test=="BMI")
+PONS_Measures$claimed <- as.Date(PONS_Measures$claimed)
+PONS_Measures <- PONS_Measures %>% group_by(patid) %>%  filter(value==min(value))
+Pats_BMI_30 <- PONS_Measures %>% ungroup() %>% filter(value>=30) %>% select(patid) %>% distinct()
+
+
+groups2 <- groups %>% 
+  anti_join(CANCX_BMI_records_v2 %>% mutate(patid=as.character(patid))) %>% 
+  anti_join(Pats_BMI_30 %>% mutate(patid=as.character(patid)))
+
+
+palette <- c( "#D45769", "#00468B")
+
+groups2 %>% drop_na() %>% group_by(country) %>% summarise(mean=mean(value))
+
+groups2  %>% drop_na() %>% ggplot(aes(x = value, y = as.factor(country), fill=as.factor(country), colour=as.factor(country) )) +
+  theme_minimal() +
+  geom_vline(xintercept = c(51), linetype = "dashed", color = "#D45769", alpha = 1, size = 1) +
+  geom_vline(xintercept = c(72), linetype = "dashed", color = "#00468B", alpha = 1, size = 1) +
+    geom_violin(scale = "width", trim = FALSE,  width = 2.0, alpha=0.8, adjust = 0.4) +
+  geom_boxplot(width = 0.5,  outlier.shape = NA, fill="transparent", notch = TRUE, colour="white", alpha=0.6) +
+    labs(x = "\n Last Observed Weight (kg) Record", y = "Country \n") +
+  scale_color_manual(values=palette) +
+  scale_fill_manual(values=palette) +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.position = "none") +
+  theme(panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_blank(),
+        axis.line = element_blank(),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        axis.title.x = element_text(size = 12, vjust = -0.5),
+        axis.title.y = element_text(size = 12, vjust = -0.5),
+        plot.margin = margin(5, 5, 5, 5, "pt")) +
+  xlim(30,175) 
+
+
+
+binned <- groups2  %>% drop_na() %>%
+  mutate(value=ifelse(value<35, "<35",
+                      ifelse(value<40, "<40",
+                             ifelse(value<45, "<45",
+                                    ifelse(value<50, "<50",
+                                           ifelse(value<55, "<55",
+                                                  ifelse(value<60,"<60",
+                                                         ifelse(value<65, "<65",
+                                                                ifelse(value<70, "<70",
+                                                                       ifelse(value<75,"<75",
+                                                                              ifelse(value<80,"<80",
+                                                                                     ifelse(value<85,"<85",
+                                                                                            ifelse(value<90,"<90",
+                                                                                                   ifelse(value<95,"<95",
+                                                                                                          ifelse(value<100,"<100", ">>100"))))))))))))))) %>% 
+  group_by(country, value) %>% summarise(subtot=sum(weight)) %>%
+  ungroup() %>% group_by(country) %>% mutate(grandtot=sum(subtot)) %>%
+  mutate(perc=100*subtot/grandtot) %>%
+  select(country, value, perc) %>%
+  mutate(country=as.factor(country)) %>%
+  mutate(value=factor(value, levels=c("<35", "<40", "<45", "<50", "<55", "<60", "<65", "<70", "<75", "<80", "<85", "<90", "<95", "<100", ">>100"))) 
+
+
+binned %>% ungroup() %>% ggplot(aes(x = perc, y = value, fill = country)) +
+  geom_bar(stat = "identity", alpha=0.9, show.legend = FALSE) +
+  theme_minimal() +
+  facet_wrap(~country, scales = "free_x") +
+  xlim(0,20) +
+  theme_minimal() +
+   scale_color_manual(values=palette) +
+  scale_fill_manual(values=palette) +
+   theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.position = "none") +
+  geom_text(aes(label = paste0(round(perc,0),"%") ), vjust = -0, hjust = -0.1, color = "black", size = 3, position = position_dodge(width = 0.9)) +
+  labs(x = "\n Proportion (%)", y = "Last Observed Weight (kg) Record \n Discrete groups \n") +
+   theme(panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank(),
+        axis.line = element_blank(),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        axis.title.x = element_text(size = 12, vjust = -0.5),
+        axis.title.y = element_text(size = 12, vjust = -0.5),
+        plot.margin = margin(5, 5, 5, 5, "pt"))
+
+# --------------------

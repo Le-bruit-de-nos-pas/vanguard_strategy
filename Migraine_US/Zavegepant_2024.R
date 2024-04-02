@@ -143,6 +143,22 @@ ZAVUS24_Demographics <- ZAVUS24_Demographics %>% mutate(age=ifelse(age<=29, 29,
                                                                                         ifelse(age<=69,69,
                                                                                                ifelse(age<=79,79,80))))))) %>%
   group_by(age) %>% count() %>% mutate(n=n/260)
+
+ 
+# RIMUS23_Demographics <- read.table("RIMUS23 Demographics.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+# RIMUS23_Demographics <- RIMUS23_Demographics %>% select(patid,AGE)
+# #ModSev_Pats_V3 <- fread("ModSev_Pats_V3.txt")
+# #RIMUS23_Demographics <- ModSev_Pats_V3 %>% filter(group=="ModSev") %>% select(patient) %>%   mutate(patient=as.numeric(patient)) %>%
+# #  inner_join(RIMUS23_Demographics %>% mutate(patid=as.numeric(patid)), by=c("patient"="patid"))
+# RIMUS23_Demographics %>% mutate(AGE=as.numeric(AGE)) %>% mutate(AGE=ifelse(AGE<=29, 29,
+#                                                                    ifelse(AGE<=39,39,
+#                                                                           ifelse(AGE<=49,49,
+#                                                                                  ifelse(AGE<=59,59,
+#                                                                                         ifelse(AGE<=69,69,
+#                                                                                                ifelse(AGE<=79,79,80))))))) %>%
+#   group_by(AGE) %>% count() %>% mutate(n=n/263848)
+
+
 # ------
 # Individual Molecule penetrantion ever ------------
 ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
@@ -153,39 +169,42 @@ data.frame(ZAVUS24_Doses) %>% arrange(drug_group, desc(n))
 # --------------
 # Number of classes ever tried ----------
 
-ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
-ZAVUS24_Doses <- ZAVUS24_Doses %>% select(patid, generic, drug_class, drug_group) %>% distinct()
-# -----------
-# Number of classes ---------------------
+
 
 ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
-ZAVUS24_Doses <- ZAVUS24_Doses %>% select(patid, drug_class, drug_group) %>% distinct()
+ZAVUS24_Demographics <- fread("Source/ZAVUS24 Demographics.txt")
+ZAVUS24_Demographics <- ZAVUS24_Demographics %>% mutate(visib_to_zav=as.numeric(first_Zav_Rx-fst_enr_dd)) %>% 
+  filter(visib_to_zav>730.5) %>% select(patid) 
+
+ZAVUS24_Doses <- ZAVUS24_Doses %>% select(patid, drug_class, drug_group) %>% distinct() %>% inner_join(ZAVUS24_Demographics) 
+length(unique(ZAVUS24_Doses$patid))
 
 data.frame(ZAVUS24_Doses %>% group_by(patid) %>% count() %>% ungroup() %>% rename("classes"="n") %>%
-  group_by(classes) %>% count() %>% mutate(n=round(n/260,2)))
+  group_by(classes) %>% count() %>% mutate(n=round(n/191,2)))
 
 ZAVUS24_Doses %>% group_by(patid) %>% count() %>% ungroup() %>% rename("classes"="n") %>% summarise(mean=mean(classes))
 
+
 ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
-ZAVUS24_Doses <- ZAVUS24_Doses %>% select(patid, drug_class, generic) %>% distinct()
+ZAVUS24_Doses <- ZAVUS24_Doses %>% select(patid, drug_class, generic) %>% distinct() %>% inner_join(ZAVUS24_Demographics)
 
 data.frame(ZAVUS24_Doses %>% filter(grepl("CGRP", drug_class)) %>%
              group_by(patid) %>% count() %>% ungroup() %>% rename("classes"="n") %>%
-  group_by(classes) %>% count() %>% mutate(n=round(n/260,2)))
+  group_by(classes) %>% count() %>% mutate(n=round(n/191,2)))
 
 #   classes    n
-# 1       1 0.17
-# 2       2 0.27
-# 3       3 0.25
-# 4       4 0.16
-# 5       5 0.08
-# 6       6 0.05
-# 7       7 0.01
+# 1       1 0.13
+# 2       2 0.23
+# 3       3 0.27
+# 4       4 0.17
+# 5       5 0.10
+# 6       6 0.07
+# 7       7 0.02
 # 8       8 0.01
 
 
 ZAVUS24_Doses %>% filter(grepl("CGRP", drug_class)) %>% 
-  group_by(patid) %>% count() %>% ungroup() %>% rename("classes"="n") %>% summarise(mean=mean(classes)) # 2.97
+  group_by(patid) %>% count() %>% ungroup() %>% rename("classes"="n") %>% summarise(mean=mean(classes)) # 3.2
 
 
 
@@ -198,19 +217,19 @@ ZAVUS24_Doses %>% select(patid) %>% distinct() %>% left_join(
   ZAVUS24_Doses %>% filter(grepl("Triptan", drug_class)) %>%
              group_by(patid) %>% count() %>% ungroup() %>% rename("classes"="n")
 )  %>% mutate(classes=ifelse(is.na(classes),0,classes)) %>%
-  group_by(classes) %>% count() %>% mutate(n=round(n/260,2)))
+  group_by(classes) %>% count() %>% mutate(n=round(n/191,2)))
 
 #   classes    n
-# 1       0 0.39
-# 2       1 0.36
-# 3       2 0.17
-# 4       3 0.06
-# 5       4 0.02
+# 1       0 0.32
+# 2       1 0.37
+# 3       2 0.20
+# 4       3 0.07
+# 5       4 0.03
 
 ZAVUS24_Doses %>% select(patid) %>% distinct() %>% left_join(
   ZAVUS24_Doses %>% filter(grepl("Triptan", drug_class)) %>%
              group_by(patid) %>% count() %>% ungroup() %>% rename("classes"="n")
-)  %>% mutate(classes=ifelse(is.na(classes),0,classes)) %>% summarise(mean=mean(classes)) # 1.0
+)  %>% mutate(classes=ifelse(is.na(classes),0,classes)) %>% summarise(mean=mean(classes)) # 1.1
 
 
 
@@ -225,21 +244,21 @@ ZAVUS24_Doses %>% select(patid) %>% distinct() %>% left_join(
   ZAVUS24_Doses %>% filter(grepl("NSAID", drug_class)) %>%
              group_by(patid) %>% count() %>% ungroup() %>% rename("classes"="n")
 )  %>% mutate(classes=ifelse(is.na(classes),0,classes)) %>%
-  group_by(classes) %>% count() %>% mutate(n=round(n/260,2)))
+  group_by(classes) %>% count() %>% mutate(n=round(n/191,2)))
 
-# 1       0 0.25
-# 2       1 0.30
-# 3       2 0.20
-# 4       3 0.14
-# 5       4 0.07
-# 6       5 0.03
+# 1       0 0.19
+# 2       1 0.28
+# 3       2 0.21
+# 4       3 0.18
+# 5       4 0.08
+# 6       5 0.04
 # 7       6 0.01
-# 8       8 0.00
+# 8       8 0.01
 
 ZAVUS24_Doses %>% select(patid) %>% distinct() %>% left_join(
   ZAVUS24_Doses %>% filter(grepl("NSAID", drug_class)) %>%
              group_by(patid) %>% count() %>% ungroup() %>% rename("classes"="n")
-)  %>% mutate(classes=ifelse(is.na(classes),0,classes)) %>% summarise(mean=mean(classes)) # 1.6
+)  %>% mutate(classes=ifelse(is.na(classes),0,classes)) %>% summarise(mean=mean(classes)) # 1.9
 
 
 
@@ -254,23 +273,23 @@ ZAVUS24_Doses %>% select(patid) %>% distinct() %>% left_join(
   ZAVUS24_Doses %>% filter(grepl("Opioid", drug_class)) %>%
              group_by(patid) %>% count() %>% ungroup() %>% rename("classes"="n")
 )  %>% mutate(classes=ifelse(is.na(classes),0,classes)) %>%
-  group_by(classes) %>% count() %>% mutate(n=round(n/260,2)))
+  group_by(classes) %>% count() %>% mutate(n=round(n/191,2)))
 
-# 1        0 0.31
-# 2        1 0.17
-# 3        2 0.17
+# 1        0 0.26
+# 2        1 0.16
+# 3        2 0.18
 # 4        3 0.12
-# 5        4 0.09
-# 6        5 0.07
+# 5        4 0.10
+# 6        5 0.08
 # 7        6 0.03
-# 8        7 0.03
-# 9        8 0.02
-# 10       9 0.00
+# 8        7 0.04
+# 9        8 0.03
+# 10       9 0.01
 
 ZAVUS24_Doses %>% select(patid) %>% distinct() %>% left_join(
   ZAVUS24_Doses %>% filter(grepl("Opioid", drug_class)) %>%
              group_by(patid) %>% count() %>% ungroup() %>% rename("classes"="n")
-)  %>% mutate(classes=ifelse(is.na(classes),0,classes)) %>% summarise(mean=mean(classes)) # 2.1
+)  %>% mutate(classes=ifelse(is.na(classes),0,classes)) %>% summarise(mean=mean(classes)) # 2.4
 
 # ---------------
 
@@ -307,6 +326,32 @@ ZAVUS24_Demographics %>% group_by(group) %>% count()
 ZAVUS24_Demographics %>%
   group_by(group, SCRIPTS) %>% count() %>%
   spread(key=group, value=n)
+
+
+# From First ZAV
+
+ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
+ZAVUS24_Doses <- ZAVUS24_Doses %>% filter(generic=="Zavegepant")
+ZAVUS24_Doses <- ZAVUS24_Doses %>% select(patid, from_dt)
+
+ZAVUS24_Doses %>% group_by(patid) %>% count()
+ZAVUS24_Doses <- ZAVUS24_Doses %>% mutate(from_dt=as.Date(from_dt)) %>% group_by(patid) %>% mutate(first=min(from_dt))
+
+ZAVUS24_Doses <- ZAVUS24_Doses %>% mutate(VIZ = as.numeric(as.Date("2024-01-15") - first)/30.5)  
+
+ZAVUS24_Doses <- ZAVUS24_Doses %>% ungroup() %>% mutate(patid=as.character(patid)) %>% filter(from_dt>=first)
+
+ZAVUS24_Doses <- ZAVUS24_Doses %>% group_by(patid, VIZ) %>% count() %>% 
+  mutate(VIZ=round(VIZ)) %>% rename("SCRIPTS"="n")
+
+max(ZAVUS24_Doses$VIZ) # 6
+
+ZAVUS24_Doses %>% group_by(VIZ) %>% count() 
+
+ZAVUS24_Doses %>%
+  group_by(VIZ, SCRIPTS) %>% count() %>%
+  spread(key=VIZ, value=n)
+
 
 
 # ----------
@@ -364,6 +409,8 @@ data.frame(ZAV_Dxs %>% inner_join(ALL_Dxs))
 # --------------
 # Zavegepant  patients waterfall ON January 2024 --------------
 
+
+
 ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
 Drugs_lookup <- ZAVUS24_Doses %>% select(drug_id, generic, drug_class, drug_group) %>% distinct()
 Drugs_lookup <- Drugs_lookup %>% arrange(drug_id)
@@ -393,6 +440,14 @@ ZAVUS24_Drug_Histories %>%
   mutate(AcuteSympt=ifelse(Acute==1|Symptomatic==1,1,0)) %>%
   group_by(Zavegepant, Combo, CGRPs,  Preventive, AcuteSympt) %>%
   count()
+
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% filter(CGRPs==1) %>% select(patient, month60) 
+length(unique(ZAVUS24_Drug_Histories$patient)) # 95
+ZAVUS24_Drug_Histories <- separate_rows(ZAVUS24_Drug_Histories, month60, sep = ",", convert=T )
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% filter(grepl(string_CGRPs, month60))
+ ZAVUS24_Drug_Histories %>% left_join(Drugs_lookup %>% select(drug_id, generic), by=c("month60"="drug_id")) %>%
+   group_by(generic) %>% count() %>% mutate(n=n) %>% arrange(-n)
+
 
 # -------------
 # Zavegepant  patients LINES OF THERAPY --------------
@@ -775,3 +830,25 @@ ZAVUS24_Doses %>% inner_join(Refills) %>% group_by(refills) %>% summarise(mean=m
 
 
 # ------------
+# Stocks Flows to Zavegepant by molecule of CGRP ------------
+
+
+ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
+Drugs_lookup <- ZAVUS24_Doses %>% select(drug_id, generic, drug_class, drug_group) %>% distinct()
+Drugs_lookup <- Drugs_lookup %>% arrange(drug_id)
+unique(Drugs_lookup$drug_group)
+
+
+flMIG <- fread("Source/MIG_Flows_Aux_Long.txt")
+flMIG <- flMIG %>% filter(p2>=49)
+
+S1 <- flMIG %>% filter(!grepl("Z",s1) & grepl("Z",s2)) %>% filter(s1=="O"|s1=="I") %>% select(patient,p2, d1)
+# 122
+
+S1 <- separate_rows(S1, d1, sep = ",", convert=T )
+
+S1 %>% left_join(Drugs_lookup %>% select(drug_id, generic, drug_class), by=c("d1"="drug_id")) %>%
+  filter(grepl("CGRP", drug_class)) %>%
+   group_by(generic) %>% count() %>% mutate(n=n/122) %>% arrange(-n)
+
+# ------------------------

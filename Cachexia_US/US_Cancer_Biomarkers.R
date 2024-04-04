@@ -8046,9 +8046,15 @@ CAN_Drug_Histories <- CAN_Drug_Histories %>% mutate(Box=ifelse(Box=="Lapsed"&Dru
 ignore <- CAN_Drug_Histories %>% group_by(experienced_at_mets, n, group, ElapsedMets, Box) %>% 
   summarise(pop=sum(weight)) %>% spread(key=Box, value=pop)
 
+
+
+groups <- fread("Source/Groups_HR_HER2_status.txt") 
+groups <- groups %>% filter(group=="HRPosHER2Neg") %>% select(patid) %>% rename("patient"="patid") 
+
+
 CAN_Drug_Histories %>% filter(ElapsedMets>=(-12) & ElapsedMets<=12) %>%
   group_by(patient) %>% count() %>% filter(n>=25) %>% select(patient) %>%
-  distinct() %>% ungroup() %>%
+  distinct() %>% ungroup() %>% inner_join(groups) %>%
   left_join(CAN_Drug_Histories) %>% 
   mutate(experienced_at_mets=ifelse(experienced_at_mets==0, "Naive_", "Exp_")) %>%
   mutate(n=ifelse(n==1, "1_", "+2_")) %>%
@@ -8301,3 +8307,148 @@ data.frame(PONS_Demographics %>% left_join(PONS_Demographics_surv, by=c("patient
 
 # ---------
 
+
+# Persistency ON Palbociclib as a function of Metastasis site ----------
+
+CancerDrug_Experienced <- fread("Source/CancerDrug_Experienced.txt",  integer64 = "character", stringsAsFactors = F)
+New_Primary_Cancer_Box <- fread("Source/New_Primary_Cancer_Box.txt", sep="\t")
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% inner_join(CancerDrug_Experienced)
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% filter(Primary_Cancer=="Breast Cancer") %>% select(patid)
+
+PONS_Demographics <- fread("Source/PONS Demographics.txt")
+Metastatic <- PONS_Demographics%>% filter(!is.na(cancer_metastasis))  %>% select(patid)
+New_Primary_Cancer_Box <- Metastatic %>% inner_join(New_Primary_Cancer_Box)
+
+CAN_Drug_Histories <- fread("Source/CAN Drug Histories.txt")
+CAN_Drug_Histories <- setDT(CAN_Drug_Histories)[New_Primary_Cancer_Box[, .(patid)], on = c("patient"="patid"), nomatch = 0]
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+setDT(CAN_Drug_Histories)
+CAN_Drug_Histories <- unique(CAN_Drug_Histories[, .(patient, weight, Month, Treat)])
+CAN_Drug_Histories$Month <- parse_number(as.character(CAN_Drug_Histories$Month))
+Months_ON_Palbo <- CAN_Drug_Histories %>% filter(grepl("179", Treat)) %>% group_by(patient) %>% count()
+
+mean(Months_ON_Palbo$n) # 11.84
+
+PONS_Demographics <- fread("Source/PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% select(patid, diagnosis)
+PONS_Demographics <- PONS_Demographics %>% inner_join(New_Primary_Cancer_Box %>% select(patid))
+PONS_Demographics <- separate_rows(PONS_Demographics, diagnosis, sep = ",", convert=T)
+PONS_Demographics$diagnosis <- str_replace_all(PONS_Demographics$diagnosis, " Cancer", "")
+PONS_Demographics$diagnosis <- str_replace_all(PONS_Demographics$diagnosis, " ", "")
+PONS_Demographics <- PONS_Demographics %>% mutate(Exp=1) %>% spread(key=diagnosis, value=Exp) 
+PONS_Demographics[is.na(PONS_Demographics)] <- 0
+
+Months_ON_Palbo <- Months_ON_Palbo %>% inner_join(PONS_Demographics, by=c("patient"="patid"))
+
+Months_ON_Palbo %>% group_by(Head) %>% summarise(mean=mean(n))
+Months_ON_Palbo %>% group_by(Skin) %>% summarise(mean=mean(n))
+
+
+Months_ON_Palbo %>% ggplot(aes(n)) +
+  geom_density(colour="#0072BB", fill="#0072BB", alpha=0.7) +
+    theme_minimal() +
+  xlab("\n Exact Number of Months ON Palbociclib") +
+  ylab("Patient density \n")
+  
+
+Months_ON_Palbo_bin <- Months_ON_Palbo %>% mutate(n=ifelse(n<=3,0,
+                                                           ifelse(n>=24,1,9))) %>%
+  filter(n!=9) %>% mutate(n=as.factor(n)) 
+
+Months_ON_Palbo_bin <- Months_ON_Palbo_bin %>% ungroup() %>% select(-patient)
+
+Months_ON_Palbo_bin %>%
+  group_by(n) %>%
+  summarise_all(.funs = mean) 
+
+
+Months_ON_Palbo_bin <- Months_ON_Palbo_bin %>% select(-Breast)
+Months_ON_Palbo_bin <- Months_ON_Palbo_bin %>% select(-Prostate)
+
+#Months_ON_Palbo_bin <- Months_ON_Palbo_bin %>% select(-Salivary)
+
+model1 <- glm(n ~ . , data=Months_ON_Palbo_bin, family = "binomial")
+summary(model1)
+
+
+df <- data.frame(exp(cbind(coef(model1), confint(model1))))
+df <- df[2:20,]
+df$var <- row.names(df)  
+names(df) <- c("OR", "Lower", "Upper", "Var") 
+  
+library(jtools)
+
+
+df <- df %>% arrange(-OR)
+df <- df %>% mutate(group=ifelse(OR>1, 1, 2))
+
+df$group <- as.factor(df$group)
+
+
+dotCOLS = c("#D45769","#0072BB")
+barCOLS = c("#D45769","#0072BB")
+
+df %>%
+  mutate(Var=fct_reorder(Var, OR)) %>%
+  ggplot(aes(x=Var, y=OR, ymin=Lower, ymax=Upper,col=group,fill=group)) + 
+  geom_linerange(size=5,position=position_dodge(width = 0.5), alpha=0.5) +
+  geom_hline(yintercept=1, lty=2) +
+  geom_point(size=3, shape=21, colour="white", stroke = 0.5,position=position_dodge(width = 0.5)) +
+  scale_fill_manual(values=barCOLS)+
+  scale_color_manual(values=dotCOLS)+
+  scale_x_discrete(name="(Post)operative outcomes") +
+  scale_y_continuous(name="Odds ratio", limits = c(0, 2.5)) +
+  coord_flip() +
+  theme_minimal()
+
+
+df %>%
+  mutate(Var=fct_reorder(Var, OR)) %>%
+  ggplot(aes(x=Var, y=OR, col=group,fill=group)) + 
+  geom_hline(yintercept=1, lty=2) +
+  geom_point(show.legend = FALSE, size=5, shape=1, stroke = 3, alpha=0.9, position=position_dodge(width = 0.5)) +
+  scale_fill_manual(values=barCOLS)+
+  scale_color_manual(values=dotCOLS)+
+  scale_x_discrete(name="Metastasis Site (non-MECE)") +
+  scale_y_continuous(name="Odds ratio", limits = c(0, 2)) +
+  coord_flip() +
+  theme_minimal()
+
+
+df <- Months_ON_Palbo %>% select(-c(Breast, Prostate)) 
+df <- df %>% ungroup() %>% select(-patient)
+
+model1 <- lm(n ~ . , data=df)
+summary(model1)
+
+
+df <- data.frame(cbind(coef(model1), confint(model1)))
+df <- df[2:20,]
+df$var <- row.names(df)  
+names(df) <- c("Coef", "Lower", "Upper", "Var") 
+  
+library(jtools)
+
+df <- df %>% arrange(-Coef)
+df <- df %>% mutate(group=ifelse(Coef>0, 1, 2))
+
+df$group <- as.factor(df$group)
+
+
+dotCOLS = c("#D45769","#0072BB")
+barCOLS = c("#D45769","#0072BB")
+
+
+df %>%
+  mutate(Var=fct_reorder(Var, Coef)) %>%
+  ggplot(aes(x=Var, y=Coef, col=group,fill=group)) + 
+  geom_hline(yintercept=0, lty=2) +
+  geom_point(show.legend = FALSE, size=5, shape=1, stroke = 3, alpha=0.9, position=position_dodge(width = 0.5)) +
+  scale_fill_manual(values=barCOLS)+
+  scale_color_manual(values=dotCOLS)+
+  scale_x_discrete(name="Metastasis Site (non-MECE)") +
+  scale_y_continuous(name="β", limits = c(-3.1, 2)) +
+  coord_flip() +
+  theme_minimal()
+
+# --------------

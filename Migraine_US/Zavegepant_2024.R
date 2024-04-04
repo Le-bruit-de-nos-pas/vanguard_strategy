@@ -852,3 +852,117 @@ S1 %>% left_join(Drugs_lookup %>% select(drug_id, generic, drug_class), by=c("d1
    group_by(generic) %>% count() %>% mutate(n=n/122) %>% arrange(-n)
 
 # ------------------------
+
+# Compare ICD10 in Zavegepant with vs without Riemgepant ----------
+
+ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
+ZAV_pats <- ZAVUS24_Doses %>% select(patid) %>% distinct()
+RIME_pats <- ZAVUS24_Doses %>% filter(generic=="Rimegepant") %>% select(patid) %>% distinct() %>% mutate(RIME="RIME")
+ZAV_pats <- ZAV_pats %>% left_join(RIME_pats) %>% mutate(RIME=ifelse(is.na(RIME), "no", RIME))
+
+ZAVUS24_Comorbidities_Extended_Dxs <- fread("Source/ZAVUS24 Comorbidities Extended Dxs.txt")
+ZAVUS24_Comorbidities_Extended_Dxs <- ZAVUS24_Comorbidities_Extended_Dxs %>% select(patid, ICD10_diag) %>% distinct()
+
+ZAV_pats %>% group_by(RIME) %>% count()
+
+to_save <- ZAV_pats %>% left_join(ZAVUS24_Comorbidities_Extended_Dxs) %>%
+  group_by(RIME, ICD10_diag) %>% count() %>%
+  mutate(n=ifelse(RIME=="RIME", n/114, n/146)) %>%
+  spread(key=RIME, value=n) %>% drop_na()
+
+ZAVUS24_Comorbidities_Extended_Dxs %>% group_by(patid) %>% count() %>%
+  inner_join(ZAV_pats) %>% ungroup() %>% group_by(RIME) %>% summarise(mean=mean(n))
+
+fwrite(to_save, "Comorbidities_Pen_ZAV_Rime.csv")
+
+ZAVUS24_Migraine_Dxs <- fread("Source/ZAVUS24 Migraine Dxs.txt")
+ZAVUS24_Migraine_Dxs <- ZAVUS24_Migraine_Dxs %>% select(patid, mig_diag) %>% distinct()
+
+to_save <- ZAV_pats %>% left_join(ZAVUS24_Migraine_Dxs) %>%
+  group_by(RIME, mig_diag) %>% count() %>%
+  mutate(n=ifelse(RIME=="RIME", n/114, n/146)) %>%
+  spread(key=RIME, value=n) %>% drop_na()
+
+
+ZAVUS24_Migraine_Dxs %>% group_by(patid) %>% count() %>%
+  inner_join(ZAV_pats) %>% ungroup() %>% group_by(RIME) %>% summarise(mean=mean(n))
+
+data.frame(to_save)
+
+
+ZAVUS24_Comorbidities_Extended_Dxs <- fread("Source/ZAVUS24 Comorbidities Extended Dxs.txt")
+ZAVUS24_Comorbidities_Extended_Dxs <- ZAVUS24_Comorbidities_Extended_Dxs %>% select(patid, ICD10_diag) %>% distinct()
+Prevalence_ZAV <- ZAVUS24_Comorbidities_Extended_Dxs %>% group_by(ICD10_diag) %>% count() %>% mutate(n=n/195)
+
+ZAVUS24_Comorbidities_Extended_Dxs %>% group_by(patid) %>% count() %>% ungroup() %>% summarise(mean=mean(n))
+
+
+RIMUS23_Drug_Histories <- read.table("RIMUS23 Drug Histories.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Drug_Histories <- gather(RIMUS23_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% select(-c(disease, Month))
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% filter(Treat!="-") %>% distinct() %>% filter(grepl("136", Treat)) %>% select(patient) %>% distinct()
+Rimegepant_pats <- RIMUS23_Drug_Histories
+
+RIMUS23_Comorbidities_Extended_Dxs <- fread("RIMUS23 Comorbidities Extended Dxs.txt")
+RIMUS23_Comorbidities_Extended_Dxs <- RIMUS23_Comorbidities_Extended_Dxs %>% select(patid, ICD10_diag) %>% distinct()
+Prevalence_RIME <- RIMUS23_Comorbidities_Extended_Dxs %>% mutate(patid=as.character(patid)) %>% inner_join(RIMUS23_Drug_Histories, by=c("patid"="patient")) %>% 
+  group_by(ICD10_diag) %>% count() %>% mutate(n=n/4235)
+
+All_comorbs <- Prevalence_ZAV %>% rename("ZAV"="n") %>% inner_join(Prevalence_RIME %>% rename("RIME"="n"))
+
+fwrite(All_comorbs, "All_comorbs.csv")
+
+RIMUS23_Comorbidities_Extended_Dxs %>% mutate(patid=as.character(patid)) %>% inner_join(RIMUS23_Drug_Histories, by=c("patid"="patient")) %>%
+  group_by(patid) %>% count() %>% ungroup() %>% summarise(mean=mean(n))
+
+
+Drugs_lookup <- fread("Drugs_lookup.csv")
+
+
+RIMUS23_Drug_Histories <- read.table("RIMUS23 Drug Histories.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Drug_Histories <- gather(RIMUS23_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% select(-c(disease)) %>% inner_join(Rimegepant_pats)
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% filter(Treat != "-") %>% distinct()
+RIMUS23_Drug_Histories <- separate_rows(RIMUS23_Drug_Histories, Treat, sep = ",", convert=T )
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% left_join(Drugs_lookup %>% select(drug_id, drug_class), by=c("Treat"="drug_id"))
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% select(patient, Month, drug_class) %>% distinct()
+
+Persis_classes_Rime <- RIMUS23_Drug_Histories %>% group_by(patient, drug_class) %>% count() %>% ungroup() %>%
+  group_by(drug_class) %>% summarise(mean=mean(n))
+
+
+ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
+Drugs_lookup <- ZAVUS24_Doses %>% select(drug_id, generic, drug_class, drug_group) %>% distinct()
+Drugs_lookup <- Drugs_lookup %>% arrange(drug_id)
+
+ZAVUS24_Drug_Histories <- read.table("Source/ZAVUS24 Drug Histories.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+ZAVUS24_Drug_Histories <- gather(ZAVUS24_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% select(-c(disease)) 
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% filter(Treat != "-") %>% distinct()
+ZAVUS24_Drug_Histories <- separate_rows(ZAVUS24_Drug_Histories, Treat, sep = ",", convert=T )
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% filter(Treat != "*") %>% distinct()
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% mutate(Treat=as.numeric(Treat)) %>% left_join(Drugs_lookup %>% select(drug_id, drug_class), by=c("Treat"="drug_id"))
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% select(patient, Month, drug_class) %>% distinct()
+
+Persis_classes_Zav <- ZAVUS24_Drug_Histories %>% group_by(patient, drug_class) %>% count() %>% ungroup() %>%
+  group_by(drug_class) %>% summarise(mean=mean(n))
+
+data.frame(Persis_classes_Zav %>% rename("ZAV"="mean") %>% full_join(Persis_classes_Rime %>% rename("RIME"="mean")))
+
+
+# -----------
+# ON ZAV vs Ever tried last 6 months ------------
+ZAVUS24_Drug_Histories <- read.table("Source/ZAVUS24 Drug Histories.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+ZAVUS24_Drug_Histories <- gather(ZAVUS24_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+ZAVUS24_Drug_Histories$Month <- parse_number(as.character(ZAVUS24_Drug_Histories$Month))
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% mutate(ON=ifelse(grepl("134", Treat),1,0))
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% select(patient, Month, ON)
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% arrange(patient, Month) 
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% group_by(patient) %>% mutate(CUM_ON=cumsum(ON))
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% mutate(CUM_ON=ifelse(CUM_ON==0,0,1))
+
+ZAVUS24_Drug_Histories %>% filter(ON==1) %>% group_by(Month) %>% count()
+
+ZAVUS24_Drug_Histories %>% filter(CUM_ON==1) %>% group_by(Month) %>% count()
+
+# --------

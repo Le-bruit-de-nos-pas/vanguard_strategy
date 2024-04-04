@@ -11,6 +11,8 @@ options(scipen = 999)
 
 RIMUS23_Doses_2 <- read.table("RIMUS23 Doses.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
 
+
+
 RIMUS23_Doses_2  %>%  group_by(drug_class) %>% count()
 length(unique(RIMUS23_Doses_2$provcat))
 
@@ -10416,12 +10418,14 @@ All_pats <- fread("ModSev_Pats_V3.txt", colClasses = "character", stringsAsFacto
 All_pats <- All_pats %>% filter(group=="ModSev") %>% select(patient)
 
 RIMUS23_Doses_2 <- fread("RIMUS23 Doses.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
-RIMUS23_Doses_2 <- RIMUS23_Doses_2 %>% select(code, drug_class, patid) %>% distinct()
+RIMUS23_Doses_2 <- RIMUS23_Doses_2 %>% select(code, drug_class, patid, from_dt, days_sup) %>% distinct()
 RIMUS23_Doses_2 <- RIMUS23_Doses_2 %>% inner_join(All_pats, by=c("patid"="patient")) 
 length(unique(RIMUS23_Doses_2$patid)) # 135660
 
-length(unique(RIMUS23_Doses_2$patid[RIMUS23_Doses_2$drug_class=="CGRP Oral"])) # 8787
-length(unique(RIMUS23_Doses_2$patid[RIMUS23_Doses_2$drug_class=="CGRP Injectable"|RIMUS23_Doses_2$drug_class=="CGRP Oral"])) # 15411
+RIMUS23_Doses_2 <- RIMUS23_Doses_2  %>% mutate(from_dt=as.Date(from_dt)) %>% filter(from_dt+as.numeric(days_sup)>=as.Date("2021-06-16"))
+
+length(unique(RIMUS23_Doses_2$patid[RIMUS23_Doses_2$drug_class=="CGRP Oral"])) # 8363
+length(unique(RIMUS23_Doses_2$patid[RIMUS23_Doses_2$drug_class=="CGRP Injectable"|RIMUS23_Doses_2$drug_class=="CGRP Oral"])) # 13711
 
 RIME_MEDICATIONS <- fread("RIME Medications.txt")
 RIME_MEDICATIONS <- RIME_MEDICATIONS %>% filter(med_route=="NASAL") %>% select(drug_class, med_code, drug_id, generic_name)
@@ -10431,7 +10435,7 @@ RIME_MEDICATIONS <- RIME_MEDICATIONS %>% select(-drug_id)
 RIMUS23_Doses_2 <- RIME_MEDICATIONS %>% select(med_code) %>% inner_join(RIMUS23_Doses_2, by=c("med_code"="code"))
 
 unique(RIMUS23_Doses_2$drug_class)
-length(unique(RIMUS23_Doses_2$patid)) # Any 2972 nasal spray
-length(unique(RIMUS23_Doses_2$patid[RIMUS23_Doses_2$drug_class=="Triptan"])) # 2144 triptan nasal spray
+length(unique(RIMUS23_Doses_2$patid)) # Any 733 nasal spray
+length(unique(RIMUS23_Doses_2$patid[RIMUS23_Doses_2$drug_class=="Triptan"])) # 507 triptan nasal spray
 
 # -----------------------------------------------------------------

@@ -952,17 +952,16 @@ data.frame(Persis_classes_Zav %>% rename("ZAV"="mean") %>% full_join(Persis_clas
 
 # -----------
 # ON ZAV vs Ever tried last 6 months ------------
-ZAVUS24_Drug_Histories <- read.table("Source/ZAVUS24 Drug Histories.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
-ZAVUS24_Drug_Histories <- gather(ZAVUS24_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
-ZAVUS24_Drug_Histories$Month <- parse_number(as.character(ZAVUS24_Drug_Histories$Month))
-ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% mutate(ON=ifelse(grepl("134", Treat),1,0))
-ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% select(patient, Month, ON)
-ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% arrange(patient, Month) 
-ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% group_by(patient) %>% mutate(CUM_ON=cumsum(ON))
-ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% mutate(CUM_ON=ifelse(CUM_ON==0,0,1))
 
-ZAVUS24_Drug_Histories %>% filter(ON==1) %>% group_by(Month) %>% count()
 
-ZAVUS24_Drug_Histories %>% filter(CUM_ON==1) %>% group_by(Month) %>% count()
+ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
+ZAVUS24_Doses$from_dt  <- str_sub(as.character(ZAVUS24_Doses$from_dt), 1L, 7L)
+ZAVUS24_Doses <- ZAVUS24_Doses %>% select(patid, from_dt, generic) %>% distinct()
+
+length(unique(ZAVUS24_Doses$patid))
+
+ZAVUS24_Doses %>% filter(generic=="Zavegepant") %>% group_by(patid) %>% 
+  filter(from_dt==min(from_dt)) %>% ungroup() %>% group_by(from_dt) %>% count()
+
 
 # --------

@@ -1411,3 +1411,33 @@ df %>% mutate(Box=ifelse(Triptan_spray=="Triptan_spray", "Triptan_spray",
                 group_by(Box) %>% summarise(n=sum(weight))
 
 # -------
+
+# Pills per month of rimegepant ------------
+
+ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
+
+RIME_pats <- ZAVUS24_Doses %>% filter(generic=="Rimegepant") %>% select(patid) %>% distinct()
+ZAVUS24_Doses <- RIME_pats %>% left_join(ZAVUS24_Doses) %>% filter(generic=="Rimegepant")
+ZAVUS24_Doses <- ZAVUS24_Doses %>% filter(status != "G") %>% select(-c(provider, provcat, status, code, NPI))
+range(ZAVUS24_Doses$from_dt)
+ZAVUS24_Doses <- ZAVUS24_Doses %>% mutate(from_dt = as.Date(from_dt))  %>% filter(from_dt >= "2023-01-16") %>% filter(days_sup  != "")
+ZAVUS24_Doses <- ZAVUS24_Doses %>% arrange(patid, generic, from_dt) 
+ZAVUS24_Doses <- ZAVUS24_Doses %>% group_by(patid, generic) %>% mutate(elapsed=as.numeric(lead(from_dt)-from_dt))
+ZAVUS24_Doses <- ZAVUS24_Doses %>% drop_na()
+ZAVUS24_Doses <- ZAVUS24_Doses %>% filter(elapsed <= 92)
+ZAVUS24_Doses <- ZAVUS24_Doses %>% mutate(rate=30*(as.numeric(qty)/elapsed))
+
+ZAVUS24_Doses %>% mutate(rate=ifelse(elapsed==0, 0, rate)) %>%
+  group_by(patid, weight, generic) %>% summarise(mean=mean(rate)) %>%
+  mutate(mean=ifelse(mean>=13, "Prev", "Acute")) %>%
+  ungroup() %>% group_by(generic, mean) %>% summarise(n=sum(as.numeric(weight)))
+
+
+ZAVUS24_Doses %>% mutate(rate=ifelse(elapsed==0, 0, rate)) %>%
+  group_by(patid, weight, generic) %>% summarise(mean=mean(rate)) %>%
+  ggplot(aes(mean)) +
+  geom_density(fill="deepskyblue4", alpha=0.8) +
+  theme_minimal() +
+  ylab("Patient density \n") + xlab("\n Number of Rimegepant Pills per month")
+
+# --------

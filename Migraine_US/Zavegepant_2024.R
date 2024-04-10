@@ -1594,3 +1594,59 @@ MIGUS24_Doses %>% inner_join(Mod_Sev) %>%  group_by(Box, Box2) %>% summarise(n=s
   mutate(num=ifelse(is.na(num),0,num)) %>% mutate(share=num/den)
 
 # -------
+
+# Pills per month of rimegepant relative to Zavegepant / Nasal Triptan initiation ------------
+
+ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
+
+RIME_pats <- ZAVUS24_Doses %>% filter(generic=="Rimegepant") %>% select(patid) %>% distinct()
+ZAVUS24_Doses <- RIME_pats %>% left_join(ZAVUS24_Doses) 
+
+ZAVUS24_Doses <- ZAVUS24_Doses %>% filter(generic=="Zavegepant") %>% group_by(patid) %>% filter(from_dt==min(from_dt)) %>%
+  select(patid, from_dt) %>% rename("first_zav"="from_dt") %>%
+  left_join(ZAVUS24_Doses) %>% select(patid, first_zav, drug_id, generic, from_dt, days_sup, qty)
+
+
+ZAVUS24_Doses$first_zav <- as.Date(ZAVUS24_Doses$first_zav)
+ZAVUS24_Doses$from_dt <- as.Date(ZAVUS24_Doses$from_dt)
+
+ZAVUS24_Doses <- ZAVUS24_Doses %>% filter(generic=="Rimegepant")
+ZAVUS24_Doses <- ZAVUS24_Doses %>% mutate(from_dt=from_dt-first_zav) 
+ZAVUS24_Doses$from_dt <- as.numeric(ZAVUS24_Doses$from_dt) 
+
+ZAVUS24_Doses %>%
+  filter(from_dt<0) %>% select(patid) %>% distinct() %>%
+  inner_join(
+    ZAVUS24_Doses %>%
+  filter(from_dt>0) %>% select(patid) %>% distinct()
+  ) %>%
+  left_join(ZAVUS24_Doses) %>%
+  group_by(patid) %>% arrange(patid, abs(from_dt)) %>%
+  mutate(patid=as.character(patid)) %>%
+  filter(from_dt!=0) %>%
+  slice(1:2) %>%
+  #filter(from_dt>=(-100) & from_dt<=100) %>%
+  ggplot(aes(from_dt, days_sup)) +
+  geom_smooth()
+
+
+
+ZAVUS24_Doses %>%
+  filter(from_dt<0) %>% select(patid) %>% distinct() %>%
+  inner_join(
+    ZAVUS24_Doses %>%
+  filter(from_dt>0) %>% select(patid) %>% distinct()
+  ) %>%
+  left_join(ZAVUS24_Doses) %>%
+  group_by(patid) %>% arrange(patid, abs(from_dt)) %>%
+  mutate(patid=as.character(patid)) %>%
+  #filter(from_dt!=0) %>%
+  # slice(1:2) %>%
+  filter(from_dt>=(-100) & from_dt<=100) %>%
+  ggplot(aes(from_dt, qty)) +
+  geom_smooth() +
+  ylim(0,20)
+
+
+
+# --------------

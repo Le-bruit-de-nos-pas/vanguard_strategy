@@ -7,6 +7,7 @@ library(spatstat)
 library(lubridate)
 library("readxl")
 
+
 options(scipen = 999)
 
 # % With Oral/Inj CGRP or Nasal/triptan Spray -----------------------

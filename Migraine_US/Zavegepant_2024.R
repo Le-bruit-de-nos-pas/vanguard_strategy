@@ -1412,7 +1412,7 @@ df %>% mutate(Box=ifelse(Triptan_spray=="Triptan_spray", "Triptan_spray",
 
 # -------
 
-# Pills per month of rimegepant ------------
+# Pills per month of Rimegepant ------------
 
 ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
 

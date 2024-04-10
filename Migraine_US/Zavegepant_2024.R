@@ -1508,7 +1508,7 @@ MIGUS24_Doses %>%  group_by(Box, Box2) %>% summarise(n=sum(weight)) %>% rename("
   mutate(num=ifelse(is.na(num),0,num)) %>% mutate(share=num/den)
 
 # -------
-# NEW Patient Classification Ever vs 12 months WITH OLD ZAV Pats  ------------
+# NEW Patient Classification Ever vs 12 months: WITH OLD ZAV Pats  ------------
 Drug_formulary <- fread("Source/Drug_formulary.txt")
 
 MIGUS24_Drug_Histories_Extended_NoComorbs <- fread("Source/MIGUS24_Drug_Histories_Extended_NoComorbs.txt")

@@ -1644,9 +1644,78 @@ ZAVUS24_Doses %>%
   # slice(1:2) %>%
   filter(from_dt>=(-100) & from_dt<=100) %>%
   ggplot(aes(from_dt, qty)) +
-  geom_smooth() +
-  ylim(0,20)
+  geom_smooth(fill="deepskyblue4", colour="firebrick") +
+  ylim(0,20) +
+  theme_minimal() + 
+  xlab("\n Number of days relative to FIRST ZAVEGEPANT") +
+  ylab("Number of Rimegepant Pills per script \n")
 
 
 
-# --------------
+
+MIGUS24_Doses <- fread("Source/MIGUS24 Doses.txt")
+RIME_pats <- MIGUS24_Doses %>% filter(generic=="Rimegepant") %>% select(patid) %>% distinct()
+MIGUS24_Doses <- RIME_pats %>% left_join(MIGUS24_Doses) 
+dim(MIGUS24_Doses)
+
+
+RIME_MEDICATIONS <- fread("Source/RIME Medications.txt")
+RIME_MEDICATIONS$med_code <- substr(RIME_MEDICATIONS$med_code, start = 3, stop = nchar(RIME_MEDICATIONS$med_code))
+unique(RIME_MEDICATIONS$drug_group)
+unique(RIME_MEDICATIONS$med_route)
+
+RIME_MEDICATIONS <- RIME_MEDICATIONS %>% filter(drug_group=="Acute" & med_route=="NASAL") %>% 
+  select(med_code) %>% distinct() %>% mutate(NasalTriptan="NasalTriptan") %>% rename("code"="med_code")
+
+MIGUS24_Doses <- MIGUS24_Doses %>% left_join(RIME_MEDICATIONS)  %>% filter(NasalTriptan=="NasalTriptan") %>% 
+  group_by(patid) %>% filter(from_dt==min(from_dt)) %>%
+ select(patid, from_dt) %>% rename("first_nasal_triptan"="from_dt") %>%
+  left_join(MIGUS24_Doses) %>% select(patid, first_nasal_triptan, drug_id, generic, from_dt, days_sup, qty)
+
+
+MIGUS24_Doses$first_nasal_triptan <- as.Date(MIGUS24_Doses$first_nasal_triptan)
+MIGUS24_Doses$from_dt <- as.Date(MIGUS24_Doses$from_dt)
+
+MIGUS24_Doses <- MIGUS24_Doses %>% filter(generic=="Rimegepant")
+MIGUS24_Doses <- MIGUS24_Doses %>% mutate(from_dt=from_dt-first_nasal_triptan) 
+MIGUS24_Doses$from_dt <- as.numeric(MIGUS24_Doses$from_dt) 
+
+
+
+range(MIGUS24_Doses$from_dt)
+
+MIGUS24_Doses %>%
+  filter(from_dt<0) %>% select(patid) %>% distinct() %>%
+  inner_join(
+    ZAVUS24_Doses %>%
+  filter(from_dt>0) %>% select(patid) %>% distinct()
+  ) %>%
+  left_join(MIGUS24_Doses) %>%
+  group_by(patid) %>% arrange(patid, abs(from_dt)) %>%
+  mutate(patid=as.character(patid)) %>%
+  filter(from_dt>=(-100) & from_dt<=100) %>%
+  ggplot(aes(from_dt, qty)) +
+  geom_smooth(fill="deepskyblue4", colour="firebrick") +
+  #ylim(0,20) +
+  theme_minimal() + 
+  xlab("\n Number of days relative to FIRST ZAVEGEPANT") +
+  ylab("Number of Rimegepant Pills per script \n")
+
+
+
+
+MIGUS24_Doses %>%
+  group_by(patid) %>% arrange(patid, abs(from_dt)) %>%
+  mutate(patid=as.character(patid)) %>%
+  filter(from_dt>=(-100) & from_dt<=100) %>%
+  ggplot(aes(from_dt, qty)) +
+  geom_smooth(fill="deepskyblue4", colour="firebrick") +
+  ylim(0,20) +
+  theme_minimal() + 
+  xlab("\n Number of days relative to FIRST NASAL Triptan") +
+  ylab("Number of Rimegepant Pills per script \n")
+
+
+
+
+# --------------# --------------

@@ -1441,3 +1441,155 @@ ZAVUS24_Doses %>% mutate(rate=ifelse(elapsed==0, 0, rate)) %>%
   ylab("Patient density \n") + xlab("\n Number of Rimegepant Pills per month")
 
 # --------
+# NEW Patient Classification Ever vs 12 months ------------
+Drug_formulary <- fread("Source/Drug_formulary.txt")
+
+MIGUS24_Drug_Histories_Extended_NoComorbs <- fread("Source/MIGUS24_Drug_Histories_Extended_NoComorbs.txt")
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(version=="NEW_ZAV")
+sum(MIGUS24_Drug_Histories_Extended_NoComorbs$weight) # 21292150
+
+MIGUS24_Drug_Histories_Extended_NoComorbs <- gather(MIGUS24_Drug_Histories_Extended_NoComorbs, Month, Treat, month1:month60, factor_key=TRUE)
+MIGUS24_Drug_Histories_Extended_NoComorbs$Month <- parse_number(as.character(MIGUS24_Drug_Histories_Extended_NoComorbs$Month))
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(Month>=49)
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% select(-Month) %>% distinct() %>% filter(Treat!="-")
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% select(-version)
+MIGUS24_Drug_Histories_Extended_NoComorbs <- separate_rows(MIGUS24_Drug_Histories_Extended_NoComorbs, Treat, sep = ",", convert=T )
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% distinct()
+names(MIGUS24_Drug_Histories_Extended_NoComorbs)[3] <- "drug_id"
+
+MIGUS24_Doses <- fread("Source/MIGUS24 Doses.txt")
+MIGUS24_Doses <- MIGUS24_Doses %>% select(code, drug_id, generic, drug_class, drug_group, patid, weight) %>% distinct()
+MIGUS24_Doses <- MIGUS24_Doses %>% inner_join(MIGUS24_Drug_Histories_Extended_NoComorbs)
+
+
+
+RIME_MEDICATIONS <- fread("Source/RIME Medications.txt")
+RIME_MEDICATIONS$med_code <- substr(RIME_MEDICATIONS$med_code, start = 3, stop = nchar(RIME_MEDICATIONS$med_code))
+unique(RIME_MEDICATIONS$drug_group)
+RIME_MEDICATIONS <- RIME_MEDICATIONS %>% filter(drug_group=="Acute") %>% 
+  filter(med_route!="ORAL"&med_route!="MULTIPLE ROUTES"&med_route!="ROUTE NOT APPLICABLE"&med_route!="UNKNOWN") %>%
+  select(med_code) %>% distinct() %>% mutate(NonOralTriptans="NonOralTriptans") %>% rename("code"="med_code")
+
+MIGUS24_Doses <- MIGUS24_Doses %>% left_join(RIME_MEDICATIONS) %>% mutate(NonOralTriptans=ifelse(is.na(NonOralTriptans),"no",NonOralTriptans))
+
+NonOralTriptans <- MIGUS24_Doses %>% select(patid, NonOralTriptans) %>% distinct() %>% filter(NonOralTriptans=="NonOralTriptans") 
+
+MIGUS24_Doses <- MIGUS24_Doses %>% select(patid, drug_group) %>% distinct() %>% mutate(exp=1) %>% spread(key=drug_group, value=exp)
+MIGUS24_Doses[is.na(MIGUS24_Doses)] <- 0
+MIGUS24_Doses <- MIGUS24_Doses %>% mutate(Box=ifelse(`CGRP Oral`==1, "CGRP_Oral",
+                                                     ifelse(`CGRP Injectable`==1,"CGRP_Inj",
+                                                            ifelse(Preventive==1, "Prev", "Acute_Only"))))
+
+MIGUS24_Doses <- MIGUS24_Doses %>% left_join(NonOralTriptans)
+MIGUS24_Doses <- MIGUS24_Doses %>% mutate(NonOralTriptans=ifelse(is.na(NonOralTriptans),"no",NonOralTriptans))
+
+length(unique(MIGUS24_Doses$patid))
+
+MIGUS24_Doses <- MIGUS24_Doses %>% mutate(Box2=ifelse(NonOralTriptans=="NonOralTriptans","NonOralTriptans",
+                                     ifelse(Triptans==1, "Triptans",
+                                            ifelse(Symptomatic==1,"Symptomatic", "No_Sympt"))))
+
+
+MIGUS24_Drug_Histories_Extended_NoComorbs <- fread("Source/MIGUS24_Drug_Histories_Extended_NoComorbs.txt")
+MIGUS24_Drug_Histories_Extended_NoComorbs <-MIGUS24_Drug_Histories_Extended_NoComorbs %>% select(patid, weight)
+
+Mod_Sev <- fread("Source/Mod_Sev.txt")
+Mod_Sev <- Mod_Sev %>% select(patid)
+
+MIGUS24_Doses <- Mod_Sev %>% inner_join(MIGUS24_Doses)
+
+MIGUS24_Doses <- MIGUS24_Doses %>% left_join(MIGUS24_Drug_Histories_Extended_NoComorbs) 
+
+
+Nasal <- MIGUS24_Doses %>% filter(`CGRP Nasal`==1) %>% select(patid) %>% mutate(Nasal="Nasal")
+
+MIGUS24_Doses %>%  group_by(Box, Box2) %>% summarise(n=sum(weight)) %>% rename("den"="n") %>%
+  left_join(MIGUS24_Doses %>%  inner_join(Nasal) %>% group_by(Box, Box2) %>% summarise(n=sum(weight)) %>% rename("num"="n")) %>%
+  mutate(num=ifelse(is.na(num),0,num)) %>% mutate(share=num/den)
+
+# -------
+# NEW Patient Classification Ever vs 12 months WITH OLD ZAV Pats  ------------
+Drug_formulary <- fread("Source/Drug_formulary.txt")
+
+MIGUS24_Drug_Histories_Extended_NoComorbs <- fread("Source/MIGUS24_Drug_Histories_Extended_NoComorbs.txt")
+
+sum(MIGUS24_Drug_Histories_Extended_NoComorbs$weight) # 21292150
+
+MIGUS24_Drug_Histories_Extended_NoComorbs <- gather(MIGUS24_Drug_Histories_Extended_NoComorbs, Month, Treat, month1:month60, factor_key=TRUE)
+MIGUS24_Drug_Histories_Extended_NoComorbs$Month <- parse_number(as.character(MIGUS24_Drug_Histories_Extended_NoComorbs$Month))
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(Month>=49)
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% select(-Month) %>% distinct() %>% filter(Treat!="-")
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% select(-version)
+MIGUS24_Drug_Histories_Extended_NoComorbs <- separate_rows(MIGUS24_Drug_Histories_Extended_NoComorbs, Treat, sep = ",", convert=T )
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% distinct()
+names(MIGUS24_Drug_Histories_Extended_NoComorbs)[3] <- "drug_id"
+
+MIGUS24_Doses <- fread("Source/MIGUS24 Doses.txt")
+MIGUS24_Doses <- MIGUS24_Doses %>% select(code, drug_id, generic, drug_class, drug_group, patid, weight) %>% distinct()
+ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
+ZAVUS24_Doses <- ZAVUS24_Doses %>% select(code, drug_id, generic, drug_class, drug_group, patid, weight) %>% distinct()
+
+MIGUS24_Doses <- MIGUS24_Doses %>% bind_rows(ZAVUS24_Doses)
+
+MIGUS24_Doses <- MIGUS24_Doses %>% inner_join(MIGUS24_Drug_Histories_Extended_NoComorbs)
+
+
+RIME_MEDICATIONS <- fread("Source/RIME Medications.txt")
+RIME_MEDICATIONS$med_code <- substr(RIME_MEDICATIONS$med_code, start = 3, stop = nchar(RIME_MEDICATIONS$med_code))
+unique(RIME_MEDICATIONS$drug_group)
+RIME_MEDICATIONS <- RIME_MEDICATIONS %>% filter(drug_group=="Acute") %>% 
+  filter(med_route!="ORAL"&med_route!="MULTIPLE ROUTES"&med_route!="ROUTE NOT APPLICABLE"&med_route!="UNKNOWN") %>%
+  select(med_code) %>% distinct() %>% mutate(NonOralTriptans="NonOralTriptans") %>% rename("code"="med_code")
+
+MIGUS24_Doses <- MIGUS24_Doses %>% left_join(RIME_MEDICATIONS) %>% mutate(NonOralTriptans=ifelse(is.na(NonOralTriptans),"no",NonOralTriptans))
+
+NonOralTriptans <- MIGUS24_Doses %>% select(patid, NonOralTriptans) %>% distinct() %>% filter(NonOralTriptans=="NonOralTriptans") 
+
+MIGUS24_Doses <- MIGUS24_Doses %>% select(patid, drug_group) %>% distinct() %>% mutate(exp=1) %>% spread(key=drug_group, value=exp)
+MIGUS24_Doses[is.na(MIGUS24_Doses)] <- 0
+names(MIGUS24_Doses)
+MIGUS24_Doses <- MIGUS24_Doses %>% mutate(Box=ifelse(`CGRP Oral`==1, "CGRP_Oral",
+                                                     ifelse(`CGRP Injectable`==1,"CGRP_Inj",
+                                                            ifelse(Preventive==1, "Prev", "Acute_Only"))))
+
+MIGUS24_Doses <- MIGUS24_Doses %>% left_join(NonOralTriptans)
+MIGUS24_Doses <- MIGUS24_Doses %>% mutate(NonOralTriptans=ifelse(is.na(NonOralTriptans),"no",NonOralTriptans))
+
+length(unique(MIGUS24_Doses$patid))
+
+MIGUS24_Doses <- MIGUS24_Doses %>% mutate(Box2=ifelse(NonOralTriptans=="NonOralTriptans","NonOralTriptans",
+                                     ifelse(Triptans==1, "Triptans",
+                                            ifelse(Symptomatic==1,"Symptomatic", "No_Sympt"))))
+
+
+MIGUS24_Drug_Histories_Extended_NoComorbs <- fread("Source/MIGUS24_Drug_Histories_Extended_NoComorbs.txt")
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% select(patid, weight)
+
+
+MIGUS24_Doses <- MIGUS24_Doses %>% left_join(MIGUS24_Drug_Histories_Extended_NoComorbs) 
+
+Nasal <- MIGUS24_Doses %>% filter(`CGRP Nasal`==1) %>% select(patid) %>% mutate(Nasal="Nasal")
+
+
+MIGUS24_Doses
+
+
+MIGUS24_Demographics <- fread("Source/MIGUS24 Demographics.txt")
+MIGUS24_Demographics <- MIGUS24_Demographics %>%  select(weight, AGE, GENDER)  %>% distinct()
+ZAVUS24_Demographics <- fread("Source/ZAVUS24 Demographics.txt")
+ZAVUS24_Demographics <- ZAVUS24_Demographics %>%  select(patid, age, gender) 
+
+ZAV_weights <- ZAVUS24_Demographics %>% left_join(MIGUS24_Demographics %>% rename("age"="AGE", "gender"="GENDER")) %>%
+  select(patid, weight) %>% rename("ZAV_weight"="weight")
+
+
+MIGUS24_Doses <- MIGUS24_Doses %>% left_join(ZAV_weights) %>% mutate(ZAV_weight=ifelse(is.na(ZAV_weight), weight, ZAV_weight))
+
+Mod_Sev <- fread("Source/Mod_Sev.txt")
+Mod_Sev <- Mod_Sev %>% select(patid)
+
+MIGUS24_Doses %>% inner_join(Mod_Sev) %>%  group_by(Box, Box2) %>% summarise(n=sum(ZAV_weight)) %>% rename("den"="n") %>%
+  left_join(MIGUS24_Doses %>% inner_join(Mod_Sev) %>%   inner_join(Nasal) %>% group_by(Box, Box2) %>% summarise(n=sum(ZAV_weight)) %>% rename("num"="n")) %>%
+  mutate(num=ifelse(is.na(num),0,num)) %>% mutate(share=num/den)
+
+# -------

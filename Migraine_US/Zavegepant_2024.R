@@ -1731,7 +1731,6 @@ MIGUS24_Drug_Histories_Extended_NoComorbs <- separate_rows(MIGUS24_Drug_Historie
 
 N_drugs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% group_by(patid, weight) %>% count()
 
-string_CGRP_Nasal <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_class == "CGRP Nasal"], collapse = "|"),")\\b")
 string_CGRP_Oral <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_class == "CGRP Oral"], collapse = "|"),")\\b")
 string_CGRP_Inj <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_class == "CGRP Injectable"], collapse = "|"),")\\b")
 string_Acute <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_group == "Triptans"], collapse = "|"),")\\b")
@@ -1779,3 +1778,119 @@ MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(grepl(string_Preventive, mo
   ungroup() %>% mutate(tot=sum(pop)) %>% mutate(pop=pop/tot)
 
 # ------
+# Nasal Triptan Sprays ON month 60 - Concomitant Classes and Stock before starting -------------
+
+Drug_formulary <- fread("Source/Drug_formulary_NS.txt")
+data.frame(Drug_formulary)
+data.frame(Drug_formulary %>% select(drug_class, drug_group) %>% distinct())
+
+string_Triptan_Nasal <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_group_2=="Nasal Spray" &
+                                                                      Drug_formulary$drug_group=="Triptans"], collapse = "|"),")\\b")
+
+
+# Concomitant Classes
+
+MIGUS24_Flows_Long_version_NS <- fread("Source/MIGUS24 Flows_Long - version NS.txt")
+length(unique(MIGUS24_Flows_Long_version_NS$patient))
+
+MIGUS24_Flows_Long_version_NS <- MIGUS24_Flows_Long_version_NS %>% filter(p2==60) %>% select(patient, weight, d2)
+
+MIGUS24_Flows_Long_version_NS <- MIGUS24_Flows_Long_version_NS %>% filter(d2!="-")
+MIGUS24_Flows_Long_version_NS <- MIGUS24_Flows_Long_version_NS %>% filter(grepl(string_Triptan_Nasal, d2))
+sum(MIGUS24_Flows_Long_version_NS$weight) # 39086.42
+
+MIGUS24_Flows_Long_version_NS <- separate_rows(MIGUS24_Flows_Long_version_NS, d2, sep = ",", convert=T )
+
+MIGUS24_Flows_Long_version_NS <- MIGUS24_Flows_Long_version_NS %>% left_join(Drug_formulary, by=c("d2"="drug_id_2"))
+
+MIGUS24_Demographics <- fread("Source/MIGUS24 Demographics.txt")
+MIGUS24_Demographics <- MIGUS24_Demographics %>%  select(patid, CV, psychiatric, epileptic) 
+names(MIGUS24_Demographics)[1] <- "patient"
+
+MIGUS24_Flows_Long_version_NS <- MIGUS24_Demographics %>% inner_join(MIGUS24_Flows_Long_version_NS)
+
+MIGUS24_Flows_Long_version_NS <- MIGUS24_Flows_Long_version_NS %>% mutate(flag=ifelse(CV==1&drug_class=="Beta Blocker", 1,
+                                                                 ifelse(CV==1&drug_class=="Cardiovascular",1,
+                                                                        ifelse(CV==1&drug_class=="Calcium Blocker",1,
+                                                                               ifelse(epileptic==1&drug_class=="Antiepileptic",1,
+                                                                                      ifelse(psychiatric==1&drug_class=="SSRI",1,
+                                                                                             ifelse(psychiatric==1&drug_class=="SNRI",1,
+                                                                                                    ifelse(psychiatric==1&drug_class=="Antipsychotic",1,
+                                                                                                           ifelse(psychiatric==1&drug_class=="Tricyclic",1,0)))))))))
+
+MIGUS24_Flows_Long_version_NS <- MIGUS24_Flows_Long_version_NS %>% filter(flag==0) %>% select(-flag)
+
+
+MIGUS24_Flows_Long_version_NS %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight))
+
+data.frame(MIGUS24_Flows_Long_version_NS %>% select(patient, weight, drug_class) %>% distinct() %>%
+  group_by(drug_class) %>% summarise(n=sum(weight)/39086.42) %>% arrange(-n))
+
+
+# Stock Before Start
+
+
+MIGUS24_Flows_Long_version_NS <- fread("Source/MIGUS24 Flows_Long - version NS.txt")
+length(unique(MIGUS24_Flows_Long_version_NS$patient))
+
+MIGUS24_Flows_Long_version_NS <- MIGUS24_Flows_Long_version_NS %>% filter(grepl(string_Triptan_Nasal, d2)&!grepl(string_Triptan_Nasal, d1))
+MIGUS24_Flows_Long_version_NS <- MIGUS24_Flows_Long_version_NS %>% group_by(patient) %>% filter(p2==min(p2)) %>% ungroup()
+
+ Mod_Sev  %>% inner_join(MIGUS24_Flows_Long_version_NS) %>% group_by(s1) %>% summarise(n=sum(weight))
+
+
+MIGUS24_Flows_Long_version_NS <- MIGUS24_Flows_Long_version_NS %>% select(patient, weight, d1)
+
+Mod_Sev <- fread("Source/Mod_Sev.txt")
+Mod_Sev <- Mod_Sev %>% select(patid)  %>% rename("patient"="patid")
+
+MIGUS24_Flows_Long_version_NS <- Mod_Sev  %>% inner_join(MIGUS24_Flows_Long_version_NS)
+
+sum(MIGUS24_Flows_Long_version_NS$weight) # 277856.6
+
+MIGUS24_Flows_Long_version_NS <- separate_rows(MIGUS24_Flows_Long_version_NS, d1, sep = ",", convert=T )
+
+MIGUS24_Flows_Long_version_NS <- MIGUS24_Flows_Long_version_NS %>% left_join(Drug_formulary, by=c("d1"="drug_id_2"))
+
+
+
+
+MIGUS24_Demographics <- fread("Source/MIGUS24 Demographics.txt")
+MIGUS24_Demographics <- MIGUS24_Demographics %>%  select(patid, CV, psychiatric, epileptic) 
+names(MIGUS24_Demographics)[1] <- "patient"
+
+MIGUS24_Flows_Long_version_NS <- MIGUS24_Demographics %>% inner_join(MIGUS24_Flows_Long_version_NS)
+
+MIGUS24_Flows_Long_version_NS <- MIGUS24_Flows_Long_version_NS %>% mutate(flag=ifelse(CV==1&drug_class=="Beta Blocker", 1,
+                                                                 ifelse(CV==1&drug_class=="Cardiovascular",1,
+                                                                        ifelse(CV==1&drug_class=="Calcium Blocker",1,
+                                                                               ifelse(epileptic==1&drug_class=="Antiepileptic",1,
+                                                                                      ifelse(psychiatric==1&drug_class=="SSRI",1,
+                                                                                             ifelse(psychiatric==1&drug_class=="SNRI",1,
+                                                                                                    ifelse(psychiatric==1&drug_class=="Antipsychotic",1,
+                                                                                                           ifelse(psychiatric==1&drug_class=="Tricyclic",1,0)))))))))
+
+MIGUS24_Flows_Long_version_NS <- MIGUS24_Flows_Long_version_NS %>% filter(flag==0) %>% select(-flag)
+
+
+df <- MIGUS24_Flows_Long_version_NS %>% select(patient, weight, drug_group) %>% distinct() %>%
+  mutate(exp=1) %>% spread(key=drug_group, value=exp)
+  
+df[is.na(df)] <- 0
+head(df)
+
+sum(df$weight) # 208918.1
+
+
+df %>% mutate(Box=ifelse(`CGRP Oral`==1,"CGRP_Oral",
+                         ifelse(`CGRP Injectable`==1,"CGRP_Injectable",
+                                ifelse(Preventive==1&Triptans==1,"PrevTriptan",
+                                       ifelse(Preventive==1&Symptomatic==1,"PrevSympt",
+                                              ifelse(Preventive==1, "Prev",
+                                                     ifelse(Triptans==1,"Triptans",
+                                                            ifelse(Symptomatic==1,"Symp",
+                                                                   ifelse(`<NA>`==1,"None",NA))))))))) %>%
+  group_by(Box) %>% summarise(n=sum(weight)) 
+# 277856.6
+
+# ----------

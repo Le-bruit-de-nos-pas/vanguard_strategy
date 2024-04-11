@@ -1894,3 +1894,44 @@ df %>% mutate(Box=ifelse(`CGRP Oral`==1,"CGRP_Oral",
 # 277856.6
 
 # ----------
+# Number of switches last 12 months --------------
+
+Drug_formulary <- fread("Source/Drug_formulary.txt")
+
+MIGUS24_Drug_Histories_Extended_NoComorbs <- fread("Source/MIGUS24_Drug_Histories_Extended_NoComorbs.txt")
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(version=="NEW_ZAV") %>% select(-version)
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% select(patid, weight, month60)
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(month60!="-")
+MIGUS24_Drug_Histories_Extended_NoComorbs <- separate_rows(MIGUS24_Drug_Histories_Extended_NoComorbs, month60, sep = ",", convert=T )
+
+N_drugs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% group_by(patid, weight) %>% count()
+
+string_CGRP_Nasal <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_class == "CGRP Nasal"], collapse = "|"),")\\b")
+string_CGRP_Oral <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_class == "CGRP Oral"], collapse = "|"),")\\b")
+string_CGRP_Inj <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_class == "CGRP Injectable"], collapse = "|"),")\\b")
+string_Acute <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_group == "Triptans"], collapse = "|"),")\\b")
+string_Preventive <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_group == "Preventive"], collapse = "|"),")\\b")
+
+MIGUS24_Drug_Histories_Extended_NoComorbs <- fread("Source/MIGUS24_Drug_Histories_Extended_NoComorbs.txt")
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(version=="NEW_ZAV") %>% select(-version)
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% select(patid, weight, month60)
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(month60!="-")
+
+CGRP_Nasal <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(grepl(string_CGRP_Nasal, month60)) %>% select(patid)
+CGRP_Oral <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(grepl(string_CGRP_Oral, month60)) %>% select(patid)
+CGRP_Inj <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(grepl(string_CGRP_Inj, month60)) %>% select(patid)
+Acute <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(grepl(string_Acute, month60)) %>%  select(patid)
+Preventive <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(grepl(string_Preventive, month60)) %>% select(patid)
+
+MIGUS24_Drug_Histories_Extended_NoComorbs <- fread("Source/MIGUS24_Drug_Histories_Extended_NoComorbs.txt")
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% select(patid, weight, month48:month60)
+MIGUS24_Drug_Histories_Extended_NoComorbs <- gather(MIGUS24_Drug_Histories_Extended_NoComorbs, Month, Treat, month48:month60, factor_key=TRUE)
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% arrange(patid, Month)
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% group_by(patid) %>%
+  mutate(flag=ifelse(Treat!=lag(Treat),1,0))
+
+MIGUS24_Drug_Histories_Extended_NoComorbs %>% ungroup() %>% filter(flag==1) %>%
+  group_by(patid) %>% count() %>% ungroup() %>%
+  inner_join(Preventive) %>% summarise(mean=mean(n))
+
+# ---------

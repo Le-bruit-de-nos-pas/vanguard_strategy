@@ -515,6 +515,30 @@ data.frame(ZAVUS24_Drug_Histories %>% ungroup() %>% group_by(Exp) %>% count() %>
 
 
 
+ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
+Drugs_lookup <- ZAVUS24_Doses %>% select(drug_id, generic, drug_class, drug_group) %>% distinct()
+Drugs_lookup <- Drugs_lookup %>% arrange(drug_id)
+unique(Drugs_lookup$drug_group)
+
+
+ZAVUS24_Drug_Histories <- read.table("Source/ZAVUS24 Drug Histories.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+ZAVUS24_Drug_Histories <- gather(ZAVUS24_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% filter(Month=="month60")
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% filter(grepl("134", Treat))
+length(unique(ZAVUS24_Drug_Histories$patient))
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% select(patient, Treat)
+ZAVUS24_Drug_Histories <- separate_rows(ZAVUS24_Drug_Histories, Treat, sep = ",", convert=T )
+
+ZAVUS24_Drug_Histories %>% filter(Treat!="134") %>% group_by(patient) %>% count() %>% ungroup() %>% summarise(mean=mean(n))
+
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% distinct() %>% left_join(Drugs_lookup %>% select(drug_id, drug_class), by=c("Treat"="drug_id"))
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% select(patient, drug_class) %>% distinct()
+
+data.frame(ZAVUS24_Drug_Histories %>% group_by(drug_class) %>% count() %>% mutate(n=n/138) %>% arrange(-n))
+
+
+
+
 # -------------
 # Generate long flows table --------------
 MIG_Drug_Histories <- read.table("Source/ZAVUS24 Drug Histories.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)

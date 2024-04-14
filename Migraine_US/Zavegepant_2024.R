@@ -1959,3 +1959,65 @@ MIGUS24_Drug_Histories_Extended_NoComorbs %>% ungroup() %>% filter(flag==1) %>%
   inner_join(Preventive) %>% summarise(mean=mean(n))
 
 # ---------
+# Supply days and quantity of nasal triptan spray per year ---------
+Drug_formulary <- fread("Source/Drug_formulary_NS.txt")
+data.frame(Drug_formulary)
+data.frame(Drug_formulary %>% select(drug_class, drug_group) %>% distinct())
+
+string_Triptan_Nasal <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_group_2=="Nasal Spray" &
+                                                                      Drug_formulary$drug_group=="Triptans"], collapse = "|"),")\\b")
+
+
+MIGUS24_Doses_version_NS <- fread("Source/MIGUS24 Doses - version NS.txt")
+names(MIGUS24_Doses_version_NS)
+unique(MIGUS24_Doses_version_NS$status)
+
+MIGUS24_Doses_version_NS <- MIGUS24_Doses_version_NS %>% select(drug_id_2, patid, weight, from_dt, days_sup, qty) %>% distinct()
+
+range(MIGUS24_Doses_version_NS$from_dt)
+
+MIGUS24_Doses_version_NS <- MIGUS24_Doses_version_NS %>% filter(grepl(string_Triptan_Nasal, drug_id_2))
+
+MIGUS24_Doses_version_NS %>% mutate(from_dt=as.Date(from_dt)) %>%
+  filter(from_dt>="2023-01-16") %>%
+  group_by(patid, weight) %>%
+  mutate(days_sup=sum(days_sup)) %>%
+  mutate(qty=sum(qty))  %>%
+  ungroup() %>%
+  select(patid, days_sup, qty) %>% distinct() %>%
+  summarise(days_sup=mean(days_sup), qty=mean(qty))
+
+#   days_sup   qty
+# 1     105.  30.8
+
+
+MIGUS24_Doses_version_NS %>% mutate(from_dt=as.Date(from_dt)) %>%
+  filter(from_dt>="2023-01-16") %>%
+   group_by(patid, weight) %>%
+  mutate(days_sup=sum(days_sup)) %>%
+  mutate(qty=sum(qty))  %>%
+  ungroup() %>%
+  select(patid, days_sup, qty) %>% distinct() %>%
+  ggplot(aes(days_sup)) +
+  geom_density(colour="navy", size=2) +
+  theme_minimal() +
+  xlab("\n Number of Supply Days per Year") +
+  ylab("Patient density \n")
+
+
+
+MIGUS24_Doses_version_NS %>% mutate(from_dt=as.Date(from_dt)) %>%
+  filter(from_dt>="2023-01-16") %>%
+   group_by(patid, weight) %>%
+  mutate(days_sup=sum(days_sup)) %>%
+  mutate(qty=sum(qty))  %>%
+  ungroup() %>%
+  select(patid, days_sup, qty) %>% distinct() %>%
+  ggplot(aes(qty)) +
+  geom_density(colour="firebrick", size=2) +
+  theme_minimal() +
+  xlab("\n Number of doses per Year") +
+  ylab("Patient density \n")
+
+
+# ----------

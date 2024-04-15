@@ -2020,4 +2020,45 @@ MIGUS24_Doses_version_NS %>% mutate(from_dt=as.Date(from_dt)) %>%
   ylab("Patient density \n")
 
 
+Drug_formulary <- fread("Source/Drug_formulary_NS.txt")
+data.frame(Drug_formulary)
+data.frame(Drug_formulary %>% select(drug_class, drug_group) %>% distinct())
+
+string_Triptan_Nasal <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_group_2=="Nasal Spray" &
+                                                                      Drug_formulary$drug_group=="Triptans"], collapse = "|"),")\\b")
+
+
+MIGUS24_Doses_version_NS <- fread("Source/MIGUS24 Doses - version NS.txt")
+names(MIGUS24_Doses_version_NS)
+unique(MIGUS24_Doses_version_NS$status)
+
+MIGUS24_Doses_version_NS <- MIGUS24_Doses_version_NS %>% select(drug_id_2, patid, weight, from_dt, days_sup, qty) %>% distinct()
+
+range(MIGUS24_Doses_version_NS$from_dt)
+
+MIGUS24_Doses_version_NS <- MIGUS24_Doses_version_NS %>% filter(grepl(string_Triptan_Nasal, drug_id_2))
+
+
+MIGUS24_Doses_version_NS %>% mutate(from_dt=as.Date(from_dt)) %>%
+  filter(from_dt>="2023-01-16") %>%
+  mutate(from_dt=str_sub(as.character(from_dt), 1L,7L)) %>%
+  select(patid, weight, from_dt) %>% distinct() %>%
+  group_by(patid, weight) %>% count() %>% ungroup() %>%
+  summarise(mean=median(n))
+
+MIGUS24_Doses_version_NS %>% mutate(from_dt=as.Date(from_dt)) %>%
+  filter(from_dt>="2023-01-16") %>%
+  mutate(from_dt=str_sub(as.character(from_dt), 1L,7L)) %>%
+  select(patid, weight, from_dt) %>% distinct() %>%
+  group_by(patid, weight) %>% count() %>% ungroup() %>%
+  ggplot(aes(n)) +
+  geom_density(colour="firebrick", size=2) +
+  theme_minimal() +
+  xlab("\n Number of Different Months Used Nasal Triptan \n (NOT necessarily contiguously)") +
+  ylab("Patient density \n")
+
+
+
+
+
 # ----------

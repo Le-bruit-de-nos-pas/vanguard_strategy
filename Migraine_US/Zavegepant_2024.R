@@ -1676,6 +1676,25 @@ ZAVUS24_Doses %>%
 
 
 
+# ZAVUS24_Doses %>%
+#   filter(from_dt<0) %>% select(patid) %>% distinct() %>%
+#   inner_join(
+#     ZAVUS24_Doses %>%
+#   filter(from_dt>0) %>% select(patid) %>% distinct()
+#   ) %>%
+#   left_join(ZAVUS24_Doses) %>%
+#   group_by(patid) %>% arrange(patid, abs(from_dt)) %>%
+#   mutate(patid=as.character(patid)) %>%
+#   filter(from_dt!=0) %>%
+#   #filter(from_dt>=(-100) & from_dt<=100) %>%
+#   slice(1:2) %>% mutate(from_dt=ifelse(from_dt<0,0,1)) %>%
+#   distinct() %>% ungroup() %>%
+#   spread(key=from_dt, value=qty) %>%
+#   mutate(diff=`1`-`0`) %>%
+#   ggplot(aes(diff)) + 
+#   geom_density()
+
+
 MIGUS24_Doses <- fread("Source/MIGUS24 Doses.txt")
 RIME_pats <- MIGUS24_Doses %>% filter(generic=="Rimegepant") %>% select(patid) %>% distinct()
 MIGUS24_Doses <- RIME_pats %>% left_join(MIGUS24_Doses) 
@@ -2281,3 +2300,45 @@ N_Months %>% inner_join(df) %>% mutate(patid=as.character(patid)) %>%
   filter(Diff>0&perc<1) %>% ungroup() %>% summarise(mean=mean(perc))
 
 # -------
+# Generics Before vs After First Zavegepant ------------------
+
+flMIG <- fread("Source/MIG_Flows_Aux_Long.txt")
+flMIG <- flMIG %>% select(patient, weight, p1, p2, d1, d2, s1, s2)
+flMIG <- flMIG %>% mutate(p1 = as.numeric(p1)) %>% mutate(p2=as.numeric(p2))
+
+First_ZAV <- flMIG %>% 
+  filter(grepl("134", d2)) %>% group_by(patient) %>% filter(p2==min(p2)) %>% select(patient, p2) %>% rename("First_ZAV"="p2")
+
+flMIG <- First_ZAV %>% left_join(flMIG)
+
+flMIG <- flMIG %>% filter(First_ZAV>1&First_ZAV<60)  %>% mutate(before=First_ZAV-1) %>% mutate(after=First_ZAV+1) 
+
+before <- flMIG %>% filter(p2==before) %>% select(patient, d2)
+current <- flMIG %>% filter(p2==First_ZAV) %>% select(patient, d2)
+after <- flMIG %>% filter(p2==after) %>% select(patient, d2)
+
+before <- separate_rows(before, d2, sep = ",", convert=T )
+current <- separate_rows(current, d2, sep = ",", convert=T )
+after <- separate_rows(after, d2, sep = ",", convert=T )
+
+
+ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
+Drugs_lookup <- ZAVUS24_Doses %>% select(drug_id, generic, drug_class, drug_group) %>% distinct()
+Drugs_lookup <- Drugs_lookup %>% arrange(drug_id)
+unique(Drugs_lookup$drug_group)
+
+
+data.frame(before %>% mutate(d2=as.character(d2)) %>% left_join(Drugs_lookup %>% mutate(drug_id=as.character(drug_id)), by=c("d2"="drug_id")) %>% 
+  select(patient, generic) %>% distinct() %>% group_by(generic) %>% count() %>% mutate(n=n/length(unique(before$patient))) %>%
+  rename("before"="n") %>%
+  full_join(
+    current %>% mutate(d2=as.character(d2)) %>% left_join(Drugs_lookup %>% mutate(drug_id=as.character(drug_id)), by=c("d2"="drug_id")) %>% 
+  select(patient, generic) %>% distinct() %>% group_by(generic) %>% count() %>% mutate(n=n/length(unique(current$patient))) %>%
+  rename("current"="n")) %>%
+  full_join(
+    after %>% mutate(d2=as.character(d2)) %>% left_join(Drugs_lookup %>% mutate(drug_id=as.character(drug_id)), by=c("d2"="drug_id")) %>% 
+  select(patient, generic) %>% distinct() %>% group_by(generic) %>% count() %>% mutate(n=n/length(unique(after$patient))) %>%
+  rename("after"="n")
+  ))
+
+# ---------------

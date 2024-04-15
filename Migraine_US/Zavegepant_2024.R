@@ -2163,6 +2163,9 @@ QTY_ON_Nasal <- MIGUS24_Doses_version_NS %>% mutate(from_dt=as.Date(from_dt)) %>
 df <- Months_ON_Nasal %>% inner_join(QTY_ON_Nasal %>% select(-days_sup))
 
 
+df %>% mutate(div=qty/Months) %>% group_by(Months) %>% summarise(mean=mean(div))
+
+
 max(df$qty) # 74
 
 df$group <- as.numeric(cut(df$qty,10))

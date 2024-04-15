@@ -2062,3 +2062,115 @@ MIGUS24_Doses_version_NS %>% mutate(from_dt=as.Date(from_dt)) %>%
 
 
 # ----------
+# Average pills per month Nasal triptan spray ---------
+
+Drug_formulary <- fread("Source/Drug_formulary_NS.txt")
+data.frame(Drug_formulary)
+data.frame(Drug_formulary %>% select(drug_class, drug_group) %>% distinct())
+string_Triptan_Nasal <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_group_2=="Nasal Spray" &
+                                                                      Drug_formulary$drug_group=="Triptans"], collapse = "|"),")\\b")
+
+
+MIGUS24_Doses_version_NS <- fread("Source/MIGUS24 Doses - version NS.txt")
+names(MIGUS24_Doses_version_NS)
+unique(MIGUS24_Doses_version_NS$status)
+MIGUS24_Doses_version_NS <- MIGUS24_Doses_version_NS  %>% filter(status != "G") %>% select(drug_id_2, patid, weight, from_dt, days_sup, qty) %>% distinct()
+range(MIGUS24_Doses_version_NS$from_dt)
+MIGUS24_Doses_version_NS <- MIGUS24_Doses_version_NS %>% filter(grepl(string_Triptan_Nasal, drug_id_2))
+
+MIGUS24_Doses_version_NS <- MIGUS24_Doses_version_NS %>% mutate(from_dt = as.Date(from_dt))  %>% filter(from_dt >= "2023-01-16") %>% filter(days_sup  != "")
+MIGUS24_Doses_version_NS <- MIGUS24_Doses_version_NS %>% select(-drug_id_2) %>% distinct()
+MIGUS24_Doses_version_NS <- MIGUS24_Doses_version_NS %>% arrange(patid, from_dt) 
+MIGUS24_Doses_version_NS <- MIGUS24_Doses_version_NS %>% group_by(patid) %>% mutate(elapsed=as.numeric(lead(from_dt)-from_dt))
+MIGUS24_Doses_version_NS <- MIGUS24_Doses_version_NS %>% drop_na()
+MIGUS24_Doses_version_NS <- MIGUS24_Doses_version_NS %>% filter(elapsed <= 92)
+MIGUS24_Doses_version_NS <- MIGUS24_Doses_version_NS %>% mutate(rate=30*(as.numeric(qty)/elapsed))
+
+
+MIGUS24_Doses_version_NS %>% mutate(rate=ifelse(elapsed==0, 0, rate)) %>%
+  group_by(patid, weight) %>% summarise(rate=mean(rate)) %>%
+  ungroup() %>% summarise(mean=mean(rate))
+
+
+MIGUS24_Doses_version_NS %>% mutate(rate=ifelse(elapsed==0, 0, rate)) %>%
+  group_by(patid, weight, drug_id_2) %>% summarise(mean=mean(rate)) %>%
+  mutate(mean=ifelse(mean>=13, "Prev", "Acute")) %>%
+  ungroup() %>% group_by(drug_id_2, mean) %>% summarise(n=sum(as.numeric(weight)))
+
+
+
+MIGUS24_Doses_version_NS %>% mutate(rate=ifelse(elapsed==0, 0, rate)) %>%
+  group_by(patid, weight, drug_id_2) %>% summarise(mean=mean(rate)) %>%
+  ggplot(aes(mean)) +
+  geom_density(fill="deepskyblue4", alpha=0.8) +
+  theme_minimal() +
+  ylab("Patient density \n") + xlab("\n Number of Nasal Spray Doses per month")
+
+# ----------------
+# Number of distinct months on nasal triptan vs yearly doses ----------
+Drug_formulary <- fread("Source/Drug_formulary_NS.txt")
+data.frame(Drug_formulary)
+data.frame(Drug_formulary %>% select(drug_class, drug_group) %>% distinct())
+
+string_Triptan_Nasal <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_group_2=="Nasal Spray" &
+                                                                      Drug_formulary$drug_group=="Triptans"], collapse = "|"),")\\b")
+
+
+MIGUS24_Doses_version_NS <- fread("Source/MIGUS24 Doses - version NS.txt")
+names(MIGUS24_Doses_version_NS)
+unique(MIGUS24_Doses_version_NS$status)
+
+MIGUS24_Doses_version_NS <- MIGUS24_Doses_version_NS %>% select(drug_id_2, patid, weight, from_dt, days_sup, qty) %>% distinct()
+
+range(MIGUS24_Doses_version_NS$from_dt)
+
+MIGUS24_Doses_version_NS <- MIGUS24_Doses_version_NS %>% filter(grepl(string_Triptan_Nasal, drug_id_2))
+
+Months_ON_Nasal <- MIGUS24_Doses_version_NS %>% mutate(from_dt=as.Date(from_dt)) %>%
+  filter(from_dt>="2023-01-16") %>%
+  mutate(from_dt=str_sub(as.character(from_dt), 1L,7L)) %>%
+  select(patid, weight, from_dt) %>% distinct() %>%
+  group_by(patid, weight) %>% count() %>% ungroup() %>% rename("Months"="n")
+
+Months_ON_Nasal <- MIGUS24_Doses_version_NS %>% mutate(from_dt=as.Date(from_dt)) %>%
+  filter(from_dt>="2023-01-16") %>%
+  mutate(from_dt=str_sub(as.character(from_dt), 1L,7L)) %>%
+  select(patid, weight, from_dt) %>% distinct() %>%
+  group_by(patid, weight) %>% count() %>% ungroup() %>% rename("Months"="n")
+
+
+
+MIGUS24_Doses_version_NS <- fread("Source/MIGUS24 Doses - version NS.txt")
+names(MIGUS24_Doses_version_NS)
+unique(MIGUS24_Doses_version_NS$status)
+
+MIGUS24_Doses_version_NS <- MIGUS24_Doses_version_NS %>% select(drug_id_2, patid, weight, from_dt, days_sup, qty) %>% distinct()
+
+range(MIGUS24_Doses_version_NS$from_dt)
+
+MIGUS24_Doses_version_NS <- MIGUS24_Doses_version_NS %>% filter(grepl(string_Triptan_Nasal, drug_id_2))
+
+
+QTY_ON_Nasal <- MIGUS24_Doses_version_NS %>% mutate(from_dt=as.Date(from_dt)) %>%
+  filter(from_dt>="2023-01-16") %>%
+   group_by(patid, weight) %>%
+  mutate(days_sup=sum(days_sup)) %>%
+  mutate(qty=sum(qty))  %>%
+  ungroup() %>%
+  select(patid, days_sup, qty) %>% distinct()
+
+
+df <- Months_ON_Nasal %>% inner_join(QTY_ON_Nasal %>% select(-days_sup))
+
+
+max(df$qty) # 74
+
+df$group <- as.numeric(cut(df$qty,10))
+
+
+df %>%
+  group_by(group, Months) %>% summarise(n=sum(weight)) %>%
+  spread(key=group, value=n)
+
+
+# -----------

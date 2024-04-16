@@ -10439,3 +10439,32 @@ length(unique(RIMUS23_Doses_2$patid)) # Any 733 nasal spray
 length(unique(RIMUS23_Doses_2$patid[RIMUS23_Doses_2$drug_class=="Triptan"])) # 507 triptan nasal spray
 
 # -----------------------------------------------------------------
+
+# For how many months have the been lapsed looking back ? -------
+
+ModSev_vector <- fread("ModSev_vector.txt", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Drug_Histories <- read.table("RIMUS23 Drug Histories.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% inner_join(ModSev_vector)
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% filter(group=="ModSev") %>% select(-group)
+
+RIMUS23_Drug_Histories %>% filter(month58!="-"&month59=="-"&month60=="-") %>% summarise(tot=sum(as.numeric(weight)))
+
+RIMUS23_Drug_Histories <- gather(RIMUS23_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+RIMUS23_Drug_Histories$Month <- parse_number(as.character(RIMUS23_Drug_Histories$Month))
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% select(-disease)
+RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% arrange(patient, desc(Month))
+ 
+
+
+
+RIMUS23_Drug_Histories <- data.frame(RIMUS23_Drug_Histories %>% group_by(patient) %>% 
+  slice(if(any(grepl("-",Treat))) 1:which.max(!grepl("-",Treat)) else row_number())   %>%
+    ungroup() %>% filter(Treat=="-"))
+
+RIMUS23_Drug_Histories %>% group_by(patient, weight) %>% count() %>% ungroup() %>%
+  group_by(n) %>% summarise(tot=sum(as.numeric(weight)))
+
+# -----------
+
+                            
+                            

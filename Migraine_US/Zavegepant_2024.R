@@ -1961,7 +1961,7 @@ MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoC
 MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(month60!="-")
 
 CGRP_Nasal <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(grepl(string_CGRP_Nasal, month60)) %>% select(patid)
-CGRP_Oral <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(grepl(string_CGRP_Oral, month60)) %>% select(patid)
+CGRP_Oral <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(grepl(stringMIGUS24_Doses_CGRP_Oral, month60)) %>% select(patid)
 CGRP_Inj <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(grepl(string_CGRP_Inj, month60)) %>% select(patid)
 Acute <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(grepl(string_Acute, month60)) %>%  select(patid)
 Preventive <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(grepl(string_Preventive, month60)) %>% select(patid)
@@ -2398,3 +2398,164 @@ data.frame(df %>% mutate(Box=ifelse(`CGRP Oral`==1,"CGRP_Oral",
   group_by(p2, Box) %>% summarise(n=sum(weight)) %>% spread(key=Box, value=n))
 
 # ------------------------
+
+# Supply days and quantity of Zavegepant  per year ---------
+Drug_formulary <- fread("Source/Drug_formulary.txt")
+Drug_formulary %>% filter(generic_name=="Zavegepant")
+
+ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
+names(ZAVUS24_Doses)
+unique(ZAVUS24_Doses$status)
+
+ZAVUS24_Doses <- ZAVUS24_Doses %>% select(drug_id, patid, weight, from_dt, days_sup, qty) %>% distinct()
+
+range(ZAVUS24_Doses$from_dt)
+
+ZAVUS24_Doses <- ZAVUS24_Doses %>% filter(grepl("134", drug_id))
+
+ZAVUS24_Doses %>% mutate(from_dt=as.Date(from_dt)) %>%
+  filter(from_dt>="2023-01-16") %>%
+  group_by(patid, weight) %>%
+  mutate(days_sup=sum(days_sup)) %>%
+  mutate(qty=sum(qty))  %>%
+  ungroup() %>%
+  select(patid, days_sup, qty) %>% distinct() %>%
+  summarise(days_sup=mean(days_sup), qty=mean(qty))
+
+#  days_sup   qty
+#1     52.4  12.3
+
+
+ZAVUS24_Doses %>% mutate(from_dt=as.Date(from_dt)) %>%
+  filter(from_dt>="2023-01-16") %>%
+   group_by(patid, weight) %>%
+  mutate(days_sup=sum(days_sup)) %>%
+  mutate(qty=sum(qty))  %>%
+  ungroup() %>%
+  select(patid, days_sup, qty) %>% distinct() %>%
+  ggplot(aes(days_sup)) +
+  geom_density(colour="navy", size=2) +
+  theme_minimal() +
+  xlab("\n Number of Supply Days per Year") +
+  ylab("Patient density \n")
+
+
+
+ZAVUS24_Doses %>% mutate(from_dt=as.Date(from_dt)) %>%
+  filter(from_dt>="2023-01-16") %>%
+   group_by(patid, weight) %>%
+  mutate(days_sup=sum(days_sup)) %>%
+  mutate(qty=sum(qty))  %>%
+  ungroup() %>%
+  select(patid, days_sup, qty) %>% distinct() %>%
+  ggplot(aes(qty)) +
+  geom_density(colour="firebrick", size=2) +
+  theme_minimal() +
+  xlab("\n Number of doses per Year") +
+  ylab("Patient density \n")
+
+
+Drug_formulary <- fread("Source/Drug_formulary.txt")
+
+ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
+
+
+ZAVUS24_Doses <- ZAVUS24_Doses %>% select(drug_id, patid, weight, from_dt, days_sup, qty) %>% distinct()
+
+
+ZAVUS24_Doses <- ZAVUS24_Doses %>% filter(grepl("134", drug_id))
+
+
+ZAVUS24_Doses %>% mutate(from_dt=as.Date(from_dt)) %>%
+  filter(from_dt>="2023-01-16") %>%
+  mutate(from_dt=str_sub(as.character(from_dt), 1L,7L)) %>%
+  select(patid, weight, from_dt) %>% distinct() %>%
+  group_by(patid, weight) %>% count() %>% ungroup() %>%
+  summarise(mean=mean(n))
+
+ZAVUS24_Doses %>% mutate(from_dt=as.Date(from_dt)) %>%
+  filter(from_dt>="2023-01-16") %>%
+  mutate(from_dt=str_sub(as.character(from_dt), 1L,7L)) %>%
+  select(patid, weight, from_dt) %>% distinct() %>%
+  group_by(patid, weight) %>% count() %>% ungroup() %>%
+  ggplot(aes(n)) +
+  geom_density(colour="firebrick", size=2) +
+  theme_minimal() +
+  xlab("\n Number of Different Months Used Zavegepant \n (NOT necessarily contiguously)") +
+  ylab("Patient density \n")
+
+# ----------
+
+
+
+
+# Forecast Oral CGRP Population -----------
+
+Drug_formulary <- fread("Source/Drug_formulary.txt")
+string_CGRP_Oral <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_class == "CGRP Oral"], collapse = "|"),")\\b")
+
+MIGUS24_Drug_Histories_Extended_NoComorbs <- fread("Source/MIGUS24_Drug_Histories_Extended_NoComorbs.txt")
+MIGUS24_Drug_Histories_Extended_NoComorbs <- gather(MIGUS24_Drug_Histories_Extended_NoComorbs, Month, Treat, month1:month60, factor_key=TRUE)
+MIGUS24_Drug_Histories_Extended_NoComorbs$Month <- parse_number(as.character(MIGUS24_Drug_Histories_Extended_NoComorbs$Month))
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% select(-version)
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(Treat!="-")
+CGRP_Oral_Pop <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(grepl(string_CGRP_Oral, Treat)) %>% 
+  select(patid, weight, Month) %>% group_by(Month) %>% summarise(n=sum(weight))
+
+
+
+poly_model <- lm(n ~ poly(Month, 3, raw = TRUE), data = CGRP_Oral_Pop)
+
+future_months <- data.frame(Month = 61:120)  
+
+predicted_population <- predict(poly_model, newdata = future_months)
+
+forecast_df <- data.frame(Month = c(CGRP_Oral_Pop$Month, future_months$Month),
+                          population = c(CGRP_Oral_Pop$n, predicted_population),
+                          type = c(rep("Actual", nrow(CGRP_Oral_Pop)), rep("Forecast", nrow(future_months))))
+
+
+ggplot(forecast_df, aes(x = Month, y = population, color = type)) +
+  geom_line(size=3, alpha=0.5) +
+  labs(title = "Oral CGRP Population Forecast",
+       x = " \n Exact Month",
+       y = "(Expected) Population \n") +
+  theme_minimal() +
+  scale_color_manual(values = c("deepskyblue4", "firebrick"))
+
+
+install.packages("prophet")
+library(prophet)
+
+
+dates <- data.frame(date_range <- seq.Date(from = as.Date("2019-08-01"), to = as.Date("2023-05-01"), by = "month"))
+names(dates) <- "Months_2"
+
+CGRP_Oral_Pop <- CGRP_Oral_Pop %>% bind_cols(dates)
+CGRP_Oral_Pop <- CGRP_Oral_Pop %>% select(Months_2, n)
+names(CGRP_Oral_Pop) <- c("ds", "y")
+
+
+prophet_model <- prophet(CGRP_Oral_Pop)
+
+future_months <- data.frame(ds = seq(as.Date(paste0(max(CGRP_Oral_Pop$ds), "-01")), by = "month", length.out = 60)) 
+
+forecast <- predict(prophet_model, future_months)
+
+plot(prophet_model, forecast)
+
+plot(prophet_model, forecast) +
+  theme_minimal() +  
+  xlab(" \n Date") + ylab("Expected Population \n") +
+  geom_point(data = forecast$y, aes(x = ds, y = y), color = "firebrick", size = 3, shape = 1)
+
+
+
+
+
+
+
+
+
+
+# -------

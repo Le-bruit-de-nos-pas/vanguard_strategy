@@ -2342,3 +2342,59 @@ data.frame(before %>% mutate(d2=as.character(d2)) %>% left_join(Drugs_lookup %>%
   ))
 
 # ---------------
+# Source of riemgepant over time ------------
+MIGUS24_Flows_Long <- fread("Source/MIGUS24 Flows_Long.txt")
+
+MIGUS24_Flows_Long <- MIGUS24_Flows_Long %>% filter(grepl("136", d2)&!grepl("136", d1))
+
+MIGUS24_Flows_Long <- MIGUS24_Flows_Long %>% select(patient, weight, d1, p2)
+
+Mod_Sev <- fread("Source/Mod_Sev.txt")
+Mod_Sev <- Mod_Sev %>% select(patid)  %>% rename("patient"="patid")
+
+MIGUS24_Flows_Long <- Mod_Sev  %>% inner_join(MIGUS24_Flows_Long)
+
+MIGUS24_Flows_Long <- separate_rows(MIGUS24_Flows_Long, d1, sep = ",", convert=T )
+
+Drug_formulary <- fread("Source/Drug_formulary.txt")
+
+MIGUS24_Flows_Long <- MIGUS24_Flows_Long %>% left_join(Drug_formulary %>% mutate(drug_id=as.character(drug_id)), by=c("d1"="drug_id"))
+
+
+MIGUS24_Demographics <- fread("Source/MIGUS24 Demographics.txt")
+MIGUS24_Demographics <- MIGUS24_Demographics %>%  select(patid, CV, psychiatric, epileptic) 
+names(MIGUS24_Demographics)[1] <- "patient"
+
+MIGUS24_Flows_Long <- MIGUS24_Demographics %>% inner_join(MIGUS24_Flows_Long)
+
+MIGUS24_Flows_Long <- MIGUS24_Flows_Long %>% mutate(flag=ifelse(CV==1&drug_class=="Beta Blocker", 1,
+                                                                 ifelse(CV==1&drug_class=="Cardiovascular",1,
+                                                                        ifelse(CV==1&drug_class=="Calcium Blocker",1,
+                                                                               ifelse(epileptic==1&drug_class=="Antiepileptic",1,
+                                                                                      ifelse(psychiatric==1&drug_class=="SSRI",1,
+                                                                                             ifelse(psychiatric==1&drug_class=="SNRI",1,
+                                                                                                    ifelse(psychiatric==1&drug_class=="Antipsychotic",1,
+                                                                                                           ifelse(psychiatric==1&drug_class=="Tricyclic",1,0)))))))))
+
+MIGUS24_Flows_Long <- MIGUS24_Flows_Long %>% filter(flag==0) %>% select(-flag)
+
+
+df <- MIGUS24_Flows_Long %>% select(patient, weight, p2, drug_group) %>% distinct() %>%
+  mutate(exp=1) %>% spread(key=drug_group, value=exp)
+  
+df[is.na(df)] <- 0
+head(df)
+
+
+
+data.frame(df %>% mutate(Box=ifelse(`CGRP Oral`==1,"CGRP_Oral",
+                         ifelse(`CGRP Injectable`==1,"CGRP_Injectable",
+                                ifelse(Preventive==1&Triptans==1,"PrevTriptan",
+                                       ifelse(Preventive==1&Symptomatic==1,"PrevSympt",
+                                              ifelse(Preventive==1, "Prev",
+                                                     ifelse(Triptans==1,"Triptans",
+                                                            ifelse(Symptomatic==1,"Symp",
+                                                                   ifelse(`<NA>`==1,"None",NA))))))))) %>%
+  group_by(p2, Box) %>% summarise(n=sum(weight)) %>% spread(key=Box, value=n))
+
+# ------------------------

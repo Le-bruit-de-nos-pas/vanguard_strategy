@@ -2373,6 +2373,75 @@ N_Months %>% inner_join(df) %>% mutate(patid=as.character(patid)) %>%
   filter(Diff>0&perc<1) %>% ungroup() %>% summarise(mean=mean(perc))
 
 # -----------------
+# Are the CGRP ORALS concentrated or sparsed ? ------------
+
+Drug_formulary <- fread("Source/Drug_formulary_NS.txt")
+data.frame(Drug_formulary)
+data.frame(Drug_formulary %>% select(drug_group_2, drug_group) %>% distinct())
+
+string_CGRP_Oral <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_group_2=="CGRP Oral" &
+                                                                      Drug_formulary$drug_group=="CGRP Oral"], collapse = "|"),")\\b")
+
+
+MIGUS24_Doses_version_NS <- fread("Source/MIGUS24 Doses - version NS.txt")
+names(MIGUS24_Doses_version_NS)
+unique(MIGUS24_Doses_version_NS$status)
+
+MIGUS24_Doses_version_NS <- MIGUS24_Doses_version_NS %>% select(drug_id_2, patid, weight, from_dt, days_sup, qty) %>% distinct()
+
+range(MIGUS24_Doses_version_NS$from_dt)
+
+MIGUS24_Doses_version_NS <- MIGUS24_Doses_version_NS %>% filter(grepl(string_CGRP_Oral, drug_id_2))
+
+MIGUS24_Doses_version_NS
+
+
+MIN <- MIGUS24_Doses_version_NS %>%
+  group_by(patid) %>% filter(from_dt==min(from_dt)) %>% select(patid, from_dt) %>% distinct() %>%
+  rename("MIN"="from_dt")
+
+MAX <- MIGUS24_Doses_version_NS %>%
+  group_by(patid) %>% filter(from_dt==max(from_dt)) %>% select(patid, from_dt) %>% distinct() %>%
+  rename("MAX"="from_dt")
+
+
+df <- MIN %>% inner_join(MAX)
+
+df$Diff <- as.numeric(as.Date(df$MAX) - as.Date(df$MIN)) / 30.44
+
+N_Months <- MIGUS24_Doses_version_NS %>%
+  select(patid, from_dt) %>% mutate(from_dt=str_sub(as.character(from_dt), 1L,7L)) %>%
+  distinct() %>% group_by(patid) %>% count() 
+
+
+
+N_Months %>% inner_join(df) %>%
+  ggplot(aes(Diff, n)) +
+  geom_jitter(size=0.5, alpha=0.5, colour="deepskyblue4") +
+  theme_minimal() +
+  xlab("\n Number of Elapsed Months \n From First to Last Month of Oral CGRP") +
+  ylab("Number of Months \n USING Oral CGRP\n ")
+
+
+
+N_Months %>% inner_join(df) %>% mutate(patid=as.character(patid)) %>%
+  mutate(n=n-1) %>%
+  mutate(perc=n/Diff) %>%
+  filter(Diff>0&perc<1) %>% 
+  ggplot(aes(perc)) +
+  geom_density(colour="firebrick", fill="firebrick", alpha=0.5) + 
+  theme_minimal() +
+  xlab("\n Proportion of First-to-Last Months \n Actually Spent ON on Oral CGRP") +
+  ylab("Patient density\n ")
+
+
+
+N_Months %>% inner_join(df) %>% mutate(patid=as.character(patid)) %>%
+  mutate(n=n-1) %>%
+  mutate(perc=n/Diff) %>%
+  filter(Diff>0&perc<1) %>% ungroup() %>% summarise(mean=mean(perc))
+
+# -----------------
 # Generics Before vs After First Zavegepant ------------------
 
 flMIG <- fread("Source/MIG_Flows_Aux_Long.txt")

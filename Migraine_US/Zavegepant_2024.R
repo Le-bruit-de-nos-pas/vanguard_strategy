@@ -2547,6 +2547,7 @@ plot(prophet_model, forecast)
 plot(prophet_model, forecast) +
   theme_minimal() +  
   xlab(" \n Date") + ylab("Expected Population \n") +
+  ylim(0,2500000) +
   geom_point(data = forecast$y, aes(x = ds, y = y), color = "firebrick", size = 3, shape = 1)
 
 
@@ -2559,3 +2560,134 @@ plot(prophet_model, forecast) +
 
 
 # -------
+# Distance between triptan sprays scripts ? ------------
+Drug_formulary <- fread("Source/Drug_formulary_NS.txt")
+data.frame(Drug_formulary)
+data.frame(Drug_formulary %>% select(drug_class, drug_group) %>% distinct())
+
+string_Triptan_Nasal <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_group_2=="Nasal Spray" &
+                                                                      Drug_formulary$drug_group=="Triptans"], collapse = "|"),")\\b")
+
+
+MIGUS24_Doses_version_NS <- fread("Source/MIGUS24 Doses - version NS.txt")
+names(MIGUS24_Doses_version_NS)
+unique(MIGUS24_Doses_version_NS$status)
+
+MIGUS24_Doses_version_NS <- MIGUS24_Doses_version_NS %>% select(drug_id_2, patid, weight, from_dt, days_sup, qty) %>% distinct()
+
+range(MIGUS24_Doses_version_NS$from_dt)
+
+MIGUS24_Doses_version_NS <- MIGUS24_Doses_version_NS %>% filter(grepl(string_Triptan_Nasal, drug_id_2))
+
+MIGUS24_Doses_version_NS
+
+MIGUS24_Doses_version_NS <- MIGUS24_Doses_version_NS %>% select(patid, from_dt, days_sup, qty) %>%
+  arrange(patid, from_dt, days_sup, qty)
+
+MIGUS24_Doses_version_NS %>% mutate(from_dt=as.numeric(from_dt)) %>% mutate(patid=as.character(patid)) %>%
+  group_by(patid) %>% mutate(elapsed=from_dt-lag(from_dt)) %>% drop_na() %>%
+  mutate(mean=mean(elapsed)) %>% ungroup() %>%
+  # summarise(mean=mean(elapsed), median=median(elapsed)) %>%
+  ggplot(aes(elapsed)) + 
+  xlim(0,365) +
+  geom_density(size=2, colour="deepskyblue4") +
+  theme_minimal() +
+  ylab("Patient density \n") + xlab("\n Number of elapsed days between scripts")
+
+
+
+MIGUS24_Doses_version_NS %>% mutate(from_dt=as.numeric(from_dt)) %>% mutate(patid=as.character(patid)) %>%
+  group_by(patid) %>% mutate(elapsed=from_dt-lag(from_dt)) %>% drop_na() %>%
+  mutate(mean=mean(elapsed)) %>% ungroup() %>%
+  select(patid, mean) %>% distinct() %>%
+  #summarise( median=mean(mean)) %>%
+  ggplot(aes(mean)) + 
+  xlim(0,365) +
+  geom_density(size=2, colour="firebrick") +
+  theme_minimal() +
+  ylab("Patient density \n") + xlab("\n Number of elapsed days between scripts \n Mean per patient")
+
+  
+  
+# -------------------------------
+
+# Forecast Oral CGRP Population Ever tried previous 12 months -----------
+
+Drug_formulary <- fread("Source/Drug_formulary.txt")
+string_CGRP_Oral <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_class == "CGRP Oral"], collapse = "|"),")\\b")
+
+MIGUS24_Drug_Histories_Extended_NoComorbs <- fread("Source/MIGUS24_Drug_Histories_Extended_NoComorbs.txt")
+MIGUS24_Drug_Histories_Extended_NoComorbs <- gather(MIGUS24_Drug_Histories_Extended_NoComorbs, Month, Treat, month1:month60, factor_key=TRUE)
+MIGUS24_Drug_Histories_Extended_NoComorbs$Month <- parse_number(as.character(MIGUS24_Drug_Histories_Extended_NoComorbs$Month))
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% select(-version)
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(Treat!="-")
+
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>%
+  mutate(ON=ifelse(grepl(string_CGRP_Oral, Treat), 1,0)) %>% arrange(patid, Month) 
+
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% group_by(patid) %>%
+  mutate(moving_sum = cumsum(ON) - lag(cumsum(ON), 12, default = 0))
+
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% group_by(patid) %>%
+  mutate(moving_sum=ifelse(moving_sum==0,0,1))
+
+
+CGRP_Oral_Pop <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% ungroup()  %>% 
+  select(patid, weight, Month, moving_sum) %>% filter(moving_sum==1) %>% group_by(Month) %>% summarise(n=sum(weight))
+
+CGRP_Oral_Pop %>% ggplot(aes(Month, n)) + geom_line()
+
+
+poly_model <- lm(n ~ poly(Month, 3, raw = TRUE), data = CGRP_Oral_Pop)
+
+future_months <- data.frame(Month = 61:120)  
+
+predicted_population <- predict(poly_model, newdata = future_months)
+
+forecast_df <- data.frame(Month = c(CGRP_Oral_Pop$Month, future_months$Month),
+                          population = c(CGRP_Oral_Pop$n, predicted_population),
+                          type = c(rep("Actual", nrow(CGRP_Oral_Pop)), rep("Forecast", nrow(future_months))))
+
+
+ggplot(forecast_df, aes(x = Month, y = population, color = type)) +
+  geom_line(size=3, alpha=0.5) +
+  labs(title = "Oral CGRP Population Forecast",
+       x = " \n Exact Month",
+       y = "(Expected) Population \n") +
+  theme_minimal() +
+  scale_color_manual(values = c("deepskyblue4", "firebrick"))
+
+
+install.packages("prophet")
+library(prophet)
+
+
+dates <- data.frame(date_range <- seq.Date(from = as.Date("2019-08-01"), to = as.Date("2023-05-01"), by = "month"))
+names(dates) <- "Months_2"
+
+CGRP_Oral_Pop <- CGRP_Oral_Pop %>% bind_cols(dates)
+CGRP_Oral_Pop <- CGRP_Oral_Pop %>% select(Months_2, n)
+names(CGRP_Oral_Pop) <- c("ds", "y")
+
+prophet_model <- prophet(CGRP_Oral_Pop)
+
+future_months <- data.frame(ds = seq(as.Date(paste0(max(CGRP_Oral_Pop$ds), "-01")), by = "month", length.out = 60)) 
+
+forecast <- predict(prophet_model, future_months)
+
+plot(prophet_model, forecast)
+
+plot(prophet_model, forecast) +
+  theme_minimal() +  
+  xlab(" \n Date") + ylab("Expected Population \n") +
+  geom_point(data = forecast$y, aes(x = ds, y = y), color = "firebrick", size = 3, shape = 1)
+
+
+
+
+# -------------
+
+
+
+
+

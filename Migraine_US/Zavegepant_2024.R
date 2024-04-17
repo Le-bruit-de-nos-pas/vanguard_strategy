@@ -2541,6 +2541,87 @@ data.frame(df %>% mutate(Box=ifelse(`CGRP Oral`==1,"CGRP_Oral",
 
 # ------------------------
 
+# Source of riemgepant over time Acute vs Prev ------------
+
+
+
+MIGUS24_Doses <- fread("Source/MIGUS24 Doses.txt")
+
+RIME_pats <- MIGUS24_Doses %>% filter(generic=="Rimegepant") %>% select(patid) %>% distinct()
+MIGUS24_Doses <- RIME_pats %>% left_join(MIGUS24_Doses) %>% filter(generic=="Rimegepant")
+MIGUS24_Doses <- MIGUS24_Doses %>% filter(status != "G") %>% select(-c(provider, provcat, status, code, NPI))
+range(MIGUS24_Doses$from_dt)
+MIGUS24_Doses <- MIGUS24_Doses %>% mutate(from_dt = as.Date(from_dt))  %>% filter(from_dt >= "2020-01-16") %>% filter(days_sup  != "")
+MIGUS24_Doses <- MIGUS24_Doses %>% arrange(patid, generic, from_dt) 
+MIGUS24_Doses <- MIGUS24_Doses %>% group_by(patid, generic) %>% mutate(elapsed=as.numeric(lead(from_dt)-from_dt))
+MIGUS24_Doses <- MIGUS24_Doses %>% drop_na()
+MIGUS24_Doses <- MIGUS24_Doses %>% filter(elapsed <= 92)
+MIGUS24_Doses <- MIGUS24_Doses %>% mutate(rate=30*(as.numeric(qty)/elapsed))
+
+groups <- MIGUS24_Doses %>% mutate(rate=ifelse(elapsed==0, 0, rate)) %>%
+  group_by(patid, weight, generic) %>% summarise(mean=mean(rate)) %>%
+  mutate(mean=ifelse(mean>=13, "Prev", "Acute")) %>%
+  select(patid, mean) %>% distinct()
+
+
+
+MIGUS24_Flows_Long <- fread("Source/MIGUS24 Flows_Long.txt")
+
+MIGUS24_Flows_Long <- MIGUS24_Flows_Long %>% filter(grepl("136", d2)&!grepl("136", d1))
+
+MIGUS24_Flows_Long <- MIGUS24_Flows_Long %>% select(patient, weight, d1, p2)
+
+Mod_Sev <- fread("Source/Mod_Sev.txt")
+Mod_Sev <- Mod_Sev %>% select(patid)  %>% rename("patient"="patid")
+
+MIGUS24_Flows_Long <- Mod_Sev  %>% inner_join(MIGUS24_Flows_Long)
+
+MIGUS24_Flows_Long <- separate_rows(MIGUS24_Flows_Long, d1, sep = ",", convert=T )
+
+Drug_formulary <- fread("Source/Drug_formulary.txt")
+
+MIGUS24_Flows_Long <- MIGUS24_Flows_Long %>% left_join(Drug_formulary %>% mutate(drug_id=as.character(drug_id)), by=c("d1"="drug_id"))
+
+
+MIGUS24_Demographics <- fread("Source/MIGUS24 Demographics.txt")
+MIGUS24_Demographics <- MIGUS24_Demographics %>%  select(patid, CV, psychiatric, epileptic) 
+names(MIGUS24_Demographics)[1] <- "patient"
+
+MIGUS24_Flows_Long <- MIGUS24_Demographics %>% inner_join(MIGUS24_Flows_Long)
+
+MIGUS24_Flows_Long <- MIGUS24_Flows_Long %>% mutate(flag=ifelse(CV==1&drug_class=="Beta Blocker", 1,
+                                                                 ifelse(CV==1&drug_class=="Cardiovascular",1,
+                                                                        ifelse(CV==1&drug_class=="Calcium Blocker",1,
+                                                                               ifelse(epileptic==1&drug_class=="Antiepileptic",1,
+                                                                                      ifelse(psychiatric==1&drug_class=="SSRI",1,
+                                                                                             ifelse(psychiatric==1&drug_class=="SNRI",1,
+                                                                                                    ifelse(psychiatric==1&drug_class=="Antipsychotic",1,
+                                                                                                           ifelse(psychiatric==1&drug_class=="Tricyclic",1,0)))))))))
+
+MIGUS24_Flows_Long <- MIGUS24_Flows_Long %>% filter(flag==0) %>% select(-flag)
+
+
+df <- MIGUS24_Flows_Long %>% select(patient, weight, p2, drug_group) %>% distinct() %>%
+  mutate(exp=1) %>% spread(key=drug_group, value=exp)
+  
+df[is.na(df)] <- 0
+head(df)
+
+
+
+data.frame(df %>% inner_join(groups %>% ungroup() %>% select(-c(weight)) %>% filter(mean=="Acute"), by=c("patient"="patid")) %>% mutate(Box=ifelse(`CGRP Oral`==1,"CGRP_Oral",
+                         ifelse(`CGRP Injectable`==1,"CGRP_Injectable",
+                                ifelse(Preventive==1&Triptans==1,"PrevTriptan",
+                                       ifelse(Preventive==1&Symptomatic==1,"PrevSympt",
+                                              ifelse(Preventive==1, "Prev",
+                                                     ifelse(Triptans==1,"Triptans",
+                                                            ifelse(Symptomatic==1,"Symp",
+                                                                   ifelse(`<NA>`==1,"None",NA))))))))) %>%
+  group_by(p2, Box) %>% summarise(n=sum(weight)) %>% spread(key=Box, value=n))
+
+# ------------
+
+
 # Supply days and quantity of Zavegepant  per year ---------
 Drug_formulary <- fread("Source/Drug_formulary.txt")
 Drug_formulary %>% filter(generic_name=="Zavegepant")

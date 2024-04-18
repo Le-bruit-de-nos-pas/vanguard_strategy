@@ -3102,3 +3102,37 @@ data.frame(MIGUS24_Drug_Histories_Extended_NoComorbs %>% group_by(patid, weight)
 
 
 # -----------
+
+# Comorbs ZAV vs ALL MIG 24 Ext ----------
+ZAVUS24_Demographics <- fread("Source/ZAVUS24 Demographics.txt")
+mean(ZAVUS24_Demographics$age) # 52
+ZAVUS24_Demographics %>% group_by(gender) %>% count() #87% F
+ZAVUS24_Demographics %>% group_by(CV) %>% count() #52%
+ZAVUS24_Demographics %>% group_by(epileptic) %>% count() #9%
+ZAVUS24_Demographics %>% group_by(psychiatric) %>% count() #66%
+
+
+MIGUS24_Demographics <- fread("Source/MIGUS24 Demographics.txt")
+MIGUS24_Demographics <- MIGUS24_Demographics %>% anti_join(ZAVUS24_Demographics %>% select(patid))
+mean(MIGUS24_Demographics$AGE) # 60
+MIGUS24_Demographics %>% group_by(GENDER) %>% count() #76% F
+MIGUS24_Demographics %>% group_by(CV) %>% count() # 68%
+MIGUS24_Demographics %>% group_by(epileptic) %>% count() # 6%
+MIGUS24_Demographics %>% group_by(psychiatric) %>% count() # 63%
+
+ZAVUS24_Comorbidities_Extended_Dxs <- fread("Source/ZAVUS24 Comorbidities Extended Dxs.txt")
+ZAVUS24_Comorbidities_Extended_Dxs <- ZAVUS24_Comorbidities_Extended_Dxs %>% select(patid, ICD10_diag) %>% distinct()
+ZAV_Dxs <- ZAVUS24_Comorbidities_Extended_Dxs %>% group_by(ICD10_diag) %>% count() %>% mutate(n=n/260) %>% rename("ZAV"="n") %>% rename("ICD10_diag"="ICD10_diag")
+
+MIGUS24_Comorbidities_Extended_Dxs <- fread("Source/MIGUS24 Comorbidities Extended Dxs.txt")
+length(unique(MIGUS24_Comorbidities_Extended_Dxs$patid))
+MIGUS24_Comorbidities_Extended_Dxs <- MIGUS24_Comorbidities_Extended_Dxs %>% select(patid, ICD10_diag) %>% distinct()
+MIGUS24_Comorbidities_Extended_Dxs <- MIGUS24_Comorbidities_Extended_Dxs %>% anti_join(ZAVUS24_Demographics %>% select(patid))
+length(unique(MIGUS24_Comorbidities_Extended_Dxs$patid)) # 262157
+ALL_Dxs <- MIGUS24_Comorbidities_Extended_Dxs %>% group_by(ICD10_diag) %>% count() %>% mutate(n=n/252555) %>% rename("ALL"="n")
+
+
+data.frame(ZAV_Dxs %>% inner_join(ALL_Dxs) %>% mutate(diff=abs(ZAV-ALL))) %>% arrange(desc(diff)) %>%
+  filter(diff>0.05)
+
+# -------

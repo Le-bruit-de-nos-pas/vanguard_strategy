@@ -3038,3 +3038,67 @@ MIGUS24_Demographics <- MIGUS24_Demographics %>%  select(patid, AGE)
 MIGUS24_Demographics %>% inner_join(MIGUS24_Doses_version_NS) %>% summarise(mean=weighted.mean(AGE, weight))
 
 # ---------
+# Visiblity vs Number scripts rimegepant 2021 ----------
+MIGUS24_Doses <- fread("Source/MIGUS24 Doses.txt")
+MIGUS24_Doses <- MIGUS24_Doses %>% filter(generic=="Rimegepant")
+MIGUS24_Doses <- MIGUS24_Doses %>% select(patid, from_dt)
+range(MIGUS24_Doses$from_dt)
+
+MIGUS24_Doses %>% group_by(patid) %>% count()
+MIGUS24_Doses <- MIGUS24_Doses %>% mutate(from_dt=as.Date(from_dt)) %>% group_by(patid) %>% mutate(first=min(from_dt))
+
+MIGUS24_Doses <- MIGUS24_Doses %>% mutate(from_dt=as.Date(from_dt)) %>% 
+  filter(from_dt<="2023-12-31") %>%
+  filter(first<="2023-12-31") %>%
+     filter(first>="2023-01-01") %>%
+  filter(from_dt>="2023-01-01")
+
+MIGUS24_Doses <- MIGUS24_Doses %>% mutate(VIZ = as.numeric(as.Date("2023-12-31") - first)/30.5)  
+
+MIGUS24_Doses <- MIGUS24_Doses %>% ungroup() %>% mutate(patid=as.character(patid)) %>% filter(from_dt>=first)
+
+range(MIGUS24_Doses$VIZ)
+
+MIGUS24_Doses <- MIGUS24_Doses %>% group_by(patid, VIZ) %>% count() %>% 
+  mutate(VIZ=round(VIZ)) %>% rename("SCRIPTS"="n")
+
+max(MIGUS24_Doses$VIZ) # 6
+
+MIGUS24_Doses %>% group_by(VIZ) %>% count() 
+
+length(unique(MIGUS24_Doses$patid))
+
+
+data.frame(MIGUS24_Doses %>%
+  group_by(VIZ, SCRIPTS) %>% count() %>%
+  spread(key=VIZ, value=n))
+
+
+# ----------------
+# For how many months have the been lapsed looking back ? -------
+
+Mod_Sev <- fread("Source/Mod_Sev.txt")
+unique(Mod_Sev$group)
+
+MIGUS24_Drug_Histories_Extended_NoComorbs <- fread("Source/MIGUS24_Drug_Histories_Extended_NoComorbs.txt")
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(version=="NEW_ZAV") %>% select(-version)
+sum(MIGUS24_Drug_Histories_Extended_NoComorbs$weight)
+# 12768773 21292150
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs # %>% inner_join(Mod_Sev) 
+# MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% select(-group)
+
+MIGUS24_Drug_Histories_Extended_NoComorbs <- gather(MIGUS24_Drug_Histories_Extended_NoComorbs, Month, Treat, month1:month60, factor_key=TRUE)
+MIGUS24_Drug_Histories_Extended_NoComorbs$Month <- parse_number(as.character(MIGUS24_Drug_Histories_Extended_NoComorbs$Month))
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% arrange(patid, desc(Month))
+ 
+length(unique(MIGUS24_Drug_Histories_Extended_NoComorbs$patid))
+
+MIGUS24_Drug_Histories_Extended_NoComorbs <- data.frame(MIGUS24_Drug_Histories_Extended_NoComorbs %>% group_by(patid) %>% 
+  slice(if(any(grepl("-",Treat))) 1:which.max(!grepl("-",Treat)) else row_number())   %>%
+    ungroup() %>% filter(Treat=="-"))
+
+data.frame(MIGUS24_Drug_Histories_Extended_NoComorbs %>% group_by(patid, weight) %>% count() %>% ungroup() %>%
+  group_by(n) %>% summarise(tot=sum(as.numeric(weight))))
+
+
+# -----------

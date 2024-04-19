@@ -3136,7 +3136,6 @@ data.frame(ZAV_Dxs %>% inner_join(ALL_Dxs) %>% mutate(diff=abs(ZAV-ALL))) %>% ar
   filter(diff>0.05)
 
 # -------
-
 # Oral CGRP usage among Triptan patients pathways Bella All MIG --------
 
 MIGUS24_Drug_Histories_Extended_NoComorbs <- fread("Source/MIGUS24_Drug_Histories_Extended_NoComorbs.txt")
@@ -3320,6 +3319,39 @@ Classes_Tried <- Classes_Tried%>%   select(patid, weight, Treat) %>% distinct()
 data.frame(Classes_Tried %>% left_join(Drug_formulary %>% select(drug_id, drug_class), by=c("Treat"="drug_id")) %>%
   ungroup() %>% select(patid, weight, drug_class) %>% distinct() %>%
   group_by(drug_class) %>% summarise(tot=sum(weight)))
+
+
+Boxes_Tried <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(!grepl("-", Treat)) %>%
+  group_by(patid, weight, Month, Treat) %>% distinct()
+
+Boxes_Tried <- separate_rows(Boxes_Tried, Treat, sep = ",", convert=T )
+Boxes_Tried <- Boxes_Tried %>% select(-c(First_Oral_CGRP, First_Triptan, Elapsed))
+
+Boxes_Tried <- Boxes_Tried %>% left_join(Drug_formulary %>% select(drug_id, drug_group), by=c("Treat"="drug_id")) %>%
+  ungroup() %>% select(patid, weight, Month, drug_group) %>% distinct() %>%
+    mutate(exp=1) %>% ungroup() %>% spread(key=drug_group, value=exp) 
+
+Boxes_Tried[is.na(Boxes_Tried)] <- 0
+
+Boxes_Tried <- Boxes_Tried %>% mutate(Box= ifelse(`CGRP Oral`==1, "CGRP_Oral",
+                                         ifelse(`CGRP Injectable`==1, "CGRP_Inj",
+                                                ifelse(Preventive==1&Triptans==1, "Prev_Acute",
+                                                              ifelse(Preventive==1&Symptomatic==1, "Prev_Sympt",
+                                                                     ifelse(Preventive==1, "Prev",
+                                                                            ifelse(Triptans==1, "Acute",
+                                                                                          ifelse(Symptomatic==1, "Sympt", "Lapsed")))))))) %>%
+  select(patid, weight, Month, Box) %>% distinct()
+
+
+Boxes_Tried <- Boxes_Tried %>% select(-Month) %>% distinct() %>% group_by(patid, weight) %>%
+  mutate(Box=paste0(Box, collapse = ", "))
+
+Boxes_Tried <- Boxes_Tried %>% distinct() %>% ungroup() %>% group_by(Box) %>% summarise(tot=sum(weight))
+
+
+Boxes_Tried <- Boxes_Tried %>% arrange(-tot)
+
+fwrite(Boxes_Tried, "Boxes_Tried.csv")
 
 
 # ------------------------

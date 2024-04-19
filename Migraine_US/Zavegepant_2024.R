@@ -3333,6 +3333,23 @@ Boxes_Tried <- Boxes_Tried %>% left_join(Drug_formulary %>% select(drug_id, drug
 
 Boxes_Tried[is.na(Boxes_Tried)] <- 0
 
+
+
+CGRP_Inj <- Boxes_Tried %>% filter(`CGRP Injectable`==1) %>% select(patid, weight) %>% distinct()
+sum(CGRP_Inj$weight) # 241701
+
+Prev <- Boxes_Tried %>% filter(Preventive ==1) %>% select(patid, weight) %>% 
+  anti_join(CGRP_Inj) %>% distinct()
+sum(Prev$weight) # 303087.8
+
+Triptans <- Boxes_Tried %>% filter(Triptans ==1) %>% select(patid, weight) %>% 
+  anti_join(CGRP_Inj) %>% anti_join(Prev) %>%  distinct()
+sum(Triptans$weight) # 88690.62
+
+
+
+
+
 Boxes_Tried <- Boxes_Tried %>% mutate(Box= ifelse(`CGRP Oral`==1, "CGRP_Oral",
                                          ifelse(`CGRP Injectable`==1, "CGRP_Inj",
                                                 ifelse(Preventive==1&Triptans==1, "Prev_Acute",
@@ -3355,3 +3372,62 @@ fwrite(Boxes_Tried, "Boxes_Tried.csv")
 
 
 # ------------------------
+# Specialties Scripts Nasal Triptan Spray ---------------
+Drug_formulary <- fread("Source/Drug_formulary_NS.txt")
+data.frame(Drug_formulary)
+data.frame(Drug_formulary %>% select(drug_class, drug_group) %>% distinct())
+
+string_Triptan_Nasal <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_group_2=="Nasal Spray" &
+                                                                      Drug_formulary$drug_group=="Triptans"], collapse = "|"),")\\b")
+
+
+MIGUS24_Doses <- fread("Source/MIGUS24 Doses - version NS.txt")
+MIGUS24_Doses <- MIGUS24_Doses %>% filter(grepl(string_Triptan_Nasal, drug_id_2))
+MIGUS24_Doses <- MIGUS24_Doses %>% select(provcat)
+
+PROVCAT <- read_excel("Source/CDM_Data_Reference_Lookup_Tables_V81.xlsx", sheet="PROVCAT", skip = 5)
+PROVCAT <- PROVCAT %>% select(PROVCAT, DESCRIPTION)  %>% mutate(PROVCAT=as.numeric(PROVCAT))
+
+MIGUS24_Doses <- MIGUS24_Doses %>%  inner_join(PROVCAT %>% select(PROVCAT, DESCRIPTION) %>% distinct(), by=c("provcat"="PROVCAT"))
+
+data.frame(MIGUS24_Doses %>% select(DESCRIPTION) %>% distinct())
+
+MIGUS24_Doses %>% mutate(DESCRIPTION=ifelse(DESCRIPTION %in% c("UNKNOWN PROVIDER TYPE", "SPECIAL RN SERVICES", "PHLEBOLOGY", "NEURODEVELOPMENTAL DISABILITIES",
+                                                               "URGENT CARE CENTER", "UNKNOWN COSMOS PROVIDER TYPE",
+                                                               "FAMILY PRACTICE/CAPITATED CLINIC", "PHYSICAL THERAPY CENTER CODE",
+                                                               "UNKNOWN COSMOS FACILITY PROVIDER", "HOSPICE AND PALLIATIVE MEDICINE", "SLEEP STUDY",
+                                                               "GENERAL HOSPITAL", "PEDIATRIC HOSPITAL"), "Remove",
+                                            ifelse(DESCRIPTION %in% c("GASTROENTEROLOGIST", "REHABILITATION MEDICINE SPECIALIST", "EMERGENCY MEDICINE (PHYSICIANS)",
+                                                                      "CARDIOLOGIST", "PAIN MANAGEMENT SPECIALIST", "ALLERGIST", "NEURO-SURGEON",
+                                                                      "PHYSICAL MEDICINE SPECIALIST", "PULMONARY DISEASE SPECIALIST",
+                                                                      "ANESTHESIOLOGIST", "GENERAL SURGEON", "PSYCHIATRIST",
+                                                                      "PEDIATRIC GASTROENTEROLOGIST", "OBSTETRICIAN/GYNECOLOGIST", "DERMATOLOGIST",
+                                                                      "GERIATRIC MEDICINE SPECIALIST", "VASCULAR SURGEON", "ENDOCRINOLOGIST",
+                                                                      "CLINICAL NEUROPHYSIOLOGIST", "ADOLESCENT PEDIATRIC SPECIALIST",
+                                                                      "OTOLARYNGOLOGIST", "HEMATOLOGIST/ONCOLOGIST", "OPHTHALMOLOGIST",
+                                                                      "ORTHOPEDIC SURGEON", "VASCULAR INTERVENTION RADIOLOGIST", "RHEUMATOLOGIST",
+                                                                      "PEDIATRIC CARDIOLOGIST", "ACCIDENTAL DENTAL/MEDICAL DENTAL/ORAL SURGERY",
+                                                                      "HEMATOLOGIST", "PSYCHIATRIST/NEUROLOGIST", "ADDICTION MEDICINE SPECIALIST",
+                                                                      "RADIOLOGIST", "NEPHROLOGIST", "PEDIATRIC SPECIALIST", "ALLERGIST & IMMUNOLOGIST",
+                                                                      "UROLOGIST", "INFECTIOUS DISEASES SPECIALIST", "NEUROMUSCULAR DISEASE SPECIALIST",
+                                                                      "SPORTS MEDICINE SPECIALIST", "MEDICAL ONCOLOGIST", "NEONATOLOGIST",
+                                                                      "THORACIC SURGEON", "CARDIOVASCULAR DISEASE SPECIALIST",
+                                                                      "PEDIATRIC EMERGENCY MEDICINE (PHYSICIANS)",
+                                                                      "NUCLEAR MEDICINE SPECIALIST", "PLASTIC SURGEON", "UNKNOWN SPECIALTY PHYSICIAN",
+                                                                      "ENDOCRINOLOGIST (DIABETES SPECIALIST)", "CRITICAL CARE MEDICINE SPECIALIST",
+                                                                      "THERAPEUTIC RADIOLOGIST"), "Other Physician",
+                                                   ifelse(DESCRIPTION %in% c("PHYSICIANS ASSISTANT", "NURSE PRACTITIONER", "FAMILY NURSE PRACTITIONER",
+                                                                             "PHYSICAL THERAPIST", "REGISTERED NURSE", "OTHER MENTAL HEALTH PROFESSIONAL",
+                                                                             "CLINICAL SOCIAL WORKER/MENTAL HEALTH COUNSELOR", "DENTIST - DMD",
+                                                                             "NURSE PRACTITIONER, CLINICAL SPECIALIST IN MENTAL", "PEDIATRIC NURSE PRACTITIONER",
+                                                                             "GENERAL DENTIST - DDS", "NURSE PRACTITIONER, CLINICAL SPECIALIST IN MENTAL HEALTH",
+                                                                             "PODIATRIST - NON-MD", "AUDIOLOGIST", "PSYCHOLOGIST", "DOCTOR OF NATUROPATHY",
+                                                                             "CERTIFIED NURSE ANESTHETIST", "SURGICAL ASSISTANT (NON-PHYS)"), "Other HCP",
+                                                          ifelse( DESCRIPTION %in% c("FAMILY PRACTICE/GENERAL PRACTICE", "FAMILY PRACTITIONER", 
+                                                                                     "OTHER NON-PHYSICIAN PROVIDER", "GENERAL PRACTITIONER", "FAMILY PRACTICE SPECIALIST"), "PCP",
+                                                                  ifelse(DESCRIPTION %in% c("INTERNIST/GENERAL INTERNIST", "INTERNAL MEDICINE SPECIALIST",
+                                                                                            "HOSPITALIST", "INTERNAL MED PEDIATRICS") , "IM",
+                                                                         ifelse(DESCRIPTION %in% c("NEUROLOGIST" , "PEDIATRIC NEUROLOGIST"), "Neuro", NA ))))))) %>%
+  filter(DESCRIPTION!="Remove") %>% group_by(DESCRIPTION) %>% count() %>% mutate(perc=n/(4776+12182+2860+2098+7610))
+
+# ----------

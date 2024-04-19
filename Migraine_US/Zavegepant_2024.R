@@ -3136,3 +3136,190 @@ data.frame(ZAV_Dxs %>% inner_join(ALL_Dxs) %>% mutate(diff=abs(ZAV-ALL))) %>% ar
   filter(diff>0.05)
 
 # -------
+
+# Oral CGRP usage among Triptan patients pathways Bella All MIG --------
+
+MIGUS24_Drug_Histories_Extended_NoComorbs <- fread("Source/MIGUS24_Drug_Histories_Extended_NoComorbs.txt")
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(version=="NEW_ZAV") %>% select(-version)
+sum(MIGUS24_Drug_Histories_Extended_NoComorbs$weight)
+MIGUS24_Drug_Histories_Extended_NoComorbs <- gather(MIGUS24_Drug_Histories_Extended_NoComorbs, Month, Treat, month1:month60, factor_key=TRUE)
+MIGUS24_Drug_Histories_Extended_NoComorbs$Month <- parse_number(as.character(MIGUS24_Drug_Histories_Extended_NoComorbs$Month))
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% arrange(patid, desc(Month))
+# 21292150
+
+Drug_formulary <- fread("Source/Drug_formulary.txt")
+data.frame(Drug_formulary)
+data.frame(Drug_formulary %>% select(drug_class, drug_group) %>% distinct())
+
+string_Triptan <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_class=="Triptan"], collapse = "|"),")\\b")
+string_CGRP_Oral <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_class=="CGRP Oral"], collapse = "|"),")\\b")
+
+
+Triptan_pats <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% select(patid, weight, Treat) %>% distinct() %>%
+  filter(grepl(string_Triptan, Treat)) %>% select(patid, weight)  %>% distinct() 
+
+sum(Triptan_pats$weight) # 8788198 ever 
+
+MIGUS24_Drug_Histories_Extended_NoComorbs <- Triptan_pats %>% left_join(MIGUS24_Drug_Histories_Extended_NoComorbs)
+
+Triptan_pats <- MIGUS24_Drug_Histories_Extended_NoComorbs %>%  filter(grepl(string_Triptan, Treat)) %>%
+  group_by(patid, weight)  %>% filter(Month==min(Month)) %>%
+  select(patid, weight, Month) %>% filter(Month<=36)
+
+names(Triptan_pats)[3] <- "First_Triptan"
+sum(Triptan_pats$weight) # 6773084 first 3 years
+
+Oral_CGRP_pats <- Triptan_pats %>% 
+  left_join(MIGUS24_Drug_Histories_Extended_NoComorbs) %>%
+  filter(Month>=First_Triptan) %>%
+  filter(grepl(string_CGRP_Oral, Treat)) %>% select(patid, weight)  %>% distinct() 
+
+sum(Oral_CGRP_pats$weight) # 633479.2 ( 633479.2/6773084 = 0.09352892)
+
+
+Oral_CGRP_pats <- Triptan_pats %>% 
+  inner_join(Oral_CGRP_pats) %>%
+  left_join(MIGUS24_Drug_Histories_Extended_NoComorbs) %>%
+  filter(Month>=First_Triptan) %>%
+  filter(grepl(string_CGRP_Oral, Treat)) %>% filter(Month==min(Month)) %>%
+  select(patid, weight, Month) 
+
+
+names(Oral_CGRP_pats)[3] <- "First_Oral_CGRP"
+sum(Oral_CGRP_pats$weight) # 633479.2 
+
+Oral_CGRP_pats %>% inner_join(Triptan_pats) %>% mutate(Elapsed=First_Oral_CGRP-First_Triptan) %>%
+  ungroup() %>% 
+  # summarise(mean=mean(Elapsed)) %>% # 32.4
+  # summarise(median=median(Elapsed)) # 33
+  ggplot(aes(Elapsed)) +
+  geom_density(colour="black", size=2, fill="black", alpha=0.5) +
+  theme_minimal() +
+   theme(panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_blank(),
+        axis.line = element_blank(),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        axis.title.x = element_text(size = 12, vjust = -0.5),
+        axis.title.y = element_text(size = 12, vjust = -0.5),
+        plot.margin = margin(5, 5, 5, 5, "pt")) +
+  xlab("\n Number Elapsed Months Between Start Triptan & Start Oral CGRP") +
+  ylab("Patient density \n")
+
+
+MIGUS24_Drug_Histories_Extended_NoComorbs <- Oral_CGRP_pats %>% inner_join(Triptan_pats)  %>% inner_join(MIGUS24_Drug_Histories_Extended_NoComorbs)
+
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(Month>=First_Triptan&Month<=First_Oral_CGRP) 
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>%mutate(Elapsed=First_Oral_CGRP-First_Triptan) 
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% select(-group)
+
+
+MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(grepl(string_Triptan, Treat)) %>%
+  group_by(patid, weight, Elapsed) %>% count() %>%
+  ggplot(aes(Elapsed, n)) +
+  geom_jitter(size=0.5, alpha=0.5) +
+  theme_minimal() +
+   theme(panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_blank(),
+        axis.line = element_blank(),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        axis.title.x = element_text(size = 12, vjust = -0.5),
+        axis.title.y = element_text(size = 12, vjust = -0.5),
+        plot.margin = margin(5, 5, 5, 5, "pt")) +
+  xlab("\n Number Elapsed Months Between Start Triptan & Start Oral CGRP") +
+  ylab("Number of Months ON Triptan \n")
+
+
+MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(grepl(string_Triptan, Treat)) %>%
+  group_by(patid, weight, Elapsed) %>% count() %>% ungroup() %>% #  summarise(mean=mean(n)) # 16.3
+  mutate(perc=n/Elapsed) %>% filter(Elapsed!=0) %>% # summarise(mean=mean(perc)) # 53% 
+  ggplot(aes(Elapsed, n)) +
+  geom_jitter(size=0.5, alpha=0.5) +
+  theme_minimal() +
+   theme(panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_blank(),
+        axis.line = element_blank(),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        axis.title.x = element_text(size = 12, vjust = -0.5),
+        axis.title.y = element_text(size = 12, vjust = -0.5),
+        plot.margin = margin(5, 5, 5, 5, "pt")) +
+  xlab("\n Number Elapsed Months Between Start Triptan & Start Oral CGRP") +
+  ylab("Number of Months ON Triptan \n")
+
+
+MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(grepl(string_Triptan, Treat)) %>%
+  group_by(patid, weight, Elapsed) %>% count() %>% ungroup() %>% #  summarise(mean=mean(n)) # 16.3
+  mutate(perc=n/Elapsed) %>% filter(Elapsed!=0) %>% # summarise(mean=mean(perc)) # 53% 
+  ggplot(aes(perc)) +
+  xlim(0,1) +
+  geom_density(colour="deepskyblue4", size=1, fill="deepskyblue4", alpha=0.3) +
+  theme_minimal() +
+   theme(panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_blank(),
+        axis.line = element_blank(),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        axis.title.x = element_text(size = 12, vjust = -0.5),
+        axis.title.y = element_text(size = 12, vjust = -0.5),
+        plot.margin = margin(5, 5, 5, 5, "pt")) +
+  xlab("\n Proportion of the Months Between Start Triptan & Start Oral CGRP \n Truly Spent ON Triptan") +
+  ylab("Patient Density \n")
+
+
+MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(grepl("-", Treat)) %>%
+  group_by(patid, weight, Elapsed) %>% count() %>% ungroup() %>%
+   ggplot(aes(n)) +
+  geom_density(colour="black", size=1, fill="black", alpha=0.3) +
+  theme_minimal() +
+   theme(panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_blank(),
+        axis.line = element_blank(),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        axis.title.x = element_text(size = 12, vjust = -0.5),
+        axis.title.y = element_text(size = 12, vjust = -0.5),
+        plot.margin = margin(5, 5, 5, 5, "pt")) +
+  xlab("\n Numbr of  Months Between Start Triptan & Start Oral CGRP \n Lapsed (no therapy)") +
+  ylab("Patient Density \n")
+
+
+Diff_Triptans <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(grepl(string_Triptan, Treat)) %>%
+  group_by(patid, weight, Treat) 
+
+Diff_Triptans <- separate_rows(Diff_Triptans, Treat, sep = ",", convert=T )
+Diff_Triptans <- Diff_Triptans%>% filter(grepl(string_Triptan, Treat))
+Diff_Triptans <- Diff_Triptans %>% ungroup() %>% select(patid, weight, Treat) %>% distinct() %>%
+  group_by(patid, weight) %>% count()
+
+Diff_Triptans %>% ungroup() %>% summarise(mean=mean(n))
+
+
+Classes_Tried <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(!grepl("-", Treat)) %>%
+  group_by(patid, weight, Treat) %>% distinct()
+
+Classes_Tried <- separate_rows(Classes_Tried, Treat, sep = ",", convert=T )
+Classes_Tried <- Classes_Tried%>%   select(patid, weight, Treat) %>% distinct()
+
+data.frame(Classes_Tried %>% left_join(Drug_formulary %>% select(drug_id, drug_class), by=c("Treat"="drug_id")) %>%
+  ungroup() %>% select(patid, weight, drug_class) %>% distinct() %>%
+  group_by(drug_class) %>% summarise(tot=sum(weight)))
+
+
+# ------------------------

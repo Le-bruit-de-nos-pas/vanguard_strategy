@@ -3431,3 +3431,68 @@ MIGUS24_Doses %>% mutate(DESCRIPTION=ifelse(DESCRIPTION %in% c("UNKNOWN PROVIDER
   filter(DESCRIPTION!="Remove") %>% group_by(DESCRIPTION) %>% count() %>% mutate(perc=n/(4776+12182+2860+2098+7610))
 
 # ----------
+# Oral CGRP usage among Triptan patients month over month --------
+
+MIGUS24_Drug_Histories_Extended_NoComorbs <- fread("Source/MIGUS24_Drug_Histories_Extended_NoComorbs.txt")
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% filter(version=="NEW_ZAV") %>% select(-version)
+sum(MIGUS24_Drug_Histories_Extended_NoComorbs$weight)
+MIGUS24_Drug_Histories_Extended_NoComorbs <- gather(MIGUS24_Drug_Histories_Extended_NoComorbs, Month, Treat, month1:month60, factor_key=TRUE)
+MIGUS24_Drug_Histories_Extended_NoComorbs$Month <- parse_number(as.character(MIGUS24_Drug_Histories_Extended_NoComorbs$Month))
+MIGUS24_Drug_Histories_Extended_NoComorbs <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% arrange(patid, desc(Month))
+# 21292150
+
+Drug_formulary <- fread("Source/Drug_formulary.txt")
+data.frame(Drug_formulary)
+data.frame(Drug_formulary %>% select(drug_class, drug_group) %>% distinct())
+
+string_Triptan <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_class=="Triptan"], collapse = "|"),")\\b")
+string_CGRP_Oral <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_class=="CGRP Oral"], collapse = "|"),")\\b")
+
+
+Triptan_pats <- MIGUS24_Drug_Histories_Extended_NoComorbs %>% select(patid, weight, Treat) %>% distinct() %>%
+  filter(grepl(string_Triptan, Treat)) %>% select(patid, weight)  %>% distinct() 
+
+sum(Triptan_pats$weight) # 8788198 ever 
+
+MIGUS24_Drug_Histories_Extended_NoComorbs <- Triptan_pats %>% left_join(MIGUS24_Drug_Histories_Extended_NoComorbs)
+
+Triptan_pats <- MIGUS24_Drug_Histories_Extended_NoComorbs %>%  filter(grepl(string_Triptan, Treat)) %>%
+  group_by(patid, weight)  %>% filter(Month==min(Month)) %>%
+  select(patid, weight, Month) %>% filter(Month<=36)
+
+names(Triptan_pats)[3] <- "First_Triptan"
+sum(Triptan_pats$weight) # 6773084 first 3 years
+
+Oral_CGRP_pats <- Triptan_pats %>% 
+  left_join(MIGUS24_Drug_Histories_Extended_NoComorbs) %>%
+  filter(Month>=First_Triptan) %>%
+  filter(grepl(string_CGRP_Oral, Treat)) %>% select(patid, weight)  %>% distinct() 
+
+sum(Oral_CGRP_pats$weight) # 633479.2 ( 633479.2/6773084 = 0.09352892)
+
+
+Oral_CGRP_pats <- Triptan_pats %>% 
+  inner_join(Oral_CGRP_pats) %>%
+  left_join(MIGUS24_Drug_Histories_Extended_NoComorbs) %>%
+  filter(Month>=First_Triptan) %>%
+  filter(grepl(string_CGRP_Oral, Treat)) %>% filter(Month==min(Month)) %>%
+  select(patid, weight, Month) 
+
+
+names(Oral_CGRP_pats)[3] <- "First_Oral_CGRP"
+sum(Oral_CGRP_pats$weight) # 633479.2 
+
+df <- Triptan_pats %>% left_join(Oral_CGRP_pats) 
+range(df$First_Triptan)
+
+breaks <- seq(0, 36, by = 6)
+
+df$bucket <- cut(df$First_Triptan, breaks = breaks)
+
+df %>% group_by(bucket) %>% summarise(tot=sum(weight))  %>%
+  left_join(
+    df %>% filter(!is.na(First_Oral_CGRP)) %>% group_by(bucket) %>% summarise(cgrp=sum(weight)) 
+  ) %>%
+  mutate(perc=cgrp/tot)
+
+# ------------------

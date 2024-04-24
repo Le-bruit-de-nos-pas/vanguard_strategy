@@ -8801,3 +8801,172 @@ data.frame(CAN_Drug_Histories %>% mutate(Treat=as.character(Treat)) %>%
 # ---------
 
   
+# Stocks and flows relative to metastasis V2 --------------------
+
+CancerDrug_Experienced <- fread("Source/CancerDrug_Experienced.txt",  integer64 = "character", stringsAsFactors = F)
+New_Primary_Cancer_Box <- fread("Source/New_Primary_Cancer_Box.txt", sep="\t")
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% inner_join(CancerDrug_Experienced)
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% filter(Primary_Cancer=="Breast Cancer") %>% select(patid)
+
+PONS_Demographics <- fread("Source/PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% filter(!is.na(cancer_metastasis))  %>% select(patid, cancer_metastasis)
+setDT(PONS_Demographics)
+PONS_Demographics[, cancer_metastasis := as.character(cancer_metastasis)][, cancer_metastasis := substr(cancer_metastasis, 1L, 7L)]
+
+Months_lookup <- fread("Source/Months_lookup.txt",  integer64 = "character", stringsAsFactors = F)
+Months_lookup$Month <- as.character(
+  format(
+    as.Date(
+      paste0(Months_lookup$Month,"-1")
+      ), "%Y-%m"
+    )
+  )
+
+PONS_Demographics <- PONS_Demographics[Months_lookup, on = c("cancer_metastasis" = "Month")]
+PONS_Demographics <- PONS_Demographics %>% select(-cancer_metastasis) %>% rename("metastasis_onset"="Exact_Month")
+New_Primary_Cancer_Box <- PONS_Demographics %>% inner_join(New_Primary_Cancer_Box)
+names(New_Primary_Cancer_Box)[1] <- "patient"
+
+
+CAN_Drug_Histories <- fread("Source/CAN Drug Histories.txt")
+CAN_Drug_Histories <- CAN_Drug_Histories %>% inner_join(New_Primary_Cancer_Box)
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+setDT(CAN_Drug_Histories)
+CAN_Drug_Histories <- unique(CAN_Drug_Histories[, .(patient, weight, Month, Treat, metastasis_onset)])
+CAN_Drug_Histories$Month <- parse_number(as.character(CAN_Drug_Histories$Month))
+# CAN_Drug_Histories <- CAN_Drug_Histories %>% filter(Month>=metastasis_onset)
+#CAN_Drug_Histories <- CAN_Drug_Histories %>% filter(Treat!="355")
+
+
+
+
+PONS_Ingredients_JN_ChemoClass <- fread("Source/PONS_Ingredients_JN_ChemoClass.csv", colClasses = "character")
+string_target <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[PONS_Ingredients_JN_ChemoClass$chemo_class=="Immuno/Targeted"], collapse = "|"),")\\b")
+string_Biologic <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[PONS_Ingredients_JN_ChemoClass$chemo_class=="Biologic"], collapse = "|"),")\\b")
+string_OtherChemo <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[(PONS_Ingredients_JN_ChemoClass$drug_group=="GDF15"|
+                                                                                     PONS_Ingredients_JN_ChemoClass$drug_group=="Anticancer" ) &
+                                                                               PONS_Ingredients_JN_ChemoClass$chemo_class!="Immuno/Targeted"&
+                                                                               PONS_Ingredients_JN_ChemoClass$chemo_class!="Biologic"&
+                                                                                 PONS_Ingredients_JN_ChemoClass$chemo_class!="Hormonal Therapy"], collapse = "|"),")\\b")
+string_Hormonal <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[
+  PONS_Ingredients_JN_ChemoClass$chemo_class=="Hormonal Therapy"], collapse = "|"),")\\b")
+
+
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% mutate(Stock=ifelse(grepl("179", Treat), "Palbo",
+                                                                 ifelse(grepl(string_target, Treat), "Target",
+                                                                        ifelse(grepl(string_Biologic, Treat), "Biologic",
+                                                                               ifelse(grepl(string_OtherChemo, Treat), "Chemo",
+                                                                                      ifelse(grepl(string_Hormonal, Treat), "Hormone",
+                                                                                             ifelse(grepl("355", Treat), "Dead", "Lapsed")))))))
+
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% select(-Treat)
+
+CAN_Drug_Histories %>% mutate(Month=Month-metastasis_onset) %>%
+  arrange(patient, Month) %>% group_by(patient) %>%
+  filter(Stock=="Palbo"&lag(Stock)!="Palbo")
+
+
+PONS_Demographics <- fread("Source/PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% select(patid, weight, diagnosis) %>% rename("patient"="patid") %>%
+  inner_join(CAN_Drug_Histories %>% select(patient) %>% distinct())
+PONS_Demographics <- separate_rows(PONS_Demographics, diagnosis, sep = ",", convert=T)
+PONS_Demographics$diagnosis <- str_replace_all(PONS_Demographics$diagnosis, " Cancer", "")
+PONS_Demographics$diagnosis <- str_replace_all(PONS_Demographics$diagnosis, " ", "")
+PONS_Demographics <- PONS_Demographics %>% mutate(exp=1) %>% spread(key=diagnosis, value=exp)
+PONS_Demographics[is.na(PONS_Demographics)] <- 0
+
+PONS_Demographics <- PONS_Demographics %>% mutate(Group=ifelse(Liver==1|Lung==1|Bone==1, "LLB",
+                                          ifelse(Lymphoma==1, "Lymphoma", "Other"))) %>% 
+  # group_by(Group) %>% summarise(n=sum(weight))
+  select(patient, Group, weight)
+
+PONS_Demographics %>% group_by(Group) %>% summarise(n=sum(weight))
+
+CAN_Drug_Histories %>% mutate(Month=Month-metastasis_onset) %>%
+  arrange(patient, Month) %>% group_by(patient) %>%
+  filter( (Stock=="Palbo"&lag(Stock)!="Palbo") | (Stock=="Palbo"&Month==0) ) %>%
+  ungroup() %>%
+  filter(Month<=12) %>%
+  inner_join(PONS_Demographics) %>%
+  group_by(Group) %>% summarise(tot=sum(weight))
+
+
+#   Group       tot
+# 1 LLB      73202.
+# 2 Lymphoma  3089.
+# 3 Other     1018.
+#   
+
+
+data.frame(CAN_Drug_Histories %>% mutate(Month=Month-metastasis_onset) %>%
+  arrange(patient, Month) %>% group_by(patient) %>%
+  filter(Stock=="Palbo"&lag(Stock)!="Palbo") %>%
+  ungroup() %>%
+  filter(Month<=12) %>% 
+  group_by(Month) %>% summarise(tot=sum(weight)))
+
+
+data.frame(CAN_Drug_Histories %>% mutate(Month=Month-metastasis_onset) %>%
+  arrange(patient, Month) %>% 
+  filter(Stock=="Palbo") %>%
+  group_by(patient) %>% filter(Month==min(Month)) %>%
+  ungroup() %>%
+  filter(Month<=12) %>% 
+  group_by(Month) %>% summarise(tot=sum(weight)))
+
+
+
+CAN_Drug_Histories %>% mutate(Month=Month-metastasis_onset) %>%
+  filter(Month<=12&Stock=="Palbo" & Month>=0) %>% select(patient, weight) %>%
+  distinct() %>% summarise(tot=sum(weight))
+
+
+
+
+CAN_Drug_Histories %>% mutate(Month=Month-metastasis_onset) %>% 
+  filter(Stock=="Palbo") %>% group_by(Month) %>%
+  summarise(n=sum(weight)) %>%
+  filter(Month<=11 & Month>=(-1)) 
+
+
+
+CAN_Drug_Histories %>% mutate(Month=Month-metastasis_onset) %>%
+  filter( (Stock!="Palbo"&lead(Stock)=="Palbo") ) %>%
+  filter(Month<=11 & Month>=(-1)) %>%
+  group_by(Month, Stock) %>% summarise(n=sum(weight)) %>%
+  spread(key=Stock, value=n)
+
+
+CAN_Drug_Histories %>% mutate(Month=Month-metastasis_onset) %>%
+  filter( (Stock!="Palbo"&lag(Stock)=="Palbo") ) %>%
+  filter(Month<=13 & Month>=(1)) %>%
+  group_by(Month, Stock) %>% summarise(n=sum(weight)) %>%
+  spread(key=Stock, value=n)
+
+CAN_Drug_Histories_v2 <- CAN_Drug_Histories %>% mutate(Month=Month-metastasis_onset) %>% select(-metastasis_onset)
+
+CAN_Drug_Histories_v2 %>% filter(Month<=12 & Month>=(-1)) %>%
+  filter(Stock=="Palbo") %>% group_by(Month) %>% summarise(n=sum(weight))
+
+CAN_Drug_Histories_v2 %>% ungroup() %>%
+  arrange(patient, weight, Month) %>%
+  group_by(patient, weight) %>%
+  filter(Month<=12 & Month>=(-1)) %>% 
+  filter(Stock=="Palbo"&lag(Stock)!="Palbo") %>% 
+  group_by(Month) %>% summarise(n=sum(weight))
+
+
+unique(CAN_Drug_Histories_v2$Stock)
+
+CAN_Drug_Histories_v2 %>% ungroup() %>%
+  arrange(patient, weight, Month) %>%
+  group_by(patient, weight) %>%
+  filter(Month<=12 & Month>=(-1)) %>% 
+  filter(Stock!="Palbo"&lag(Stock)=="Palbo") %>% 
+  group_by(Month) %>% summarise(n=sum(weight))
+
+fwrite(CAN_Drug_Histories_v2, "Breast_Cancer_Rel_Metastasis_Drug_Histories.txt")
+
+# --------

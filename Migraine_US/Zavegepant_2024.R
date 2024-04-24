@@ -3496,3 +3496,443 @@ df %>% group_by(bucket) %>% summarise(tot=sum(weight))  %>%
   mutate(perc=cgrp/tot)
 
 # ------------------
+
+ Average Number of Different Molecules relative to initiation different molecules --------
+
+# Zavegepant
+
+flMIG <- fread("Source/MIG_Flows_Aux_Long.txt")
+flMIG <- flMIG %>% select(patient, weight, p1, p2, d1, d2, s1, s2)
+flMIG <- flMIG %>% mutate(p1 = as.numeric(p1)) %>% mutate(p2=as.numeric(p2))
+
+First_ZAV <- flMIG %>% 
+  filter(grepl("134", d2)) %>% group_by(patient) %>% filter(p2==min(p2)) %>% select(patient, p2) %>% rename("First_ZAV"="p2")
+
+flMIG <- First_ZAV %>% left_join(flMIG)
+
+flMIG <- flMIG %>% filter(First_ZAV>1&First_ZAV<60)  %>% mutate(before=First_ZAV-1) %>% mutate(after=First_ZAV+1) 
+
+before <- flMIG %>% filter(p2==before) %>% select(patient, d2)
+current <- flMIG %>% filter(p2==First_ZAV) %>% select(patient, d2)
+after <- flMIG %>% filter(p2==after) %>% select(patient, d2)
+
+before <- separate_rows(before, d2, sep = ",", convert=T )
+current <- separate_rows(current, d2, sep = ",", convert=T )
+after <- separate_rows(after, d2, sep = ",", convert=T )
+
+
+ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
+Drugs_lookup <- ZAVUS24_Doses %>% select(drug_id, generic, drug_class, drug_group) %>% distinct()
+Drugs_lookup <- Drugs_lookup %>% arrange(drug_id)
+unique(Drugs_lookup$drug_group)
+
+
+data.frame(before %>% mutate(d2=as.character(d2)) %>% left_join(Drugs_lookup %>% mutate(drug_id=as.character(drug_id)), by=c("d2"="drug_id")) %>% 
+  select(patient, drug_class) %>% distinct() %>% group_by(drug_class) %>% count() %>% mutate(n=n/length(unique(before$patient))) %>%
+  rename("before"="n") %>%
+  full_join(
+    current %>% mutate(d2=as.character(d2)) %>% left_join(Drugs_lookup %>% mutate(drug_id=as.character(drug_id)), by=c("d2"="drug_id")) %>% 
+  select(patient, drug_class) %>% distinct() %>% group_by(drug_class) %>% count() %>% mutate(n=n/length(unique(current$patient))) %>%
+  rename("current"="n")) %>%
+  full_join(
+    after %>% mutate(d2=as.character(d2)) %>% left_join(Drugs_lookup %>% mutate(drug_id=as.character(drug_id)), by=c("d2"="drug_id")) %>% 
+  select(patient, drug_class) %>% distinct() %>% group_by(drug_class) %>% count() %>% mutate(n=n/length(unique(after$patient))) %>%
+  rename("after"="n")
+  ))
+
+flMIG <- flMIG %>% select(patient, First_ZAV, p2, d2)
+length(unique(flMIG$patient)) # 133
+
+flMIG <- separate_rows(flMIG, d2, sep = ",", convert=T )
+
+flMIG %>% mutate(p2=p2-First_ZAV) %>%
+  left_join(Drugs_lookup %>% mutate(drug_id=as.character(drug_id)), by=c("d2"="drug_id")) %>%
+  select(patient, p2, generic) %>% distinct() %>%
+  group_by(patient, p2) %>% count() %>% ungroup() %>%
+  group_by(p2) %>% summarise(mean=mean(n)) %>%
+  ggplot(aes(p2, mean)) +
+  geom_point(shape = 1, size = 2, stroke = 2) +
+  geom_line(size=2, alpha=0.5, colour="deepskyblue4") +
+  theme_bw() +
+  ylim(0,6.2) +
+  xlab("\n Month Relative to Zavegepant Initiation") + 
+  ylab("Average Number of Different Molecules ON \n") 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Ubrogepant
+flMIG <- fread("Source/MIGUS24 Flows_Long.txt")
+flMIG <- flMIG %>% select(patient, weight, p1, p2, d1, d2, s1, s2)
+flMIG <- flMIG %>% mutate(p1 = as.numeric(p1)) %>% mutate(p2=as.numeric(p2))
+
+First_UBRO <- flMIG %>% 
+  filter(grepl("137", d2)) %>% group_by(patient) %>% filter(p2==min(p2)) %>% select(patient, p2) %>% rename("First_UBRO"="p2")
+
+First_UBRO <- First_UBRO %>% filter(First_UBRO<=49)
+
+flMIG <- First_UBRO %>% left_join(flMIG)
+
+flMIG <- flMIG %>% filter(First_UBRO>1&First_UBRO<60)  %>% mutate(before=First_UBRO-1) %>% mutate(after=First_UBRO+1) 
+
+before <- flMIG %>% filter(p2==before) %>% select(patient, d2)
+current <- flMIG %>% filter(p2==First_UBRO) %>% select(patient, d2)
+after <- flMIG %>% filter(p2==after) %>% select(patient, d2)
+
+before <- separate_rows(before, d2, sep = ",", convert=T )
+current <- separate_rows(current, d2, sep = ",", convert=T )
+after <- separate_rows(after, d2, sep = ",", convert=T )
+
+
+MIGUS24_Doses <- fread("Source/MIGUS24 Doses.txt")
+Drugs_lookup <- MIGUS24_Doses %>% select(drug_id, generic, drug_class, drug_group) %>% distinct()
+Drugs_lookup <- Drugs_lookup %>% arrange(drug_id)
+unique(Drugs_lookup$drug_group)
+
+
+flMIG <- flMIG %>% select(patient, First_UBRO, p2, d2)
+length(unique(flMIG$patient)) # 4069
+
+flMIG <- separate_rows(flMIG, d2, sep = ",", convert=T )
+
+flMIG %>% mutate(p2=p2-First_UBRO) %>%
+  left_join(Drugs_lookup %>% mutate(drug_id=as.character(drug_id)), by=c("d2"="drug_id")) %>%
+  select(patient, p2, generic) %>% distinct() %>%
+  group_by(patient, p2) %>% count() %>% ungroup() %>%
+  group_by(p2) %>% summarise(mean=mean(n)) %>%
+  ggplot(aes(p2, mean)) +
+  geom_point(shape = 1, size = 2, stroke = 2) +
+  geom_line(size=2, alpha=0.5, colour="deepskyblue4") +
+  theme_bw() +
+  ylim(0,6.2) +
+  xlab("\n Month Relative to Ubrogepant Initiation") + 
+  ylab("Average Number of Different Molecules ON \n") 
+  
+
+
+
+
+
+# Rimegepant
+flMIG <- fread("Source/MIGUS24 Flows_Long.txt")
+flMIG <- flMIG %>% select(patient, weight, p1, p2, d1, d2, s1, s2)
+flMIG <- flMIG %>% mutate(p1 = as.numeric(p1)) %>% mutate(p2=as.numeric(p2))
+
+First_RIME <- flMIG %>% 
+  filter(grepl("136", d2)) %>% group_by(patient) %>% filter(p2==min(p2)) %>% select(patient, p2) %>% rename("First_RIME"="p2")
+
+First_RIME <- First_RIME %>% filter(First_RIME<=49)
+
+flMIG <- First_RIME %>% left_join(flMIG)
+
+flMIG <- flMIG %>% filter(First_RIME>1&First_RIME<60)  %>% mutate(before=First_RIME-1) %>% mutate(after=First_RIME+1) 
+
+before <- flMIG %>% filter(p2==before) %>% select(patient, d2)
+current <- flMIG %>% filter(p2==First_RIME) %>% select(patient, d2)
+after <- flMIG %>% filter(p2==after) %>% select(patient, d2)
+
+before <- separate_rows(before, d2, sep = ",", convert=T )
+current <- separate_rows(current, d2, sep = ",", convert=T )
+after <- separate_rows(after, d2, sep = ",", convert=T )
+
+
+MIGUS24_Doses <- fread("Source/MIGUS24 Doses.txt")
+Drugs_lookup <- MIGUS24_Doses %>% select(drug_id, generic, drug_class, drug_group) %>% distinct()
+Drugs_lookup <- Drugs_lookup %>% arrange(drug_id)
+unique(Drugs_lookup$drug_group)
+
+
+flMIG <- flMIG %>% select(patient, First_RIME, p2, d2)
+length(unique(flMIG$patient)) # 3090
+
+flMIG <- separate_rows(flMIG, d2, sep = ",", convert=T )
+
+flMIG %>% mutate(p2=p2-First_RIME) %>%
+  left_join(Drugs_lookup %>% mutate(drug_id=as.character(drug_id)), by=c("d2"="drug_id")) %>%
+  select(patient, p2, generic) %>% distinct() %>%
+  group_by(patient, p2) %>% count() %>% ungroup() %>%
+  group_by(p2) %>% summarise(mean=mean(n)) %>%
+  ggplot(aes(p2, mean)) +
+  geom_point(shape = 1, size = 2, stroke = 2) +
+  geom_line(size=2, alpha=0.5, colour="deepskyblue4") +
+  theme_bw() +
+  ylim(0,6.2) +
+  xlab("\n Month Relative to Rimegepant Initiation") + 
+  ylab("Average Number of Different Molecules ON \n") 
+  
+
+
+
+
+
+
+
+# Topiramate
+flMIG <- fread("Source/MIGUS24 Flows_Long.txt")
+flMIG <- flMIG %>% select(patient, weight, p1, p2, d1, d2, s1, s2)
+flMIG <- flMIG %>% mutate(p1 = as.numeric(p1)) %>% mutate(p2=as.numeric(p2))
+
+First_TOPI <- flMIG %>% 
+  filter(grepl("91", d2)) %>% group_by(patient) %>% filter(p2==min(p2)) %>% select(patient, p2) %>% rename("First_TOPI"="p2")
+
+First_TOPI <- First_TOPI %>% filter(First_TOPI<=49)
+
+flMIG <- First_TOPI %>% left_join(flMIG)
+
+flMIG <- flMIG %>% filter(First_TOPI>1&First_TOPI<60)  %>% mutate(before=First_TOPI-1) %>% mutate(after=First_TOPI+1) 
+
+before <- flMIG %>% filter(p2==before) %>% select(patient, d2)
+current <- flMIG %>% filter(p2==First_TOPI) %>% select(patient, d2)
+after <- flMIG %>% filter(p2==after) %>% select(patient, d2)
+
+before <- separate_rows(before, d2, sep = ",", convert=T )
+current <- separate_rows(current, d2, sep = ",", convert=T )
+after <- separate_rows(after, d2, sep = ",", convert=T )
+
+
+MIGUS24_Doses <- fread("Source/MIGUS24 Doses.txt")
+Drugs_lookup <- MIGUS24_Doses %>% select(drug_id, generic, drug_class, drug_group) %>% distinct()
+Drugs_lookup <- Drugs_lookup %>% arrange(drug_id)
+unique(Drugs_lookup$drug_group)
+
+
+flMIG <- flMIG %>% select(patient, First_TOPI, p2, d2)
+length(unique(flMIG$patient)) # 3090
+
+flMIG <- separate_rows(flMIG, d2, sep = ",", convert=T )
+
+flMIG %>% mutate(p2=p2-First_TOPI) %>%
+  left_join(Drugs_lookup %>% mutate(drug_id=as.character(drug_id)), by=c("d2"="drug_id")) %>%
+  select(patient, p2, generic) %>% distinct() %>%
+  group_by(patient, p2) %>% count() %>% ungroup() %>%
+  group_by(p2) %>% summarise(mean=mean(n)) %>%
+  ggplot(aes(p2, mean)) +
+  geom_point(shape = 1, size = 2, stroke = 2) +
+  geom_line(size=2, alpha=0.5, colour="deepskyblue4") +
+  theme_bw() +
+  ylim(0,6.2) +
+  xlab("\n Month Relative to Topiramate Initiation") + 
+  ylab("Average Number of Different Molecules ON \n") 
+  
+
+
+
+
+
+
+
+# Galcanezumab
+flMIG <- fread("Source/MIGUS24 Flows_Long.txt")
+flMIG <- flMIG %>% select(patient, weight, p1, p2, d1, d2, s1, s2)
+flMIG <- flMIG %>% mutate(p1 = as.numeric(p1)) %>% mutate(p2=as.numeric(p2))
+
+First_GAL <- flMIG %>% 
+  filter(grepl("141", d2)) %>% group_by(patient) %>% filter(p2==min(p2)) %>% select(patient, p2) %>% rename("First_GAL"="p2")
+
+First_GAL <- First_GAL %>% filter(First_GAL<=49)
+
+flMIG <- First_GAL %>% left_join(flMIG)
+
+flMIG <- flMIG %>% filter(First_GAL>1&First_GAL<60)  %>% mutate(before=First_GAL-1) %>% mutate(after=First_GAL+1) 
+
+before <- flMIG %>% filter(p2==before) %>% select(patient, d2)
+current <- flMIG %>% filter(p2==First_GAL) %>% select(patient, d2)
+after <- flMIG %>% filter(p2==after) %>% select(patient, d2)
+
+before <- separate_rows(before, d2, sep = ",", convert=T )
+current <- separate_rows(current, d2, sep = ",", convert=T )
+after <- separate_rows(after, d2, sep = ",", convert=T )
+
+
+MIGUS24_Doses <- fread("Source/MIGUS24 Doses.txt")
+Drugs_lookup <- MIGUS24_Doses %>% select(drug_id, generic, drug_class, drug_group) %>% distinct()
+Drugs_lookup <- Drugs_lookup %>% arrange(drug_id)
+unique(Drugs_lookup$drug_group)
+
+
+flMIG <- flMIG %>% select(patient, First_GAL, p2, d2)
+length(unique(flMIG$patient)) # 3090
+
+flMIG <- separate_rows(flMIG, d2, sep = ",", convert=T )
+
+flMIG %>% mutate(p2=p2-First_GAL) %>%
+  left_join(Drugs_lookup %>% mutate(drug_id=as.character(drug_id)), by=c("d2"="drug_id")) %>%
+  select(patient, p2, generic) %>% distinct() %>%
+  group_by(patient, p2) %>% count() %>% ungroup() %>%
+  group_by(p2) %>% summarise(mean=mean(n)) %>%
+  ggplot(aes(p2, mean)) +
+  geom_point(shape = 1, size = 2, stroke = 2) +
+  geom_line(size=2, alpha=0.5, colour="deepskyblue4") +
+  theme_bw() +
+  ylim(0,6.2) +
+  xlab("\n Month Relative to Galcanezumab Initiation") + 
+  ylab("Average Number of Different Molecules ON \n") 
+  
+
+
+# Botulinum
+flMIG <- fread("Source/MIGUS24 Flows_Long.txt")
+flMIG <- flMIG %>% select(patient, weight, p1, p2, d1, d2, s1, s2)
+flMIG <- flMIG %>% mutate(p1 = as.numeric(p1)) %>% mutate(p2=as.numeric(p2))
+
+First_BOT <- flMIG %>% 
+  filter(grepl("131", d2)) %>% group_by(patient) %>% filter(p2==min(p2)) %>% select(patient, p2) %>% rename("First_BOT"="p2")
+
+First_BOT <- First_BOT %>% filter(First_BOT<=49)
+
+flMIG <- First_BOT %>% left_join(flMIG)
+
+flMIG <- flMIG %>% filter(First_BOT>1&First_BOT<60)  %>% mutate(before=First_BOT-1) %>% mutate(after=First_BOT+1) 
+
+before <- flMIG %>% filter(p2==before) %>% select(patient, d2)
+current <- flMIG %>% filter(p2==First_BOT) %>% select(patient, d2)
+after <- flMIG %>% filter(p2==after) %>% select(patient, d2)
+
+before <- separate_rows(before, d2, sep = ",", convert=T )
+current <- separate_rows(current, d2, sep = ",", convert=T )
+after <- separate_rows(after, d2, sep = ",", convert=T )
+
+
+MIGUS24_Doses <- fread("Source/MIGUS24 Doses.txt")
+Drugs_lookup <- MIGUS24_Doses %>% select(drug_id, generic, drug_class, drug_group) %>% distinct()
+Drugs_lookup <- Drugs_lookup %>% arrange(drug_id)
+unique(Drugs_lookup$drug_group)
+
+
+flMIG <- flMIG %>% select(patient, First_BOT, p2, d2)
+length(unique(flMIG$patient)) # 3090
+
+flMIG <- separate_rows(flMIG, d2, sep = ",", convert=T )
+
+flMIG %>% mutate(p2=p2-First_BOT) %>%
+  left_join(Drugs_lookup %>% mutate(drug_id=as.character(drug_id)), by=c("d2"="drug_id")) %>%
+  select(patient, p2, generic) %>% distinct() %>%
+  group_by(patient, p2) %>% count() %>% ungroup() %>%
+  group_by(p2) %>% summarise(mean=mean(n)) %>%
+  ggplot(aes(p2, mean)) +
+  geom_point(shape = 1, size = 2, stroke = 2) +
+  geom_line(size=2, alpha=0.5, colour="deepskyblue4") +
+  theme_bw() +
+  ylim(0,6.2) +
+  xlab("\n Month Relative to Botulinum toxin Initiation") + 
+  ylab("Average Number of Different Molecules ON \n") 
+  
+
+
+
+# Meloxicam
+flMIG <- fread("Source/MIGUS24 Flows_Long.txt")
+flMIG <- flMIG %>% select(patient, weight, p1, p2, d1, d2, s1, s2)
+flMIG <- flMIG %>% mutate(p1 = as.numeric(p1)) %>% mutate(p2=as.numeric(p2))
+
+First_MELO <- flMIG %>% 
+  filter(grepl("13", d2)) %>% group_by(patient) %>% filter(p2==min(p2)) %>% select(patient, p2) %>% rename("First_MELO"="p2")
+
+First_MELO <- First_MELO %>% filter(First_MELO<=49)
+
+flMIG <- First_MELO %>% left_join(flMIG)
+
+flMIG <- flMIG %>% filter(First_MELO>1&First_MELO<60)  %>% mutate(before=First_MELO-1) %>% mutate(after=First_MELO+1) 
+
+before <- flMIG %>% filter(p2==before) %>% select(patient, d2)
+current <- flMIG %>% filter(p2==First_MELO) %>% select(patient, d2)
+after <- flMIG %>% filter(p2==after) %>% select(patient, d2)
+
+before <- separate_rows(before, d2, sep = ",", convert=T )
+current <- separate_rows(current, d2, sep = ",", convert=T )
+after <- separate_rows(after, d2, sep = ",", convert=T )
+
+
+MIGUS24_Doses <- fread("Source/MIGUS24 Doses.txt")
+Drugs_lookup <- MIGUS24_Doses %>% select(drug_id, generic, drug_class, drug_group) %>% distinct()
+Drugs_lookup <- Drugs_lookup %>% arrange(drug_id)
+unique(Drugs_lookup$drug_group)
+
+
+flMIG <- flMIG %>% select(patient, First_MELO, p2, d2)
+length(unique(flMIG$patient)) # 3090
+
+flMIG <- separate_rows(flMIG, d2, sep = ",", convert=T )
+
+flMIG %>% mutate(p2=p2-First_MELO) %>%
+  left_join(Drugs_lookup %>% mutate(drug_id=as.character(drug_id)), by=c("d2"="drug_id")) %>%
+  select(patient, p2, generic) %>% distinct() %>%
+  group_by(patient, p2) %>% count() %>% ungroup() %>%
+  group_by(p2) %>% summarise(mean=mean(n)) %>%
+  ggplot(aes(p2, mean)) +
+  geom_point(shape = 1, size = 2, stroke = 2) +
+  geom_line(size=2, alpha=0.5, colour="deepskyblue4") +
+  theme_bw() +
+  ylim(0,6.2) +
+  xlab("\n Month Relative to Meloxicam Initiation") + 
+  ylab("Average Number of Different Molecules ON \n") 
+  
+
+
+
+
+# Sumatriptan
+flMIG <- fread("Source/MIGUS24 Flows_Long.txt")
+flMIG <- flMIG %>% select(patient, weight, p1, p2, d1, d2, s1, s2)
+flMIG <- flMIG %>% mutate(p1 = as.numeric(p1)) %>% mutate(p2=as.numeric(p2))
+
+First_SUMA <- flMIG %>% 
+  filter(grepl("74", d2)) %>% group_by(patient) %>% filter(p2==min(p2)) %>% select(patient, p2) %>% rename("First_SUMA"="p2")
+
+First_SUMA <- First_SUMA %>% filter(First_SUMA<=49)
+
+flMIG <- First_SUMA %>% left_join(flMIG)
+
+flMIG <- flMIG %>% filter(First_SUMA>1&First_SUMA<60)  %>% mutate(before=First_SUMA-1) %>% mutate(after=First_SUMA+1) 
+
+before <- flMIG %>% filter(p2==before) %>% select(patient, d2)
+current <- flMIG %>% filter(p2==First_SUMA) %>% select(patient, d2)
+after <- flMIG %>% filter(p2==after) %>% select(patient, d2)
+
+before <- separate_rows(before, d2, sep = ",", convert=T )
+current <- separate_rows(current, d2, sep = ",", convert=T )
+after <- separate_rows(after, d2, sep = ",", convert=T )
+
+
+MIGUS24_Doses <- fread("Source/MIGUS24 Doses.txt")
+Drugs_lookup <- MIGUS24_Doses %>% select(drug_id, generic, drug_class, drug_group) %>% distinct()
+Drugs_lookup <- Drugs_lookup %>% arrange(drug_id)
+unique(Drugs_lookup$drug_group)
+
+
+flMIG <- flMIG %>% select(patient, First_SUMA, p2, d2)
+length(unique(flMIG$patient)) # 3090
+
+flMIG <- separate_rows(flMIG, d2, sep = ",", convert=T )
+
+flMIG %>% mutate(p2=p2-First_SUMA) %>%
+  left_join(Drugs_lookup %>% mutate(drug_id=as.character(drug_id)), by=c("d2"="drug_id")) %>%
+  select(patient, p2, generic) %>% distinct() %>%
+  group_by(patient, p2) %>% count() %>% ungroup() %>%
+  group_by(p2) %>% summarise(mean=mean(n)) %>%
+  ggplot(aes(p2, mean)) +
+  geom_point(shape = 1, size = 2, stroke = 2) +
+  geom_line(size=2, alpha=0.5, colour="deepskyblue4") +
+  theme_bw() +
+  ylim(0,6.2) +
+  xlab("\n Month Relative to Sumatriptan Initiation") + 
+  ylab("Average Number of Different Molecules ON \n") 
+  
+
+
+
+# --------------

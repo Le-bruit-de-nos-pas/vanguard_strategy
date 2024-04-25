@@ -8969,4 +8969,23 @@ CAN_Drug_Histories_v2 %>% ungroup() %>%
 
 fwrite(CAN_Drug_Histories_v2, "Breast_Cancer_Rel_Metastasis_Drug_Histories.txt")
 
+
+CAN_Drug_Histories_v2 <- fread("Breast_Cancer_Rel_Metastasis_Drug_Histories.txt")
+
+
+CAN_Drug_Histories_v2 <- CAN_Drug_Histories_v2 %>% arrange(patient, weight, Month)
+
+data.frame(CAN_Drug_Histories_v2)
+
+
+df <- CAN_Drug_Histories_v2 %>%
+  left_join(CAN_Drug_Histories_v2 %>% mutate(Month=Month-1) %>% rename("Stock_2"="Stock")
+) %>% filter(Stock!=Stock_2) %>%
+  group_by(Month, Stock, Stock_2) %>% summarise(pop=sum(weight))
+
+fwrite(df, "Palbo_Flows_Stocks_Month_over_Month_Mets.csv")
+
+
+
+
 # --------

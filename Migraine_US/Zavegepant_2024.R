@@ -1269,6 +1269,7 @@ MIGUS24_Drug_Histories <- separate_rows(MIGUS24_Drug_Histories, Treat, sep = ","
 MIGUS24_Drug_Histories <- MIGUS24_Drug_Histories %>% left_join(Drugs_lookup , by=c("Treat"="drug_id")) 
 
 
+
 MIGUS24_Drug_Histories <- MIGUS24_Drug_Histories %>% mutate(flag=ifelse(CV==1&drug_class=="Beta Blocker", 1,
                                                                  ifelse(CV==1&drug_class=="Cardiovascular",1,
                                                                         ifelse(CV==1&drug_class=="Calcium Blocker",1,
@@ -4300,6 +4301,13 @@ df$group <- as.numeric(cut(df$diff,10))
 unique(df$group)
 
 df %>% select(patient, weight, First_Rx, group) %>% distinct() %>%
+  group_by(group) %>% summarise(n=sum(weight))
+
+Mod_Sev <- fread("Source/Mod_Sev.txt")
+
+
+df %>% select(patient, weight, First_Rx, group) %>% mutate(patient=as.character(patient)) %>% distinct() %>%
+  inner_join(Mod_Sev %>% rename("patient"="patid") %>% mutate(patient=as.character(patient)) %>% select(-group) ) %>%
   group_by(group) %>% summarise(n=sum(weight))
 
 # -----

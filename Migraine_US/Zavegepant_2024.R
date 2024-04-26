@@ -4337,3 +4337,60 @@ df %>% filter(Month==First_RIME-1 | Month==First_RIME+1) %>%
   spread(key=`1`, value=tot)
 
 # ---------------
+# How many of the Ever Rimegepant are on symptomatic JAN 24 ------
+# Rimegepant
+flMIG <- fread("Source/MIGUS24 Flows_Long.txt")
+flMIG <- flMIG %>% select(patient, weight, p1, p2, d1, d2, s1, s2)
+flMIG <- flMIG %>% mutate(p1 = as.numeric(p1)) %>% mutate(p2=as.numeric(p2))
+
+First_RIME <- flMIG %>% 
+  filter(grepl("136", d1)|grepl("136", d2)) %>% group_by(patient) %>% filter(p2==min(p2)) %>% select(patient, weight, p2) %>% rename("First_RIME"="p2")
+
+sum(First_RIME$weight)
+
+
+
+
+# Rimegepant
+flMIG <- fread("Source/MIGUS24 Flows_Long.txt")
+flMIG <- flMIG %>% select(patient, weight, p1, p2, d1, d2, s1, s2)
+flMIG <- flMIG %>% mutate(p1 = as.numeric(p1)) %>% mutate(p2=as.numeric(p2)) %>% filter(p2==60) %>%
+  select(patient, weight, d2) %>% inner_join(First_RIME)
+ 
+
+
+Drug_formulary <- fread("Source/Drug_formulary.txt")
+data.frame(Drug_formulary)
+data.frame(Drug_formulary %>% select(drug_class, drug_group) %>% distinct())
+
+string_Sympt <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_group=="Symptomatic"], collapse = "|"),")\\b")
+
+flMIG %>% filter(grepl(string_Sympt, d2)) %>% summarise(n=sum(weight))
+
+# -------------
+
+# How many of the MOD SEV  are on symptomatic JAN 24 ------
+
+Mod_Sev <- fread("Source/Mod_Sev.txt")
+
+
+Drug_formulary <- fread("Source/Drug_formulary.txt")
+data.frame(Drug_formulary)
+data.frame(Drug_formulary %>% select(drug_class, drug_group) %>% distinct())
+
+string_Sympt <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_group=="Symptomatic"], collapse = "|"),")\\b")
+
+
+
+flMIG <- fread("Source/MIGUS24 Flows_Long.txt")
+flMIG <- flMIG %>% select(patient, weight, p1, p2, d1, d2, s1, s2)
+flMIG <- flMIG %>% mutate(p1 = as.numeric(p1)) %>% mutate(p2=as.numeric(p2)) %>% filter(p2==60) %>%
+  select(patient, weight, d2) %>% inner_join(Mod_Sev, by=c("patient"="patid"))
+
+sum(flMIG$weight)
+
+flMIG %>% filter(grepl(string_Sympt, d2)) %>% summarise(n=sum(weight))
+
+# --------
+
+ 

@@ -4394,3 +4394,86 @@ flMIG %>% filter(grepl(string_Sympt, d2)) %>% summarise(n=sum(weight))
 # --------
 
  
+
+
+# 12 month penetrance vs 12 month duration ------------
+Mod_Sev <- fread("Source/Mod_Sev.txt")
+Mod_Sev <- Mod_Sev %>% select(-group)
+
+
+Drug_formulary <- fread("Source/Drug_formulary.txt")
+data.frame(Drug_formulary)
+data.frame(Drug_formulary %>% select(drug_class, drug_group) %>% distinct())
+
+
+df <- fread("Source/MIGUS24_Drug_Histories_Extended_NoComorbs.txt")
+df <- gather(df, Month, Treat, month1:month60, factor_key=TRUE)
+df$Month <- parse_number(as.character(df$Month))
+df <- df %>% filter(Treat != "-")
+df <- df %>% filter(Month>=49)
+df <- df %>% select(-Month) %>% distinct()
+df <- separate_rows(df, Treat, sep = ",", convert=T )
+df <- df %>% distinct()
+
+df <- df %>% left_join(Drug_formulary %>% select(drug_id, drug_class), by=c("Treat"="drug_id"))
+df <- df %>% select(patid, weight, drug_class) %>% distinct()
+
+pen <- data.frame(df %>% inner_join(Mod_Sev) %>% group_by(drug_class) %>% summarise(sum_weights = sum(as.numeric(weight))) %>%
+             mutate(sum_weights_percent = (sum_weights / 12768773)*100)) %>% arrange(-sum_weights_percent)
+
+
+
+df <- fread("Source/MIGUS24_Drug_Histories_Extended_NoComorbs.txt")
+df <- gather(df, Month, Treat, month1:month60, factor_key=TRUE)
+df$Month <- parse_number(as.character(df$Month))
+df <- df %>% filter(Treat != "-")
+df <- df %>% filter(Month>=49)
+df <- separate_rows(df, Treat, sep = ",", convert=T )
+
+df <- df %>% left_join(Drug_formulary %>% select(drug_id, drug_class), by=c("Treat"="drug_id"))
+df <- df %>% select(patid, weight, Month, drug_class) %>% distinct()
+
+Mod_Sev %>% mutate(link=1) %>%
+  full_join(Drug_formulary %>% select(drug_class) %>% distinct() %>% mutate(link=1)) %>%
+  select(-link) %>%
+  left_join(df %>% inner_join(Mod_Sev) %>% group_by(patid, drug_class) %>% count()) %>%
+  mutate(n=ifelse(is.na(n),0,n)) %>%
+  ungroup() %>%
+  group_by(drug_class) %>% summarise(mean=mean(n))
+
+
+time <- data.frame(df %>% inner_join(Mod_Sev) %>% group_by(patid, drug_class) %>% count() %>%
+  ungroup() %>%
+  group_by(drug_class) %>% summarise(mean=mean(n)))
+
+
+df <- pen %>% inner_join(time)
+
+
+names(df) <- c("drug_class", "pop", "penetrance", "duration")
+
+
+library(ggrepel)
+library(hrbrthemes)
+library(viridis)
+
+ggplot(df, aes(x=penetrance, y=duration, size = penetrance, fill=penetrance, colour=penetrance)) +
+  geom_point(alpha=0.7)+
+  geom_text_repel(aes(label = drug_class), 
+                  colour = "black", 
+                  size = 3,
+                  hjust = -1,
+                  vjust=0.1,
+                  fontface=2)+ 
+  scale_size(range = c(.1, 24))+
+  theme(legend.position = "none",
+        panel.background = element_blank(),
+        panel.grid = element_blank(),
+        axis.ticks = element_blank(),
+        text = element_text(size = 10))+
+  scale_colour_viridis_c(option = "A")+
+  xlab("\n12-month Penetrance (% Population)")+
+  ylab("Weighted Average Duration (months)\n")+
+  ylim(0,11)+ xlim(0,50)
+
+# ----------

@@ -4238,6 +4238,71 @@ df %>% mutate(group=as.factor(group*5)) %>%
 
 
 # ---------
+# Cummulative Number of Molecules Relative to follow-up /  the entire MIG population -----------
+
+flMIG <- fread("Source/MIGUS24 Flows_Long.txt")
+flMIG <- flMIG %>% select(patient, weight, p1, p2, d1, d2, s1, s2)
+flMIG <- flMIG %>% mutate(p1 = as.numeric(p1)) %>% mutate(p2=as.numeric(p2))
+
+First_Rx <- flMIG %>% 
+  filter(!grepl("-", d2)) %>% group_by(patient) %>% filter(p2==min(p2)) %>% select(patient, p2) %>% rename("First_Rx"="p2")
+
+df <- fread("Source/MIGUS24_Drug_Histories_Extended_NoComorbs.txt")
+df <- df %>% filter(version=="NEW_ZAV") %>% select(patid, weight, month1:month60)
+df <- gather(df, Month, Treat, month1:month60, factor_key=TRUE)
+df$Month <- parse_number(as.character(df$Month))
+df <- First_Rx %>% inner_join(df, by=c("patient"="patid"))
+df <- df %>% ungroup()
+df <- separate_rows(df, Treat, sep = ",", convert=T )
+
+
+df <- df %>% filter(Treat!="-")
+df$patient <- as.character(df$patient)
+
+df <- df %>% group_by(patient, First_Rx, weight, Treat) %>%
+  filter(Month==min(Month)) %>% ungroup()
+
+df <- df %>% arrange(patient, First_Rx, weight, Month, Treat)
+
+df <- df %>% group_by(patient, First_Rx, weight, Month) %>% count() %>%
+  ungroup() %>% group_by(patient, First_Rx, weight) %>%
+  mutate(cum=cumsum(n)) %>% ungroup() %>% select(-n) 
+  
+length(unique(df$Month))
+
+df <- df %>% select(patient, First_Rx, weight) %>% distinct() %>% mutate(link=1) %>%
+  full_join(df %>% select(Month) %>% distinct() %>% mutate(link=1)) %>%
+  left_join(df %>% select(patient, Month, cum) %>% distinct())
+
+df <- df %>% arrange(patient, First_Rx, weight, link, Month, cum)
+
+
+df <- df %>%
+  group_by(patient) %>%
+  fill(cum, .direction = "down") %>%
+  ungroup()
+
+
+df <- df %>% select(-link)
+
+df[is.na(df)] <- 0
+
+
+df <- df %>% left_join(df %>% filter(Month==1) %>% select(patient, cum) %>% rename("start"="cum") %>%
+  left_join(df %>% filter(Month==60) %>% select(patient, cum) %>% rename("end"="cum")) %>%
+  mutate(diff=end-start))
+
+range(df$diff)
+
+
+df$group <- as.numeric(cut(df$diff,10))
+
+unique(df$group)
+
+df %>% select(patient, weight, First_Rx, group) %>% distinct() %>%
+  group_by(group) %>% summarise(n=sum(weight))
+
+# -----
 # Number of Molecules the month before vs month after ----------
 
 # Rimegepant

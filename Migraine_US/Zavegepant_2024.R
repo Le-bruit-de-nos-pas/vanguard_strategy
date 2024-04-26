@@ -3936,3 +3936,184 @@ flMIG %>% mutate(p2=p2-First_SUMA) %>%
 
 
 # --------------
+# Cummulative Number of Molecules Relative to follow-up / RIME Initiation ---------
+
+# Rimegepant
+flMIG <- fread("Source/MIGUS24 Flows_Long.txt")
+flMIG <- flMIG %>% select(patient, weight, p1, p2, d1, d2, s1, s2)
+flMIG <- flMIG %>% mutate(p1 = as.numeric(p1)) %>% mutate(p2=as.numeric(p2))
+
+First_RIME <- flMIG %>% 
+  filter(grepl("136", d2)) %>% group_by(patient) %>% filter(p2==min(p2)) %>% select(patient, p2) %>% rename("First_RIME"="p2")
+
+df <- fread("Source/MIGUS24_Drug_Histories_Extended_NoComorbs.txt")
+df <- df %>% filter(version=="NEW_ZAV") %>% select(patid, weight, month1:month60)
+df <- gather(df, Month, Treat, month1:month60, factor_key=TRUE)
+df$Month <- parse_number(as.character(df$Month))
+df <- First_RIME %>% inner_join(df, by=c("patient"="patid"))
+df <- df %>% ungroup()
+df <- separate_rows(df, Treat, sep = ",", convert=T )
+
+
+#df %>% filter(patient=="802666960742820") %>%
+#  select(Treat) %>% distinct()
+
+
+
+df <- df %>% filter(Treat!="-")
+df$patient <- as.character(df$patient)
+
+df <- df %>% group_by(patient, First_RIME, weight, Treat) %>%
+  filter(Month==min(Month)) %>% ungroup()
+
+df <- df %>% arrange(patient, First_RIME, weight, Month, Treat)
+
+df <- df %>% group_by(patient, First_RIME, weight, Month) %>% count() %>%
+  ungroup() %>% group_by(patient, First_RIME, weight) %>%
+  mutate(cum=cumsum(n)) %>% ungroup() %>% select(-n) 
+  
+length(unique(df$Month))
+
+df <- df %>% select(patient, First_RIME, weight) %>% distinct() %>% mutate(link=1) %>%
+  full_join(df %>% select(Month) %>% distinct() %>% mutate(link=1)) %>%
+  left_join(df %>% select(patient, Month, cum) %>% distinct())
+
+df <- df %>% arrange(patient, First_RIME, weight, link, Month, cum)
+
+
+df <- df %>%
+  group_by(patient) %>%
+  fill(cum, .direction = "down") %>%
+  ungroup()
+
+
+df <- df %>% select(-link)
+
+df[is.na(df)] <- 0
+
+
+df <- df %>% left_join(df %>% filter(Month==1) %>% select(patient, cum) %>% rename("start"="cum") %>%
+  left_join(df %>% filter(Month==60) %>% select(patient, cum) %>% rename("end"="cum")) %>%
+  mutate(diff=end-start))
+
+range(df$diff)
+
+
+df$group <- as.numeric(cut(df$diff,10))
+
+unique(df$group)
+
+df %>% select(patient, weight, First_RIME, group) %>% distinct() %>%
+  group_by(group) %>% summarise(n=sum(weight))
+
+unique(df$group)
+
+df <- df %>% mutate(group=ifelse(group>=7,7,group))
+
+df %>% mutate(group=as.factor(group*5)) %>%   
+  rename("Delta_N_molecules"="group") %>%
+  ggplot(aes(Month, cum, colour=Delta_N_molecules, fill=Delta_N_molecules)) +
+  geom_smooth() +
+  theme_minimal() +
+   theme(panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_blank(),
+        axis.line = element_blank(),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        axis.title.x = element_text(size = 12, vjust = -0.5),
+        axis.title.y = element_text(size = 12, vjust = -0.5),
+        plot.margin = margin(5, 5, 5, 5, "pt")) +
+  xlab("\n Number of Months Since Start of Follow-up") +
+  ylab("Number of Different Molecules Tried \n") +
+  scale_fill_viridis_d(option="C") +
+  scale_colour_viridis_d(option="C") 
+  
+
+
+df %>% mutate(group=as.factor(group*5)) %>%   
+  rename("Delta_N_molecules"="group") %>%
+  mutate(Month=Month-First_RIME) %>%
+  ggplot(aes(Month, cum, colour=Delta_N_molecules, fill=Delta_N_molecules)) +
+  geom_smooth() +
+  theme_minimal() +
+   theme(panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_blank(),
+        axis.line = element_blank(),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        axis.title.x = element_text(size = 12, vjust = -0.5),
+        axis.title.y = element_text(size = 12, vjust = -0.5),
+        plot.margin = margin(5, 5, 5, 5, "pt")) +
+  xlab("\n Number of Months Since Start of RIMEGEPANT") +
+  ylab("Number of Different Molecules Tried \n") +
+  scale_fill_viridis_d(option="C") +
+  scale_colour_viridis_d(option="C") 
+  
+
+
+
+df %>% mutate(group=as.factor(group*5)) %>%   
+  rename("Delta_N_molecules"="group") %>%
+  mutate(First_RIME=cut(First_RIME,10)) %>%
+  ggplot(aes(Month, cum, colour=First_RIME, fill=First_RIME)) +
+  geom_smooth() +
+  theme_minimal() +
+   theme(panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_blank(),
+        axis.line = element_blank(),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        axis.title.x = element_text(size = 12, vjust = -0.5),
+        axis.title.y = element_text(size = 12, vjust = -0.5),
+        plot.margin = margin(5, 5, 5, 5, "pt")) +
+  xlab("\n Number of Months Since Start of Follow-up") +
+  ylab("Number of Different Molecules Tried \n") +
+  scale_fill_viridis_d(option="C") +
+  scale_colour_viridis_d(option="C") 
+  
+
+# ---------
+
+# Number of Molecules the month before vs month after ----------
+
+# Rimegepant
+flMIG <- fread("Source/MIGUS24 Flows_Long.txt")
+flMIG <- flMIG %>% select(patient, weight, p1, p2, d1, d2, s1, s2)
+flMIG <- flMIG %>% mutate(p1 = as.numeric(p1)) %>% mutate(p2=as.numeric(p2))
+
+First_RIME <- flMIG %>% 
+  filter(grepl("136", d2)) %>% group_by(patient) %>% filter(p2==min(p2)) %>% select(patient, p2) %>% rename("First_RIME"="p2")
+
+df <- fread("Source/MIGUS24_Drug_Histories_Extended_NoComorbs.txt")
+df <- df %>% filter(version=="NEW_ZAV") %>% select(patid, weight, month1:month60)
+df <- gather(df, Month, Treat, month1:month60, factor_key=TRUE)
+df$Month <- parse_number(as.character(df$Month))
+df <- First_RIME %>% inner_join(df, by=c("patient"="patid"))
+df <- df %>% ungroup()
+df <- separate_rows(df, Treat, sep = ",", convert=T )
+
+df$patient <- as.character(df$patient)
+
+
+df %>% filter(Month==First_RIME-1 | Month==First_RIME+1) %>% 
+  filter(First_RIME>=2&First_RIME<=59) %>%
+  mutate(Month=Month-First_RIME) %>%
+  filter(Treat!="-") %>% select(-First_RIME) %>%
+  group_by(patient, weight, Month) %>% count() %>% spread(key=Month, value=n) %>%
+  mutate(`-1`=ifelse(is.na(`-1`),0,`-1`)) %>%
+  mutate(`1`=ifelse(is.na(`1`),0,`1`)) %>%
+  mutate(`1`=ifelse(`1`>=8,8,`1`)) %>%
+  mutate(`-1`=ifelse(`-1`>=8,8,`-1`)) %>%
+  ungroup() %>% group_by(`-1`,`1`) %>% summarise(tot=sum(weight)) %>%
+  spread(key=`1`, value=tot)
+
+# ---------------

@@ -4485,3 +4485,98 @@ ggplot(df, aes(x=penetrance, y=duration, size = penetrance, fill=penetrance, col
   ylim(0,11)+ xlim(0,50)
 
 # ----------
+# 12-month rolling sum of different number of molecules used past 12 months  -----------
+
+Mod_Sev <- fread("Source/Mod_Sev.txt")
+Mod_Sev <- Mod_Sev %>% select(patid)
+
+df <- fread("Source/MIGUS24_Drug_Histories_Extended_NoComorbs.txt")
+df <- Mod_Sev %>% inner_join(df)
+df <- df %>% filter(version=="NEW_ZAV") %>% select(patid, weight, month1:month60)
+df <- gather(df, Month, Treat, month1:month60, factor_key=TRUE)
+df$Month <- parse_number(as.character(df$Month))
+df <- df %>% ungroup()
+df <- df %>% filter(Treat!="-")
+df <- separate_rows(df, Treat, sep = ",", convert=T )
+df$patid <- as.character(df$patid)
+
+df <- df %>% arrange(patid, Month, Treat)
+
+
+
+result_list <- list()
+
+
+
+for (i in 1:49) {
+  
+  print(i)
+  
+  start_month <- i
+  
+  end_month <- i + 11
+  
+  filtered_data <- df %>%
+    filter(Month >= start_month & Month <= end_month) %>%
+    select(-Month) %>% distinct() %>%
+    group_by(patid, weight) %>%
+    count() %>% rename("loop"="n")
+
+  result_list[[i]] <- filtered_data
+  
+}
+
+final_result <- bind_rows(result_list, .id = "Iteration")
+
+unique(final_result$Iteration)
+
+unique(final_result$loop)
+
+
+# 48 vs 60 -> 37 vs  49
+
+final_result %>% ungroup() %>% group_by(Iteration, loop) %>%
+  summarise(pop=sum(weight)) 
+
+plot <- final_result %>% ungroup() %>% filter(Iteration==37 | Iteration==49) %>%
+  spread(key=Iteration, value=loop) %>%
+  mutate(`37`=ifelse(is.na(`37`),0,`37` )) %>%
+  mutate(`49`=ifelse(is.na(`49`),0,`49` )) 
+
+unique(plot$`37`)
+unique(plot$`49`)
+
+data.frame(plot %>% drop_na() %>% 
+  rename("before"=`37`) %>%
+  rename("after"=`49`) %>%
+    mutate(before=ifelse(before>=12,12,before)) %>%
+    mutate(after=ifelse(after>=12,12,after)) %>%
+  group_by(before, after) %>% summarise(pop=sum(weight)) %>%
+  spread(key=after, value=pop))
+
+
+
+flMIG <- fread("Source/MIGUS24 Flows_Long.txt")
+flMIG <- flMIG %>% select(patient, weight, p1, p2, d1, d2, s1, s2)
+flMIG <- flMIG %>% mutate(p1 = as.numeric(p1)) %>% mutate(p2=as.numeric(p2))
+
+First_RIME <- flMIG %>% 
+  filter(grepl("136", d2)) %>% group_by(patient) %>% filter(p2==min(p2)) %>% select(patient, p2) %>% rename("First_RIME"="p2")
+
+
+final_result %>% ungroup() %>%  
+  left_join(First_RIME %>% rename("patid"="patient") %>% mutate(patid=as.character(patid))) %>%
+  drop_na() %>%
+  mutate(Iteration=as.numeric(Iteration)+11) %>%
+  filter(Iteration==First_RIME | Iteration==First_RIME+12) %>%
+  mutate(Iteration=Iteration-First_RIME) %>% arrange(patid, Iteration) %>%
+      mutate(loop =ifelse(loop >=12,12,loop )) %>%
+  spread(key=Iteration, value=loop) %>% 
+  filter(First_RIME<=48) %>%
+  drop_na() %>%
+   group_by(`0`, `12`) %>% summarise(pop=sum(weight)) %>%
+  spread(key=`12`, value=pop)
+
+
+
+# --------

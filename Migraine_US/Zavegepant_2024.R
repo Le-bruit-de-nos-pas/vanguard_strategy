@@ -4403,7 +4403,6 @@ flMIG %>% filter(grepl(string_Sympt, d2)) %>% summarise(n=sum(weight))
 
  
 
-
 # 12 month penetrance vs 12 month duration ------------
 Mod_Sev <- fread("Source/Mod_Sev.txt")
 Mod_Sev <- Mod_Sev %>% select(-group)
@@ -4580,3 +4579,71 @@ final_result %>% ungroup() %>%
 
 
 # --------
+# % Inflows to Zavegepant ON Symptomatic, triptan or preventive ------
+
+Drug_formulary <- fread("Source/Drug_formulary.txt")
+data.frame(Drug_formulary)
+data.frame(Drug_formulary %>% select(drug_class, drug_group) %>% distinct())
+
+string_Sympt <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_group=="Symptomatic"], collapse = "|"),")\\b")
+string_Triptan <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_group=="Triptans"], collapse = "|"),")\\b")
+string_Prev <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_group=="Preventive"], collapse = "|"),")\\b")
+
+
+
+flMIG <- fread("Source/MIG_Flows_Aux_Long.txt")
+flMIG <- flMIG %>% filter(p2>=49)
+
+# 192
+
+flMIG %>% filter(!grepl("Z",s1) & grepl("Z",s2)) %>%
+  filter(grepl(string_Sympt, d1)) %>% count() %>% mutate(n=n/192)
+
+flMIG %>% filter(!grepl("Z",s1) & grepl("Z",s2)) %>%
+  filter(grepl(string_Triptan, d1)) %>% count() %>% mutate(n=n/192)
+
+flMIG %>% filter(!grepl("Z",s1) & grepl("Z",s2)) %>%
+  filter(grepl(string_Prev, d1)) %>% count() %>% mutate(n=n/192)
+
+
+
+flMIG <- flMIG %>% filter(!grepl("Z",s1) & grepl("Z",s2)) %>%
+  select(patient, d1,p2)
+  
+flMIG <- separate_rows(flMIG, d1, sep = ",", convert=T )
+
+flMIG <- flMIG %>% 
+  left_join(Drug_formulary %>% mutate(drug_id=as.character(drug_id)) %>% select(drug_id, drug_class, drug_group), 
+            by=c("d1"="drug_id"))
+
+
+MIGUS24_Demographics <- fread("Source/MIGUS24 Demographics.txt")
+MIGUS24_Demographics <- MIGUS24_Demographics %>%  select(patid, CV, psychiatric, epileptic) 
+names(MIGUS24_Demographics)[1] <- "patient"
+
+flMIG <- flMIG %>% left_join(MIGUS24_Demographics)
+
+flMIG <- flMIG %>% mutate(flag=ifelse(CV==1&drug_class=="Beta Blocker", 1,
+                                                                 ifelse(CV==1&drug_class=="Cardiovascular",1,
+                                                                        ifelse(CV==1&drug_class=="Calcium Blocker",1,
+                                                                               ifelse(epileptic==1&drug_class=="Antiepileptic",1,
+                                                                                      ifelse(psychiatric==1&drug_class=="SSRI",1,
+                                                                                             ifelse(psychiatric==1&drug_class=="SNRI",1,
+                                                                                                    ifelse(psychiatric==1&drug_class=="Antipsychotic",1,
+                                                                                                           ifelse(psychiatric==1&drug_class=="Tricyclic",1,0)))))))))
+
+flMIG <- flMIG %>% filter(flag==0) %>% select(-flag)
+
+flMIG  %>% filter(grepl(string_Prev, d1)) %>% 
+  select(patient, p2) %>% distinct() %>% count() %>% mutate(n=n/192)
+
+
+flMIG  %>% filter(grepl(string_Triptan, d1)) %>% 
+  select(patient, p2) %>% distinct() %>% count() %>% mutate(n=n/192)
+
+flMIG  %>% filter(grepl(string_Sympt, d1)) %>% 
+  select(patient, p2) %>% distinct() %>% count() %>% mutate(n=n/192)
+
+
+
+# --------------

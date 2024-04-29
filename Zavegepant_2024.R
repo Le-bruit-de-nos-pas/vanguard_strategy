@@ -4869,3 +4869,71 @@ ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% filter(grepl(string_CGRPs, 
 
 
 # ---------
+ # Redo inflows outflows without comorbidity drugs month over month -------
+
+
+
+Drug_formulary <- fread("Source/Drug_formulary.txt")
+data.frame(Drug_formulary)
+data.frame(Drug_formulary %>% select(drug_class, drug_group) %>% distinct())
+
+string_Sympt <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_group=="Symptomatic"], collapse = "|"),")\\b")
+string_Triptan <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_group=="Triptans"], collapse = "|"),")\\b")
+string_Prev <- paste0("\\b(",paste0(Drug_formulary$drug_id[Drug_formulary$drug_group=="Preventive"], collapse = "|"),")\\b")
+
+
+
+# INFLOWS 
+
+flMIG <- fread("Source/MIG_Flows_Aux_Long.txt")
+flMIG <- flMIG %>% filter(p2>=49) %>% select(patient, d1, p1, s1, s2)
+
+flMIG <- separate_rows(flMIG, d1, sep = ",", convert=T )
+
+flMIG <- flMIG %>% 
+  left_join(Drug_formulary %>% mutate(drug_id=as.character(drug_id)) %>% select(drug_id, drug_class, drug_group), 
+            by=c("d1"="drug_id"))
+
+
+MIGUS24_Demographics <- fread("Source/MIGUS24 Demographics.txt")
+MIGUS24_Demographics <- MIGUS24_Demographics %>%  select(patid, CV, psychiatric, epileptic) 
+names(MIGUS24_Demographics)[1] <- "patient"
+
+flMIG <- flMIG %>% left_join(MIGUS24_Demographics)
+
+flMIG <- flMIG %>% mutate(flag=ifelse(CV==1&drug_class=="Beta Blocker", 1,
+                                                                 ifelse(CV==1&drug_class=="Cardiovascular",1,
+                                                                        ifelse(CV==1&drug_class=="Calcium Blocker",1,
+                                                                               ifelse(epileptic==1&drug_class=="Antiepileptic",1,
+                                                                                      ifelse(psychiatric==1&drug_class=="SSRI",1,
+                                                                                             ifelse(psychiatric==1&drug_class=="SNRI",1,
+                                                                                                    ifelse(psychiatric==1&drug_class=="Antipsychotic",1,
+                                                                                                           ifelse(psychiatric==1&drug_class=="Tricyclic",1,0)))))))))
+
+flMIG <- flMIG %>% filter(flag==0) %>% select(-flag)
+
+
+
+temp <- flMIG %>% select(patient, d1, p1, s1, s2, drug_group) %>%  select(-d1) %>% distinct() %>%
+  mutate(exp=1) %>% spread(key=drug_group, value=exp) 
+
+temp[is.na(temp)] <- 0
+
+
+temp <- temp %>% mutate(Box=ifelse(`CGRP Nasal`==1, "Nasal",
+                                                                       ifelse(`CGRP Oral`==1, "CGRP_Oral",
+                                                                              ifelse(`CGRP Injectable`==1, "CGRP_Inj",
+                                                                                     ifelse(Preventive==1&Triptans==1, "Prev_Acute",
+                                                                                                   ifelse(Preventive==1&Symptomatic==1, "Prev_Sympt",
+                                                                                                          ifelse(Preventive==1, "Prev",
+                                                                                                                 ifelse(Triptans==1, "Acute",
+                                                                                                                               ifelse(Symptomatic==1, "Sympt", "Lapsed")))))))))
+
+
+temp <- temp %>% filter(!grepl("Z",s1) & grepl("Z",s2)) 
+
+data.frame(temp %>% group_by(p1, Box) %>% count() %>% spread(key=Box, value=n))
+
+
+# ----------
+

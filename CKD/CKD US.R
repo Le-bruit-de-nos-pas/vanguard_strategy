@@ -991,3 +991,100 @@ SGLT2_Pats %>% left_join(CKD_Drug_Histories) %>% filter(grepl(string_SGLT2, Trea
 Combo_Pats %>% left_join(CKD_Drug_Histories) %>% filter(grepl(string_GLP1, Treat)&grepl(string_SGLT2, Treat)) %>% group_by(patient, weight) %>% count() %>% ungroup() %>% summarise(n2=mean(n))
 
 # -----------------
+# CKD and Diabetes Size - labs - costs --------
+# OLD CKD Data
+
+DANU_Demographics_Full <- fread("DANU Demographics 8.0/DANU Demographics Full.txt")
+DANU_Demographics_Full <- DANU_Demographics_Full %>% select(patid, weight, diagnosis) %>% distinct()
+
+CKD_Stages_Complete_FilledIn <- fread("CKD Analysis Results 8.0/CKD_Stages_Complete_FilledIn.txt", colClasses = "character")
+names(CKD_Stages_Complete_FilledIn)[1] <- "patid"
+
+CKD_Stages_Complete_FilledIn %>% left_join(DANU_Demographics_Full) %>% summarise(pop=sum(weight)) # 13384925
+
+
+CKD_Stages_Complete_FilledIn %>%  left_join(DANU_Demographics_Full) %>%
+  left_join(DANU_Demographics_Full %>% filter(grepl("Diab", diagnosis)) %>% select(patid) %>% mutate(T2D="T2D")) %>%
+  summarise(pop=sum(weight)) # 7666429  # 0.5727659
+
+
+groups <- CKD_Stages_Complete_FilledIn %>%  left_join(DANU_Demographics_Full) %>%
+  left_join(DANU_Demographics_Full %>% filter(grepl("Diab", diagnosis)) %>% select(patid) %>% mutate(T2D="T2D")) %>%
+  select(patid, Stage, weight, T2D)
+
+
+groups %>% group_by(Stage, T2D) %>% summarise(n=sum(weight)) %>%
+  spread(key=T2D, value=n) %>% mutate(perc=(T2D/(T2D+`<NA>`)))
+
+
+
+DANU_Measures <- fread("DANU Measures 5.0/DANU Measures.txt", colClasses = "character")
+DANU_Measures <- DANU_Measures %>% select(patid, weight, test, claimed, value)
+unique(DANU_Measures$test)
+
+MAX <- DANU_Measures %>% inner_join(groups %>% select(patid)) %>%
+  group_by(patid, test) %>% summarise(value=max(as.numeric(value))) %>% ungroup()
+
+
+groups %>% mutate(T2D=ifelse(is.na(T2D),"no", T2D)) %>%
+  inner_join(MAX) %>% group_by(test, T2D) %>% summarise(mean=weighted.mean(as.numeric(value), weight, na.rm=T)) %>%
+  spread(key=T2D, value=mean)
+
+
+#  1 ACR Ratio          187.    390.   
+#  2 Albumin Level        4.33    4.31 
+#  3 ALT Level           48.8    52.9  
+#  4 AST Level           52.9    56.4  
+#  5 BMI                 31.1    34.3  
+#  6 Creatinine Urine   139.    152.   
+#  7 Fasting Glucose    110.    155.   
+#  8 Fibrosis Activity    0.790   0.890
+#  9 Fibrosis Score       0.454   0.469
+# 10 Fibrosis Stage       1.69    1.98 
+# 11 Gamma Globulin       1.16    1.18 
+# 12 HbA1c Level          5.84    7.74 
+# 13 Microalbumin Urine   9.28   16.2  
+# 14 NASH Indicator       1       0.848
+# 15 NASH Score           0.372   0.331
+# 16 Platelet Count     287.    295. 
+
+
+groups %>% mutate(T2D=ifelse(is.na(T2D),"no", T2D)) %>%
+  inner_join(DANU_Measures %>% filter(test=="ACR Ratio") %>% select(-weight)) %>%
+  ggplot(aes(as.Date(claimed), as.numeric(value))) +
+  geom_smooth()
+
+
+
+CKD_Drug_Histories <- fread("CKD Analysis Results 8.0/CKD Drug Histories.txt")
+CKD_Drug_Histories <- groups %>% select(patid) %>% left_join(CKD_Drug_Histories, by=c("patid"="patient"))
+CKD_Drug_Histories <- gather(CKD_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
+CKD_Drug_Histories$Month <- as.character(CKD_Drug_Histories$Month)
+CKD_Drug_Histories$Month <- parse_number(CKD_Drug_Histories$Month)
+
+CKD_Ingredients <- fread("CKD Analysis Results 8.0/CKD Ingredients.txt",  colClasses = "character", stringsAsFactors = F)
+CKD_Ingredients <- CKD_Ingredients %>%  separate(drug_id, c('group', 'molecule'))
+CKD_Ingredients <- CKD_Ingredients %>% select(molecule, drug_class, drug_group)
+unique(CKD_Ingredients$drug_class)
+CKD_Ingredients$molecule <- as.numeric(CKD_Ingredients$molecule)
+names(CKD_Ingredients)[1] <- "Drugs"
+unique(CKD_Ingredients$drug_group)
+
+
+string_GLP1 <- paste0("\\b(",paste0(CKD_Ingredients$Drugs[CKD_Ingredients$drug_class=="GLP1"], collapse = "|"),")\\b")
+
+GLP1_pats <- CKD_Drug_Histories %>% filter(Drugs!="-") %>% select(-Month) %>% distinct() %>%
+  filter(grepl(string_GLP1, Drugs)) %>% select(patid) %>% distinct() %>% mutate(GLP1="GLP1")
+
+
+groups %>% mutate(T2D=ifelse(is.na(T2D),"no", T2D)) %>%
+  inner_join(DANU_Measures %>% filter(test=="ACR Ratio") %>% select(-weight)) %>%
+  left_join(GLP1_pats) %>% mutate(GLP1=ifelse(is.na(GLP1),"no", GLP1)) %>%
+  ggplot(aes(as.Date(claimed), as.numeric(value), colour=GLP1, fill=GLP1)) +
+  geom_smooth()
+
+
+
+CKD_Costs <- fread("CKD_Costs.txt")
+
+# -------

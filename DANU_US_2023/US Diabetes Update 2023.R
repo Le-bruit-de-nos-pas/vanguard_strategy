@@ -9695,3 +9695,78 @@ temp %>%
   ylab("Proportion of Patients \n Still ON Each Class \n")
 
 # -------------
+# % Of time on each class  ------------------------------------------------------------
+DANU_Ingredients <- fread("DIA Analysis Results 1.1/DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+DANU_Ingredients <- DANU_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+DANU_Ingredients <- DANU_Ingredients %>% select(molecule, generic_name, drug_group)
+names(DANU_Ingredients)[1] <- "Drugs"
+DANU_Ingredients$Drugs <- as.numeric(DANU_Ingredients$Drugs)
+
+
+DIA_Drug_Histories <- read.table("DIA Analysis Results 1.1/DIA Drug Histories.txt", header = T, sep="\t", colClasses = "character", stringsAsFactors = FALSE)
+DIA_Drug_Histories <- gather(DIA_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
+DIA_Drug_Histories$Month <- as.character(DIA_Drug_Histories$Month)
+DIA_Drug_Histories$Month <- parse_number(DIA_Drug_Histories$Month)
+DIA_Drug_Histories <- DIA_Drug_Histories %>% filter(Drugs != "-")  %>% select(-c(disease))
+DIA_Drug_Histories <- separate_rows(DIA_Drug_Histories, Drugs, sep = ",", convert=T)
+DIA_Drug_Histories <- DIA_Drug_Histories %>% left_join(DANU_Ingredients %>% select(-generic_name))
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(-Drugs) %>% distinct() 
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% arrange(patient, weight, drug_group, Month)
+
+First_Month <- DIA_Drug_Histories %>% group_by(patient, weight, drug_group) %>% filter(Month==min(Month))
+First_Month <- First_Month %>% ungroup()
+names(First_Month)[3] <- "First"
+
+
+First_Month <- First_Month %>%  mutate(VIZ=60-First) %>% select(patient, drug_group, VIZ)
+
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% group_by(patient, weight, drug_group) %>% count()
+
+DIA_Drug_Histories %>% left_join(First_Month) %>%
+  ungroup() %>% mutate(perc=n/VIZ) %>% filter(VIZ!=0) %>%
+  group_by(drug_group) %>% summarise(mean=weighted.mean(perc, as.numeric(weight)))
+
+
+# 1 Antidiabetic    0.643
+# 2 Biguanide       0.657
+# 3 DPP4            0.562
+# 4 GLP1 Injectable 0.673
+# 5 GLP1 Oral       0.689
+# 6 Insulin         0.545
+# 7 SGLT2           0.682
+
+
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% left_join(First_Month) %>%
+  ungroup() %>% mutate(perc=(n-1)/VIZ) %>% filter(VIZ!=0) %>% filter(perc>0)
+
+DIA_Drug_Histories %>% group_by(drug_group) %>% summarise(mean=weighted.mean(perc, as.numeric(weight)))
+DIA_Drug_Histories %>% group_by(drug_group) %>% summarise(sd=sd(perc))
+
+
+
+DIA_Drug_Histories %>%
+  filter(drug_group=="Insulin"|grepl("GLP",drug_group)) %>%
+  ggplot(aes(perc, colour=drug_group, fill=drug_group)) +
+  geom_density(alpha=0.5) +
+  theme_minimal()
+
+
+DIA_Drug_Histories %>%
+  filter(drug_group=="Insulin"|grepl("GLP",drug_group)) %>%
+  mutate(drug_group=ifelse(drug_group=="Insulin", "Insulin (58%)",
+                           ifelse(drug_group=="GLP1 Oral", "GLP1 Oral (66%)", "GLP1 Injectable (63%)"))) %>%
+  mutate(drug_group=factor(drug_group, levels=c("GLP1 Oral (66%)", "GLP1 Injectable (63%)", "Insulin (58%)"))) %>%
+  ggplot(aes(drug_group, perc*100, colour=drug_group, fill=drug_group)) +
+  geom_boxplot(alpha=0.3, notch = TRUE, notchwidth = 0.2) +
+  theme_minimal() +
+  scale_colour_manual(values=c("#C01E00","#188597","#7DA21B")) +
+  scale_fill_manual(values=c("#C01E00","#188597","#7DA21B")) +
+  xlab("\n Drug Group \n ") + 
+  ylab("% of Time \n Actually Spent ON each Class \n")
+
+
+
+# -----------

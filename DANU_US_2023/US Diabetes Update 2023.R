@@ -9696,6 +9696,77 @@ temp %>%
 
 # ----------
 
+# % Of time on each class START Year 2  ------------------------------------------------------------
+DANU_Ingredients <- fread("DIA Analysis Results 1.1/DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+DANU_Ingredients <- DANU_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+DANU_Ingredients <- DANU_Ingredients %>% select(molecule, generic_name, drug_group)
+names(DANU_Ingredients)[1] <- "Drugs"
+DANU_Ingredients$Drugs <- as.numeric(DANU_Ingredients$Drugs)
+
+
+DIA_Drug_Histories <- read.table("DIA Analysis Results 1.1/DIA Drug Histories.txt", header = T, sep="\t", colClasses = "character", stringsAsFactors = FALSE)
+DIA_Drug_Histories <- gather(DIA_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
+DIA_Drug_Histories$Month <- as.character(DIA_Drug_Histories$Month)
+DIA_Drug_Histories$Month <- parse_number(DIA_Drug_Histories$Month)
+DIA_Drug_Histories <- DIA_Drug_Histories %>% filter(Drugs != "-")  %>% select(-c(disease))
+DIA_Drug_Histories <- separate_rows(DIA_Drug_Histories, Drugs, sep = ",", convert=T)
+DIA_Drug_Histories <- DIA_Drug_Histories %>% left_join(DANU_Ingredients %>% select(-generic_name))
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(-Drugs) %>% distinct() 
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% arrange(patient, weight, drug_group, Month)
+
+First_Month <- DIA_Drug_Histories %>% group_by(patient, weight, drug_group) %>% filter(Month==min(Month))
+First_Month <- First_Month %>% ungroup()
+names(First_Month)[3] <- "First"
+
+First_Month <- First_Month %>% filter(First>=12&First<=25) %>% select(patient, drug_group)
+
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% inner_join(First_Month)
+
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% group_by(patient, weight, drug_group) %>% count()
+
+DIA_Drug_Histories %>% ungroup() %>% group_by(drug_group) %>% summarise(mean=weighted.mean(n, as.numeric(weight)))
+
+
+# 4 GLP1 Injectable  21.1
+# 6 SGLT2            21.1
+
+
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% ungroup() %>% group_by(drug_group, n) %>% summarise(Total=sum(as.numeric(weight))) %>% arrange(drug_group, n)
+
+
+temp <- data.frame(DIA_Drug_Histories %>% group_by(drug_group) %>% mutate(Total_cum=cumsum(Total)) %>% mutate(grand_Total=sum(Total)) %>%
+             mutate(Remain=grand_Total-lag(Total_cum)) %>% mutate(Remain=ifelse(is.na(Remain), grand_Total, Remain)) %>%
+             mutate(Remain=Remain/grand_Total) %>%
+             select(drug_group, n, Remain)) 
+
+
+
+temp %>%
+  mutate(drug_group=ifelse(drug_group=="Insulin", "Insulin (14.4m)",
+                                    ifelse(drug_group=="DPP4", "DPP4 (18.0m)",
+                                           ifelse(drug_group=="Biguanide", "Biguanide (20.2m)",
+                                                  ifelse(drug_group=="Antidiabetic", "Antidiabetic (20.9m)",
+                                                         ifelse(drug_group=="SGLT2", "SGLT2 (21.1m)", "GLP1 Injectable (21.1m)" )))))) %>%
+  mutate(drug_group=factor(drug_group, levels=c("Insulin (14.4m)", "DPP4 (18.0m)", 
+                                                    "Biguanide (20.2m)", "Antidiabetic (20.9m)", "SGLT2 (21.1m)", "GLP1 Injectable (21.1m)"))) %>%
+  ggplot(aes(n, Remain, colour=drug_group, fill=drug_group)) +
+  geom_smooth(se=T, linewidth=1, alpha=0.4) +
+  ylim(0,1) +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::percent, breaks = c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1)) +
+  #scale_x_continuous(breaks = c(-60, -50, -40, -30, -20, -10, 0)) +
+  scale_colour_manual(values=c( "#7DA21B" ,"#211897","#ACBEC0", "#188597", "#FCCC29",  "#A053B1")) +
+  scale_fill_manual(values=c( "#7DA21B" ,"#211897","#ACBEC0", "#188597", "#FCCC29",  "#A053B1")) +
+  xlab("\n Number of Months Elapsed Since Therapy Initiation \n ") + 
+  ylab("Proportion of Patients \n Still ON Each Class \n")
+
+
+# ----------
+
 # Persistency per drug_class ALL episodes ------------------------------------------------------------
 DANU_Ingredients <- fread("DIA Analysis Results 1.1/DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
 DANU_Ingredients <- DANU_Ingredients %>%  separate(drug_id, c('class', 'molecule'))

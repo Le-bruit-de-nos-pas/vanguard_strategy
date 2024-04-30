@@ -1088,3 +1088,37 @@ groups %>% mutate(T2D=ifelse(is.na(T2D),"no", T2D)) %>%
 CKD_Costs <- fread("CKD_Costs.txt")
 
 # -------
+# OLD T2DM data, % CKD within ------
+
+DIA_Drug_Histories <- fread("DIA Drug Histories.txt")
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(patient, weight)
+sum(DIA_Drug_Histories$weight) # 48244424
+
+CKD_Stages_Complete_FilledIn <- fread("CKD Analysis Results 8.0/CKD_Stages_Complete_FilledIn.txt", colClasses = "character")
+names(CKD_Stages_Complete_FilledIn)[1] <- "patient"
+CKD_Stages_Complete_FilledIn <- CKD_Stages_Complete_FilledIn %>% select(-rank)
+
+DIA_Drug_Histories %>% left_join(CKD_Stages_Complete_FilledIn) %>%
+  group_by(Stage) %>% summarise(n=sum(weight))
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% left_join(CKD_Stages_Complete_FilledIn) %>%
+  mutate(Stage=ifelse(is.na(Stage),"no", "CKD"))
+
+
+
+DANU_Measures <- fread("DANU Measures 5.0/DANU Measures.txt", colClasses = "character")
+DANU_Measures <- DANU_Measures %>% select(patid, weight, test, claimed, value)
+unique(DANU_Measures$test)
+names(DANU_Measures)[1] <- "patient"
+
+MAX <- DANU_Measures %>% inner_join(DIA_Drug_Histories %>% select(patient)) %>%
+  group_by(patient, test) %>% summarise(value=max(as.numeric(value))) %>% ungroup()
+
+DIA_Drug_Histories %>%  inner_join(MAX) %>% group_by(test, Stage) %>% 
+  summarise(mean=weighted.mean(as.numeric(value), weight, na.rm=T)) %>%
+  spread(key=Stage, value=mean)
+
+
+
+
+# ------------

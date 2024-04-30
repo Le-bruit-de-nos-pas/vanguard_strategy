@@ -9557,3 +9557,141 @@ result <- data.frame(train %>% group_by(OralExp) %>% summarise_all(mean))
 result <- data.frame(names(result)) %>% bind_cols(result %>% transpose())
  
 # -----------------
+
+# Persistency per  drug_group ALL episodes ------------------------------------------------------------
+DANU_Ingredients <- fread("DIA Analysis Results 1.1/DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+DANU_Ingredients <- DANU_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+DANU_Ingredients <- DANU_Ingredients %>% select(molecule, generic_name, drug_group)
+names(DANU_Ingredients)[1] <- "Drugs"
+DANU_Ingredients$Drugs <- as.numeric(DANU_Ingredients$Drugs)
+
+
+DIA_Drug_Histories <- read.table("DIA Analysis Results 1.1/DIA Drug Histories.txt", header = T, sep="\t", colClasses = "character", stringsAsFactors = FALSE)
+DIA_Drug_Histories <- gather(DIA_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
+DIA_Drug_Histories$Month <- as.character(DIA_Drug_Histories$Month)
+DIA_Drug_Histories$Month <- parse_number(DIA_Drug_Histories$Month)
+DIA_Drug_Histories <- DIA_Drug_Histories %>% filter(Drugs != "-")  %>% select(-c(disease))
+DIA_Drug_Histories <- separate_rows(DIA_Drug_Histories, Drugs, sep = ",", convert=T)
+DIA_Drug_Histories <- DIA_Drug_Histories %>% left_join(DANU_Ingredients %>% select(-generic_name))
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(-Drugs) %>% distinct() 
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% arrange(patient, weight, drug_group, Month)
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% group_by(patient, weight, drug_group) %>% count()
+
+DIA_Drug_Histories %>% ungroup() %>% group_by(drug_group) %>% summarise(mean=weighted.mean(n, as.numeric(weight)))
+
+# 1 Antidiabetic    26.7 
+# 2 Biguanide       27.4 
+# 3 DPP4            21.7 
+# 4 GLP1 Injectable 17.4 
+# 5 GLP1 Oral        6.03
+# 6 Insulin         22.5 
+# 7 SGLT2           18.3 
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% ungroup() %>% group_by(drug_group, n) %>% summarise(Total=sum(as.numeric(weight))) %>% arrange(drug_group, n)
+
+
+temp <- data.frame(DIA_Drug_Histories %>% group_by(drug_group) %>% mutate(Total_cum=cumsum(Total)) %>% mutate(grand_Total=sum(Total)) %>%
+             mutate(Remain=grand_Total-lag(Total_cum)) %>% mutate(Remain=ifelse(is.na(Remain), grand_Total, Remain)) %>%
+             mutate(Remain=Remain/grand_Total) %>%
+             select(drug_group, n, Remain)) 
+
+
+
+temp %>%
+  mutate(drug_group=ifelse(drug_group=="GLP1 Oral", "GLP1 Oral (6.03m)", 
+                             ifelse(drug_group=="GLP1 Injectable", "GLP1 Injectable (17.4m)",
+                                    ifelse(drug_group=="SGLT2", "SGLT2 (18.3m)",
+                                           ifelse(drug_group=="DPP4", "DPP4 (21.7m)",
+                                                  ifelse(drug_group=="Insulin", "Insulin (22.5m)",
+                                                         ifelse(drug_group=="Antidiabetic", "Antidiabetic (26.7m)", "Biguanide (27.4m)"
+                                    
+                                    ))))))) %>%
+  mutate(drug_group=factor(drug_group, levels=c("GLP1 Oral (6.03m)", "GLP1 Injectable (17.4m)", "SGLT2 (18.3m)", 
+                                                    "DPP4 (21.7m)", "Insulin (22.5m)", "Antidiabetic (26.7m)", "Biguanide (27.4m)"))) %>%
+  ggplot(aes(n, Remain, colour=drug_group, fill=drug_group)) +
+  geom_smooth(se=T, linewidth=1, alpha=0.4) +
+  ylim(0,1) +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::percent, breaks = c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1)) +
+  #scale_x_continuous(breaks = c(-60, -50, -40, -30, -20, -10, 0)) +
+  scale_colour_manual(values=c("#C01E00","#A053B1","#FCCC29","#211897","#7DA21B", "#188597","#ACBEC0")) +
+  scale_fill_manual(values=c("#C01E00","#A053B1","#FCCC29","#211897","#7DA21B", "#188597","#ACBEC0")) +
+  xlab("\n Number of Months Elapsed Since Therapy Initiation \n ") + 
+  ylab("Proportion of Patients \n Still ON Each Class \n")
+
+# -------------
+
+
+# Persistency per drug_class ALL episodes ------------------------------------------------------------
+DANU_Ingredients <- fread("DIA Analysis Results 1.1/DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+DANU_Ingredients <- DANU_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+DANU_Ingredients <- DANU_Ingredients %>% select(molecule, generic_name, drug_class)
+names(DANU_Ingredients)[1] <- "Drugs"
+DANU_Ingredients$Drugs <- as.numeric(DANU_Ingredients$Drugs)
+
+
+DIA_Drug_Histories <- read.table("DIA Analysis Results 1.1/DIA Drug Histories.txt", header = T, sep="\t", colClasses = "character", stringsAsFactors = FALSE)
+DIA_Drug_Histories <- gather(DIA_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
+DIA_Drug_Histories$Month <- as.character(DIA_Drug_Histories$Month)
+DIA_Drug_Histories$Month <- parse_number(DIA_Drug_Histories$Month)
+DIA_Drug_Histories <- DIA_Drug_Histories %>% filter(Drugs != "-")  %>% select(-c(disease))
+DIA_Drug_Histories <- separate_rows(DIA_Drug_Histories, Drugs, sep = ",", convert=T)
+DIA_Drug_Histories <- DIA_Drug_Histories %>% left_join(DANU_Ingredients %>% select(-generic_name))
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(-Drugs) %>% distinct() 
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% arrange(patient, weight, drug_class, Month)
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% group_by(patient, weight, drug_class) %>% count()
+
+DIA_Drug_Histories %>% ungroup() %>% group_by(drug_class) %>% 
+  summarise(mean=weighted.mean(n, as.numeric(weight))) %>%
+  arrange(-mean)
+
+#    drug_class       mean
+#  1 Biguanide       27.4 
+#  2 Sulfonylurea    26.6 
+#  3 Insulin Long    24.9 
+#  4 Glitazone       22.4 
+#  5 Insulin Short   21.8 
+#  6 DPP4            21.7 
+#  7 SGLT2           18.3 
+#  8 GLP1 Injectable 17.4 
+#  9 Glinide         17.3 
+# 10 AGI             13.8 
+# 11 Antidiabetic    13.6 
+# 12 GLP1 Oral        6.03
+# 13 Insulin Therapy  5.82
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% ungroup() %>% group_by(drug_class, n) %>% summarise(Total=sum(as.numeric(weight))) %>% arrange(drug_class, n)
+
+
+DIA_Drug_Histories %>% group_by(drug_class) %>% summarise(n=sum(Total))
+
+
+temp <- data.frame(DIA_Drug_Histories %>% group_by(drug_class) %>% mutate(Total_cum=cumsum(Total)) %>% mutate(grand_Total=sum(Total)) %>%
+             mutate(Remain=grand_Total-lag(Total_cum)) %>% mutate(Remain=ifelse(is.na(Remain), grand_Total, Remain)) %>%
+             mutate(Remain=Remain/grand_Total) %>%
+             select(drug_class, n, Remain)) 
+
+
+
+temp %>%
+  filter(drug_class %in% c("GLP1 Injectable", "Insulin Long", "Insulin Short", "Insulin Therapy")) %>%
+  mutate(drug_class=ifelse(drug_class=="Insulin Therapy", "Insulin Therapy (5.8m)", 
+                             ifelse(drug_class=="GLP1 Injectable", "GLP1 Injectable (17.4m)",
+                                    ifelse(drug_class=="Insulin Short", "Insulin Short (21.8m)", "Insulin Long (24.9m)")))) %>%
+  mutate(drug_class=factor(drug_class, levels=c("Insulin Therapy (5.8m)", "GLP1 Injectable (17.4m)", "Insulin Short (21.8m)", "Insulin Long (24.9m)"))) %>%
+  ggplot(aes(n, Remain, colour=drug_class, fill=drug_class)) +
+  geom_smooth(se=T, linewidth=1, alpha=0.4) +
+  ylim(0,1) +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::percent, breaks = c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1)) +
+  #scale_x_continuous(breaks = c(-60, -50, -40, -30, -20, -10, 0)) +
+  scale_colour_manual(values=c("#BFEA7B","#DB3831","#22B7C3","#135F97")) +
+  scale_fill_manual(values=c("#BFEA7B","#DB3831","#22B7C3","#135F97")) +
+  xlab("\n Number of Months Elapsed Since Therapy Initiation \n ") + 
+  ylab("Proportion of Patients \n Still ON Each Class \n")
+
+# -------------

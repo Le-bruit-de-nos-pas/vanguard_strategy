@@ -4,10 +4,6 @@ DANU_Demographics <- fread("DANU Demographics.txt",  integer64 = "character", st
 DANU_Demographics <- DANU_Demographics[ diagnosis!="-" , c("patid", "weight", "diagnosis", "obesity_condition")]
 DANU_Demographics[ ,list(sum=sum(weight)), by=diagnosis]
 
-# 1: Diabetes + Obesity  40282960    <- stay the same, always
-# 2:            Obesity 106469049     <- will be changed !
-# 3:           Diabetes   7949715   <- stay the same, always
-
 #MAX  BMI
 DANU_Measures <- fread("DANU Measures.txt",  integer64 = "character", stringsAsFactors = F)
 DANU_Measures$claimed <- as.Date(DANU_Measures$claimed)

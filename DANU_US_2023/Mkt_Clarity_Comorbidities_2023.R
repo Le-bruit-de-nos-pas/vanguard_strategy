@@ -27,20 +27,6 @@ Mkt_Clarity_PAD_PCOS_SLAP_CKD_HFpEF_ce18_pts_5yDx_v2 %>%
   left_join(DANU_Demographics) %>%
   group_by(PCOS_E25, PCOS_N970) %>% summarise(n=sum(weight2))
 
-#    diagnosis          PCOS_E25 PCOS_N97        n
-#  1 Diabetes                  0        1   5588. 
-#  2 Diabetes                  1        0    131. 
-#  3 Diabetes                  1        1     52.4
-#  4 Diabetes + Obesity        0        1  38019. 
-#  5 Diabetes + Obesity        1        0    743. 
-#  6 Diabetes + Obesity        1        1    166. 
-#  7 Obesity                   0        1  18773. 
-#  8 Obesity                   1        0    450. 
-#  9 Obesity                   1        1    139. 
-# 10 NA                        0        1 505973. 
-# 11 NA                        1        0  13748. 
-# 12 NA                        1        1   2577.
-
 
 
 
@@ -132,9 +118,6 @@ Mkt_Clarity_PAD_PCOS_SLAP_CKD_HFpEF_ce18_pts_5yDx_v2 %>% filter(PCOS ==1) %>% se
 
 names(Mkt_Clarity_PAD_PCOS_SLAP_CKD_HFpEF_ce18_pts_5yDx_v2)
 
-# https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8509737/
-# https://www.dovepress.com/screening-of-peripheral-arterial-disease-in-primary-health-care-peer-reviewed-fulltext-article-VHRM
-
 Mkt_Clarity_PAD_PCOS_SLAP_CKD_HFpEF_ce18_pts_5yDx_v2 %>%
   filter(PAD_restrict==1) %>% select(patid, weight2, PAD_2, PAD_3, PAD_4) %>% 
   #filter(PAD_2==1|PAD_3==1|PAD_4==1) %>%
@@ -143,19 +126,6 @@ Mkt_Clarity_PAD_PCOS_SLAP_CKD_HFpEF_ce18_pts_5yDx_v2 %>%
   left_join(DANU_Demographics) %>%
   group_by(PAD_2, PAD_3, PAD_4) %>% summarise(n=sum(weight2))
 
-#    diagnosis          PAD_2 PAD_3 PAD_4        n
-#  1 Diabetes               0     0     1   96997.
-#  2 Diabetes               0     1     0   61299.
-#  3 Diabetes               1     0     0     128.
-#  4 Diabetes + Obesity     0     0     1  623961.
-#  5 Diabetes + Obesity     0     1     0  329621.
-#  6 Diabetes + Obesity     1     0     0     491.
-#  7 Obesity                0     0     1  203027.
-#  8 Obesity                0     1     0  386821.
-#  9 Obesity                1     0     0     575.
-# 10 NA                     0     0     1 6036090.
-# 11 NA                     0     1     0 5646762.
-# 12 NA                     1     0     0    9202.
 
 #NEW
 
@@ -208,7 +178,6 @@ PAD_ce18_pts_dxs_with_ICD10_Exhaustive_5ydx %>% filter(Stage=="I") %>% select(PT
   summarise(n=sum(weight2)) # 11278601 #2098681
  
 
-703802.6 / (2098681 + 2518170 + 708026.9 + 703802.6)
 
 Mkt_Clarity_PAD_PCOS_SLAP_CKD_HFpEF_ce18_pts_5yDx_v2 %>% filter(PAD_restrict==1) %>% select(ptid) %>%
   inner_join(PAD_ce18_pts_dxs_with_ICD10_Exhaustive_5ydx, by=c("ptid"="PTID")) %>%
@@ -238,8 +207,6 @@ DANU_Measures <- OSLAP %>% select(patid) %>% inner_join(DANU_Measures)
 DANU_Measures <- DANU_Measures %>% filter(test=="BMI")
 DANU_Measures <- DANU_Measures %>% select(patid, value) %>% distinct() %>% group_by(patid ) %>% filter(value==max(value)) %>% slice(1)
 #DANU_Measures <- DANU_Measures %>% ungroup() %>% filter(value>25 & value<80)
-
-# 47% Mild, 25% Mod, 28% Severe
 
  DANU_Measures <- DANU_Measures %>% ungroup() %>% arrange(value) %>% left_join(OSLAP)  %>% #  summarise(n=sum(weight2)) # 2374569
    mutate(cum=cumsum(weight2)) %>%

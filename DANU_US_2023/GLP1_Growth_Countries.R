@@ -44,32 +44,12 @@ data.frame(Doses %>% group_by(pat_id, generic_name, Year, weight) %>% summarise(
 data.frame(Doses %>% filter(Year=="Year5") %>%  group_by(pat_id, generic_name, Year, weight) %>% summarise(n=sum(dayssup)) %>%
   ungroup() %>% group_by(generic_name) %>% summarise(mean=weighted.mean(n, weight)))
 
-# 1            Dulaglutide 213.07518
-# 2              Exenatide 188.65861
-# 3            Liraglutide 193.06804
-# 4           Lixisenatide 152.96371
-# 5 Semaglutide Injectable 107.16068
-# 6       Semaglutide Oral  91.09544
-
 data.frame(Doses %>% filter(Year=="Year5") %>%  filter(grepl("Obesity", diagnosis)) %>%  group_by(pat_id, generic_name, Year, weight) %>% summarise(n=sum(dayssup)) %>%
   ungroup() %>% group_by(generic_name) %>% summarise(mean=weighted.mean(n, weight)))
-
-# 1            Dulaglutide 199.79327
-# 2              Exenatide 190.90539
-# 3            Liraglutide 180.57959
-# 4           Lixisenatide 171.71818
-# 5 Semaglutide Injectable  99.63726
-# 6       Semaglutide Oral  94.12788
 
 data.frame(Doses %>%  filter(Year=="Year5") %>% filter(grepl("Diabetes", diagnosis)) %>%  group_by(pat_id, generic_name, Year, weight) %>% summarise(n=sum(dayssup)) %>%
   ungroup() %>% group_by(generic_name) %>% summarise(mean=weighted.mean(n, weight)))
 
-# 1            Dulaglutide 213.07518
-# 2              Exenatide 188.65861
-# 3            Liraglutide 193.22142
-# 4           Lixisenatide 152.96371
-# 5 Semaglutide Injectable 107.68734
-# 6       Semaglutide Oral  91.19204
 
 #  -------------------------------------------------
 
@@ -116,33 +96,14 @@ Doses <- Doses %>% mutate(Year = ifelse(from_dt <= "2017-06-30", "Year1",
 data.frame(Doses %>% filter(Year=="Year5") %>%  group_by(pat_id, generic_name, Year, weight) %>% summarise(n=sum(dayssup)) %>%
   ungroup() %>% group_by(generic_name, Year) %>% summarise(mean=weighted.mean(n, weight)))
 
-# 1            Dulaglutide Year5 296.3667
-# 2              Exenatide Year5 266.0392
-# 3            Liraglutide Year5 275.6113
-# 4           Lixisenatide Year5 281.2800
-# 5 Semaglutide Injectable Year5 269.3721
-# 6       Semaglutide Oral Year5 195.9493
 
 
 data.frame(Doses %>%    filter(grepl("Obesity", diagnosis)) %>% group_by(pat_id, generic_name, Year, weight) %>% summarise(n=sum(dayssup)) %>%
   ungroup() %>% group_by(generic_name) %>% summarise(mean=weighted.mean(n, weight)))
 
-# 1            Dulaglutide 299.2443
-# 2              Exenatide 264.8430
-# 3            Liraglutide 274.5254
-# 4           Lixisenatide 274.4058
-# 5 Semaglutide Injectable 270.4612
-# 6       Semaglutide Oral 197.2881
 
 data.frame(Doses %>%   filter(grepl("Diabetes", diagnosis)) %>%  group_by(pat_id, generic_name, Year, weight) %>% summarise(n=sum(dayssup)) %>%
   ungroup() %>% group_by(generic_name) %>% summarise(mean=weighted.mean(n, weight)))
-
-# 1            Dulaglutide 296.3667
-# 2              Exenatide 266.0392
-# 3            Liraglutide 292.2623
-# 4           Lixisenatide 281.2800
-# 5 Semaglutide Injectable 273.7687
-# 6       Semaglutide Oral 197.6355
 
 
 
@@ -663,19 +624,10 @@ DIA_Doses %>% group_by(drug_group) %>% summarise(TOTAL=sum(weight*dayssup)) %>%
   left_join(DIA_Doses %>% select(pat_id, weight, drug_group) %>% distinct() %>% group_by(drug_group) %>% summarise(PATS=sum(weight))) %>%
   mutate(Days_per_pat=TOTAL/PATS)
  
-#   drug_group            TOTAL      PATS Days_per_pat
-
-# 1 Antidiabetic 1866688066.  5958721.         313.
-# 2 Biguanide    4518459485. 15763255.         287.
-# 3 DPP4          751354776.  2730270.         275.
-# 4 GLP1          978094309.  3929420.         249.
-# 5 SGLT2         828727240.  3203851.         259.
 
 DIA_Doses %>% group_by(drug_class) %>% summarise(TOTAL=sum(weight*dayssup)) %>%
   left_join(DIA_Doses %>% select(pat_id, weight, drug_class) %>% distinct() %>% group_by(drug_class) %>% summarise(PATS=sum(weight))) %>%
   mutate(Days_per_pat=TOTAL/PATS)
-
-#GLP1 Oral         42388869.   276599.         153.
 
 
 GLOB_MTHLY_Diabetes_SU <- fread("GLOB MTHLY Diabetes SU.csv")
@@ -699,11 +651,7 @@ GLOB_MTHLY_Diabetes_SU <- GLOB_MTHLY_Diabetes_SU %>% filter(DATE=="2019")
 
 data.frame(GLOB_MTHLY_Diabetes_SU %>%  filter(`ATC3 (SHORT NAME)`=="GLP-1") %>% group_by(`INT-PRODUCT`) %>% summarise(n=sum(VOLUME_FACTORED)))
 
-# 1 DPP4                 681190878
-# 2 GLP-1                921782976
-# 3 Metformin           4454415254
-# 4 Other               1918525676
-# 5 SGLT2               1064192746
+
 # --------------------------
 
 # CONVERT OPTUM PATIENTS TO IQVIA PATIENTS -----------------------------
@@ -742,13 +690,8 @@ OBE_Doses %>% select(pat_id, weight, drug_class) %>% distinct() %>% group_by(dru
 OBE_Doses %>% group_by(drug_class) %>% summarise(TOTAL=sum(weight*dayssup)) %>%
   left_join(OBE_Doses %>% select(pat_id, weight, drug_class) %>% distinct() %>% group_by(drug_class) %>% summarise(PATS=sum(weight))) %>%
   mutate(Days_per_pat=TOTAL/PATS)
- 
-#   drug_class        TOTAL     PATS Days_per_pat
-# 
-# 1 Anorectic   1120079826. 4426405.        253. 
-# 2 Antiobesity    7555978.   72009.        105. 
-# 3 GLP1          21747175.  157973.        138. 
-# 4 Weight Loss     277845.    3212.         86.5
+
+
 
 OBE_Doses %>% group_by(drug_class) %>% summarise(TOTAL=sum(weight*dayssup)) %>%
   left_join(OBE_Doses %>% select(pat_id, weight, drug_class) %>% distinct() %>% group_by(drug_class) %>% summarise(PATS=sum(weight))) %>%
@@ -886,19 +829,13 @@ DIA_Doses %>% group_by(drug_group) %>% summarise(TOTAL=sum(weight*dayssup)) %>%
   left_join(DIA_Doses %>% select(pat_id, weight, drug_group) %>% distinct() %>% group_by(drug_group) %>% summarise(PATS=sum(weight))) %>%
   mutate(Days_per_pat=TOTAL/PATS)
  
-#   drug_group            TOTAL      PATS Days_per_pat
 
-# 1 Antidiabetic 1866688066.  5958721.         313.
-# 2 Biguanide    4518459485. 15763255.         287.
-# 3 DPP4          751354776.  2730270.         275.
-# 4 GLP1          978094309.  3929420.         249.
-# 5 SGLT2         828727240.  3203851.         259.
 
 DIA_Doses %>% group_by(drug_class) %>% summarise(TOTAL=sum(weight*dayssup)) %>%
   left_join(DIA_Doses %>% select(pat_id, weight, drug_class) %>% distinct() %>% group_by(drug_class) %>% summarise(PATS=sum(weight))) %>%
   mutate(Days_per_pat=TOTAL/PATS)
 
-#GLP1 Oral         42388869.   276599.         153.
+
 
 
 GLOB_MTHLY_Diabetes_SU <- fread("GLOB MTHLY Diabetes SU.csv")

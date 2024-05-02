@@ -16,26 +16,11 @@ names(Mkt_Clarity_PAD_PCOS_SLAP_CKD_HFpEF_ce18_pts_5yDx_v2)[1] <- "patid"
 # PCOS ----------------
 
 
-# Check https://academic.oup.com/humrep/article/31/12/2841/2730240
 Mkt_Clarity_PAD_PCOS_SLAP_CKD_HFpEF_ce18_pts_5yDx_v2 %>%
   filter(PCOS==1) %>% select(patid, weight2, PCOS_E25, PCOS_N97, PCOS_N970) %>% 
   #filter(PCOS_N970==1|PCOS_E25==1) %>%
   left_join(DANU_Demographics) %>%
   group_by(PCOS_E25, PCOS_N970) %>% summarise(n=sum(weight2))
-
-#    diagnosis          PCOS_E25 PCOS_N97        n
-#  1 Diabetes                  0        1   5588. 
-#  2 Diabetes                  1        0    131. 
-#  3 Diabetes                  1        1     52.4
-#  4 Diabetes + Obesity        0        1  38019. 
-#  5 Diabetes + Obesity        1        0    743. 
-#  6 Diabetes + Obesity        1        1    166. 
-#  7 Obesity                   0        1  18773. 
-#  8 Obesity                   1        0    450. 
-#  9 Obesity                   1        1    139. 
-# 10 NA                        0        1 505973. 
-# 11 NA                        1        0  13748. 
-# 12 NA                        1        1   2577.
 
 
 # ---------------------------------
@@ -45,9 +30,6 @@ Mkt_Clarity_PAD_PCOS_SLAP_CKD_HFpEF_ce18_pts_5yDx_v2 %>%
 
 names(Mkt_Clarity_PAD_PCOS_SLAP_CKD_HFpEF_ce18_pts_5yDx_v2)
 
-# https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8509737/
-# https://www.dovepress.com/screening-of-peripheral-arterial-disease-in-primary-health-care-peer-reviewed-fulltext-article-VHRM
-
 Mkt_Clarity_PAD_PCOS_SLAP_CKD_HFpEF_ce18_pts_5yDx_v2 %>%
   filter(PAD_restrict==1) %>% select(patid, weight2, PAD_2, PAD_3, PAD_4) %>% 
   #filter(PAD_2==1|PAD_3==1|PAD_4==1) %>%
@@ -55,21 +37,6 @@ Mkt_Clarity_PAD_PCOS_SLAP_CKD_HFpEF_ce18_pts_5yDx_v2 %>%
     mutate(PAD_3=ifelse(PAD_4==1,0,PAD_3)) %>%
   left_join(DANU_Demographics) %>%
   group_by(PAD_2, PAD_3, PAD_4) %>% summarise(n=sum(weight2))
-
-#    diagnosis          PAD_2 PAD_3 PAD_4        n
-#  1 Diabetes               0     0     1   96997.
-#  2 Diabetes               0     1     0   61299.
-#  3 Diabetes               1     0     0     128.
-#  4 Diabetes + Obesity     0     0     1  623961.
-#  5 Diabetes + Obesity     0     1     0  329621.
-#  6 Diabetes + Obesity     1     0     0     491.
-#  7 Obesity                0     0     1  203027.
-#  8 Obesity                0     1     0  386821.
-#  9 Obesity                1     0     0     575.
-# 10 NA                     0     0     1 6036090.
-# 11 NA                     0     1     0 5646762.
-# 12 NA                     1     0     0    9202.
-
 
 
 # ---------------------------------
@@ -208,11 +175,9 @@ New_Comorbidity_Groups_Jun1 <- New_Comorbidity_Groups_Jun1 %>% mutate(weight=ife
 
 sum(New_Comorbidity_Groups_Jun1$weight[New_Comorbidity_Groups_Jun1$diagnosis=="Obesity" & New_Comorbidity_Groups_Jun1$Comorb==1]) # 25628225
 
-# 95506721 - 25628225 -> 69878496
 
 sum(New_Comorbidity_Groups_Jun1$weight[New_Comorbidity_Groups_Jun1$diagnosis=="Obesity" & New_Comorbidity_Groups_Jun1$Comorb==0]) # 32234819
 
-# 69878496/32234819
 
 New_Comorbidity_Groups_Jun1 <- New_Comorbidity_Groups_Jun1 %>% mutate(weight=ifelse(diagnosis=="Obesity"&Comorb==0, weight*2.167796, weight))
 

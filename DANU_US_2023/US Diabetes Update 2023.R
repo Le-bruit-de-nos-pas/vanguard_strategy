@@ -10082,6 +10082,7 @@ GLP1 %>% ungroup() %>% distinct() %>%
         axis.title.x = element_text(size = 15, vjust = -0.5),
         axis.title.y = element_text(size = 15, vjust = -0.5),
         plot.margin = margin(5, 5, 5, 5, "pt")) + 
+    coord_cartesian(ylim=c(0,100)) +
   xlab("\n ON Injectable GLP1 \n Total Number of months") +
   ylab("% Injectable GLP1 Time  \n As \"Injectable GLP1 Combotherapy\" \n ") 
   

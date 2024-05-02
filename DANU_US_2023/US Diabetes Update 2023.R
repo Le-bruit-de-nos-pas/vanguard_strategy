@@ -9947,3 +9947,169 @@ GLP1 %>% group_by(drug_group) %>% summarise(n=sum(as.numeric(weight)))
 
 
 # --------
+
+
+# Number of months monotherapy vs combo therapy -----------
+
+DANU_Ingredients <- fread("DIA Analysis Results 1.1/DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+DANU_Ingredients <- DANU_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+DANU_Ingredients <- DANU_Ingredients %>% select(molecule, generic_name, drug_group)
+names(DANU_Ingredients)[1] <- "Drugs"
+DANU_Ingredients$Drugs <- as.numeric(DANU_Ingredients$Drugs)
+string_Insulin         <- paste0("\\b(",paste0(DANU_Ingredients$Drugs[DANU_Ingredients$drug_group == "Insulin"], collapse = "|"),")\\b")
+string_InjectableGLP1  <- paste0("\\b(",paste0(DANU_Ingredients$Drugs[DANU_Ingredients$drug_group == "GLP1 Injectable"], collapse = "|"),")\\b")
+
+
+DIA_Drug_Histories <- read.table("DIA Analysis Results 1.1/DIA Drug Histories.txt", header = T, sep="\t", colClasses = "character", stringsAsFactors = FALSE)
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(-disease) %>% gather(Month, Drugs, month1:month60) %>% filter(Drugs != "-")
+
+Insulin <- DIA_Drug_Histories %>% filter(grepl(string_Insulin, Drugs))
+Insulin <- Insulin %>% arrange(patient, Month) %>% group_by(patient) %>% mutate(total=n())
+Insulin <- Insulin %>% left_join(Insulin %>% filter(grepl(",", Drugs)) %>% group_by(patient) %>% count() %>% rename("combo"="n"))
+Insulin <- Insulin %>% mutate(combo=ifelse(is.na(combo),0, combo))
+Insulin <- Insulin %>% mutate(mono=total-combo) %>% select(patient, weight, total, combo, mono)
+Insulin <- Insulin %>% mutate(comobo_perc=combo/total) %>% mutate(mono_perc=mono/total)
+
+Insulin %>% ungroup() %>% distinct() %>%
+  ggplot(aes(total, 100*comobo_perc)) +
+  geom_smooth(colour="#197796", fill="#197796") +
+   theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.position = "none",
+        plot.title = element_text(hjust = 0.5, size = 20)) +
+  theme(panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_blank(),
+        axis.line = element_blank(),
+        axis.text.x = element_text(size = 15),
+        axis.text.y = element_text(size = 15),
+        axis.title.x = element_text(size = 15, vjust = -0.5),
+        axis.title.y = element_text(size = 15, vjust = -0.5),
+        plot.margin = margin(5, 5, 5, 5, "pt")) + 
+  xlab("\n ON Insulin \n Total Number of months") +
+  ylab("% Insulin Time  \n As \"Insulin Combotherapy\" \n ") 
+  
+
+
+Insulin %>% ungroup() %>% distinct() %>%
+  ggplot(aes(100*comobo_perc)) +
+  geom_density(colour="#197796", fill="#197796", alpha=0.4, size=2) +
+   theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.position = "none",
+        plot.title = element_text(hjust = 0.5, size = 20)) +
+  theme(panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_blank(),
+        axis.line = element_blank(),
+        axis.text.x = element_text(size = 15),
+        axis.text.y = element_text(size = 15),
+        axis.title.x = element_text(size = 15, vjust = -0.5),
+        axis.title.y = element_text(size = 15, vjust = -0.5),
+        plot.margin = margin(5, 5, 5, 5, "pt")) + 
+       xlab("\n % Insulin Time  \n As \"Insulin Combotherapy\" ") +
+       ylab("Patien density \n (Gaussian kernel) \n ") 
+
+
+
+Insulin %>% ungroup() %>% distinct() %>%
+  ggplot(aes(combo)) +
+  geom_density(colour="#197796", fill="#197796", alpha=0.4, size=2) +
+   theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.position = "none",
+        plot.title = element_text(hjust = 0.5, size = 20)) +
+  theme(panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_blank(),
+        axis.line = element_blank(),
+        axis.text.x = element_text(size = 15),
+        axis.text.y = element_text(size = 15),
+        axis.title.x = element_text(size = 15, vjust = -0.5),
+        axis.title.y = element_text(size = 15, vjust = -0.5),
+        plot.margin = margin(5, 5, 5, 5, "pt")) + 
+       xlab("\n ON Insulin \n Total Number of months ") +
+       ylab("Patien density \n (Gaussian kernel) \n ") 
+
+
+
+GLP1 <- DIA_Drug_Histories %>% filter(grepl(string_InjectableGLP1, Drugs))
+GLP1 <- GLP1 %>% arrange(patient, Month) %>% group_by(patient) %>% mutate(total=n())
+GLP1 <- GLP1 %>% left_join(GLP1 %>% filter(grepl(",", Drugs)) %>% group_by(patient) %>% count() %>% rename("combo"="n"))
+GLP1 <- GLP1 %>% mutate(combo=ifelse(is.na(combo),0, combo))
+GLP1 <- GLP1 %>% mutate(mono=total-combo) %>% select(patient, weight, total, combo, mono)
+GLP1 <- GLP1 %>% mutate(comobo_perc=combo/total) %>% mutate(mono_perc=mono/total)
+
+GLP1 %>% ungroup() %>% distinct() %>%
+  ggplot(aes(total, 100*comobo_perc)) +
+  geom_smooth(colour="#953735", fill="#953735") +
+   theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.position = "none",
+        plot.title = element_text(hjust = 0.5, size = 20)) +
+  theme(panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_blank(),
+        axis.line = element_blank(),
+        axis.text.x = element_text(size = 15),
+        axis.text.y = element_text(size = 15),
+        axis.title.x = element_text(size = 15, vjust = -0.5),
+        axis.title.y = element_text(size = 15, vjust = -0.5),
+        plot.margin = margin(5, 5, 5, 5, "pt")) + 
+  xlab("\n ON Injectable GLP1 \n Total Number of months") +
+  ylab("% Injectable GLP1 Time  \n As \"Injectable GLP1 Combotherapy\" \n ") 
+  
+
+GLP1 %>% ungroup() %>% distinct() %>%
+  ggplot(aes(100*comobo_perc)) +
+  geom_density(colour="#953735", fill="#953735", alpha=0.4, size=2) +
+   theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.position = "none",
+        plot.title = element_text(hjust = 0.5, size = 20)) +
+  theme(panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_blank(),
+        axis.line = element_blank(),
+        axis.text.x = element_text(size = 15),
+        axis.text.y = element_text(size = 15),
+        axis.title.x = element_text(size = 15, vjust = -0.5),
+        axis.title.y = element_text(size = 15, vjust = -0.5),
+        plot.margin = margin(5, 5, 5, 5, "pt")) + 
+       xlab("\n % Injectable GLP1 Time  \n As \"Injectable GLP1 Combotherapy\" ") +
+       ylab("Patien density \n (Gaussian kernel) \n ") 
+
+
+GLP1 %>% ungroup() %>% distinct() %>%
+  ggplot(aes(combo)) +
+  geom_density(colour="#953735", fill="#953735", alpha=0.4, size=2) +
+   theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.position = "none",
+        plot.title = element_text(hjust = 0.5, size = 20)) +
+  theme(panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_blank(),
+        axis.line = element_blank(),
+        axis.text.x = element_text(size = 15),
+        axis.text.y = element_text(size = 15),
+        axis.title.x = element_text(size = 15, vjust = -0.5),
+        axis.title.y = element_text(size = 15, vjust = -0.5),
+        plot.margin = margin(5, 5, 5, 5, "pt")) + 
+       xlab("\n ON Injectable GLP1 \n Total Number of months ") +
+       ylab("Patien density \n (Gaussian kernel) \n ") 
+
+
+# -----------

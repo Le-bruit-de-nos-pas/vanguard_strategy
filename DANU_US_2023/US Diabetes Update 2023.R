@@ -4098,13 +4098,18 @@ BMI %>% inner_join(HbA1c) %>%
   summarise(n=sum(weight)*2.493987) %>%
   spread(key=HbA1c, value=n)
 
-
+#   BMI     `<6.5`   `<7.5`   `<8.5`   `<9.5`   `>9.5`
+# 1 <27    552501.  437388.  346674.  204450.  375770.
+# 2 <30    962887.  960805.  673833.  438191.  750669.
+# 3 <35   1796696. 1714436. 1320270.  827844. 1609610.
+# 4 >35   3668408. 2733694. 2096164. 1486259. 3300743.
 
 
 DANU_Ingredients <- fread("DIA Analysis Results 1.1/DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
 DANU_Ingredients <- DANU_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
 string_OralGLP1        <- paste0("\\b(",paste0(DANU_Ingredients$molecule[DANU_Ingredients$drug_group == "GLP1 Oral"], collapse = "|"),")\\b")
 string_InjectableGLP1  <- paste0("\\b(",paste0(DANU_Ingredients$molecule[DANU_Ingredients$drug_group == "GLP1 Injectable"], collapse = "|"),")\\b")
+string_Insulin  <- paste0("\\b(",paste0(DANU_Ingredients$molecule[DANU_Ingredients$drug_group == "Insulin"], collapse = "|"),")\\b")
 
 DIA_Drug_Histories <- fread("DIA Analysis Results 1.1/DIA Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
 DIA_Drug_Histories <- DIA_Drug_Histories %>% select(-c(disease)) 
@@ -4117,6 +4122,7 @@ DIA_Drug_Histories$Month <- parse_number(DIA_Drug_Histories$Month)
 Ever_GLP1 <- DIA_Drug_Histories %>% filter(grepl(string_OralGLP1, Treat)|grepl(string_InjectableGLP1, Treat)) %>% 
   select(patient, weight) %>% distinct() %>% mutate(group="Ever_GLP1")
 
+
 Ever_GLP1_Oral <- DIA_Drug_Histories %>% filter(grepl(string_OralGLP1, Treat)) %>% 
   select(patient, weight) %>% distinct() %>% mutate(group="Ever_GLP1_Oral")
 
@@ -4128,9 +4134,19 @@ L12m_GLP1_Oral <- DIA_Drug_Histories %>% filter(Month>=49) %>% filter(grepl(stri
 
 
 
+
+Ever_Insulin <- DIA_Drug_Histories %>% filter(grepl(string_Insulin, Treat)) %>% 
+  select(patient, weight) %>% distinct() %>% mutate(group="Ever_insulin")
+
+
+L12m_Insulin <- DIA_Drug_Histories %>%  filter(Month>=49) %>%filter(grepl(string_Insulin, Treat)) %>% 
+  select(patient, weight) %>% distinct() %>% mutate(group="L12m_insulin")
+
+
+
 BMI %>% inner_join(HbA1c) %>%
   inner_join(New_Comorbidity_Groups_Jun1) %>%
-  inner_join(L12m_GLP1_Oral, by=c("patid"="patient", "weight"="weight")) %>%
+  inner_join(L12m_Insulin, by=c("patid"="patient", "weight"="weight")) %>%
     mutate(BMI=ifelse(BMI<27, "<27",
                     ifelse(BMI<30, "<30",
                            ifelse(BMI<35, "<35", ">35")))) %>%
@@ -4141,6 +4157,8 @@ BMI %>% inner_join(HbA1c) %>%
   group_by(BMI, HbA1c) %>%
   summarise(n=sum(weight)*2.493987) %>%
   spread(key=HbA1c, value=n)
+
+
 
 # -----------------
 # Brands GLP1 usage in Obesity ----------------------------
@@ -9948,7 +9966,6 @@ GLP1 %>% group_by(drug_group) %>% summarise(n=sum(as.numeric(weight)))
 
 # --------
 
-
 # Number of months monotherapy vs combo therapy -----------
 
 DANU_Ingredients <- fread("DIA Analysis Results 1.1/DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
@@ -9988,6 +10005,7 @@ Insulin %>% ungroup() %>% distinct() %>%
         axis.title.x = element_text(size = 15, vjust = -0.5),
         axis.title.y = element_text(size = 15, vjust = -0.5),
         plot.margin = margin(5, 5, 5, 5, "pt")) + 
+  coord_cartesian(ylim=c(0,100)) +
   xlab("\n ON Insulin \n Total Number of months") +
   ylab("% Insulin Time  \n As \"Insulin Combotherapy\" \n ") 
   

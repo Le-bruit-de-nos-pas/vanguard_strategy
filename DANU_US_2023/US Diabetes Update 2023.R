@@ -9913,3 +9913,37 @@ DIA_Drug_Histories %>%
 
 
 # -----------
+
+# Insulin & GLP1 Injectable - Mono vs Combo Therapy month 60 ----------
+DANU_Ingredients <- fread("DIA Analysis Results 1.1/DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+DANU_Ingredients <- DANU_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+DANU_Ingredients <- DANU_Ingredients %>% select(molecule, generic_name, drug_group)
+names(DANU_Ingredients)[1] <- "Drugs"
+DANU_Ingredients$Drugs <- as.numeric(DANU_Ingredients$Drugs)
+
+string_Insulin         <- paste0("\\b(",paste0(DANU_Ingredients$Drugs[DANU_Ingredients$drug_group == "Insulin"], collapse = "|"),")\\b")
+string_InjectableGLP1  <- paste0("\\b(",paste0(DANU_Ingredients$Drugs[DANU_Ingredients$drug_group == "GLP1 Injectable"], collapse = "|"),")\\b")
+
+
+DIA_Drug_Histories <- read.table("DIA Analysis Results 1.1/DIA Drug Histories.txt", header = T, sep="\t", colClasses = "character", stringsAsFactors = FALSE)
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(patient, weight, month60)
+
+
+Insulin <- DIA_Drug_Histories %>% filter(grepl(string_Insulin, month60))
+sum(as.numeric(Insulin$weight)) # 
+Insulin  %>% filter(grepl(",", month60)) %>% summarise(n=sum(as.numeric(weight))) #  combo
+Insulin <- separate_rows(Insulin, month60, sep = ",", convert=T)
+Insulin <- Insulin %>% left_join(DANU_Ingredients %>% mutate(Drugs=as.numeric(Drugs)), by=c("month60"="Drugs"))
+Insulin <- Insulin %>% select(-c(month60, generic_name)) %>% distinct()
+Insulin %>% group_by(drug_group) %>% summarise(n=sum(as.numeric(weight)))
+
+GLP1 <- DIA_Drug_Histories %>% filter(grepl(string_InjectableGLP1, month60))
+sum(as.numeric(GLP1$weight)) # 
+GLP1  %>% filter(grepl(",", month60)) %>% summarise(n=sum(as.numeric(weight))) #  combo
+GLP1 <- separate_rows(GLP1, month60, sep = ",", convert=T)
+GLP1 <- GLP1 %>% left_join(DANU_Ingredients %>% mutate(Drugs=as.numeric(Drugs)), by=c("month60"="Drugs"))
+GLP1 <- GLP1 %>% select(-c(month60, generic_name)) %>% distinct()
+GLP1 %>% group_by(drug_group) %>% summarise(n=sum(as.numeric(weight)))
+
+
+# --------

@@ -5051,3 +5051,109 @@ MIGUS24_Drug_Histories %>% group_by(patient) %>% count() %>% ungroup() %>% renam
 
 
 # -------
+
+# Generate table for langchain --------
+
+ZAVUS24_Drug_Histories <- read.table("Source/ZAVUS24 Drug Histories.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+ZAVUS24_Box_Histories <- read.table("Source/ZAVUS24 Box Histories.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+ZAVUS24_Box_Specifications <- read.table("Source/ZAVUS24 Box Specifications.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+
+
+ZAVUS24_Drug_Histories <- gather(ZAVUS24_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+names(ZAVUS24_Drug_Histories)
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% select(-c(disease))
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% mutate(Treat=ifelse(Treat=="*", "-", Treat))
+
+ZAVUS24_Box_Histories <- gather(ZAVUS24_Box_Histories, Month, Box, month1:month60, factor_key=TRUE)
+ZAVUS24_Box_Histories <- ZAVUS24_Box_Histories %>% select(-c(disease))
+
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% left_join(ZAVUS24_Box_Histories)
+
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% left_join(ZAVUS24_Box_Specifications %>% select(box_code, drug_group, treatment_segment), by=c("Box"="box_code"))
+ZAVUS24_Drug_Histories$Month <- parse_number(as.character(ZAVUS24_Drug_Histories$Month))
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% select(-weight)
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% select(-treatment_segment)
+names(ZAVUS24_Drug_Histories) <- c("patient_id", "month", "molecules", "stock_abbreviation", "stock_full_name")
+ZAVUS24_Drug_Histories <- separate_rows(ZAVUS24_Drug_Histories, molecules, sep = ",", convert=T )
+
+
+ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
+Drugs_lookup <- ZAVUS24_Doses %>% select(drug_id, generic, drug_class, drug_group) %>% distinct()
+Drugs_lookup <- Drugs_lookup %>% arrange(drug_id)
+unique(Drugs_lookup$drug_group)
+Drugs_lookup <- Drugs_lookup %>% select(drug_id, generic, drug_class)
+
+
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% left_join(Drugs_lookup %>% mutate(drug_id=as.character(drug_id)), by=c("molecules"="drug_id"))
+
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% 
+  mutate(generic=ifelse(is.na(generic), "lapsed", generic)) %>%
+  mutate(drug_class=ifelse(is.na(drug_class), "lapsed", drug_class))
+
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% select(-stock_abbreviation) 
+unique(ZAVUS24_Drug_Histories$stock_full_name)
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% mutate(stock_full_name=ifelse(stock_full_name=="Not visible", "Lapsed", stock_full_name))
+
+ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% select(patient_id, month, generic, drug_class, stock_full_name)
+names(ZAVUS24_Drug_Histories)[3] <- "molecule_name"
+names(ZAVUS24_Drug_Histories)[4] <- "class_name"
+names(ZAVUS24_Drug_Histories)[5] <- "patient_stock_name"
+
+
+fwrite(ZAVUS24_Drug_Histories, "ZAVUS24_Drug_Histories.csv")
+
+# ------
+# umber on 0 Acutes, 1 Acute, 2 Acutes Month Before Current After 1st ZAV ------------------
+
+flMIG <- fread("Source/MIG_Flows_Aux_Long.txt")
+flMIG <- flMIG %>% select(patient, weight, p1, p2, d1, d2, s1, s2)
+flMIG <- flMIG %>% mutate(p1 = as.numeric(p1)) %>% mutate(p2=as.numeric(p2))
+
+First_ZAV <- flMIG %>% 
+  filter(grepl("134", d2)) %>% group_by(patient) %>% filter(p2==min(p2)) %>% select(patient, p2) %>% rename("First_ZAV"="p2")
+
+flMIG <- First_ZAV %>% left_join(flMIG)
+
+flMIG <- flMIG %>% filter(First_ZAV>1&First_ZAV<60)  %>% mutate(before=First_ZAV-1) %>% mutate(after=First_ZAV+1) 
+
+before <- flMIG %>% filter(p2==before) %>% select(patient, d2)
+current <- flMIG %>% filter(p2==First_ZAV) %>% select(patient, d2)
+after <- flMIG %>% filter(p2==after) %>% select(patient, d2)
+
+before <- separate_rows(before, d2, sep = ",", convert=T )
+current <- separate_rows(current, d2, sep = ",", convert=T )
+after <- separate_rows(after, d2, sep = ",", convert=T )
+
+
+
+
+ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
+Drugs_lookup <- ZAVUS24_Doses %>% select(drug_id, generic, drug_class, drug_group) %>% distinct()
+Drugs_lookup <- Drugs_lookup %>% arrange(drug_id)
+unique(Drugs_lookup$drug_group)
+
+
+unique(Drugs_lookup$drug_class)
+unique(Drugs_lookup$drug_group)
+
+Drugs_lookup <- Drugs_lookup %>% mutate(Acutes=ifelse(drug_class %in% c("NSAID", "Analgesic", "Weak Opioid", "Strong Opioid",
+                                                        "Steroid", "Ergot", "Triptan", "Ditan", "CGRP Oral"), 1,0))
+
+
+before %>% mutate(d2=as.character(d2)) %>% left_join(Drugs_lookup %>% mutate(drug_id=as.character(drug_id)), by=c("d2"="drug_id")) %>% 
+  select(patient, d2, Acutes) %>% distinct()  %>% filter(Acutes==1) %>% group_by(patient) %>% count() %>% ungroup() %>%
+  rename("mols"="n") %>% group_by(mols) %>% count() %>%
+  mutate(n=n/length(unique(before$patient)))
+
+current %>% mutate(d2=as.character(d2)) %>% left_join(Drugs_lookup %>% mutate(drug_id=as.character(drug_id)), by=c("d2"="drug_id")) %>% 
+  select(patient, d2, Acutes) %>% distinct()  %>% filter(Acutes==1) %>% group_by(patient) %>% count() %>% ungroup() %>%
+  rename("mols"="n") %>% group_by(mols) %>% count() %>%
+  mutate(n=n/length(unique(current$patient)))
+
+after %>% mutate(d2=as.character(d2)) %>% left_join(Drugs_lookup %>% mutate(drug_id=as.character(drug_id)), by=c("d2"="drug_id")) %>% 
+  select(patient, d2, Acutes) %>% distinct()  %>% filter(Acutes==1) %>% group_by(patient) %>% count() %>% ungroup() %>%
+  rename("mols"="n") %>% group_by(mols) %>% count() %>%
+  mutate(n=n/length(unique(after$patient)))
+
+
+# -------

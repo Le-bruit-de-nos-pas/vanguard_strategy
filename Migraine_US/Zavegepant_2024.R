@@ -5020,18 +5020,32 @@ ZAVUS24_Drug_Histories %>% group_by(patient) %>% count() %>% ungroup() %>% renam
 
 
 
+ZAVUS24_Doses <- fread("Source/ZAVUS24 Doses.txt")
+Drugs_lookup <- ZAVUS24_Doses %>% select(drug_id, generic, drug_class, drug_group) %>% distinct()
+Drugs_lookup <- Drugs_lookup %>% arrange(drug_id)
+unique(Drugs_lookup$drug_group)
 
 
-ZAVUS24_Drug_Histories <- read.table("Source/ZAVUS24 Drug Histories.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
-ZAVUS24_Drug_Histories <- gather(ZAVUS24_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
-ZAVUS24_Drug_Histories$Month <- parse_number(as.character(ZAVUS24_Drug_Histories$Month))
-ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% filter(grepl("134", Treat)) %>%
-  group_by(patient) %>% filter(Month==max(Month)) %>% ungroup()
-ZAVUS24_Drug_Histories <- separate_rows(ZAVUS24_Drug_Histories, Treat, sep = ",", convert=T )
-ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% filter(grepl(string_Acutes, Treat))
+unique(Drugs_lookup$drug_class)
+unique(Drugs_lookup$drug_group)
 
-ZAVUS24_Drug_Histories %>% group_by(patient) %>% count() %>% ungroup() %>% rename("n_mols"="n") %>%
-  group_by(n_mols) %>% count()   %>% mutate(perc=round(n/254,3))
+Drugs_lookup <- Drugs_lookup %>% mutate(Acutes=ifelse(drug_class %in% c("NSAID", "Analgesic", "Weak Opioid", "Strong Opioid",
+                                                        "Steroid", "Ergot", "Triptan", "Ditan", "CGRP Oral"), 1,0))
+
+
+string_Acutes <- paste0("\\b(",paste0(Drugs_lookup$drug_id[Drugs_lookup$Acutes == 1], collapse = "|"),")\\b")
+
+MIGUS24_Drug_Histories <- read.table("Source/MIGUS24 Drug Histories.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
+length(unique(MIGUS24_Drug_Histories$patient)) # 240747
+MIGUS24_Drug_Histories <- MIGUS24_Drug_Histories %>% select(patient, month60) 
+
+MIGUS24_Drug_Histories <- separate_rows(MIGUS24_Drug_Histories, month60, sep = ",", convert=T )
+MIGUS24_Drug_Histories <- MIGUS24_Drug_Histories %>% filter(grepl(string_Acutes, month60))
+
+MIGUS24_Drug_Histories %>% group_by(patient) %>% count() %>% ungroup() %>% rename("n_mols"="n") %>%
+  group_by(n_mols) %>% count()   %>% mutate(perc=round(n/240747,3))
+
+
 
 
 

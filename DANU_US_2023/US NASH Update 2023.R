@@ -13,13 +13,13 @@ NASH_Demographics <- fread("NASH Analysis Results 1.1/NASH Demographics.txt")
 unique(NASH_Demographics$diagnosis)
 
 sum(NASH_Demographics$weight) # 1384888
-sum(NASH_Demographics$weight[is.na(NASH_Demographics$fibrosis)&is.na(NASH_Demographics$cirrhosis)]) # 959920.9
-sum(NASH_Demographics$weight[!is.na(NASH_Demographics$fibrosis)&is.na(NASH_Demographics$cirrhosis)]) # 106936.7
-sum(NASH_Demographics$weight[!is.na(NASH_Demographics$cirrhosis)]) # 318030.2 
+sum(NASH_Demographics$weight[is.na(NASH_Demographics$fibrosis)&is.na(NASH_Demographics$cirrhosis)]) # 
+sum(NASH_Demographics$weight[!is.na(NASH_Demographics$fibrosis)&is.na(NASH_Demographics$cirrhosis)]) # 
+sum(NASH_Demographics$weight[!is.na(NASH_Demographics$cirrhosis)]) #  
 
 
 NAFLD_Demographics <- fread("NAFLD Analysis Results 1.1/NAFLD Demographics.txt")
-sum(NAFLD_Demographics$weight) # 14631378
+sum(NAFLD_Demographics$weight) # 
 
 
 
@@ -32,11 +32,7 @@ NAFLD_Demographics %>% select(patid, weight, age, gender) %>% mutate(group="NAFL
   group_by(group, gender) %>% summarise(n=weighted.mean(age, weight)) %>%
   spread(key=gender, value=n)
 
-#   group         F     M
-# 1 Cirrhosis  64.3  61.9
-# 2 Fibrosis   55.3  54.7
-# 3 NAFLD      56.7  55.0
-# 4 NASH-only  56.5  53.0
+
 
 
 NASH_Demographics %>% mutate(group=ifelse(!is.na(cirrhosis), "Cirrhosis",
@@ -92,7 +88,7 @@ NAFLD_Demographics %>%
 
 NASH_Drug_Histories <- fread("NASH Analysis Results 1.1/NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
 
-sum(NASH_Drug_Histories$weight) # 1384888
+sum(NASH_Drug_Histories$weight) # 
 
 NASH_Drug_Histories <- NASH_Drug_Histories %>% select(4:63)
 NASH_Drug_Histories[NASH_Drug_Histories != "-"] <- 1  # on drug 
@@ -105,7 +101,7 @@ Pats_vec <- NASH_Drug_Histories_LONG %>% select(patient, weight)
 NASH_Drug_Histories <- Pats_vec %>% bind_cols(NASH_Drug_Histories)
 NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(SUM != 0)
 
-sum(NASH_Drug_Histories$weight) # 1044641
+sum(NASH_Drug_Histories$weight) # 
 
 NASH_Treatment_exp_Vector <- NASH_Drug_Histories %>% select(patient, weight)
 fwrite(NASH_Treatment_exp_Vector, "NASH Analysis Results 1.1/NASH_Treatment_exp_Vector.txt")
@@ -114,7 +110,7 @@ fwrite(NASH_Treatment_exp_Vector, "NASH Analysis Results 1.1/NASH_Treatment_exp_
 
 NAFLD_Drug_Histories <- fread("NAFLD Analysis Results 1.1/NAFLD Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
 
-sum(NAFLD_Drug_Histories$weight) # 14631378
+sum(NAFLD_Drug_Histories$weight) # 
 
 NAFLD_Drug_Histories <- NAFLD_Drug_Histories %>% select(4:63)
 NAFLD_Drug_Histories[NAFLD_Drug_Histories != "-"] <- 1  # on drug 
@@ -127,7 +123,7 @@ Pats_vec <- NAFLD_Drug_Histories_LONG %>% select(patient, weight)
 NAFLD_Drug_Histories <- Pats_vec %>% bind_cols(NAFLD_Drug_Histories)
 NAFLD_Drug_Histories <- NAFLD_Drug_Histories %>% filter(SUM != 0)
 
-sum(NAFLD_Drug_Histories$weight) # 9448652
+sum(NAFLD_Drug_Histories$weight) # 
 
 NAFLD_Treatment_exp_Vector <- NAFLD_Drug_Histories %>% select(patient, weight)
 fwrite(NAFLD_Treatment_exp_Vector, "NAFLD Analysis Results 1.1/NAFLD_Treatment_exp_Vector.txt")
@@ -144,16 +140,6 @@ NASH_Box_Histories <- NASH_Box_Histories %>% select(patient, weight, month60)
 NASH_Box_Histories <- NASH_Box_Histories %>% mutate(month60 = str_sub(month60, 2L, 2L))
 
 NASH_Box_Histories %>% group_by(month60) %>% summarise(n=sum(weight))
-
-# drug_id	drug_group
-# 1	Anticholesterol
-# 2	Antiobesity
-# 3	Hepatoprotective
-# 4	Antidiabetic
-# 5	GLP1 Oral
-# 6	GLP1 Injectable
-# 7	Hospitalization
-
 
 
 NAFLD_Treatment_exp_Vector <- fread("NAFLD Analysis Results 1.1/NAFLD_Treatment_exp_Vector.txt")
@@ -173,8 +159,8 @@ NASH_Treatment_exp_Vector <- fread("NASH Analysis Results 1.1/NASH_Treatment_exp
 NASH_Drug_Histories     <- fread("NASH Analysis Results 1.1/NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
 NASH_Drug_Histories <- NASH_Treatment_exp_Vector %>% left_join(NASH_Drug_Histories)
 
-length(unique(NASH_Drug_Histories$patient)) # 8407
-sum(as.numeric(NASH_Drug_Histories$weight)) # 1044641
+length(unique(NASH_Drug_Histories$patient)) # 
+sum(as.numeric(NASH_Drug_Histories$weight)) # 
 
 NASH_Ingredients <- fread("NASH Analysis Results 1.1/NASH Ingredients.txt", integer64 = "character", stringsAsFactors = F)
 NASH_Ingredients <- NASH_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
@@ -208,8 +194,8 @@ NAFLD_Treatment_exp_Vector <- fread("NAFLD Analysis Results 1.1/NAFLD_Treatment_
 NAFLD_Drug_Histories     <- fread("NAFLD Analysis Results 1.1/NAFLD Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
 NAFLD_Drug_Histories <- NAFLD_Treatment_exp_Vector %>% left_join(NAFLD_Drug_Histories)
 
-length(unique(NAFLD_Drug_Histories$patient)) # 75638
-sum(as.numeric(NAFLD_Drug_Histories$weight)) # 9448652
+length(unique(NAFLD_Drug_Histories$patient)) # 
+sum(as.numeric(NAFLD_Drug_Histories$weight)) # 
 
 NASH_Ingredients <- fread("NASH Analysis Results 1.1/NASH Ingredients.txt", integer64 = "character", stringsAsFactors = F)
 NASH_Ingredients <- NASH_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
@@ -257,23 +243,11 @@ DANU_Demographics <- DANU_Demographics %>% anti_join(NASH_Demographics %>% selec
 
 groups <- DANU_Demographics %>% bind_rows(NASH_Demographics) %>% bind_rows(NAFLD_Demographics) 
 
-# 1 Diabetes            6794155.
-# 2 Diabetes + Obesity 31665585.
-# 3 NAFLD              14631378.
-# 4 NASH                1384888.
-# 5 Obesity            92500731.
-
 
 groups <- groups %>% inner_join(DANU_Measures)
 
 groups %>% select(patid, weight, group) %>% distinct() %>%
   group_by(group) %>% summarise(n=sum(weight))
-
-# 1 Diabetes            2792164.
-# 2 Diabetes + Obesity 22518380.
-# 3 NAFLD               9819508.
-# 4 NASH                 932691.
-# 5 Obesity            68980438.
 
 
 groups %>% group_by(group, test) %>% summarise(n=weighted.mean(value, weight)) %>%
@@ -379,11 +353,6 @@ to_train <- to_train %>% sample_n(1000)
 
 groups %>% group_by(group) %>% summarise(n=sum(weight))
 
-# 1 Diabetes            1672900.
-# 2 Diabetes + Obesity 13949711.
-# 3 NAFLD               6556020.
-# 4 NASH                 629421.
-# 5 Obesity            36796113.
 
 groups2 <- groups %>% ungroup() %>% select(-c(patid,weight)) 
 groups2 <- groups2 %>% select(-group)
@@ -454,18 +423,6 @@ ignore %>% group_by(group) %>% summarise(n=mean(prediction))
 ignore %>% mutate(prediction=ifelse(prediction>0.9,1,0)) %>%
   group_by(group, prediction, Label) %>% summarise(n=mean(score)) %>%
   spread(key=Label, value=n)
-
-#    group              prediction `ALT Level` `AST Level` `Platelet Count`
-#  1 Diabetes                    0        23.8        24.1             234.
-#  2 Diabetes                    1        85.7        83.5             135.
-#  3 Diabetes + Obesity          0        28.0        24.6             238.
-#  4 Diabetes + Obesity          1        87.5        84.8             134.
-#  5 NAFLD                       0        32.8        26.8             246.
-#  6 NAFLD                       1       119.        109.              157.
-#  7 NASH                        0        36.3        29.5             245.
-#  8 NASH                        1       119.        108.              153.
-#  9 Obesity                     0        26.8        23.9             243.
-# 10 Obesity                     1        94.6        85.5             142.
 
 
 ignore %>% select(patid, weight, group) %>% distinct() %>%
@@ -611,9 +568,6 @@ NASH_Demographics <- NASH_Demographics %>% mutate(group=ifelse(!is.na(cirrhosis)
   select(patid, weight, group)
 names(NASH_Demographics)[1] <- "patient"
 NASH_Demographics %>% group_by(group) %>% summarise(n=sum(weight))
-# 1 Cirrhosis 318030.
-# 2 Fibrosis  106937.
-# 3 NASH-only 959921.
 
 
 
@@ -622,8 +576,8 @@ NASH_Drug_Histories     <- fread("NASH Analysis Results 1.1/NASH Drug Histories.
 NASH_Drug_Histories <- NASH_Treatment_exp_Vector %>% left_join(NASH_Drug_Histories)
 NASH_Drug_Histories <- NASH_Demographics %>% inner_join(NASH_Drug_Histories)
 
-length(unique(NASH_Drug_Histories$patient)) # 8407
-sum(as.numeric(NASH_Drug_Histories$weight)) # 1044641
+length(unique(NASH_Drug_Histories$patient)) # 
+sum(as.numeric(NASH_Drug_Histories$weight)) # 
 
 NASH_Ingredients <- fread("NASH Analysis Results 1.1/NASH Ingredients.txt", integer64 = "character", stringsAsFactors = F)
 NASH_Ingredients <- NASH_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
@@ -671,10 +625,10 @@ NASH_Drug_Histories     <- fread("NASH Analysis Results 1.1/NASH Drug Histories.
 NASH_Drug_Histories <- NASH_Treatment_exp_Vector %>% left_join(NASH_Drug_Histories)
 NASH_Drug_Histories <- NASH_Demographics %>% inner_join(NASH_Drug_Histories)
 
-length(unique(NASH_Drug_Histories$patient)) # 8407
-sum(as.numeric(NASH_Drug_Histories$weight)) # 1044641
+length(unique(NASH_Drug_Histories$patient)) # 
+sum(as.numeric(NASH_Drug_Histories$weight)) # 
 
-# 501251
+#
 
 
 NASH_Ingredients <- fread("NASH Analysis Results 1.1/NASH Ingredients.txt", integer64 = "character", stringsAsFactors = F)
@@ -695,8 +649,6 @@ NASH_Drug_Histories <- NASH_Drug_Histories %>% mutate(drug_class=ifelse(drug_cla
 
 NASH_Drug_Histories %>% select(patient, weight, group) %>% distinct() %>% group_by(group) %>% summarise(total=sum(weight))
 
-# 1 DIA   640185.
-# 2 OBE     8932
 
 unique(NASH_Drug_Histories$drug_class)
 
@@ -818,10 +770,6 @@ ignore %>% mutate(prediction=ifelse(prediction>0.,1,0)) %>%
   group_by(prediction, Label) %>% summarise(n=mean(score)) %>%
   spread(key=Label, value=n)
  
-#   prediction   ALT   AST PLATELET
-# 1          0  27.0  26.6     247.
-# 2          1  91.1  71.6     147.
-
 
 
 ignore %>% filter(prediction>9) %>% select(PTID) %>% distinct() # 52/678 0.07669617
@@ -948,10 +896,6 @@ NASH_Demographics <- NASH_Demographics %>% mutate(group=ifelse(!is.na(cirrhosis)
 
 NASH_Demographics %>% group_by(group) %>% summarise(n=sum(weight))
 
-# 1 Cirrhosis 318030.
-# 2 Fibrosis  106937.
-# 3 NASH-only 959921.
-
 data.frame(
   NASH_Comorbidity_Inventories %>% inner_join(NASH_Demographics) %>%
   group_by(group, diagnosis) %>% summarise(n=sum(weight)) %>% arrange(-n) %>%
@@ -978,7 +922,7 @@ NASH_Demographics <- fread("NASH Analysis Results 1.1/NASH Demographics.txt")
 NASH_Demographics %>% select(patid, weight, nash, fibrosis, cirrhosis) %>% drop_na() %>%
   mutate(nash=as.Date(nash), fibrosis=as.Date(fibrosis), cirrhosis=as.Date(cirrhosis)) %>%
   filter(cirrhosis>fibrosis & fibrosis>nash) %>%
- mutate(nash_to_fib=fibrosis-nash) %>% # 381.7541
+ mutate(nash_to_fib=fibrosis-nash) %>% # 
   ggplot(aes(nash_to_fib/30.5)) +
   geom_density(size=2) +
   theme_minimal() +
@@ -1141,7 +1085,7 @@ DIA_Comorbidity_Inventories <- High_Risk_pred_temporary %>% filter(group=="Diabe
 DIA_Comorbidity_Inventories %>% select(patid, weight) %>% distinct() %>% summarise(n=sum(weight)) # 1582935
 DIA_Comorbidity_Inventories %>% filter(diagnosis=="B15"|diagnosis=="B16"|diagnosis=="B17"|diagnosis=="B18"|diagnosis=="B19"|
                                            diagnosis=="C22"|diagnosis=="C78") %>% 
-  summarise(n=sum(weight)) # 191204.3 # 0.120791
+  summarise(n=sum(weight)) # 
 
 
 DIA_Comorbidity_Inventories <- fread("DIA Analysis Results 1.1/DIA Comorbidity Inventories.txt")
@@ -1149,7 +1093,7 @@ DIA_Comorbidity_Inventories <- High_Risk_pred_temporary %>% filter(group=="Diabe
 DIA_Comorbidity_Inventories %>% select(patid, weight) %>% distinct() %>% summarise(n=sum(weight)) # 129884
 DIA_Comorbidity_Inventories %>% filter(diagnosis=="B15"|diagnosis=="B16"|diagnosis=="B17"|diagnosis=="B18"|diagnosis=="B19"|
                                            diagnosis=="C22"|diagnosis=="C78") %>% 
-  summarise(n=sum(weight)) # 22411.32 # 0.1725487
+  summarise(n=sum(weight)) # 
 
 
 OBE2_Comorbidity_Inventories <- fread("OBE2 Analysis Results 1.1/OBE2 Comorbidity Inventories.txt")
@@ -1157,15 +1101,14 @@ OBE2_Comorbidity_Inventories <- High_Risk_pred_temporary %>% filter(group=="Obes
 OBE2_Comorbidity_Inventories %>% select(patid, weight) %>% distinct() %>% summarise(n=sum(weight)) # 3200859
 OBE2_Comorbidity_Inventories %>% filter(diagnosis=="B15"|diagnosis=="B16"|diagnosis=="B17"|diagnosis=="B18"|diagnosis=="B19"|
                                            diagnosis=="C22"|diagnosis=="C78") %>% 
-  summarise(n=sum(weight)) # 336847.1 # 0.1052365
+  summarise(n=sum(weight)) # 
 
 NAFLD_Comorbidity_Inventories <- fread("NAFLD Analysis Results 1.1/NAFLD Comorbidity Inventories.txt")
 NAFLD_Comorbidity_Inventories <- High_Risk_pred_temporary %>% filter(group=="NAFLD") %>% select(patid) %>% inner_join(NAFLD_Comorbidity_Inventories)
 NAFLD_Comorbidity_Inventories %>% select(patid, weight) %>% distinct() %>% summarise(n=sum(weight)) # 1253871
 NAFLD_Comorbidity_Inventories %>% filter(diagnosis=="B15"|diagnosis=="B16"|diagnosis=="B17"|diagnosis=="B18"|diagnosis=="B19"|
                                            diagnosis=="C22"|diagnosis=="C78") %>% 
-  summarise(n=sum(weight)) # 222778.6 # 0.1776727
-
+  summarise(n=sum(weight)) # 
 
 
 
@@ -1573,22 +1516,12 @@ DANU_Demographics <- DANU_Demographics %>% anti_join(NASH_Demographics %>% selec
 
 groups <- DANU_Demographics %>% bind_rows(NASH_Demographics) %>% bind_rows(NAFLD_Demographics) 
 
-# 1 Diabetes            6794155.
-# 2 Diabetes + Obesity 31665585.
-# 3 NAFLD              14631378.
-# 4 NASH                1384888.
-# 5 Obesity            92500731.
 
 groups <- groups %>% inner_join(DANU_Measures)
 
 groups %>% select(patid, weight, group) %>% distinct() %>%
   group_by(group) %>% summarise(n=sum(weight))
 
-# 1 Diabetes            2792164.
-# 2 Diabetes + Obesity 22518380.
-# 3 NAFLD               9819508.
-# 4 NASH                 932691.
-# 5 Obesity            68980438.
 
 groups <- groups %>% group_by(patid, test) %>% mutate(value=ifelse(test=="Platelet Count", min(value), max(value))) %>% slice(1)
 groups <- groups %>% select(-claimed)
@@ -1618,11 +1551,6 @@ to_train <- to_train %>% sample_n(1000)
 
 groups %>% group_by(group) %>% summarise(n=sum(weight))
 
-# 1 Diabetes            1672900.
-# 2 Diabetes + Obesity 13949711.
-# 3 NAFLD               6556020.
-# 4 NASH                 629421.
-# 5 Obesity            36796113.
 
 groups2 <- groups %>% ungroup() %>% select(-c(patid,weight)) 
 groups2 <- groups2 %>% select(-group)
@@ -1638,17 +1566,6 @@ summary(modelAll_1_randomForest)
 
 data.frame(predict(modelAll_1_randomForest, groups2)) %>%
   group_by( predict.modelAll_1_randomForest..groups2.) %>% count() %>% mutate(n=100*n/455923) 
-
-#   predict.modelAll_1_randomForest..groups2.         n
-# 1                                     0     33.2     
-# 2                                     0.32  29.8     
-# 3                                     0.36   7.74    
-# 4                                     0.636  0.000439
-# 5                                     0.64   2.62    
-# 6                                     0.676  0.000439
-# 7                                     0.68  14.7     
-# 8                                     0.996  0.000219
-# 9                                     1     12.0 
 
 
 
@@ -1683,7 +1600,7 @@ NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, weight)
 
 NASH_pts_prcds <- NASH_pts_prcds %>% left_join(NASH_Drug_Histories, by=c("PTID"="patient"))
 
-sum(NASH_Drug_Histories$weight) # 1384888
+sum(NASH_Drug_Histories$weight) # 
 
 NASH_pts_prcds %>% select(PTID, weight, Specify, Type) %>% distinct() %>%
   group_by(Specify, Type) %>% summarise(n=sum(weight)/1384888)
@@ -2164,11 +2081,6 @@ High_Risk_pred_temporary <- High_Risk_pred_temporary %>% left_join(DANU_Demograp
 High_Risk_pred_temporary %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 names(High_Risk_pred_temporary)[1] <- "patient"
 High_Risk_pred_temporary <- High_Risk_pred_temporary %>% drop_na()
-
-# 1 Diabetes            164374.
-# 2 Diabetes + Obesity 2547927.
-# 3 Obesity            3304608.
-
 
 DIA_Drug_Histories <- fread("DIA Analysis Results 1.1/DIA Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
 OBE2_Drug_Histories <- fread("OBE2 Analysis Results 1.1/OBE2 Drug Histories.txt", integer64 = "character", stringsAsFactors = F)

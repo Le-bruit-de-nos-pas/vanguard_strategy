@@ -117,7 +117,7 @@ DANU_Demographics <- DANU_Demographics %>% select(patid, weight, heart_failure_o
 DANU_Demographics <- DANU_Demographics %>% drop_na()
 
 # ALL Heart Failure
-sum(DANU_Demographics$weight) # 13,728,269
+sum(DANU_Demographics$weight) # 
 
 # ALL Chronic Failure
 DANU_Demographics %>% filter(heart_failure_condition=="Chronic Heart Failure") %>% summarise(n=sum(weight)) # 13359838
@@ -133,22 +133,22 @@ DANU_Dossiers <- fread("DANU Dossiers.txt")
 
 DANU_Dossiers <- DANU_Demographics %>% select(patid) %>% left_join(DANU_Dossiers) %>% select(patid, weight, code, earliest, latest, frequency)
 
-DANU_Dossiers %>% select(patid, weight) %>% distinct() %>% summarise(n=sum(weight)) # 13,728,269
+DANU_Dossiers %>% select(patid, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
 
 DANU_Dossiers <- DANU_Dossiers %>% left_join(DANU_Diagnosis_Codes)
 
 DANU_Dossiers <- DANU_Dossiers %>% drop_na()
 
-DANU_Dossiers %>% select(patid, weight) %>% distinct() %>% summarise(n=sum(weight)) # 13,728,269
+DANU_Dossiers %>% select(patid, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
 
 # Must have specified systolic or dyastolic 
 DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("iastolic", description)) %>%
-  select(patid, weight) %>% distinct() %>% summarise(n=sum(weight)) # 7953975
+  select(patid, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
   
 DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("iastolic", description)) %>%
   group_by(patid) %>% summarise(n=sum(frequency)) %>% filter(n>1) %>%
   left_join(DANU_Dossiers) %>% filter(grepl("ystolic", description)|grepl("iastolic", description)) %>%
-  select(patid, weight) %>% distinct() %>% summarise(n=sum(weight)) # 6649599
+  select(patid, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
 
 unique(DANU_Dossiers$description)
 
@@ -158,7 +158,7 @@ select(patid, code) %>% distinct() %>%
   group_by(patid) %>% count() %>% filter(n>1) %>%
   select(patid) %>% distinct() %>% ungroup() %>%
   left_join(DANU_Dossiers) %>%
-  select(patid, weight) %>% distinct() %>% summarise(n=sum(weight)) # 4,093,047
+  select(patid, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
 
 # Must have specified systolic or dyastolic and have at least 2 different codes
 DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("iastolic", description)) %>%  
@@ -166,7 +166,7 @@ select(patid, code) %>% distinct() %>%
   group_by(patid) %>% count() %>% filter(n>1) %>%
   select(patid) %>% distinct() %>% ungroup() %>%
   left_join(DANU_Dossiers) %>%
-  select(patid, weight) %>% distinct() %>% summarise(n=sum(weight)) # 1542291
+  select(patid, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
 
 DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("iastolic", description)) %>%  
 select(patid, code) %>% distinct() %>%
@@ -184,11 +184,6 @@ select(patid, code) %>% distinct() %>%
   mutate(check=1) %>% spread(key=Group, value=check) %>%
   group_by(Diastolic, Systolic) %>% summarise(n=sum(weight))
 
-#   Diastolic Systolic       n
-#       <dbl>    <dbl>   <dbl>
-# 1         1        1 459498.
-# 2         1       NA 603952.
-# 3        NA        1 478841.
 
 DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("iastolic", description)) %>%
   group_by(patid) %>% summarise(n=sum(frequency)) %>% filter(n>1) %>%
@@ -207,42 +202,7 @@ DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("iastolic", descrip
 
 DANU_Dossiers %>% filter(grepl("ystolic", description)) %>%  select(code, description) %>% distinct()
 
-#  1: D=$I5023                                     Acute on chronic systolic (congestive) heart failure
-#  2: D=$I5022                                              Chronic systolic (congestive) heart failure
-#  3: D=$I5020                                          Unspecified systolic (congestive) heart failure
-#  4: D=$I5021                                                Acute systolic (congestive) heart failure
-#  5: D=$I5041            Acute combined systolic (congestive) and diastolic (congestive) heart failure
-#  6: D=$I5043 Acute on chronic combined systolic (congestive) and diastolic (congestive) heart failure
-#  7: D=$I5042          Chronic combined systolic (congestive) and diastolic (congestive) heart failure
-#  8: D=$I5040      Unspecified combined systolic (congestive) and diastolic (congestive) heart failure
-#  9:  D=42843                           Acute on chronic combined systolic and diastolic heart failure
-# 10:  D=42823                                                  Acute on chronic systolic heart failure
-# 11:  D=42822                                                           Chronic systolic heart failure
-# 12:  D=42821                                                             Acute systolic heart failure
-# 13:  D=42820                                                      Systolic heart failure, unspecified
-# 14:  D=42841                                      Acute combined systolic and diastolic heart failure
-# 15:  D=42842                                    Chronic combined systolic and diastolic heart failure
-
-
-
 DANU_Dossiers %>% filter(grepl("iastolic", description)) %>%  select(code, description) %>% distinct()
-
-#  1: D=$I5033                                    Acute on chronic diastolic (congestive) heart failure
-#  2: D=$I5032                                             Chronic diastolic (congestive) heart failure
-#  3: D=$I5031                                               Acute diastolic (congestive) heart failure
-#  4: D=$I5030                                         Unspecified diastolic (congestive) heart failure
-#  5: D=$I5041            Acute combined systolic (congestive) and diastolic (congestive) heart failure
-#  6: D=$I5043 Acute on chronic combined systolic (congestive) and diastolic (congestive) heart failure
-#  7: D=$I5042          Chronic combined systolic (congestive) and diastolic (congestive) heart failure
-#  8: D=$I5040      Unspecified combined systolic (congestive) and diastolic (congestive) heart failure
-#  9:  D=42843                           Acute on chronic combined systolic and diastolic heart failure
-# 10:  D=$I503                                                     Diastolic (congestive) heart failure
-# 11:  D=42833                                                 Acute on chronic diastolic heart failure
-# 12:  D=42832                                                          Chronic diastolic heart failure
-# 13:  D=42841                                      Acute combined systolic and diastolic heart failure
-# 14:  D=42830                                                     Diastolic heart failure, unspecified
-# 15:  D=42831                                                            Acute diastolic heart failure
-# 16:  D=42842                                    Chronic combined systolic and diastolic heart failure
 
 
 # -------------------------------------------------------------------------------------------------------------
@@ -250,7 +210,7 @@ DANU_Dossiers %>% filter(grepl("iastolic", description)) %>%  select(code, descr
 
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
 
-sum(as.numeric(HF_Drug_Histories$weight)) # 13359838 (close to what we had with all DANU, 13 million)
+sum(as.numeric(HF_Drug_Histories$weight)) #  (close to what we had with all DANU, 13 million)
 
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
 
@@ -258,7 +218,7 @@ HF_Drug_Histories <- HF_Drug_Histories %>% filter(Drugs!="-")
 
 HF_Drug_Histories <- separate_rows(HF_Drug_Histories, Drugs, sep = ",", convert=T)
 
-HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 12041998 treat-experienced
+HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) #  treat-experienced
 
 HF_Ingredients <- fread("HF Ingredients.txt",  colClasses = "character", stringsAsFactors = F)
 
@@ -290,9 +250,7 @@ HF_Drug_Histories <- HF_Drug_Histories %>% spread(key=Month, value=treat_new)
 
 HF_Drug_Histories[is.na(HF_Drug_Histories)] <- "-"
 
-sum(as.numeric(HF_Drug_Histories$weight)) # 11146437 (with any of those 6 classes) 
-# [11146437/12041998 = 0.9256302 of treat-exp]
-# [11146437/13359838 = 0.8343243 of All HF]
+sum(as.numeric(HF_Drug_Histories$weight))
 
 fwrite(HF_Drug_Histories, "HF Drug Histories 6classes only.txt", sep="\t")
 
@@ -303,7 +261,7 @@ fwrite(HF_Drug_Histories, "HF Drug Histories 6classes only.txt", sep="\t")
 
 # Classes on month 60
 HF_Drug_Histories <- fread("HF Drug Histories 6classes only.txt", colClasses = "character")
-sum(as.numeric(HF_Drug_Histories$weight)) # 11146437
+sum(as.numeric(HF_Drug_Histories$weight)) # 
 
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
 
@@ -331,7 +289,7 @@ names(HF_Ingredients)[1] <- "Drugs"
 
 HF_Drug_Histories <- HF_Drug_Histories %>% filter(Month=="month60") %>% left_join(HF_Ingredients) 
 
-HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 7547588
+HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 
 
 HF_Drug_Histories %>% mutate(drug_class=ifelse(drug_class=="ACE", "ACE|ARB|ARNI" , 
                                                ifelse(drug_class=="ARB", "ACE|ARB|ARNI" ,
@@ -355,7 +313,7 @@ HF_Drug_Histories %>% mutate(drug_class=ifelse(drug_class=="ACE", "ACE|ARB|ARNI"
 
 HF_Drug_Histories <- fread("HF Drug Histories 6classes only.txt", colClasses = "character")
 
-sum(as.numeric(HF_Drug_Histories$weight)) # 11146437
+sum(as.numeric(HF_Drug_Histories$weight)) # 
 
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
 
@@ -382,7 +340,7 @@ HF_Drug_Histories %>% select(patient, weight, Drugs) %>% distinct() %>%
 
 # No of lines of therapy
 HF_Drug_Histories <- fread("HF Drug Histories 6classes only.txt", colClasses = "character")
-sum(as.numeric(HF_Drug_Histories$weight)) # 11146437
+sum(as.numeric(HF_Drug_Histories$weight)) # 
 
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
 
@@ -393,7 +351,7 @@ LoT <- HF_Drug_Histories %>% select(patient, weight, Drugs) %>% distinct() %>%
 
 # Classes on month 60
 HF_Drug_Histories <- fread("HF Drug Histories 6classes only.txt", colClasses = "character")
-sum(as.numeric(HF_Drug_Histories$weight)) # 11146437
+sum(as.numeric(HF_Drug_Histories$weight)) # 
 
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
 
@@ -421,7 +379,7 @@ names(HF_Ingredients)[1] <- "Drugs"
 
 HF_Drug_Histories <- HF_Drug_Histories %>% filter(Month=="month60") %>% left_join(HF_Ingredients) 
 
-HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 7547588
+HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 
 
 LoT <- LoT %>% left_join(HF_Drug_Histories) %>% select(patient, weight, n, drug_class) %>% distinct() %>% 
   mutate(drug_class=ifelse(drug_class=="ACE", "ACE|ARB|ARNI" , 
@@ -589,7 +547,7 @@ HF_Drug_Histories %>% select(patient, weight, drug_class, Lapsed) %>% distinct()
 
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
 
-sum(as.numeric(HF_Drug_Histories$weight)) # 13359838 (close to what we had with all DANU, 13 million)
+sum(as.numeric(HF_Drug_Histories$weight)) #  (close to what we had with all DANU, 13 million)
 
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
 
@@ -635,46 +593,12 @@ HF_Drug_Histories <- HF_Drug_Histories %>% ungroup() %>% select(patient, weight,
 
 data.frame(unique(HF_Drug_Histories$treat_new))
 
-#    unique.HF_Drug_Histories.treat_new.
-# 1                                    A
-# 2                                    B
-# 3                                  A,B
-# 4                                A,B,M
-# 5                                  B,M
-# 6                                    M
-# 7                                  A,M
-# 8                                    S
-# 9                                A,B,S
-# 10                                 A,S
-# 11                                 B,S
-# 12                               B,M,S
-# 13                               A,M,S
-# 14                                 M,S
-# 15                             A,B,M,S
-
 length(unique(HF_Drug_Histories$patient))
 
 HF_Drug_Histories %>% group_by(treat_new) %>% summarise(n=sum(as.numeric(weight))) %>% arrange(-n)
 
-#    treat_new          n
-#    <chr>          <dbl>
-#  1 A,B       153165804.
-#  2 A         116727619.
-#  3 B         108150570.
-#  4 A,B,M      21031722.
-#  5 B,M         9437094.
-#  6 M           5818283.
-#  7 A,M         4649002.
-#  8 A,B,S       4418624.
-#  9 A,S         2639246.
-# 10 S           1839795.
-# 11 B,S         1417002.
-# 12 A,B,M,S      843497.
-# 13 B,M,S        203143.
-# 14 A,M,S        157332.
-# 15 M,S          104455.
 
-HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 11146437
+HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 
 
 HF_Drug_Histories <- HF_Drug_Histories %>% spread(key=Month, value=treat_new)
 
@@ -692,7 +616,7 @@ Core6 <- HF_Drug_Histories %>% select(patient)
 
 # Classes on month 60
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
-sum(as.numeric(HF_Drug_Histories$weight)) # 13359838
+sum(as.numeric(HF_Drug_Histories$weight)) # 
 HF_Drug_Histories <- Core6 %>% inner_join(HF_Drug_Histories) 
 
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
@@ -713,16 +637,11 @@ names(HF_Ingredients)[1] <- "Drugs"
 
 HF_Drug_Histories <- HF_Drug_Histories %>% filter(Month=="month60") %>% left_join(HF_Ingredients) 
 
-HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 8104813
+HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 
 
 HF_Drug_Histories %>%  select(patient, weight, drug_group) %>% distinct() %>%
   group_by(drug_group) %>% summarise(n=sum(as.numeric(weight)))
 
-# 1 Advanced Therapy   1268603.
-# 2 Cardiac Device       46504.
-# 3 Hospitalization      73687.
-# 4 Injectable Therapy   56505.
-# 5 Oral Therapy       7976564.
 
 HF_Drug_Histories %>% mutate(drug_class=ifelse(drug_class=="ACE", "ACE|ARB|ARNI" , 
                                                ifelse(drug_class=="ARB", "ACE|ARB|ARNI" ,
@@ -730,18 +649,6 @@ HF_Drug_Histories %>% mutate(drug_class=ifelse(drug_class=="ACE", "ACE|ARB|ARNI"
   select(patient, weight, drug_class, drug_group) %>% distinct() %>%
   group_by(drug_class) %>% summarise(n=sum(as.numeric(weight)))
 
-#  1 ACE|ARB|ARNI       5034727.
-#  2 Beta Blocker       5559347.
-#  3 Cardiac Device       46504.
-#  4 Diuretic           4194939.
-#  5 Heart Transplant       251.
-#  6 Hospital Inpatient   60128.
-#  7 Inotropic           259057.
-#  8 MRA                 931039.
-#  9 Other               141345.
-# 10 SGLT2               362556.
-# 11 Surgery Inpatient    13307.
-# 12 Vasodilator         924415.
 
 HF_Drug_Histories %>% mutate(drug_class=ifelse(drug_class=="ACE", "ACE|ARB|ARNI" , 
                                                ifelse(drug_class=="ARB", "ACE|ARB|ARNI" ,
@@ -758,14 +665,14 @@ HF_Drug_Histories %>% mutate(drug_class=ifelse(drug_class=="ACE", "ACE|ARB|ARNI"
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
 HF_Drug_Histories <- Core6 %>% inner_join(HF_Drug_Histories) 
 
-sum(as.numeric(HF_Drug_Histories$weight)) # 11146437
+sum(as.numeric(HF_Drug_Histories$weight)) # 
 
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
 
 HF_Drug_Histories <- HF_Drug_Histories %>% filter(Drugs!="-")
 
 HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>%
-   summarise(total=sum(as.numeric(weight))) # 11146437
+   summarise(total=sum(as.numeric(weight))) # 
   
 HF_Drug_Histories %>% select(patient, weight, Drugs) %>% distinct() %>%
   group_by(patient, weight) %>% count() %>% ungroup() %>%
@@ -796,7 +703,7 @@ HF_Drug_Histories %>% select(patient, weight, Drugs) %>% distinct() %>%
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
 HF_Drug_Histories <- Core6 %>% inner_join(HF_Drug_Histories) 
 
-sum(as.numeric(HF_Drug_Histories$weight)) # 11146437
+sum(as.numeric(HF_Drug_Histories$weight)) # 
 
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
 
@@ -809,7 +716,7 @@ LoT <- HF_Drug_Histories %>% select(patient, weight, Drugs) %>% distinct() %>%
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
 HF_Drug_Histories <- Core6 %>% inner_join(HF_Drug_Histories) 
 
-sum(as.numeric(HF_Drug_Histories$weight)) # 11146437
+sum(as.numeric(HF_Drug_Histories$weight)) # 
 
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
 
@@ -829,7 +736,7 @@ names(HF_Ingredients)[1] <- "Drugs"
 
 HF_Drug_Histories <- HF_Drug_Histories %>% filter(Month=="month60") %>% left_join(HF_Ingredients) 
 
-HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 8104813
+HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 
 
 LoT <- LoT %>% left_join(HF_Drug_Histories) %>% select(patient, weight, n, drug_class) %>% distinct() %>% 
   mutate(drug_class=ifelse(drug_class=="ACE", "ACE|ARB|ARNI" , 
@@ -893,7 +800,7 @@ Core6 <- HF_Drug_Histories %>% select(patient)
 
 # Classes on month 60
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
-sum(as.numeric(HF_Drug_Histories$weight)) # 13359838
+sum(as.numeric(HF_Drug_Histories$weight)) # 
 HF_Drug_Histories <- Core6 %>% inner_join(HF_Drug_Histories) 
 
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
@@ -914,37 +821,18 @@ names(HF_Ingredients)[1] <- "Drugs"
 
 HF_Drug_Histories <- HF_Drug_Histories %>% select(patient, weight, Drugs) %>% distinct() %>% left_join(HF_Ingredients) 
 
-HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 11146437
+HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 
 
 HF_Drug_Histories %>%  select(patient, weight, drug_group) %>% distinct() %>%
   group_by(drug_group) %>% summarise(n=sum(as.numeric(weight)))
  
-# 1 Advanced Therapy    3711068.
-# 2 Cardiac Device      1729878.
-# 3 Hospitalization     1288466.
-# 4 Injectable Therapy  1386973.
-# 5 Oral Therapy       11139745.
+
 
 HF_Drug_Histories %>% mutate(drug_class=ifelse(drug_class=="ACE", "ACE|ARB|ARNI" , 
                                                ifelse(drug_class=="ARB", "ACE|ARB|ARNI" ,
                                                       ifelse(drug_class=="ARNI", "ACE|ARB|ARNI" , drug_class)))) %>% 
   select(patient, weight, drug_class, drug_group) %>% distinct() %>%
   group_by(drug_class) %>% summarise(n=sum(as.numeric(weight)))
-
-#  1 ACE|ARB|ARNI       9018950.
-#  2 Beta Blocker       9278918.
-#  3 Cardiac Device     1729878.
-#  4 Diuretic           9469885.
-#  5 Heart Transplant     23030.
-#  6 Hospital Inpatient  996300.
-#  7 Inotropic           909882.
-#  8 MRA                2150205.
-#  9 Other               740149.
-# 10 SGLT2               766696.
-# 11 Surgery Inpatient   477405.
-# 12 Vasodilator        2671426.
-
-
 
 # ---------------------------------------------
 # Core 6 - All Drugs - Class Penetrance 12 months before and after 1st Dx --------------------------------------------------
@@ -1005,7 +893,7 @@ names(HF_Ingredients)[1] <- "Drugs"
 
 HF_Drug_Histories <- HF_Drug_Histories %>% left_join(HF_Ingredients) 
 
-HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 11146437
+HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 
 
 HF_Drug_Histories <- HF_Drug_Histories %>% mutate(drug_class=ifelse(drug_class=="ACE", "ACE|ARB|ARNI" , 
                                                ifelse(drug_class=="ARB", "ACE|ARB|ARNI" ,
@@ -1021,7 +909,7 @@ HF_Drug_Histories <- HF_Drug_Histories %>% left_join(HF_Demographics) %>%
 HF_Drug_Histories <- HF_Drug_Histories %>% select(patient, Month) %>% distinct() %>% group_by(patient) %>% count() %>% filter(n>=25) %>%
   select(patient) %>% left_join(HF_Drug_Histories)
 
-HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% ungroup() %>% summarise(n=sum(as.numeric(weight))) # 5029500
+HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% ungroup() %>% summarise(n=sum(as.numeric(weight))) # 
 
 HF_Drug_Histories %>% select(patient, weight, drug_class, Lapsed) %>% distinct() %>%
   group_by(Lapsed, drug_class) %>% summarise(n=sum(as.numeric(weight))) %>% ungroup() %>%
@@ -1078,7 +966,7 @@ HF_Drug_Histories %>% select(patient, weight, drug_class, Lapsed) %>% distinct()
 
 # Classes on month 60
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
-sum(as.numeric(HF_Drug_Histories$weight)) # 13359838
+sum(as.numeric(HF_Drug_Histories$weight)) # 
 
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
 
@@ -1098,39 +986,16 @@ names(HF_Ingredients)[1] <- "Drugs"
 
 HF_Drug_Histories <- HF_Drug_Histories %>% filter(Month=="month60") %>% left_join(HF_Ingredients) 
 
-HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 8334664
+HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 
 
 HF_Drug_Histories %>%  select(patient, weight, drug_group) %>% distinct() %>%
   group_by(drug_group) %>% summarise(n=sum(as.numeric(weight)))
-
-#   drug_group                n
-#   <chr>                 <dbl>
-# 1 Advanced Therapy   1311772.
-# 2 Cardiac Device       51329.
-# 3 Hospitalization      82303.
-# 4 Injectable Therapy   62277.
-# 5 Oral Therapy       8160748.
 
 HF_Drug_Histories %>% mutate(drug_class=ifelse(drug_class=="ACE", "ACE|ARB|ARNI" , 
                                                ifelse(drug_class=="ARB", "ACE|ARB|ARNI" ,
                                                       ifelse(drug_class=="ARNI", "ACE|ARB|ARNI" , drug_class)))) %>% 
   select(patient, weight, drug_class, drug_group) %>% distinct() %>%
   group_by(drug_class) %>% summarise(n=sum(as.numeric(weight)))
-
-#    drug_class                n
-#    <chr>                 <dbl>
-#  1 ACE|ARB|ARNI       5034727.
-#  2 Beta Blocker       5559347.
-#  3 Cardiac Device       51329.
-#  4 Diuretic           4384895.
-#  5 Heart Transplant       497.
-#  6 Hospital Inpatient   66454.
-#  7 Inotropic           269015.
-#  8 MRA                 931039.
-#  9 Other               158207.
-# 10 SGLT2               362556.
-# 11 Surgery Inpatient    15352.
-# 12 Vasodilator         941610.
 
 HF_Drug_Histories %>% mutate(drug_class=ifelse(drug_class=="ACE", "ACE|ARB|ARNI" , 
                                                ifelse(drug_class=="ARB", "ACE|ARB|ARNI" ,
@@ -1146,14 +1011,14 @@ HF_Drug_Histories %>% mutate(drug_class=ifelse(drug_class=="ACE", "ACE|ARB|ARNI"
 
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
 
-sum(as.numeric(HF_Drug_Histories$weight)) # 13359838
+sum(as.numeric(HF_Drug_Histories$weight)) # 
 
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
 
 HF_Drug_Histories <- HF_Drug_Histories %>% filter(Drugs!="-")
 
 HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>%
-   summarise(total=sum(as.numeric(weight))) # 12041998
+   summarise(total=sum(as.numeric(weight))) # 
   
 HF_Drug_Histories %>% select(patient, weight, Drugs) %>% distinct() %>%
   group_by(patient, weight) %>% count() %>% ungroup() %>%
@@ -1182,7 +1047,7 @@ HF_Drug_Histories %>% select(patient, weight, Drugs) %>% distinct() %>%
 
 # No of lines of therapy
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
-sum(as.numeric(HF_Drug_Histories$weight)) # 13359838
+sum(as.numeric(HF_Drug_Histories$weight)) # 
 
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
 
@@ -1193,7 +1058,7 @@ LoT <- HF_Drug_Histories %>% select(patient, weight, Drugs) %>% distinct() %>%
 
 # Classes on month 60
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
-sum(as.numeric(HF_Drug_Histories$weight)) # 13359838
+sum(as.numeric(HF_Drug_Histories$weight)) # 
 
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
 
@@ -1213,7 +1078,7 @@ names(HF_Ingredients)[1] <- "Drugs"
 
 HF_Drug_Histories <- HF_Drug_Histories %>% filter(Month=="month60") %>% left_join(HF_Ingredients) 
 
-HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 8334664
+HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 
 
 LoT <- LoT %>% left_join(HF_Drug_Histories) %>% select(patient, weight, n, drug_class) %>% distinct() %>% 
   mutate(drug_class=ifelse(drug_class=="ACE", "ACE|ARB|ARNI" , 
@@ -1300,30 +1165,12 @@ HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum
 HF_Drug_Histories %>%  select(patient, weight, drug_group) %>% distinct() %>%
   group_by(drug_group) %>% summarise(n=sum(as.numeric(weight)))
  
-# 1 Advanced Therapy    3711068.
-# 2 Cardiac Device      1729878.
-# 3 Hospitalization     1288466.
-# 4 Injectable Therapy  1386973.
-# 5 Oral Therapy       11139745.
 
 HF_Drug_Histories %>% mutate(drug_class=ifelse(drug_class=="ACE", "ACE|ARB|ARNI" , 
                                                ifelse(drug_class=="ARB", "ACE|ARB|ARNI" ,
                                                       ifelse(drug_class=="ARNI", "ACE|ARB|ARNI" , drug_class)))) %>% 
   select(patient, weight, drug_class, drug_group) %>% distinct() %>%
   group_by(drug_class) %>% summarise(n=sum(as.numeric(weight)))
-
-#  1 ACE|ARB|ARNI       9018950.
-#  2 Beta Blocker       9278918.
-#  3 Cardiac Device     1729878.
-#  4 Diuretic           9469885.
-#  5 Heart Transplant     23030.
-#  6 Hospital Inpatient  996300.
-#  7 Inotropic           909882.
-#  8 MRA                2150205.
-#  9 Other               740149.
-# 10 SGLT2               766696.
-# 11 Surgery Inpatient   477405.
-# 12 Vasodilator        2671426.
 
 
 
@@ -1468,10 +1315,10 @@ HF_Demographics <- HF_Demographics %>% select(patient, weight, heart_failure_ons
 HF_Demographics <- HF_Demographics %>% drop_na()
 
 # ALL Heart Failure
-sum(HF_Demographics$weight) # 11146437
+sum(HF_Demographics$weight) # 
 
 # ALL Chronic Failure
-HF_Demographics %>% filter(heart_failure_condition=="Chronic Heart Failure") %>% summarise(n=sum(weight)) # 11146437
+HF_Demographics %>% filter(heart_failure_condition=="Chronic Heart Failure") %>% summarise(n=sum(weight)) # 
 
 DANU_Diagnosis_Codes <- fread("DANU Diagnosis Codes.txt")
 
@@ -1486,22 +1333,22 @@ DANU_Dossiers <- HF_Demographics %>% select(patient) %>% inner_join(DANU_Dossier
 
 DANU_Dossiers <- DANU_Dossiers %>% select(patient, weight, code, earliest, latest, frequency)
 
-DANU_Dossiers %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 11146437
+DANU_Dossiers %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
 
 DANU_Dossiers <- DANU_Dossiers %>% left_join(DANU_Diagnosis_Codes)
 
 DANU_Dossiers <- DANU_Dossiers %>% drop_na()
 
-DANU_Dossiers %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 11146437
+DANU_Dossiers %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
 
 # Must have specified systolic or dyastolic 
 DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("iastolic", description)) %>%
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 6587056
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
   
 DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("iastolic", description)) %>%
   group_by(patient) %>% summarise(n=sum(frequency)) %>% filter(n>20) %>%
   left_join(DANU_Dossiers) %>% filter(grepl("ystolic", description)|grepl("iastolic", description)) %>%
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 5707160
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
 
 unique(DANU_Dossiers$description)
 
@@ -1519,7 +1366,7 @@ select(patient, code) %>% distinct() %>%
   group_by(patient) %>% count() %>% filter(n>1) %>%
   select(patient) %>% distinct() %>% ungroup() %>%
   left_join(DANU_Dossiers) %>%
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 1398557
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
 
 DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("iastolic", description)) %>%  
 select(patient, code) %>% distinct() %>%
@@ -1537,11 +1384,6 @@ select(patient, code) %>% distinct() %>%
   mutate(check=1) %>% spread(key=Group, value=check) %>%
   group_by(Diastolic, Systolic) %>% summarise(n=sum(weight))
 
-#   Diastolic Systolic       n
-#       <dbl>    <dbl>   <dbl>
-# 1         1        1 420255.
-# 2         1       NA 533466.
-# 3        NA        1 444836.
 
 DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("iastolic", description)) %>%
   group_by(patient) %>% summarise(n=sum(frequency)) %>% filter(n>1) %>%
@@ -1556,12 +1398,6 @@ DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("iastolic", descrip
   distinct() %>% ungroup() %>%
   mutate(check=1) %>% spread(key=Group, value=check) %>%
   group_by(Diastolic, Systolic) %>% summarise(n=sum(weight))
-
-#   Diastolic Systolic        n
-#       <dbl>    <dbl>    <dbl>
-# 1         1        1  838244.
-# 2         1       NA 2808275.
-# 3        NA        1 2060640.
 
 
 
@@ -1598,38 +1434,8 @@ Systolic_Pats <- DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("i
 
 DANU_Dossiers %>% filter(grepl("ystolic", description)) %>%  select(code, description) %>% distinct()
 
-#  1: D=$I5020                                          Unspecified systolic (congestive) heart failure
-#  2: D=$I5023                                     Acute on chronic systolic (congestive) heart failure
-#  3: D=$I5022                                              Chronic systolic (congestive) heart failure
-#  4: D=$I5021                                                Acute systolic (congestive) heart failure
-#  5: D=$I5043 Acute on chronic combined systolic (congestive) and diastolic (congestive) heart failure
-#  6: D=$I5042          Chronic combined systolic (congestive) and diastolic (congestive) heart failure
-#  7: D=$I5041            Acute combined systolic (congestive) and diastolic (congestive) heart failure
-#  8: D=$I5040      Unspecified combined systolic (congestive) and diastolic (congestive) heart failure
-#  9:  D=42843                           Acute on chronic combined systolic and diastolic heart failure
-# 10:  D=42823                                                  Acute on chronic systolic heart failure
-# 11:  D=42820                                                      Systolic heart failure, unspecified
-# 12:  D=42822                                                           Chronic systolic heart failure
-# 13:  D=42821                                                             Acute systolic heart failure
 
 DANU_Dossiers %>% filter(grepl("iastolic", description)) %>%  select(code, description) %>% distinct()
-
-#  1: D=$I5033                                    Acute on chronic diastolic (congestive) heart failure
-#  2: D=$I5032                                             Chronic diastolic (congestive) heart failure
-#  3: D=$I5031                                               Acute diastolic (congestive) heart failure
-#  4: D=$I5030                                         Unspecified diastolic (congestive) heart failure
-#  5: D=$I5041            Acute combined systolic (congestive) and diastolic (congestive) heart failure
-#  6: D=$I5043 Acute on chronic combined systolic (congestive) and diastolic (congestive) heart failure
-#  7: D=$I5042          Chronic combined systolic (congestive) and diastolic (congestive) heart failure
-#  8: D=$I5040      Unspecified combined systolic (congestive) and diastolic (congestive) heart failure
-#  9:  D=42843                           Acute on chronic combined systolic and diastolic heart failure
-# 10:  D=$I503                                                     Diastolic (congestive) heart failure
-# 11:  D=42833                                                 Acute on chronic diastolic heart failure
-# 12:  D=42832                                                          Chronic diastolic heart failure
-# 13:  D=42841                                      Acute combined systolic and diastolic heart failure
-# 14:  D=42830                                                     Diastolic heart failure, unspecified
-# 15:  D=42831                                                            Acute diastolic heart failure
-# 16:  D=42842                                    Chronic combined systolic and diastolic heart failure
 
 
 # --------------------------------------------------
@@ -1644,7 +1450,8 @@ Core6 <- HF_Drug_Histories %>% select(patient)
 
 # Classes on month 60
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
-sum(as.numeric(HF_Drug_Histories$weight)) # 13359838
+sum(as.numeric(HF_Drug_Histories$weight)) # 
+
 HF_Drug_Histories <- Core6 %>% inner_join(HF_Drug_Histories) 
 
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
@@ -1668,30 +1475,11 @@ HF_Drug_Histories <- HF_Drug_Histories %>% filter(Month=="month60") %>% left_joi
 HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% left_join(Groups) %>%  group_by(group) %>% summarise(n=sum(as.numeric(weight))) # 11146437
 
 
-# 1 Diastolic 2117370.
-# 2 Systolic  1551070.
-# 3 NA        4436373.
-
-
 HF_Drug_Histories %>%  select(patient, weight, drug_group) %>% distinct() %>%
   left_join(Groups) %>%  
   group_by(group, drug_group) %>% summarise(n=sum(as.numeric(weight)))
- 
-#  1 Diastolic Advanced Therapy    372628.
-#  2 Diastolic Cardiac Device       11150.
-#  3 Diastolic Hospitalization      36409.
-#  4 Diastolic Injectable Therapy   20123.
-#  5 Diastolic Oral Therapy       2078123.
-#  6 Systolic  Advanced Therapy    273144.
-#  7 Systolic  Cardiac Device       15637.
-#  8 Systolic  Hospitalization      19705.
-#  9 Systolic  Injectable Therapy   14458.
-# 10 Systolic  Oral Therapy       1529287.
-# 11 NA        Advanced Therapy    622832.
-# 12 NA        Cardiac Device       19717.
-# 13 NA        Hospitalization      17573.
-# 14 NA        Injectable Therapy   21925.
-# 15 NA        Oral Therapy       4369154.
+
+
 
 data.frame(HF_Drug_Histories %>% mutate(drug_class=ifelse(drug_class=="ACE", "ACE|ARB|ARNI" , 
                                                ifelse(drug_class=="ARB", "ACE|ARB|ARNI" ,
@@ -1700,41 +1488,7 @@ data.frame(HF_Drug_Histories %>% mutate(drug_class=ifelse(drug_class=="ACE", "AC
   left_join(Groups) %>%  
   group_by(group, drug_class) %>% summarise(n=sum(as.numeric(weight))))
 
-# 1  Diastolic       ACE|ARB|ARNI 1181042.39
-# 2  Diastolic       Beta Blocker 1415225.15
-# 3  Diastolic     Cardiac Device   11149.51
-# 4  Diastolic           Diuretic 1275468.40
-# 5  Diastolic   Heart Transplant     141.89
-# 6  Diastolic Hospital Inpatient   30362.27
-# 7  Diastolic          Inotropic   58105.68
-# 8  Diastolic                MRA  218865.40
-# 9  Diastolic              Other   45782.87
-# 10 Diastolic              SGLT2   71945.77
-# 11 Diastolic  Surgery Inpatient    5904.66
-# 12 Diastolic        Vasodilator  285158.98
-# 13  Systolic       ACE|ARB|ARNI 1032899.26
-# 14  Systolic       Beta Blocker 1242768.56
-# 15  Systolic     Cardiac Device   15637.19
-# 16  Systolic           Diuretic  801596.42
-# 17  Systolic   Heart Transplant     109.09
-# 18  Systolic Hospital Inpatient   15971.69
-# 19  Systolic          Inotropic   79989.94
-# 20  Systolic                MRA  315440.96
-# 21  Systolic              Other   30986.00
-# 22  Systolic              SGLT2   89761.40
-# 23  Systolic  Surgery Inpatient    3624.38
-# 24  Systolic        Vasodilator  176959.84
-# 25      <NA>       ACE|ARB|ARNI 2820785.53
-# 26      <NA>       Beta Blocker 2901353.36
-# 27      <NA>     Cardiac Device   19717.09
-# 28      <NA>           Diuretic 2117874.63
-# 29      <NA> Hospital Inpatient   13794.35
-# 30      <NA>          Inotropic  120961.19
-# 31      <NA>                MRA  396732.35
-# 32      <NA>              Other   64576.30
-# 33      <NA>              SGLT2  200848.73
-# 34      <NA>  Surgery Inpatient    3778.34
-# 35      <NA>        Vasodilator  462296.40
+
 # ----------------------------------------------------------------------
 # Core 6  - All Drugs-  Drug Usage EVER TRIED Systolic vs Dyastolic -----------------------------------------------------
 Diastolic_Pats$group <- "Diastolic"
@@ -1747,7 +1501,8 @@ Core6 <- HF_Drug_Histories %>% select(patient)
 
 # Classes on month 60
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
-sum(as.numeric(HF_Drug_Histories$weight)) # 13359838
+sum(as.numeric(HF_Drug_Histories$weight)) # 
+
 HF_Drug_Histories <- Core6 %>% inner_join(HF_Drug_Histories) 
 
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
@@ -1770,32 +1525,14 @@ HF_Drug_Histories <- HF_Drug_Histories %>% select(patient, weight, Drugs) %>% di
 
 HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% left_join(Groups) %>%  group_by(group) %>% summarise(n=sum(as.numeric(weight))) # 11146437
 
-#   group            n
-#   <chr>        <dbl>
-# 1 Diastolic 2808275.
-# 2 Systolic  2060640.
-# 3 NA        6277522.
+
 
 
 HF_Drug_Histories %>%  select(patient, weight, drug_group) %>% distinct() %>%
   left_join(Groups) %>%  
   group_by(group, drug_group) %>% summarise(n=sum(as.numeric(weight)))
- 
-#  1 Diastolic Advanced Therapy   1060408.
-#  2 Diastolic Cardiac Device      388506.
-#  3 Diastolic Hospitalization     529918.
-#  4 Diastolic Injectable Therapy  471939.
-#  5 Diastolic Oral Therapy       2807321.
-#  6 Systolic  Advanced Therapy    776178.
-#  7 Systolic  Cardiac Device      591933.
-#  8 Systolic  Hospitalization     370717.
-#  9 Systolic  Injectable Therapy  333383.
-# 10 Systolic  Oral Therapy       2060487.
-# 11 NA        Advanced Therapy   1874482.
-# 12 NA        Cardiac Device      749440.
-# 13 NA        Hospitalization     387831.
-# 14 NA        Injectable Therapy  581652.
-# 15 NA        Oral Therapy       6271937.
+
+
 
 data.frame(HF_Drug_Histories %>% mutate(drug_class=ifelse(drug_class=="ACE", "ACE|ARB|ARNI" , 
                                                ifelse(drug_class=="ARB", "ACE|ARB|ARNI" ,
@@ -1804,42 +1541,6 @@ data.frame(HF_Drug_Histories %>% mutate(drug_class=ifelse(drug_class=="ACE", "AC
   left_join(Groups) %>%  
   group_by(group, drug_class) %>% summarise(n=sum(as.numeric(weight))))
 
-# 1  Diastolic       ACE|ARB|ARNI 2213694.74
-# 2  Diastolic       Beta Blocker 2350731.76
-# 3  Diastolic     Cardiac Device  388505.99
-# 4  Diastolic           Diuretic 2763438.51
-# 5  Diastolic   Heart Transplant    2097.32
-# 6  Diastolic Hospital Inpatient  432618.61
-# 7  Diastolic          Inotropic  218838.70
-# 8  Diastolic                MRA  519937.90
-# 9  Diastolic              Other  239377.72
-# 10 Diastolic              SGLT2  163693.56
-# 11 Diastolic  Surgery Inpatient  173938.57
-# 12 Diastolic        Vasodilator  795658.86
-# 13  Systolic       ACE|ARB|ARNI 1798820.42
-# 14  Systolic       Beta Blocker 1938916.61
-# 15  Systolic     Cardiac Device  591932.55
-# 16  Systolic           Diuretic 1857588.87
-# 17  Systolic   Heart Transplant   12335.08
-# 18  Systolic Hospital Inpatient  269179.86
-# 19  Systolic          Inotropic  274055.85
-# 20  Systolic                MRA  670477.31
-# 21  Systolic              Other  143398.60
-# 22  Systolic              SGLT2  171830.78
-# 23  Systolic  Surgery Inpatient  164638.26
-# 24  Systolic        Vasodilator  513600.17
-# 25      <NA>       ACE|ARB|ARNI 5006435.18
-# 26      <NA>       Beta Blocker 4989269.51
-# 27      <NA>     Cardiac Device  749439.90
-# 28      <NA>           Diuretic 4848857.96
-# 29      <NA>   Heart Transplant    8597.37
-# 30      <NA> Hospital Inpatient  294501.69
-# 31      <NA>          Inotropic  416987.00
-# 32      <NA>                MRA  959789.56
-# 33      <NA>              Other  357372.87
-# 34      <NA>              SGLT2  431171.50
-# 35      <NA>  Surgery Inpatient  138827.70
-# 36      <NA>        Vasodilator 1362166.91
 
 
 # ---------------------------------------------
@@ -1956,10 +1657,10 @@ HF_Demographics <- HF_Demographics %>% select(patient, weight, heart_failure_ons
 HF_Demographics <- HF_Demographics %>% drop_na()
 
 # ALL Heart Failure
-sum(HF_Demographics$weight) # 13359838
+sum(HF_Demographics$weight) # 
 
 # ALL Chronic Failure
-HF_Demographics %>% filter(heart_failure_condition=="Chronic Heart Failure") %>% summarise(n=sum(weight)) # 13359838
+HF_Demographics %>% filter(heart_failure_condition=="Chronic Heart Failure") %>% summarise(n=sum(weight)) # 
 
 DANU_Diagnosis_Codes <- fread("DANU Diagnosis Codes.txt")
 
@@ -1974,13 +1675,13 @@ DANU_Dossiers <- HF_Demographics %>% select(patient) %>% inner_join(DANU_Dossier
 
 DANU_Dossiers <- DANU_Dossiers %>% select(patient, weight, code, earliest, latest, frequency)
 
-DANU_Dossiers %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 13359838
+DANU_Dossiers %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
 
 DANU_Dossiers <- DANU_Dossiers %>% left_join(DANU_Diagnosis_Codes)
 
 DANU_Dossiers <- DANU_Dossiers %>% drop_na()
 
-DANU_Dossiers %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 13359838
+DANU_Dossiers %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
 
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
@@ -1992,12 +1693,12 @@ DANU_Dossiers <- HF_Drug_Histories %>% inner_join(DANU_Dossiers)
 
 # Must have specified systolic or dyastolic 
 DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("iastolic", description)) %>%
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 6587056
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
   
 DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("iastolic", description)) %>%
   group_by(patient) %>% summarise(n=sum(frequency)) %>% filter(n>20) %>%
   left_join(DANU_Dossiers) %>% filter(grepl("ystolic", description)|grepl("iastolic", description)) %>%
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 6123871
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
 
 unique(DANU_Dossiers$description)
 
@@ -2033,11 +1734,6 @@ select(patient, code) %>% distinct() %>%
   mutate(check=1) %>% spread(key=Group, value=check) %>%
   group_by(Diastolic, Systolic) %>% summarise(n=sum(weight))
 
-#  Diastolic Systolic       n
-#       <dbl>    <dbl>   <dbl>
-# 1         1        1 447523.
-# 2         1       NA 583117.
-# 3        NA        1 466900.
 
 DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("iastolic", description)) %>%
   group_by(patient) %>% summarise(n=sum(frequency)) %>% filter(n>1) %>%
@@ -2053,11 +1749,6 @@ DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("iastolic", descrip
   mutate(check=1) %>% spread(key=Group, value=check) %>%
   group_by(Diastolic, Systolic) %>% summarise(n=sum(weight))
 
-#   Diastolic Systolic        n
-#       <dbl>    <dbl>    <dbl>
-# 1         1        1  891382.
-# 2         1       NA 3067220.
-# 3        NA        1 2165269.
 
 
 Diastolic_Pats <- DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("iastolic", description)) %>%
@@ -2120,7 +1811,8 @@ Groups <- Diastolic_Pats %>% bind_rows(Systolic_Pats)
 fwrite(Groups, "Groups_Diastolic_vs_Systolic.txt", sep="\t")
 # Classes on month 60
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
-sum(as.numeric(HF_Drug_Histories$weight)) # 13359838
+sum(as.numeric(HF_Drug_Histories$weight)) # 
+
 
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
 
@@ -2143,30 +1835,13 @@ HF_Drug_Histories <- HF_Drug_Histories %>% filter(Month=="month60") %>% left_joi
 HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% left_join(Groups) %>%  group_by(group) %>% summarise(n=sum(as.numeric(weight))) # 11146437
 
 
-# 1 Diastolic 2187709.
-# 2 Systolic  1569524.
-# 3 NA        4577431.
+
 
 
 HF_Drug_Histories %>%  select(patient, weight, drug_group) %>% distinct() %>%
   left_join(Groups) %>%  
   group_by(group, drug_group) %>% summarise(n=sum(as.numeric(weight)))
- 
-#  1 Diastolic Advanced Therapy    383922.
-#  2 Diastolic Cardiac Device       12290.
-#  3 Diastolic Hospitalization      41125.
-#  4 Diastolic Injectable Therapy   23113.
-#  5 Diastolic Oral Therapy       2134680.
-#  6 Systolic  Advanced Therapy    278927.
-#  7 Systolic  Cardiac Device       16586.
-#  8 Systolic  Hospitalization      20881.
-#  9 Systolic  Injectable Therapy   14955.
-# 10 Systolic  Oral Therapy       1541516.
-# 11 NA        Advanced Therapy    648923.
-# 12 NA        Cardiac Device       22452.
-# 13 NA        Hospitalization      20298.
-# 14 NA        Injectable Therapy   24208.
-# 15 NA        Oral Therapy       4484552.
+
 
 data.frame(HF_Drug_Histories %>% mutate(drug_class=ifelse(drug_class=="ACE", "ACE|ARB|ARNI" , 
                                                ifelse(drug_class=="ARB", "ACE|ARB|ARNI" ,
@@ -2175,42 +1850,7 @@ data.frame(HF_Drug_Histories %>% mutate(drug_class=ifelse(drug_class=="ACE", "AC
   left_join(Groups) %>%  
   group_by(group, drug_class) %>% summarise(n=sum(as.numeric(weight))))
 
-# 1  Diastolic       ACE|ARB|ARNI 1181042.39
-# 2  Diastolic       Beta Blocker 1415225.15
-# 3  Diastolic     Cardiac Device   12290.01
-# 4  Diastolic           Diuretic 1335015.92
-# 5  Diastolic   Heart Transplant     141.89
-# 6  Diastolic Hospital Inpatient   33901.72
-# 7  Diastolic          Inotropic   60810.16
-# 8  Diastolic                MRA  218865.40
-# 9  Diastolic              Other   50411.73
-# 10 Diastolic              SGLT2   71945.77
-# 11 Diastolic  Surgery Inpatient    7081.27
-# 12 Diastolic        Vasodilator  289239.63
-# 13  Systolic       ACE|ARB|ARNI 1032899.26
-# 14  Systolic       Beta Blocker 1242768.56
-# 15  Systolic     Cardiac Device   16586.34
-# 16  Systolic           Diuretic  814323.63
-# 17  Systolic   Heart Transplant     109.09
-# 18  Systolic Hospital Inpatient   16855.81
-# 19  Systolic          Inotropic   81562.09
-# 20  Systolic                MRA  315440.96
-# 21  Systolic              Other   33202.51
-# 22  Systolic              SGLT2   89761.40
-# 23  Systolic  Surgery Inpatient    3915.90
-# 24  Systolic        Vasodilator  179257.30
-# 25      <NA>       ACE|ARB|ARNI 2820785.53
-# 26      <NA>       Beta Blocker 2901353.36
-# 27      <NA>     Cardiac Device   22452.26
-# 28      <NA>           Diuretic 2235555.44
-# 29      <NA>   Heart Transplant     245.91
-# 30      <NA> Hospital Inpatient   15696.60
-# 31      <NA>          Inotropic  126642.95
-# 32      <NA>                MRA  396732.35
-# 33      <NA>              Other   74592.58
-# 34      <NA>              SGLT2  200848.73
-# 35      <NA>  Surgery Inpatient    4355.04
-# 36      <NA>        Vasodilator  473113.45
+
 
 # ---------------------------------------------------------------
 # All Patients - All Drugs-  Drug Usage EVER TRIED Systolic vs Dyastolic -----------------------------------------------------
@@ -2243,30 +1883,15 @@ HF_Drug_Histories <- HF_Drug_Histories %>% select(patient, weight, Drugs) %>% di
 
 HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% left_join(Groups) %>%  group_by(group) %>% summarise(n=sum(as.numeric(weight))) # 11146437
 
-# 1 Diastolic 3067220.
-# 2 Systolic  2165269.
-# 3 NA        6809510.
+
+
 
 
 HF_Drug_Histories %>%  select(patient, weight, drug_group) %>% distinct() %>%
   left_join(Groups) %>%  
   group_by(group, drug_group) %>% summarise(n=sum(as.numeric(weight)))
- 
-#  1 Diastolic Advanced Therapy   1128115.
-#  2 Diastolic Cardiac Device      430534.
-#  3 Diastolic Hospitalization     608539.
-#  4 Diastolic Injectable Therapy  519010.
-#  5 Diastolic Oral Therapy       2950179.
-#  6 Systolic  Advanced Therapy    804294.
-#  7 Systolic  Cardiac Device      633707.
-#  8 Systolic  Hospitalization     399790.
-#  9 Systolic  Injectable Therapy  353388.
-# 10 Systolic  Oral Therapy       2094506.
-# 11 NA        Advanced Therapy   2025099.
-# 12 NA        Cardiac Device      834891.
-# 13 NA        Hospitalization     432315.
-# 14 NA        Injectable Therapy  644941.
-# 15 NA        Oral Therapy       6602367.
+
+
 
 data.frame(HF_Drug_Histories %>% mutate(drug_class=ifelse(drug_class=="ACE", "ACE|ARB|ARNI" , 
                                                ifelse(drug_class=="ARB", "ACE|ARB|ARNI" ,
@@ -2274,44 +1899,6 @@ data.frame(HF_Drug_Histories %>% mutate(drug_class=ifelse(drug_class=="ACE", "AC
   select(patient, weight, drug_class, drug_group) %>% distinct() %>%
   left_join(Groups) %>%  
   group_by(group, drug_class) %>% summarise(n=sum(as.numeric(weight))))
-
-# 1  Diastolic       ACE|ARB|ARNI 2213694.74
-# 2  Diastolic       Beta Blocker 2350731.76
-# 3  Diastolic     Cardiac Device  430533.50
-# 4  Diastolic           Diuretic 2953367.93
-# 5  Diastolic   Heart Transplant    2540.30
-# 6  Diastolic Hospital Inpatient  491526.94
-# 7  Diastolic          Inotropic  233165.67
-# 8  Diastolic                MRA  519937.90
-# 9  Diastolic              Other  268542.79
-# 10 Diastolic              SGLT2  163693.56
-# 11 Diastolic  Surgery Inpatient  202308.56
-# 12 Diastolic        Vasodilator  827896.81
-# 13  Systolic       ACE|ARB|ARNI 1798820.42
-# 14  Systolic       Beta Blocker 1938916.61
-# 15  Systolic     Cardiac Device  633706.82
-# 16  Systolic           Diuretic 1911613.93
-# 17  Systolic   Heart Transplant   12880.86
-# 18  Systolic Hospital Inpatient  291474.93
-# 19  Systolic          Inotropic  280460.07
-# 20  Systolic                MRA  670477.31
-# 21  Systolic              Other  154155.36
-# 22  Systolic              SGLT2  171830.78
-# 23  Systolic  Surgery Inpatient  175831.27
-# 24  Systolic        Vasodilator  526980.46
-# 25      <NA>       ACE|ARB|ARNI 5006435.18
-# 26      <NA>       Beta Blocker 4989269.51
-# 27      <NA>     Cardiac Device  834890.79
-# 28      <NA>           Diuretic 5242577.83
-# 29      <NA>   Heart Transplant    9994.49
-# 30      <NA> Hospital Inpatient  327989.73
-# 31      <NA>          Inotropic  446706.46
-# 32      <NA>                MRA  959789.56
-# 33      <NA>              Other  427744.13
-# 34      <NA>              SGLT2  431171.50
-# 35      <NA>  Surgery Inpatient  154518.07
-# 36      <NA>        Vasodilator 1426838.18
-
 
 
 
@@ -2322,7 +1909,8 @@ Groups <- fread("Groups_Diastolic_vs_Systolic.txt", sep="\t")
 
 
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
-sum(as.numeric(HF_Drug_Histories$weight)) # 13359838
+sum(as.numeric(HF_Drug_Histories$weight)) # 
+
 
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month49:month60, factor_key=TRUE)
 
@@ -2353,56 +1941,13 @@ data.frame(HF_Drug_Histories %>%
                  mutate(drug_class=str_replace(drug_class, " ", "_")) 
 
 
-1  Diastolic                ACE  796005.00
-2  Diastolic                ARB  791158.31
-3  Diastolic               ARNI   18368.63
-4  Diastolic       Beta_Blocker 1783759.22
-5  Diastolic     Cardiac_Device  100290.30
-6  Diastolic           Diuretic 1951234.37
-7  Diastolic   Heart_Transplant     302.24
-8  Diastolic Hospital_Inpatient  196233.44
-9  Diastolic          Inotropic   99385.20
-10 Diastolic                MRA  320859.98
-11 Diastolic              Other  139146.23
-12 Diastolic              SGLT2  105118.92
-13 Diastolic  Surgery_Inpatient   65056.90
-14 Diastolic        Vasodilator  455947.78
-15  Systolic                ACE  688367.85
-16  Systolic                ARB  487089.19
-17  Systolic               ARNI  280146.23
-18  Systolic       Beta_Blocker 1552715.20
-19  Systolic     Cardiac_Device  147058.41
-20  Systolic           Diuretic 1208808.43
-21  Systolic   Heart_Transplant    2796.71
-22  Systolic Hospital_Inpatient  105775.88
-23  Systolic          Inotropic  132004.41
-24  Systolic                MRA  432157.22
-25  Systolic              Other   82478.12
-26  Systolic              SGLT2  120370.24
-27  Systolic  Surgery_Inpatient   46516.42
-28  Systolic        Vasodilator  282726.02
-29      <NA>                ACE 1904762.10
-30      <NA>                ARB 1683060.99
-31      <NA>               ARNI  170359.10
-32      <NA>       Beta_Blocker 3682530.23
-33      <NA>     Cardiac_Device  183114.61
-34      <NA>           Diuretic 3279165.68
-35      <NA>   Heart_Transplant    2357.67
-36      <NA> Hospital_Inpatient  107133.10
-37      <NA>          Inotropic  194590.47
-38      <NA>                MRA  566830.75
-39      <NA>              Other  205186.45
-40      <NA>              SGLT2  279362.80
-41      <NA>  Surgery_Inpatient   34987.99
-42      <NA>        Vasodilator  742115.76
-
-
 
 # -----------------------------------
 # Create new MECE stocks -----------------
 
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
-sum(as.numeric(HF_Drug_Histories$weight)) # 13359838
+sum(as.numeric(HF_Drug_Histories$weight)) # 
+
 
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
 
@@ -2434,15 +1979,6 @@ string_Injectables <- paste0("\\b(",paste0(HF_Ingredients$Drugs[HF_Ingredients$d
 
 string_Oral <- paste0("\\b(",paste0(HF_Ingredients$Drugs[HF_Ingredients$drug_group=="Oral Therapy"], collapse = "|"),")\\b")
 
-# Surgery/Transplant/Hospital/Devices 1
-# Neprilysin inhibitor 2
-# MRA 3
-# Injectables 4
-# SGLT2 5
-# Other Advanced 6
-# Orals* 7
-# Orals 8
-# lapsed 9
 
 
 HF_Drug_Histories <- HF_Drug_Histories %>% mutate(Stock = ifelse(grepl(string_AdvancedProcedure, Drugs), 1,
@@ -2512,7 +2048,7 @@ flHF <- flHF[,c(12,1:11)]
 # Bring Therapy classes (Stocks) to the table
 HF_Box_Histories <- HF_Box_Histories[,disease := NULL]
 HF_Box_Histories <- data.frame(HF_Box_Histories, stringsAsFactors = F)
-sto
+
 for(i in 1:60){
   cat(i)
   HF_Box_Histories[,i+2] <- unlist(lapply(HF_Box_Histories[,i+2],function(x) str_sub(x, 1L, 1L)))
@@ -2556,35 +2092,15 @@ HF_Flows_Aux._Long %>% filter(p2==60) %>% group_by(s2) %>% summarise(n=sum(as.nu
 
 HF_Flows_Aux._Long %>% filter(p2==60) %>% group_by(s2) %>% summarise(n=sum(as.numeric(weight))) 
 
-# 1     1  128557.
-# 2     2  908719.
-# 3     3  218181.
-# 4     4   47706.
-# 5     5  269880.
-# 6     6 1040075.
-# 7     7 1271602.
-# 8     8 4449944.
-# 9     9 3707335.
 
+                                          
 
 HF_Flows_Aux._Long %>% filter(p2>=49)  %>% filter(flow==1) %>% group_by(s1, s2) %>% summarise(n=sum(as.numeric(weight))) %>%
   ungroup() %>% spread(key=s2, value=n) %>% 
   arrange(-s1) %>% select(1,10:2)
 
 
-     s1      `9`      `8`      `7`      `6`     `5`     `4`     `3`      `2`     `1`
-  <int>    <dbl>    <dbl>    <dbl>    <dbl>   <dbl>   <dbl>   <dbl>    <dbl>   <dbl>
-1     9      NA  1960800.  339422.  405181.  59002. 119849.  43868.  163363. 264206.
-2     8 1753078. 4600126.      NA   515191. 119892. 143768.  54516.  241564. 262168.
-3     7  359969.      NA  1224281.  146706.  26732.  42727.  29745.   74739. 181199.
-4     6  361909.  475116.  146332. 1602995.  29878.  57003.  20435.   68870. 119413.
-5     5   44634.   87668.   16295.   19043. 322257.   6242.   5465.   15607.  12734.
-6     4   92148.  138015.   39975.   60499.   6321.  25735.   3460.   10538.   7155.
-7     3   32692.   32538.   26503.   12088.   3460.    595. 289239.   48460.  28297.
-8     2  133138.  202674.   75996.   59989.  13166.   4707.  45970. 1388514. 109579.
-9     1  197767.      NA   426430.  117791.  13254.  10555.  31210.  122570. 127284
-
-
+                                          
 HF_Flows_Aux._Long <- fread("HF_Flows_Aux._Long2.txt")
 
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
@@ -2602,36 +2118,13 @@ HF_Flows_Aux._Long %>% left_join(Groups) %>% filter(group=="Diastolic") %>%
   ungroup() %>% spread(key=s2, value=n) %>% 
   arrange(-s1) %>% select(1,10:2)
 
-     s1     `9`      `8`     `7`     `6`    `5`    `4`    `3`     `2`     `1`
-  <int>   <dbl>    <dbl>   <dbl>   <dbl>  <dbl>  <dbl>  <dbl>   <dbl>   <dbl>
-1     9     NA   454909. 108561. 112557. 12961. 40413.  1735.  34575   87858.
-2     8 409236. 1313272.     NA  163191. 28011. 58046.  1892.  68474. 102821.
-3     7 108526.      NA  440597.  53649.  6365. 17108.  1920.  22439.  88985.
-4     6 105613.  147812.  55568. 530440.  8776. 23755.  1988.  24072.  50570.
-5     5   8730.   21634.   6019.   4924. 73899.  1643.   268.   3924.   3395.
-6     4  31131.   54966.  16145.  27385.  2126. 10202.   127.   2992.   1707.
-7     3   1605.    1391.   1556.    648.    NA     NA  11410.   1017.   1663.
-8     2  31119.   55766.  22585.  19623.  2904.  1832.  1172. 339176.  28340.
-9     1  70019.      NA  171147.  50072.  3896.  5289.  2458.  31361.  47122.
-
-
+                                          
 HF_Flows_Aux._Long %>% left_join(Groups) %>% filter(group=="Systolic") %>%
   filter(p2>=49)  %>% filter(flow==1) %>% group_by(s1, s2) %>% summarise(n=sum(as.numeric(weight))) %>%
   ungroup() %>% spread(key=s2, value=n)  %>% 
   arrange(-s1) %>% select(1,10:2)
 
-     s1     `9`     `8`     `7`     `6`    `5`    `4`     `3`     `2`    `1`
-  <int>   <dbl>   <dbl>   <dbl>   <dbl>  <dbl>  <dbl>   <dbl>   <dbl>  <dbl>
-1     9     NA  265005.  86249.  67019. 10871. 26823.  26568.  47426. 79842.
-2     8 225817. 638088.     NA   69376. 15779. 18469.  29056.  54764. 61757.
-3     7  95055.     NA  320574.  38484.  8501. 11797.  17056.  29671. 44962.
-4     6  57545.  67806.  39342. 312552.  6272. 13462.  10167.  16372. 34942.
-5     5   8436.   9677.   4464    4407. 56864.  1487.   3069.   4505.  4357.
-6     4  21216.  18373.  10975.  12218.  1030.  6192.   1388.   3596.  2728 
-7     3  21139.  17790.  15469.   6713.  2643.   319. 169732.  30821. 19278.
-8     2  34443.  46693.  27778.  16722.  2958.  1592.  31448. 501930. 47759.
-9     1  54964.     NA  105688.  34361.  4657.  2657.  19839.  58811. 50278.
-
+                                          
 
 # ------------------------
 # Flows Last year  --------------------------------------------------------------------------
@@ -2645,7 +2138,8 @@ HF_Drug_Histories <- HF_Drug_Histories %>% filter(Drugs!="-") %>% select(patient
 
 HF_Flows_Aux._Long <- HF_Flows_Aux._Long %>% inner_join(HF_Drug_Histories)
 
-HF_Flows_Aux._Long %>% select(patient, weight) %>% distinct()  %>% summarise(n=sum(as.numeric(weight)))  # 12041998
+HF_Flows_Aux._Long %>% select(patient, weight) %>% distinct()  %>% summarise(n=sum(as.numeric(weight)))  # 
+                                          
 
 
 
@@ -2753,7 +2247,8 @@ HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, fac
 HF_Drug_Histories <- HF_Drug_Histories %>% filter(Drugs!="-") %>% select(patient) %>% distinct()
 
 HF_Flows_Aux._Long <- HF_Flows_Aux._Long %>% inner_join(HF_Drug_Histories)
-HF_Flows_Aux._Long %>% select(patient, weight) %>% distinct()  %>% summarise(n=sum(as.numeric(weight)))  # 12041998
+HF_Flows_Aux._Long %>% select(patient, weight) %>% distinct()  %>% summarise(n=sum(as.numeric(weight)))  # 
+                                          
 
 
 HF_Ingredients <- fread("HF Ingredients.txt",  colClasses = "character", stringsAsFactors = F)
@@ -2805,16 +2300,7 @@ HF_Flows_Aux._Long <- HF_Flows_Aux._Long %>% group_by(patient) %>% mutate(p1_Adv
 Start_df <- HF_Flows_Aux._Long %>% filter(p2==60) %>% group_by(s2) %>% summarise(pats=sum(as.numeric(weight))) 
 sum(Start_df$pats)
 
-#      s2     pats
-# 1     1  128557.
-# 2     2  908719.
-# 3     3  218181.
-# 4     4   47706.
-# 5     5  269880.
-# 6     6 1040075.
-# 7     7 1271602.
-# 8     8 4449944.
-# 9     9 3707335.
+                                          
 
 Start_df <- Start_df %>% left_join(HF_Flows_Aux._Long %>% filter(p2==60) %>% group_by(s2, p1_OralExp) %>% 
                                        summarise(pats_p1_OralExp=sum(as.numeric(weight))) %>% filter(p1_OralExp == 1))
@@ -2901,7 +2387,8 @@ HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, fac
 HF_Drug_Histories <- HF_Drug_Histories %>% filter(Drugs!="-") %>% select(patient) %>% distinct()
 
 HF_Flows_Aux._Long <- HF_Flows_Aux._Long %>% inner_join(HF_Drug_Histories)
-HF_Flows_Aux._Long %>% select(patient, weight) %>% distinct()  %>% summarise(n=sum(as.numeric(weight)))  # 12041998
+HF_Flows_Aux._Long %>% select(patient, weight) %>% distinct()  %>% summarise(n=sum(as.numeric(weight)))  # 
+                                 
 
 HF_Flows_Aux._Long <- Groups%>% filter(group=="Systolic") %>% select(patient) %>% left_join(HF_Flows_Aux._Long)
 
@@ -4064,15 +3551,18 @@ names(HF_Comorbidity_Inventories)[1] <- "patient"
 
 HF_Comorbidity_Inventories <- HF_Drug_Histories_exp %>% inner_join(HF_Comorbidity_Inventories)
 
-HF_Comorbidity_Inventories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 12041998
+HF_Comorbidity_Inventories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 
+        
 
 HF_Comorbidity_Inventories %>% filter(diagnosis=="N18") %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) #5320640 #0.4418403
 
 HF_Comorbidity_Inventories %>% filter(diagnosis=="I70"|diagnosis=="I73") %>% 
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) #5692709 # 0.4727379
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) #
+        
 
 HF_Comorbidity_Inventories %>% filter(diagnosis=="K76") %>% 
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) #2426515 # 0.2015044
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) #
+        
 
 DANU_Demographics <- fread("DANU Demographics.txt")
 DANU_Demographics <- DANU_Demographics %>% select(patid, weight, diagnosis) %>% filter(grepl("Diabetes", diagnosis)|grepl("Obesity", diagnosis))
@@ -4080,11 +3570,12 @@ names(DANU_Demographics)[1] <- "patient"
 
 DANU_Demographics %>% filter(grepl("Obesity", diagnosis)) %>% select(patient) %>%
   inner_join(HF_Comorbidity_Inventories) %>%
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  # 10083150 0.837332
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  # 
 
 DANU_Demographics %>% filter(grepl("Diabetes", diagnosis)) %>% select(patient) %>%
   inner_join(HF_Comorbidity_Inventories) %>%
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  #  7158731 0.5944803
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  # 
+        
 
 DANU_Events <- fread("DANU Events.txt")
 DANU_Events <- DANU_Events %>% filter(grepl("BMI", code ))
@@ -4095,7 +3586,8 @@ names(DANU_Events)[1] <- "patient"
 
 DANU_Events %>% 
   inner_join(HF_Comorbidity_Inventories) %>% ungroup() %>%
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  # 4676773 0.3883718
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  #
+        
 
 # Diastolic
 Groups <- fread("Groups_Diastolic_vs_Systolic.txt", sep="\t")
@@ -4106,10 +3598,12 @@ HF_Comorbidity_Inventories %>% inner_join(Diastolic) %>% select(patient, weight)
 HF_Comorbidity_Inventories %>% inner_join(Diastolic) %>% filter(diagnosis=="N18") %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) #1605518 #0.523444
 
 HF_Comorbidity_Inventories %>% inner_join(Diastolic) %>% filter(diagnosis=="I70"|diagnosis=="I73") %>% 
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) #1663141 # 0.5422307
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) #
+        
 
 HF_Comorbidity_Inventories  %>% inner_join(Diastolic) %>% filter(diagnosis=="K76") %>% 
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) #646174.5 # 0.2106711
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) 
+        
 
 DANU_Demographics <- fread("DANU Demographics.txt")
 DANU_Demographics <- DANU_Demographics %>% select(patid, weight, diagnosis) %>% filter(grepl("Diabetes", diagnosis)|grepl("Obesity", diagnosis))
@@ -4117,11 +3611,13 @@ names(DANU_Demographics)[1] <- "patient"
 
 DANU_Demographics %>% filter(grepl("Obesity", diagnosis)) %>% select(patient) %>%
   inner_join(HF_Comorbidity_Inventories) %>% inner_join(Diastolic) %>% 
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  # 2652343 0.8647384
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  #
+        
 
 DANU_Demographics %>% filter(grepl("Diabetes", diagnosis)) %>% select(patient) %>%
   inner_join(HF_Comorbidity_Inventories) %>% inner_join(Diastolic) %>%
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  #  1890391 0.6163206
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  #  
+        
 
 DANU_Events <- fread("DANU Events.txt")
 DANU_Events <- DANU_Events %>% filter(grepl("BMI", code ))
@@ -4132,7 +3628,8 @@ names(DANU_Events)[1] <- "patient"
 
 DANU_Events %>% 
   inner_join(HF_Comorbidity_Inventories) %>% ungroup() %>% inner_join(Diastolic) %>% 
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  # 1304308 0.4252411
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  # 
+        
 
 
 
@@ -4146,10 +3643,11 @@ HF_Comorbidity_Inventories %>% inner_join(Systolic) %>% select(patient, weight) 
 HF_Comorbidity_Inventories %>% inner_join(Systolic) %>% filter(diagnosis=="N18") %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) #1000459 #0.4620718
 
 HF_Comorbidity_Inventories %>% inner_join(Systolic) %>% filter(diagnosis=="I70"|diagnosis=="I73") %>% 
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) #971185.2 # 0.4485514
-
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) #
+        
 HF_Comorbidity_Inventories  %>% inner_join(Systolic) %>% filter(diagnosis=="K76") %>% 
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) #387338.2 # 0.178896
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) 
+        
 
 DANU_Demographics <- fread("DANU Demographics.txt")
 DANU_Demographics <- DANU_Demographics %>% select(patid, weight, diagnosis) %>% filter(grepl("Diabetes", diagnosis)|grepl("Obesity", diagnosis))
@@ -4157,11 +3655,13 @@ names(DANU_Demographics)[1] <- "patient"
 
 DANU_Demographics %>% filter(grepl("Obesity", diagnosis)) %>% select(patient) %>%
   inner_join(HF_Comorbidity_Inventories) %>% inner_join(Systolic) %>% 
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  # 1762743 0.8141402
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  #
+        
 
 DANU_Demographics %>% filter(grepl("Diabetes", diagnosis)) %>% select(patient) %>%
   inner_join(HF_Comorbidity_Inventories) %>% inner_join(Systolic) %>%
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  #  1229130 0.5676858
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  #  
+        
 
 DANU_Events <- fread("DANU Events.txt")
 DANU_Events <- DANU_Events %>% filter(grepl("BMI", code ))
@@ -4172,8 +3672,8 @@ names(DANU_Events)[1] <- "patient"
 
 DANU_Events %>% 
   inner_join(HF_Comorbidity_Inventories) %>% ungroup() %>% inner_join(Systolic) %>% 
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  # 808936 0.3736151
-
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  # 
+      
 
 
 # ----------------------------------------------
@@ -4188,66 +3688,43 @@ Groups <- fread("Groups_Diastolic_vs_Systolic.txt", sep="\t")
 
 DANU_Measure_Codes <- fread("DANU Measure Codes.txt")
 unique(DANU_Measure_Codes$test)
-#"LVEF Fraction"
-#"LVEF Reduced"      
-#"NYHA Class"        
+   
 
 DANU_Measures <- fread("DANU Measures.txt")
 DANU_Measures <- DANU_Measures %>% filter(test=="LVEF Fraction"|test=="LVEF Reduced"|test=="NYHA Class")
 DANU_Measures <- DANU_Measures %>% select(-c(source, description, vague_value, vague_date, metric))
 DANU_Measures %>% select(patid, weight, test) %>% distinct() %>% group_by(test) %>% summarise(n=sum(weight))
- 
-#   test                  n
-#   <chr>             <dbl>
-# 1 LVEF Fraction 10610830.
-# 2 LVEF Reduced   3462529.
-# 3 NYHA Class      840275.
+
+        
 
 names(DANU_Measures)[1] <- "patient"
 
 HF_Drug_Histories_exp %>% select(-weight) %>% inner_join(DANU_Measures) %>%
   select(patient, weight, test) %>% distinct() %>% group_by(test) %>% summarise(n=sum(weight))
- 
-# 1 LVEF Fraction 3033704.
-# 2 LVEF Reduced  1354566.
-# 3 NYHA Class     538748.
+
+        
 
 DANU_Measures <- DANU_Measures %>% mutate(claimed=as.Date(claimed)) %>% group_by(patient, test) %>% filter(claimed==max(claimed)) %>% slice(1) 
 
 Groups %>% inner_join(DANU_Measures) %>%
   select(patient, weight, test, group) %>% distinct() %>% group_by(group, test) %>% summarise(n=sum(weight)) %>%
   mutate(percent=ifelse(group=="Diastolic", 100*n/3067220, 100*n/2165268))
- 
-#   group     test                n percent
-# 1 Diastolic LVEF Fraction 834050.   27.2 
-# 2 Diastolic LVEF Reduced  424406.   13.8 
-# 3 Diastolic NYHA Class    137767.    4.49
-# 4 Systolic  LVEF Fraction 706506.   32.6 
-# 5 Systolic  LVEF Reduced  327141.   15.1 
-# 6 Systolic  NYHA Class    195307.    9.02
 
+        
 
 Groups %>% inner_join(DANU_Measures) %>%
   filter(test=="LVEF Fraction") %>%
   select(patient, weight, value, group) %>% distinct() %>%
   mutate(value=ifelse(value<=40,1,0)) %>% group_by(group, value) %>% summarise(n=sum(weight)) 
 
-#   group     value       n
-# 1 Diastolic     0 782595.
-# 2 Diastolic     1  51455.
-# 3 Systolic      0 313685.
-# 4 Systolic      1 392821.
+        
 
 Groups %>% inner_join(DANU_Measures) %>%
   filter(test=="LVEF Reduced") %>%
   select(patient, weight, value, group) %>% distinct() %>%
   group_by(group, value) %>% summarise(n=sum(weight)) 
 
-#   group     value       n
-# 1 Diastolic     0 399782.
-# 2 Diastolic     1  24625.
-# 3 Systolic      0 135546.
-# 4 Systolic      1 191596.
+        
 # --------------------------------------
 # LVEF Indexes Availability, Proportions  v2------------------
 
@@ -4260,53 +3737,43 @@ Groups <- fread("Groups_Diastolic_vs_Systolic.txt", sep="\t")
 
 DANU_Measure_Codes <- fread("DANU Measure Codes.txt")
 unique(DANU_Measure_Codes$test)
-#"LVEF Fraction"
-#"LVEF Reduced"      
-#"NYHA Class"        
 
+        
 DANU_Measures <- fread("DANU Measures.txt")
 DANU_Measures <- DANU_Measures %>% filter(test=="LVEF Fraction"|test=="LVEF Reduced"|test=="NYHA Class")
 DANU_Measures <- DANU_Measures %>% select(-c(source, description, vague_value, vague_date, metric))
 DANU_Measures %>% select(patid, weight, test) %>% distinct() %>% group_by(test) %>% summarise(n=sum(weight))
 names(DANU_Measures)[1] <- "patient" 
 
-# 1 LVEF Fraction 10610830.
-# 2 LVEF Reduced   3462529.
-# 3 NYHA Class      840275.
-
+        
 HF_Drug_Histories_exp %>% select(-weight) %>% inner_join(DANU_Measures) %>%
   select(patient, weight, test) %>% distinct() %>% group_by(test) %>% summarise(n=sum(weight))
- 
-# 1 LVEF Fraction 3033704.
-# 2 LVEF Reduced  1354566.
-# 3 NYHA Class     538748.
 
+        
 # % of ALL Heart Failure
 HF_Drug_Histories_exp %>% select(-weight) %>% inner_join(DANU_Measures)  %>%
   filter( (test== "LVEF Reduced")|(test== "LVEF Fraction")) %>% select(patient, weight)  %>% 
-  distinct() %>% summarise(n=sum(weight)) # 3152431
+  distinct() %>% summarise(n=sum(weight)) # 
+        
 
 HF_Drug_Histories_exp %>% select(-weight) %>% inner_join(DANU_Measures)  %>%
   filter( (test== "LVEF Reduced" & value==1)|(test== "LVEF Fraction" & value<=40)) %>% select(patient, weight)  %>% 
-  distinct() %>% summarise(n=sum(weight))  # 1111438 # 0.3525654 only would be reduce EF
-
+  distinct() %>% summarise(n=sum(weight))  # 
+        
 # % of Diastolic vs Systolic Heart Failure
 
 Groups %>% inner_join(DANU_Measures) %>%
     filter( (test== "LVEF Reduced")|(test== "LVEF Fraction")) %>% select(patient, weight, group)  %>% 
   distinct() %>% group_by(group) %>% summarise(n=sum(weight))
 
-# 1 Diastolic 874442. # 0.2850927 (3067220)
-# 2 Systolic  720115. " 0.3325755 (2165268)
+        
 
 Groups %>% inner_join(DANU_Measures) %>%
    filter( (test== "LVEF Reduced" & value==1)|(test== "LVEF Fraction" & value<=35))  %>% select(patient, weight, group)  %>% 
   distinct() %>% group_by(group) %>% summarise(n=sum(weight))
  
-# 1 Diastolic 119857. (0.1370668)
-# 2 Systolic  528200. (0.733494)
 
-
+        
 
 Groups %>% inner_join(DANU_Measures) %>%
   filter( (test== "LVEF Fraction")) %>%
@@ -4349,17 +3816,15 @@ Groups %>% inner_join(DANU_Measures) %>% inner_join(FirstDx) %>%
   select(patient, weight, group)  %>% 
   distinct() %>% group_by(group) %>% summarise(n=sum(weight))
 
-# 1 Diastolic 689395.
-# 2 Systolic  630126.
+        
 
 Groups %>% inner_join(DANU_Measures) %>%inner_join(FirstDx) %>%
   mutate(claimed=as.Date(claimed)) %>%
    filter( (test== "LVEF Reduced" & value==1)|(test== "LVEF Fraction" & value<=40)) %>% filter(earliest<=claimed)  %>%
   select(patient, weight, group)  %>% 
   distinct() %>% group_by(group) %>% summarise(n=sum(weight))
- 
-# 1 Diastolic  99616  # 0.1444977
-# 2 Systolic  483393. # 0.767137
+
+        
 
 # ---------------------------------
 # HEart Failure Staging ----------------------------------------------
@@ -4418,29 +3883,19 @@ names(HF_Ingredients)[1] <- "Drugs"
 
 HF_Drug_Histories <- HF_Drug_Histories %>% select(patient, weight, Drugs) %>% distinct() %>% left_join(HF_Ingredients) 
 
-HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 538748
+HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 
 
 HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% inner_join(Stages %>% select(-weight)) %>% 
   group_by(Stages) %>% summarise(n=sum(as.numeric(weight))) 
 
-# 1      1 110595.
-# 2      2 268960.
-# 3      3 133974.
-# 4      4  25219.
 
+        
 HF_Drug_Histories %>%  select(patient, weight, drug_group) %>% distinct() %>%
   inner_join(Stages %>% select(-weight)) %>% 
   group_by(Stages, drug_group) %>% summarise(n=sum(as.numeric(weight))) %>%
   ungroup() %>% spread(key=Stages, value=n)
 
-#   drug_group             `1`     `2`     `3`    `4`
-#   <chr>                <dbl>   <dbl>   <dbl>  <dbl>
-# 1 Advanced Therapy    38077.  98246.  64735. 13120.
-# 2 Cardiac Device      31831.  95082.  51195. 10238.
-# 3 Hospitalization     17575.  53114.  36833.  7842.
-# 4 Injectable Therapy  14909.  50518.  36658.  9134.
-# 5 Oral Therapy       107703. 261120. 129029. 24682.
- 
+        
 
 
 HF_Drug_Histories %>% 
@@ -4449,21 +3904,7 @@ HF_Drug_Histories %>%
   group_by(Stages, drug_class) %>% summarise(n=sum(as.numeric(weight))) %>%
   ungroup() %>% spread(key=Stages, value=n)
 
-#  1 ACE                60073. 150612.  71358. 15217.
-#  2 ARB                35616.  97620.  51070. 11313.
-#  3 ARNI               12424.  46077.  20635.  4104.
-#  4 Beta Blocker       96789. 239737. 117968. 22959.
-#  5 Cardiac Device     31831.  95082.  51195. 10238.
-#  6 Diuretic           79673. 217189. 118981. 23205.
-#  7 Heart Transplant    1092.   2060.   2161.  1368.
-#  8 Hospital Inpatient 10656.  38317.  27947.  4245.
-#  9 Inotropic          12106.  32943.  22471.  4497.
-# 10 MRA                29574.  96813.  51499.  9809.
-# 11 Other               6958.  17565.  12111.  3119.
-# 12 SGLT2               5268.  18797.   8485.  2777.
-# 13 Surgery Inpatient   8614.  24765.  15633.  4223.
-# 14 Vasodilator        25756.  66233.  46608.  9617.
-
+        
 
 
 temp <- HF_Drug_Histories %>% 
@@ -5066,11 +4507,8 @@ HF_Drug_Histories_exp %>% left_join(
   mutate(CKD="CKD"))  %>%
   left_join(SGLT2_Pats %>% mutate(SGLT2="SGLT2")) %>%
   group_by(CKD, SGLT2) %>% summarise(n=sum(as.numeric(weight)))
-   
-# 1 CKD   SGLT2  344736.
-# 2 CKD   NA    4975903.
-# 3 NA    SGLT2  421960.
-# 4 NA    NA    6299399.
+  
+        
 
 HF_Drug_Histories_exp %>% left_join(
   HF_Comorbidity_Inventories %>% filter(diagnosis=="I70"|diagnosis=="I73") %>% select(patient) %>% distinct() %>% 
@@ -5078,10 +4516,8 @@ HF_Drug_Histories_exp %>% left_join(
   left_join(SGLT2_Pats %>% mutate(SGLT2="SGLT2")) %>%
   group_by(PAD, SGLT2) %>% summarise(n=sum(as.numeric(weight)))
    
-# 1 PAD   SGLT2  353306.
-# 2 PAD   NA    5339403.
-# 3 NA    SGLT2  413390.
-# 4 NA    NA    5935899.
+
+        
 
 HF_Drug_Histories_exp %>% left_join(
   HF_Comorbidity_Inventories %>% filter(diagnosis=="K76") %>% select(patient) %>% distinct() %>% 
@@ -5089,11 +4525,8 @@ HF_Drug_Histories_exp %>% left_join(
   left_join(SGLT2_Pats %>% mutate(SGLT2="SGLT2")) %>%
   group_by(NAFLD, SGLT2) %>% summarise(n=sum(as.numeric(weight)))
 
-# 1 NAFLD SGLT2  211890.
-# 2 NAFLD NA    2214625.
-# 3 NA    SGLT2  554806.
-# 4 NA    NA    9060678.
 
+        
 
 DANU_Demographics <- fread("DANU Demographics.txt")
 DANU_Demographics <- DANU_Demographics %>% select(patid, weight, diagnosis) %>% filter(grepl("Diabetes", diagnosis)|grepl("Obesity", diagnosis))
@@ -5107,12 +4540,8 @@ DANU_Demographics %>% filter(grepl("Diabetes", diagnosis)) %>% select(patient) %
   left_join(SGLT2_Pats %>% mutate(SGLT2="SGLT2")) %>%
   group_by(Diabetes, SGLT2) %>% summarise(n=sum(as.numeric(weight)))
 
-# 1 Diabetes SGLT2  751428.
-# 2 Diabetes NA    6407303.
-# 3 NA       SGLT2   15267.
-# 4 NA       NA    4868000.
 
-
+        
 DANU_Events <- fread("DANU Events.txt")
 DANU_Events <- DANU_Events %>% filter(grepl("BMI", code ))
 DANU_Events$code <- parse_number(DANU_Events$code)
@@ -5129,10 +4558,8 @@ HF_Drug_Histories_exp %>%
   left_join(SGLT2_Pats %>% mutate(SGLT2="SGLT2")) %>%
   group_by(Obesity, SGLT2) %>% summarise(n=sum(as.numeric(weight)))
 
-# 1 Obesity SGLT2  370564.
-# 2 Obesity NA    4306210.
-# 3 NA      SGLT2  396132.
-# 4 NA      NA    6969093.
+
+        
 
 # -------------------------------
 # gradient boost patients with NYHA  ------------------
@@ -5194,10 +4621,8 @@ HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum
 HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% inner_join(Stages %>% select(-weight)) %>% 
   group_by(Stages) %>% summarise(n=sum(as.numeric(weight))) 
 
-# 1      1 110595.
-# 2      2 268960.
-# 3      3 133974.
-# 4      4  25219.
+
+        
 
 temp_short <- HF_Drug_Histories %>% 
   select(patient, weight, generic_name) %>% distinct() %>%
@@ -5227,9 +4652,7 @@ temp_short_nopat <- temp_short[,2:1020]
 
 temp_short_nopat # 3779
 
-0.21*3779 = 794
-0.71*3779 = 2683
-0.95*3779 = 3590,  3779
+        
 
 lm_model <- lm(Stages ~ . , data=temp_short_nopat)
 summary(lm_model)
@@ -5320,12 +4743,7 @@ temp_full <- temp_full %>% left_join(HF_Comorbidity_Inventories)
 temp_full_nopat <- temp_full[,2:1099]
 temp_full_nopat <- temp_full_nopat %>% select(-Stages)
 
-83946
-
-0.21*83946 = 17629
-0.71*83946 = 59601
-0.95*83946 = 79749,  83946
-
+        
 
 data.frame(
   temp_full %>% select(patient) %>% 
@@ -5390,15 +4808,7 @@ data.frame(
                                                           predict.lm_model..temp_full_nopat.))) %>%
   group_by(predict.lm_model..temp_full_nopat., Propranolol) %>% count()
 
-# Heart_Transplant 0% 0%  1%  2%
-# Hospitalization 3% 5% 11% 14%
-# Iron Injection 7% 6% 10% 17%
-# Furosemide_Injection  6% 10% 20% 30%
-# Hydralazine_Injection 6% 6% 9% 14%
-# Major_Surgery 2% 4% 7% 7%
-
-
-
+        
 
 names(temp_full_nopat) <- paste0("A",names(temp_full_nopat))
 
@@ -5543,11 +4953,8 @@ select(patient, code) %>% distinct() %>%
   mutate(check=1) %>% spread(key=Group, value=check) %>%
   group_by(Diastolic, Systolic) %>% summarise(n=sum(weight))
 
-#   Diastolic Systolic      n
-#       <dbl>    <dbl>  <dbl>
-# 1         1        1 60605.
-# 2         1       NA 77104.
-# 3        NA        1 47543.
+
+        
 
 DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("iastolic", description)) %>%
   group_by(patient) %>% summarise(n=sum(frequency)) %>% filter(n>1) %>%
@@ -5563,11 +4970,7 @@ DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("iastolic", descrip
   mutate(check=1) %>% spread(key=Group, value=check) %>%
   group_by(Diastolic, Systolic) %>% summarise(n=sum(weight))
 
-#   Diastolic Systolic       n
-#       <dbl>    <dbl>   <dbl>
-# 1         1        1 112960.
-# 2         1       NA 298804.
-# 3        NA        1 195358..
+        
 
 Diastolic_Pats <- DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("iastolic", description)) %>%
   group_by(patient) %>% summarise(n=sum(frequency)) %>% filter(n>1) %>%
@@ -5668,7 +5071,7 @@ names(HF_Demographics)[1] <- "patient"
 sum(HF_Demographics$weight) # 17277771
 
 
-HF_Demographics %>% filter(died=="N" | death_date>"2020-05-01" ) %>% summarise(n=sum(weight)) # 14363507
+HF_Demographics %>% filter(died=="N" | death_date>"2020-05-01" ) %>% summarise(n=sum(weight)) # 
 
 HF_Demographics <- HF_Demographics %>% filter(died=="N" | death_date>"2020-05-01" )
 
@@ -5677,7 +5080,7 @@ HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, fac
 HF_Drug_Histories <- HF_Drug_Histories %>% filter(Drugs!="-" & Drugs != "104")
 HF_Drug_Histories <- HF_Drug_Histories %>% select(patient) %>% distinct()
 
-HF_Demographics %>% inner_join(HF_Drug_Histories) %>% summarise(n=sum(weight)) # 12987606
+HF_Demographics %>% inner_join(HF_Drug_Histories) %>% summarise(n=sum(weight)) # 
 
 
 HF_Demographics <- HF_Demographics %>% select(patient, weight, heart_failure_onset, heart_failure_condition)
@@ -5685,10 +5088,10 @@ HF_Demographics <- HF_Demographics %>% select(patient, weight, heart_failure_ons
 HF_Demographics <- HF_Demographics %>% drop_na()
 
 # ALL Heart Failure
-sum(HF_Demographics$weight) # 14363507
+sum(HF_Demographics$weight) # 
 
 # ALL Chronic Failure
-HF_Demographics %>% filter(heart_failure_condition=="Chronic Heart Failure") %>% summarise(n=sum(weight)) # 14363507
+HF_Demographics %>% filter(heart_failure_condition=="Chronic Heart Failure") %>% summarise(n=sum(weight)) # 
 
 DANU_Diagnosis_Codes <- fread("DANU Diagnosis Codes.txt")
 
@@ -5703,13 +5106,13 @@ DANU_Dossiers <- HF_Demographics %>% select(patient) %>% inner_join(DANU_Dossier
 
 DANU_Dossiers <- DANU_Dossiers %>% select(patient, weight, code, earliest, latest, frequency)
 
-DANU_Dossiers %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 14363507
+DANU_Dossiers %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
 
 DANU_Dossiers <- DANU_Dossiers %>% left_join(DANU_Diagnosis_Codes)
 
 DANU_Dossiers <- DANU_Dossiers %>% drop_na()
 
-DANU_Dossiers %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 14363507
+DANU_Dossiers %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
 
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
@@ -5737,7 +5140,8 @@ select(patient, code) %>% distinct() %>%
   group_by(patient) %>% count() %>% filter(n>1) %>%
   select(patient) %>% distinct() %>% ungroup() %>%
   left_join(DANU_Dossiers) %>%
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 4476287
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
+        
 
 # Must have specified systolic or dyastolic and have at least 2 different codes
 DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("iastolic", description)) %>%  
@@ -5745,7 +5149,8 @@ select(patient, code) %>% distinct() %>%
   group_by(patient) %>% count() %>% filter(n>1) %>%
   select(patient) %>% distinct() %>% ungroup() %>%
   left_join(DANU_Dossiers) %>%
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 1682791
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
+        
 
 DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("iastolic", description)) %>%  
 select(patient, code) %>% distinct() %>%
@@ -5763,11 +5168,8 @@ select(patient, code) %>% distinct() %>%
   mutate(check=1) %>% spread(key=Group, value=check) %>%
   group_by(Diastolic, Systolic) %>% summarise(n=sum(weight))
 
-#   Diastolic Systolic       n
-#       <dbl>    <dbl>   <dbl>
-# 1         1        1 508127.
-# 2         1       NA 660221.
-# 3        NA        1 514443.
+
+        
 
 DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("iastolic", description)) %>%
   group_by(patient) %>% summarise(n=sum(frequency)) %>% filter(n>1) %>%
@@ -5783,12 +5185,8 @@ DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("iastolic", descrip
   mutate(check=1) %>% spread(key=Group, value=check) %>%
   group_by(Diastolic, Systolic) %>% summarise(n=sum(weight))
 
-#   Diastolic Systolic        n
-#       <dbl>    <dbl>    <dbl>
-# 1         1        1 1004342.
-# 2         1       NA 3366024.
-# 3        NA        1 2360626.
 
+        
 Diastolic_Pats <- DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("iastolic", description)) %>%
   group_by(patient) %>% summarise(n=sum(frequency)) %>% filter(n>1) %>%
   select(patient) %>% distinct() %>% ungroup() %>%
@@ -5837,9 +5235,11 @@ fwrite(First_Systolic, "First_Systolic_All.txt")
 HF_Demographics <- fread("HF Demographics.txt")
 names(HF_Demographics)[1] <- "patient"
 
-sum(HF_Demographics$weight) # 17277771
+sum(HF_Demographics$weight) # 
+        
 
-HF_Demographics %>% filter(died=="N" | death_date>"2020-05-01" ) %>% summarise(n=sum(weight)) # 14363507
+HF_Demographics %>% filter(died=="N" | death_date>"2020-05-01" ) %>% summarise(n=sum(weight)) # 
+        
 
 HF_Demographics <- HF_Demographics %>% filter(died=="N" | death_date>"2020-05-01" )
 
@@ -5848,7 +5248,8 @@ HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, fac
 HF_Drug_Histories <- HF_Drug_Histories %>% filter(Drugs!="-" & Drugs != "104")
 HF_Drug_Histories <- HF_Drug_Histories %>% select(patient) %>% distinct()
 
-HF_Demographics %>% inner_join(HF_Drug_Histories) %>% summarise(n=sum(weight)) # 12987606
+HF_Demographics %>% inner_join(HF_Drug_Histories) %>% summarise(n=sum(weight)) # 
+        
 
 HF_Drug_Histories_exp <- HF_Demographics %>% inner_join(HF_Drug_Histories) %>% select(patient)
 
@@ -5856,7 +5257,8 @@ HF_Drug_Histories_exp <- HF_Demographics %>% inner_join(HF_Drug_Histories) %>% s
 DANU_Measures <- fread("DANU Measures Full.txt")
 DANU_Measures <- DANU_Measures %>% filter(test=="NYHA Class")
 DANU_Measures <- DANU_Measures %>% select(-c(source, description, vague_value, vague_date, metric))
-DANU_Measures %>% select(patid, weight, test) %>% distinct() %>% group_by(test) %>% summarise(n=sum(weight)) # 1078741
+DANU_Measures %>% select(patid, weight, test) %>% distinct() %>% group_by(test) %>% summarise(n=sum(weight)) # 
+        
 names(DANU_Measures)[1] <- "patient" 
 
 DANU_Measures <- HF_Drug_Histories_exp %>% inner_join(DANU_Measures)
@@ -5873,7 +5275,8 @@ Stages <- DANU_Measures %>% select(patient, weight, value) %>% distinct()
 names(Stages)[3] <- "Stages"
 
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
-sum(as.numeric(HF_Drug_Histories$weight)) # 17277771
+sum(as.numeric(HF_Drug_Histories$weight)) # 
+        
 
 HF_Drug_Histories <- Stages %>% select(patient) %>% inner_join(HF_Drug_Histories)
 
@@ -5904,11 +5307,8 @@ HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% inner_join(Stag
   mutate(Stages=round(Stages)) %>% group_by(Stages) %>%
   summarise(n=sum(as.numeric(weight))) 
 
-# 1      1 117201. 20%
-# 2      2 289569. 49%
-# 3      3 153269. 26%
-# 4      4  31477. 5%
 
+        
 temp_short <- HF_Drug_Histories %>% 
   select(patient, weight, generic_name) %>% distinct() %>%
     left_join(Stages %>% select(-weight)) %>% mutate(Treat=1) %>% select(-weight) %>%
@@ -5933,12 +5333,10 @@ temp_short <- temp_short %>% left_join(HF_Comorbidity_Inventories)
 
 temp_short_nopat <- temp_short[,2:1027]
 
-temp_short_nopat # 4179
+temp_short_nopat # 
 
-0.20*4179 = 836
-0.69*4179 = 2884
-0.95*4179 = 3970,  4179
 
+        
 names(temp_short_nopat) <- paste0("A",names(temp_short_nopat))
 
 modelAll_1_gbm <- gbm(AStages ~ . , data = temp_short_nopat)
@@ -5966,7 +5364,7 @@ names(HF_Demographics)[1] <- "patient"
 
 sum(HF_Demographics$weight) # 17277771
 
-HF_Demographics %>% filter(died=="N" | death_date>"2020-05-01" ) %>% summarise(n=sum(weight)) # 14363507
+HF_Demographics %>% filter(died=="N" | death_date>"2020-05-01" ) %>% summarise(n=sum(weight)) # 
 
 HF_Demographics <- HF_Demographics %>% filter(died=="N" | death_date>"2020-05-01" )
 
@@ -5975,13 +5373,13 @@ HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, fac
 HF_Drug_Histories <- HF_Drug_Histories %>% filter(Drugs!="-" & Drugs != "104")
 HF_Drug_Histories <- HF_Drug_Histories %>% select(patient) %>% distinct()
 
-HF_Demographics %>% inner_join(HF_Drug_Histories) %>% summarise(n=sum(weight)) # 13035527
+HF_Demographics %>% inner_join(HF_Drug_Histories) %>% summarise(n=sum(weight)) # 
 
 HF_Drug_Histories_exp <- HF_Demographics %>% inner_join(HF_Drug_Histories) %>% select(patient)
 
 
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
-sum(as.numeric(HF_Drug_Histories$weight)) # 13359838
+sum(as.numeric(HF_Drug_Histories$weight)) # 
 
 HF_Drug_Histories <- HF_Drug_Histories_exp %>% select(patient) %>% inner_join(HF_Drug_Histories)
 
@@ -6006,7 +5404,7 @@ unique(HF_Drug_Histories$generic_name)
 
 HF_Drug_Histories$generic_name <- str_replace_all(HF_Drug_Histories$generic_name, " ", "_")
 
-HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 12987606
+HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 
 
 temp_full <- HF_Drug_Histories %>% 
   select(patient, weight, generic_name) %>% distinct() %>%
@@ -6034,11 +5432,7 @@ temp_full <- temp_full %>% left_join(HF_Comorbidity_Inventories)
 temp_full_nopat <- temp_full[,2:1101]
 temp_full_nopat <- temp_full_nopat %>% select(-Stages)
 
-91336
 
-0.20*91336 = 18267
-0.69*91336 = 63022
-0.95*91336 = 86769,  91336
 
 names(temp_full_nopat) <- paste0("A",names(temp_full_nopat))
 
@@ -6133,7 +5527,7 @@ names(HF_Demographics)[1] <- "patient"
 
 sum(HF_Demographics$weight) # 17277771
 
-HF_Demographics %>% filter(died=="N" | death_date>"2020-05-01" ) %>% summarise(n=sum(weight)) # 14363507
+HF_Demographics %>% filter(died=="N" | death_date>"2020-05-01" ) %>% summarise(n=sum(weight)) # 
 
 HF_Demographics <- HF_Demographics %>% filter(died=="N" | death_date>"2020-05-01" )
 
@@ -6142,7 +5536,7 @@ HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, fac
 HF_Drug_Histories <- HF_Drug_Histories %>% filter(Drugs!="-" & Drugs != "104")
 HF_Drug_Histories <- HF_Drug_Histories %>% select(patient) %>% distinct()
 
-HF_Demographics %>% inner_join(HF_Drug_Histories) %>% summarise(n=sum(weight)) # 12987606
+HF_Demographics %>% inner_join(HF_Drug_Histories) %>% summarise(n=sum(weight)) # 
 
 TO_track <- HF_Demographics %>% inner_join(HF_Drug_Histories) %>% select(patient)
 
@@ -6185,19 +5579,19 @@ data.frame(HF_Drug_Histories %>%
 
 HF_Demographics <- fread("HF Demographics.txt")
 names(HF_Demographics)[1] <- "patient"
-sum(HF_Demographics$weight) # 17277771
-HF_Demographics %>% filter(died=="N" | death_date>"2020-05-01" ) %>% summarise(n=sum(weight)) # 14363507
+sum(HF_Demographics$weight) # 
+HF_Demographics %>% filter(died=="N" | death_date>"2020-05-01" ) %>% summarise(n=sum(weight)) # 
 HF_Demographics <- HF_Demographics %>% filter(died=="N" | death_date>"2020-05-01" )
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
 HF_Drug_Histories <- HF_Drug_Histories %>% filter(Drugs!="-" & Drugs != "104")
 HF_Drug_Histories <- HF_Drug_Histories %>% select(patient) %>% distinct()
-HF_Demographics %>% inner_join(HF_Drug_Histories) %>% summarise(n=sum(weight)) # 12987606
+HF_Demographics %>% inner_join(HF_Drug_Histories) %>% summarise(n=sum(weight)) # 
 TO_track <- HF_Demographics %>% inner_join(HF_Drug_Histories) %>% select(patient)
 
 
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
-sum(as.numeric(HF_Drug_Histories$weight)) # 13359838
+sum(as.numeric(HF_Drug_Histories$weight)) # 
 
 HF_Drug_Histories <- TO_track %>% left_join(HF_Drug_Histories)
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
@@ -6226,16 +5620,7 @@ string_Injectables <- paste0("\\b(",paste0(HF_Ingredients$Drugs[HF_Ingredients$d
 
 string_Oral <- paste0("\\b(",paste0(HF_Ingredients$Drugs[HF_Ingredients$drug_group=="Oral Therapy"], collapse = "|"),")\\b")
 
-# Surgery/Transplant/Hospital/Devices 1
-# Neprilysin inhibitor 2
-# MRA 3
-# Injectables 4
-# SGLT2 5
-# Other Advanced 6
-# Orals* 7
-# Orals 8
-# dead 9
-# lapsed 10
+
 
 HF_Drug_Histories <- HF_Drug_Histories %>% mutate(Stock = ifelse(grepl(string_AdvancedProcedure, Drugs), 1,
                                             ifelse(grepl(string_MRA, Drugs), 2, 
@@ -6307,9 +5692,6 @@ flHF <- flHF[,c(12,1:11)]
 HF_Box_Histories <- HF_Box_Histories[,disease := NULL]
 HF_Box_Histories <- data.frame(HF_Box_Histories, stringsAsFactors = F)
 
-
-#  We have 10 stocks now !!!
-
 # for(i in 1:60){
 #   cat(i)
 #   HF_Box_Histories[,i+2] <- unlist(lapply(HF_Box_Histories[,i+2],function(x) str_sub(x, 1L, 1L)))
@@ -6341,13 +5723,13 @@ fwrite(flHF,"HF_Flows_Aux._Long2.txt")
 HF_Demographics <- fread("HF Demographics.txt")
 names(HF_Demographics)[1] <- "patient"
 sum(HF_Demographics$weight) # 17277771
-HF_Demographics %>% filter(died=="N" | death_date>"2020-05-01" ) %>% summarise(n=sum(weight)) # 14363507
+HF_Demographics %>% filter(died=="N" | death_date>"2020-05-01" ) %>% summarise(n=sum(weight)) # 
 HF_Demographics <- HF_Demographics %>% filter(died=="N" | death_date>"2020-05-01" )
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
 HF_Drug_Histories <- HF_Drug_Histories %>% filter(Drugs!="-" & Drugs != "104")
 HF_Drug_Histories <- HF_Drug_Histories %>% select(patient) %>% distinct()
-HF_Demographics %>% inner_join(HF_Drug_Histories) %>% summarise(n=sum(weight)) # 12987606
+HF_Demographics %>% inner_join(HF_Drug_Histories) %>% summarise(n=sum(weight)) # 
 TO_track <- HF_Demographics %>% inner_join(HF_Drug_Histories) %>% select(patient)
 
 
@@ -6521,7 +5903,7 @@ HF_Drug_Histories <- HF_Drug_Histories %>% filter(Drugs!="-")
 
 HF_Drug_Histories <- separate_rows(HF_Drug_Histories, Drugs, sep = ",", convert=T)
 
-HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 5726651 treat-experienced
+HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 
 
 HF_Ingredients <- fread("HF Ingredients.txt",  colClasses = "character", stringsAsFactors = F)
 
@@ -6645,7 +6027,7 @@ names(HF_Ingredients)[1] <- "Drugs"
 
 HF_Drug_Histories <- HF_Drug_Histories %>% filter(Month=="month60") %>% left_join(HF_Ingredients) 
 
-HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 7547588
+HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 
 
 
 LoT <- LoT %>% left_join(HF_Drug_Histories) %>% mutate(drug_class=ifelse(drug_group=="Injectable Therapy", "Injectables", drug_class)) %>%
@@ -6719,18 +6101,6 @@ HF_Flows_Aux._Long %>% filter(p2>=49)  %>% filter(flow==1) %>% group_by(s1, s2) 
   ungroup() %>% spread(key=s2, value=n) %>% 
   arrange(-s1) %>% select(1,11,10:2)
 
-#      s1     `10`     `9`      `8`      `7`      `6`     `5`     `4`     `3`      `2`     `1`
-#   <int>    <dbl>   <dbl>    <dbl>    <dbl>    <dbl>   <dbl>   <dbl>   <dbl>    <dbl>   <dbl>
-# 1    10      NA  554492. 2040783.  362001.  436517.  59936. 133471.  45282.  173572. 319404.
-# 2     8 1967906.  97024. 4833620.      NA   545315. 121365. 157890.  56227.  253754. 310074.
-# 3     7  447066.  69669.      NA  1328389.  158045.  27522.  49384.  31745.   79779. 238453.
-# 4     6  433497.  32629.  512689.  168085. 1727536.  29878.  66293.  22432.   72627. 149498.
-# 5     5   47097.   2445.   91538.   17496.   19754. 330845.   6385.   5465.   15607.  13935.
-# 6     4  109792    2912.  150510.   45440.   68635.   6465.  31124.   3734.   11452.  11234.
-# 7     3   35346.   3082.   34449.   31079.   14126.   3460.   1042. 298436.   49421.  32702.
-# 8     2  161477.  19365.  221946.   85733.   65274.  13859.   6145.  47414. 1465154. 128532.
-# 9     1  286687.  23992.      NA   499711.  140034.  14059.  12866.  34473.  138928. 175919.
-
 
 Groups_Diastolic_vs_Systolic_ALL <- fread("Groups_Diastolic_vs_Systolic_ALL.txt", colClasses = "character", sep=",")
 HF_Flows_Aux._Long <- Groups_Diastolic_vs_Systolic_ALL %>% left_join(HF_Flows_Aux._Long)
@@ -6761,52 +6131,25 @@ HF_Flows_Aux._Long %>% filter(group=="Diastolic") %>%
   filter(p2>=49)  %>% filter(flow==1) %>% group_by(s1, s2) %>% summarise(n=sum(as.numeric(weight))) %>%
   ungroup() %>% spread(key=s2, value=n) %>% 
   arrange(-s1) %>% select(1,11,10:2)
-
-#      s1    `10`     `9`      `8`     `7`     `6`    `5`    `4`    `3`     `2`     `1`
-#   <int>   <dbl>   <dbl>    <dbl>   <dbl>   <dbl>  <dbl>  <dbl>  <dbl>   <dbl>   <dbl>
-# 1    10     NA  170907.  480988. 116613. 122330. 13351. 45314.  1925.  37630. 108784.
-# 2     8 469445.  26103. 1386239.     NA  173648. 28444. 64825.  2155.  72665. 122780.
-# 3     7 143622.  27502.      NA  483646.  58881.  6365. 20247.  2041.  23941. 115898.
-# 4     6 129909.  11040.  159804.  65287. 574371.  8776. 28146.  2177.  25540.  63995.
-# 5     5   9185.    416.   22346    6019.   5216. 75854.  1643.   268.   3924.   3826.
-# 6     4  36635.   2057.   60852.  17974.  31275.  2126. 12662.   127.   3675.   4318.
-# 7     3   1737.    471.    1522.   1746.    780.    NA    131. 11662.   1017.   1823.
-# 8     2  39997.   6859.   61836.  26224.  21752.  2904.  2337.  1293. 362684.  34390.
-# 9     1 107682.   7247.      NA  204807.  60694.  4213.  6404.  2750.  37047.  68615.
-
-
 HF_Flows_Aux._Long %>% filter(group=="Systolic") %>%
   filter(p2>=49)  %>% filter(flow==1) %>% group_by(s1, s2) %>% summarise(n=sum(as.numeric(weight))) %>%
   ungroup() %>% spread(key=s2, value=n) %>% 
   arrange(-s1) %>% select(1,11,10:2)
-
-#      s1    `10`     `9`     `8`     `7`     `6`    `5`    `4`     `3`     `2`    `1`
-#   <int>   <dbl>   <dbl>   <dbl>   <dbl>   <dbl>  <dbl>  <dbl>   <dbl>   <dbl>  <dbl>
-# 1    10     NA  107855. 277428.  92601.  73862. 11004. 31081.  26860.  49258. 96279.
-# 2     8 256635.  15743. 674764.     NA   74388. 16306. 20782.  29922.  56954. 72909.
-# 3     7 116316.  19493.     NA  350800.  41622.  8885. 13523.  17941.  31095. 62832.
-# 4     6  73889.   6547.  74071.  45969. 339052.  6272. 16263.  11441.  17197. 44406.
-# 5     5   8998.    755.  10423.   4984.   4407. 59281.  1487.   3069.   4505.  5126.
-# 6     4  25885.    628.  20833.  13470.  14526.  1030.  7890.   1531.   3826.  3567.
-# 7     3  22193.   1987.  18667.  17713.   8498.  2643.   636. 176208.  31374. 21964.
-# 8     2  40476.   4846.  49908.  30337.  18120.  3206.  1972.  32184. 527177. 55045.
-# 9     1  79760.   7666.     NA  126166.  42218.  5146.  3310.  21906.  64519. 64389.
-
-
+        
 
 # ------------------------------
 # All PAts inc death  -Comorbidities Penetrance HF ----------------------------------------------------------
 
 HF_Demographics <- fread("HF Demographics.txt")
 names(HF_Demographics)[1] <- "patient"
-sum(HF_Demographics$weight) # 17277771
-HF_Demographics %>% filter(died=="N" | death_date>"2020-05-01" ) %>% summarise(n=sum(weight)) # 14363507
+sum(HF_Demographics$weight) # 
+HF_Demographics %>% filter(died=="N" | death_date>"2020-05-01" ) %>% summarise(n=sum(weight)) # 
 HF_Demographics <- HF_Demographics %>% filter(died=="N" | death_date>"2020-05-01" )
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
 HF_Drug_Histories <- HF_Drug_Histories %>% filter(Drugs!="-" & Drugs != "104")
 HF_Drug_Histories <- HF_Drug_Histories %>% select(patient) %>% distinct()
-HF_Demographics %>% inner_join(HF_Drug_Histories) %>% summarise(n=sum(weight)) # 12987606
+HF_Demographics %>% inner_join(HF_Drug_Histories) %>% summarise(n=sum(weight)) # 
 TO_track <- HF_Demographics %>% inner_join(HF_Drug_Histories) %>% select(patient)
 
 
@@ -6816,15 +6159,15 @@ names(HF_Comorbidity_Inventories)[1] <- "patient"
 
 HF_Comorbidity_Inventories <- TO_track %>% inner_join(HF_Comorbidity_Inventories)
 
-HF_Comorbidity_Inventories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 12041998
+HF_Comorbidity_Inventories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 
 
 HF_Comorbidity_Inventories %>% filter(diagnosis=="N18") %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) #5947969 
 
 HF_Comorbidity_Inventories %>% filter(diagnosis=="I70"|diagnosis=="I73") %>% 
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) #6288444 #
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # #
 
 HF_Comorbidity_Inventories %>% filter(diagnosis=="K76") %>% 
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) #2640718 #
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # #
 
 DANU_Demographics <- fread("DANU Demographics Full.txt")
 DANU_Demographics <- DANU_Demographics %>% select(patid, weight, diagnosis) %>% filter(grepl("Diabetes", diagnosis)|grepl("Obesity", diagnosis))
@@ -6832,11 +6175,11 @@ names(DANU_Demographics)[1] <- "patient"
 
 DANU_Demographics %>% filter(grepl("Obesity", diagnosis)) %>% select(patient) %>%
   inner_join(HF_Comorbidity_Inventories) %>%
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  # 10817775 
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  #  
 
 DANU_Demographics %>% filter(grepl("Diabetes", diagnosis)) %>% select(patient) %>%
   inner_join(HF_Comorbidity_Inventories) %>%
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  #  7767878 
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  #   
 
 DANU_Events <- fread("DANU Events Full.txt")
 DANU_Events <- DANU_Events %>% filter(grepl("BMI", code ))
@@ -6847,7 +6190,7 @@ names(DANU_Events)[1] <- "patient"
 
 DANU_Events %>% 
   inner_join(HF_Comorbidity_Inventories) %>% ungroup() %>%
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  # 5006559 
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  #  
 
 
 
@@ -6860,19 +6203,19 @@ HF_Comorbidity_Inventories %>% inner_join(Diastolic) %>% select(patient, weight)
 HF_Comorbidity_Inventories %>% inner_join(Diastolic) %>% filter(diagnosis=="N18") %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) #1820457 #
 
 HF_Comorbidity_Inventories %>% inner_join(Diastolic) %>% filter(diagnosis=="I70"|diagnosis=="I73") %>% 
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) #1863226 # 
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # # 
 
 HF_Comorbidity_Inventories  %>% inner_join(Diastolic) %>% filter(diagnosis=="K76") %>% 
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) #713195.7 # 
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # # 
 
 
 DANU_Demographics %>% filter(grepl("Diabetes", diagnosis)) %>% select(patient) %>%
   inner_join(HF_Comorbidity_Inventories) %>% inner_join(Diastolic) %>%
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  #  2087703 
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  #   
 
 DANU_Events %>% 
   inner_join(HF_Comorbidity_Inventories) %>% ungroup() %>% inner_join(Diastolic) %>% 
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  # 1423131 
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  #  
 
 
 
@@ -6886,19 +6229,19 @@ HF_Comorbidity_Inventories %>% inner_join(Systolic) %>% select(patient, weight) 
 HF_Comorbidity_Inventories %>% inner_join(Systolic) %>% filter(diagnosis=="N18") %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) #1137513 #
 
 HF_Comorbidity_Inventories %>% inner_join(Systolic) %>% filter(diagnosis=="I70"|diagnosis=="I73") %>% 
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) #1097944 #
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # #
 
 HF_Comorbidity_Inventories  %>% inner_join(Systolic) %>% filter(diagnosis=="K76") %>% 
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) #433428.1
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) #
 
 DANU_Demographics %>% filter(grepl("Diabetes", diagnosis)) %>% select(patient) %>%
   inner_join(HF_Comorbidity_Inventories) %>% inner_join(Systolic) %>%
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  #  1359270 
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  #   
 
 
 DANU_Events %>% 
   inner_join(HF_Comorbidity_Inventories) %>% ungroup() %>% inner_join(Systolic) %>% 
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  # 875600 
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))  #  
 
 
 
@@ -7240,14 +6583,14 @@ grid.bubble.plot(Start_df_Systolic)
 
 HF_Demographics <- fread("HF Demographics.txt")
 names(HF_Demographics)[1] <- "patient"
-sum(HF_Demographics$weight) # 17277771
-HF_Demographics %>% filter(died=="N" | death_date>"2020-05-01" ) %>% summarise(n=sum(weight)) # 14363507
+sum(HF_Demographics$weight) # 
+HF_Demographics %>% filter(died=="N" | death_date>"2020-05-01" ) %>% summarise(n=sum(weight)) # 
 HF_Demographics <- HF_Demographics %>% filter(died=="N" | death_date>"2020-05-01" )
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
 HF_Drug_Histories <- HF_Drug_Histories %>% filter(Drugs!="-" & Drugs != "104")
 HF_Drug_Histories <- HF_Drug_Histories %>% select(patient) %>% distinct()
-HF_Demographics %>% inner_join(HF_Drug_Histories) %>% summarise(n=sum(weight)) # 12987606
+HF_Demographics %>% inner_join(HF_Drug_Histories) %>% summarise(n=sum(weight)) # 
 TO_track <- HF_Demographics %>% inner_join(HF_Drug_Histories) %>% select(patient)
 
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
@@ -7286,37 +6629,24 @@ TO_track %>% left_join(HF_Comorbidity_Inventories %>% filter(diagnosis=="N18") %
   left_join(SGLT2_Pats %>% mutate(SGLT2="SGLT2")) %>%
   group_by(CKD, SGLT2) %>% count()
    
-#   CKD   SGLT2     n
-#   <chr> <chr> <int>
-# 1 CKD   SGLT2  2556
-# 2 CKD   NA    38839
-# 3 NA    SGLT2  3193
-# 4 NA    NA    46748
+
+                                 
 
 TO_track %>% left_join(HF_Comorbidity_Inventories %>% filter(diagnosis=="I70"|diagnosis=="I73") %>% select(patient, weight) %>% distinct() %>% 
   mutate(PAD="PAD"))  %>%
   left_join(SGLT2_Pats %>% mutate(SGLT2="SGLT2")) %>%
   group_by(PAD, SGLT2) %>% count()
    
-#   PAD   SGLT2     n
-#   <chr> <chr> <int>
-# 1 PAD   SGLT2  2612
-# 2 PAD   NA    41109
-# 3 NA    SGLT2  3137
-# 4 NA    NA    44478
+
+                                 
 
 TO_track %>% left_join(HF_Comorbidity_Inventories %>% filter(diagnosis=="K76") %>% select(patient, weight) %>% distinct() %>% 
   mutate(NAFLD="NAFLD"))  %>%
   left_join(SGLT2_Pats %>% mutate(SGLT2="SGLT2")) %>%
   group_by(NAFLD, SGLT2) %>% count()
 
-#   NAFLD SGLT2     n
-#   <chr> <chr> <int>
-# 1 NAFLD SGLT2  1630
-# 2 NAFLD NA    17164
-# 3 NA    SGLT2  4119
-# 4 NA    NA    68423
 
+                                 
 
 DANU_Demographics <- fread("DANU Demographics Full.txt")
 DANU_Demographics <- DANU_Demographics %>% select(patid, weight, diagnosis) %>% filter(grepl("Diabetes", diagnosis)|grepl("Obesity", diagnosis))
@@ -7329,13 +6659,8 @@ TO_track %>% left_join(DANU_Demographics %>% filter(grepl("Diabetes", diagnosis)
     left_join(SGLT2_Pats %>% mutate(SGLT2="SGLT2")) %>%
   group_by(Diabetes, SGLT2) %>% count()
 
-# 
-#   Diabetes SGLT2     n
-#   <chr>    <chr> <int>
-# 1 Diabetes SGLT2  5636
-# 2 Diabetes NA    48971
-# 3 NA       SGLT2   113
-# 4 NA       NA    36616
+
+                                 
 
 
 DANU_Events <- fread("DANU Events Full.txt")
@@ -7353,13 +6678,8 @@ TO_track %>% left_join(DANU_Events %>%
   group_by(Obesity, SGLT2) %>% count()
 
 
-#   Obesity SGLT2     n
-#   <chr>   <chr> <int>
-# 1 Obesity SGLT2  2811
-# 2 Obesity NA    32607
-# 3 NA      SGLT2  2938
-# 4 NA      NA    52980
 
+                                 
 
 
 # ------------------------------------------------
@@ -7748,12 +7068,8 @@ sum(as.numeric(HF_Drug_Histories$weight))
 
 HF_Drug_Histories %>% group_by(Predicted.Stage) %>% summarise(n=sum(as.numeric(weight)))
 
-#   Predicted.Stage        n
-#   <chr>              <dbl>
-# 1 1               2589935.
-# 2 2               6393928.
-# 3 3               3366416.
-# 4 4                637326.
+
+
 
 
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
@@ -7826,10 +7142,8 @@ names(HF_Ingredients)[1] <- "Drugs"
 HF_Drug_Histories <- HF_Drug_Histories %>% select(patient, weight, Drugs, group) %>% distinct() %>% left_join(HF_Ingredients) 
 
 HF_Drug_Histories %>% select(patient, group, weight) %>% distinct() %>% group_by(group) %>% summarise(N=sum(as.numeric(weight)))
- 
-# 1 Diastolic 771164.
-# 2 Systolic  628553.
 
+        
 
 data.frame(HF_Drug_Histories %>% 
              mutate(drug_class=ifelse(drug_group=="Injectable Therapy", "Injectables", drug_class)) %>%
@@ -7872,9 +7186,8 @@ HF_Drug_Histories <- HF_Drug_Histories  %>% filter(Month==Onset) %>% select(-dis
 
 HF_Drug_Histories %>% select(patient, group, weight) %>% distinct() %>% group_by(group) %>% summarise(N=sum(as.numeric(weight)))
  
-#   group            N
-# 1 Diastolic 2628678.
-# 2 Systolic  1706563.
+
+      
 
 HF_Drug_Histories <- separate_rows(HF_Drug_Histories, Drugs, sep = ",", convert=T)
 
@@ -7940,12 +7253,6 @@ temp %>% mutate(sum=ifelse(grepl("A",paths),"ARNi",
                                               ifelse(grepl("I", paths), "Injectables", "Other Orals")))) %>%
   group_by(sum) %>% summarise(n=sum(n))
 
-#   sum               n
-#   <chr>         <dbl>
-# 1 ARNi         55490.
-# 2 Injectables  57705.
-# 3 Other Orals 385894.
-# 4 Procedures  194464.
 
 fwrite(temp, "PAths_to_MRA.csv", sep=",")
 
@@ -8124,13 +7431,13 @@ DANU_Dossiers %>% filter(grepl("ystolic", description)) %>%
 HF_Demographics <- fread("HF Demographics.txt")
 names(HF_Demographics)[1] <- "patient"
 sum(HF_Demographics$weight) # 17277771
-HF_Demographics %>% filter(died=="N" | death_date>"2020-05-01" ) %>% summarise(n=sum(weight)) # 14363507
+HF_Demographics %>% filter(died=="N" | death_date>"2020-05-01" ) %>% summarise(n=sum(weight)) # 
 HF_Demographics <- HF_Demographics %>% filter(died=="N" | death_date>"2020-05-01" )
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
 HF_Drug_Histories <- HF_Drug_Histories %>% filter(Drugs!="-" & Drugs != "104")
 HF_Drug_Histories <- HF_Drug_Histories %>% select(patient) %>% distinct()
-HF_Demographics %>% inner_join(HF_Drug_Histories) %>% summarise(n=sum(weight)) # 12987606
+HF_Demographics %>% inner_join(HF_Drug_Histories) %>% summarise(n=sum(weight)) # 
 TO_track <- HF_Demographics %>% inner_join(HF_Drug_Histories) %>% select(patient)
 
 min(HF_Demographics$heart_failure_onset)
@@ -8147,11 +7454,6 @@ Groups_Diastolic_vs_Systolic_ALL %>% inner_join(
   group_by(group) %>% summarise(n=sum(weight))
 
 
-# 1 Diastolic 3366024.
-# 2 Systolic  2360626.
-
-# 1 Diastolic 2628678.
-# 2 Systolic  1706563.
 
 
 TO_track_Dx_LastYear <- HF_Demographics %>% mutate(heart_failure_onset=as.Date(heart_failure_onset)) %>%
@@ -8163,7 +7465,7 @@ TO_track_Dx_LastYear <- HF_Demographics %>% mutate(heart_failure_onset=as.Date(h
 HF_Demographics <- fread("HF Demographics.txt")
 names(HF_Demographics)[1] <- "patient"
 
-sum(HF_Demographics$weight) # 17277771
+sum(HF_Demographics$weight) # 
 
 
 HF_Demographics %>% filter(died=="N" | death_date>"2020-05-01") %>% filter(heart_failure_onset >= "2016-05-01") %>% summarise(n=sum(weight)) # 11282410
@@ -8175,7 +7477,7 @@ HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, fac
 HF_Drug_Histories <- HF_Drug_Histories %>% filter(Drugs!="-" & Drugs != "104")
 HF_Drug_Histories <- HF_Drug_Histories %>% select(patient) %>% distinct()
 
-HF_Demographics %>% inner_join(HF_Drug_Histories) %>% summarise(n=sum(weight)) # 10149523
+HF_Demographics %>% inner_join(HF_Drug_Histories) %>% summarise(n=sum(weight)) # 
 
 
 HF_Demographics <- HF_Demographics %>% select(patient, weight, heart_failure_onset, heart_failure_condition)
@@ -8183,10 +7485,10 @@ HF_Demographics <- HF_Demographics %>% select(patient, weight, heart_failure_ons
 HF_Demographics <- HF_Demographics %>% drop_na()
 
 # ALL Heart Failure
-sum(HF_Demographics$weight) # 14363507
+sum(HF_Demographics$weight) # 
 
 # ALL Chronic Failure
-HF_Demographics %>% filter(heart_failure_condition=="Chronic Heart Failure") %>% summarise(n=sum(weight)) # 11282410
+HF_Demographics %>% filter(heart_failure_condition=="Chronic Heart Failure") %>% summarise(n=sum(weight)) # 
 
 DANU_Diagnosis_Codes <- fread("DANU Diagnosis Codes.txt")
 
@@ -8201,13 +7503,13 @@ DANU_Dossiers <- HF_Demographics %>% select(patient) %>% inner_join(DANU_Dossier
 
 DANU_Dossiers <- DANU_Dossiers %>% select(patient, weight, code, earliest, latest, frequency)
 
-DANU_Dossiers %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 11282410
+DANU_Dossiers %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
 
 DANU_Dossiers <- DANU_Dossiers %>% left_join(DANU_Diagnosis_Codes)
 
 DANU_Dossiers <- DANU_Dossiers %>% drop_na()
 
-DANU_Dossiers %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 11282410
+DANU_Dossiers %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
 
 HF_Drug_Histories <- fread("HF Drug Histories.txt", colClasses = "character")
 HF_Drug_Histories <- gather(HF_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
@@ -8220,12 +7522,12 @@ DANU_Dossiers <- HF_Drug_Histories %>% inner_join(DANU_Dossiers)
 
 # Must have specified systolic or dyastolic 
 DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("iastolic", description)) %>%
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 5894540
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
   
 DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("iastolic", description)) %>%
   group_by(patient) %>% summarise(n=sum(frequency)) %>% filter(n>1) %>%
   left_join(DANU_Dossiers) %>% filter(grepl("ystolic", description)|grepl(5039290)) %>%
-  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 5039290
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
 
 
 
@@ -8244,11 +7546,6 @@ DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("iastolic", descrip
   mutate(check=1) %>% spread(key=Group, value=check) %>%
   group_by(Diastolic, Systolic) %>% summarise(n=sum(weight))
 
-#   Diastolic Systolic        n
-#       <dbl>    <dbl>    <dbl>
-# 1         1        1  704049.
-# 2         1       NA 2628678.
-# 3        NA        1 1706563.
 
 Diastolic_Pats <- DANU_Dossiers %>% filter(grepl("ystolic", description)|grepl("iastolic", description)) %>%
   group_by(patient) %>% summarise(n=sum(frequency)) %>% filter(n>1) %>%
@@ -8428,11 +7725,6 @@ HF_Drug_Histories <- HF_Drug_Histories %>% select(patient, weight, Drugs, group)
 
 HF_Drug_Histories %>% select(patient, group, weight) %>% distinct() %>% group_by(group) %>% summarise(N=sum(as.numeric(weight)))
  
-
-# 1 Diastolic 646533.
-# 2 Systolic  534495.
-
-
 data.frame(HF_Drug_Histories %>% 
              mutate(drug_class=ifelse(drug_group=="Injectable Therapy", "Injectables", drug_class)) %>%
   select(patient, weight, drug_class, group) %>% distinct() %>%
@@ -8582,8 +7874,6 @@ data.frame(SGLT2_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weigh
 
 
 ARNI_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group) %>% distinct() %>% group_by(group) %>% summarise(n=sum(weight)) 
-# 1 Diastolic   8390.
-# 2 Systolic  146421.
 
 data.frame(ARNI_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group, Drugs) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>% mutate(n=ifelse(n>=10,10,n)) %>% group_by(group, n) %>% summarise(lines=sum(weight)) %>%
@@ -8596,8 +7886,7 @@ data.frame(ARNI_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight
 
 
 MRA_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group) %>% distinct() %>% group_by(group) %>% summarise(n=sum(weight)) 
-# 1 Diastolic 153829.
-# 2 Systolic  214514.
+
 
 data.frame(MRA_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group, Drugs) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>% mutate(n=ifelse(n>=10,10,n)) %>% group_by(group, n) %>% summarise(lines=sum(weight)) %>%
@@ -8618,68 +7907,43 @@ HF_Drug_Histories <- HF_Drug_Histories %>% mutate(drug_class=ifelse(drug_group==
 
 
 SGLT2_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group) %>% distinct() %>% group_by(group) %>% summarise(n=sum(weight))
-# 1 Diastolic 55222.
-# 2 Systolic  61746.
+
 
 data.frame(SGLT2_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group, drug_class) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>% mutate(n=ifelse(n>=5,5,n)) %>% group_by(group, n) %>% summarise(classes=sum(weight)) %>%
   ungroup() %>% spread(key=group, value=classes))
 
-# 1 1   1178.45   474.62
-# 2 2   3770.73  1750.28
-# 3 3   8832.38  5154.50
-# 4 4  16522.32  9644.98
-# 5 5  24918.38 44721.56
+
 
 data.frame(SGLT2_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group, drug_class) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>%  group_by(group) %>% summarise(lines=weighted.mean(n,weight)))
-# 1 Diastolic 4.49226
-# 2  Systolic 5.58539
-
-
 
 
 ARNI_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group) %>% distinct() %>% group_by(group) %>% summarise(n=sum(weight))
-# 1 Diastolic   8390.
-# 2 Systolic  146421.
+
 
 data.frame(ARNI_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group, drug_class) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>% mutate(n=ifelse(n>=5,5,n)) %>% group_by(group, n) %>% summarise(classes=sum(weight)) %>%
   ungroup() %>% spread(key=group, value=classes))
 
-# 1 1    223.49    337.72
-# 2 2    160.35   4404.52
-# 3 3    669.77  14571.21
-# 4 4   1170.50  19360.79
-# 5 5   6166.39 107746.71
 
 data.frame(ARNI_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group, drug_class) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>%  group_by(group) %>% summarise(lines=weighted.mean(n,weight)))
-# 1 Diastolic 5.693773
-# 2  Systolic 5.596102
-
-
-
 
 
 MRA_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group) %>% distinct() %>% group_by(group) %>% summarise(n=sum(weight))
-# 1 Diastolic 153829.
-# 2 Systolic  214514.
+
 
 data.frame(MRA_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group, drug_class) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>% mutate(n=ifelse(n>=5,5,n)) %>% group_by(group, n) %>% summarise(classes=sum(weight)) %>%
   ungroup() %>% spread(key=group, value=classes))
 
-# 1 1   2057.12    112.02
-# 2 2   9925.34   3805.77
-# 3 3  25412.17  17092.86
-# 4 4  41363.15  40347.44
-# 5 5  75070.82 153155.78
 
 data.frame(MRA_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group, drug_class) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>%  group_by(group) %>% summarise(lines=weighted.mean(n,weight)))
-# 1 Diastolic 4.524051
-# 2  Systolic 5.485027
+
+
+        
 # ------------------
 # Number Different Classes ON month60 - Dx Last 5y  ---------
 First_Diastolic <- fread("First_Diastolic_All_L5y.txt")
@@ -8741,17 +8005,9 @@ data.frame(HF_Drug_Histories %>% select(patient, weight, group, drug_class) %>% 
   ungroup() %>% mutate(n=ifelse(n>=5,5,n)) %>% group_by(group, n) %>% summarise(classes=sum(weight)) %>%
   ungroup() %>% spread(key=group, value=classes))
 
-# 1 1   1178.45   474.62
-# 2 2   3770.73  1750.28
-# 3 3   8832.38  5154.50
-# 4 4  16522.32  9644.98
-# 5 5  24918.38 44721.56
 
 data.frame(HF_Drug_Histories %>% select(patient, weight, group, drug_class) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>%  group_by(group) %>% summarise(lines=weighted.mean(n,weight)))
-# 1 Diastolic 2.110008
-# 2  Systolic 2.397244
-
 
 
 # ---------------------
@@ -8807,8 +8063,6 @@ HF_Drug_Histories <- HF_Drug_Histories %>% filter(Drugs!="104")
 
 
 HF_Drug_Histories %>% select(patient, weight, group) %>% distinct() %>% group_by(group) %>% summarise(n=sum(weight)) 
-# 1 Diastolic 2535004.
-# 2 Systolic  1662835.
 
 data.frame(HF_Drug_Histories %>% select(patient, weight, group, Drugs) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>% mutate(n=ifelse(n>=10,10,n)) %>% group_by(group, n) %>% summarise(lines=sum(weight)) %>%
@@ -8816,8 +8070,6 @@ data.frame(HF_Drug_Histories %>% select(patient, weight, group, Drugs) %>% disti
 
 data.frame(HF_Drug_Histories %>% select(patient, weight, group, Drugs) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>%  group_by(group) %>% summarise(lines=weighted.mean(n,weight)))
-# 1 Diastolic 4.144380
-# 2  Systolic 4.710941
 
 
 
@@ -8832,23 +8084,15 @@ HF_Drug_Histories <- HF_Drug_Histories %>% mutate(drug_class=ifelse(drug_group==
 
 
 HF_Drug_Histories %>% select(patient, weight, group) %>% distinct() %>% group_by(group) %>% summarise(n=sum(weight))
-# 1 Diastolic 2535004.
-# 2 Systolic  1662835.
 
 data.frame(HF_Drug_Histories %>% select(patient, weight, group, drug_class) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>% mutate(n=ifelse(n>=5,5,n)) %>% group_by(group, n) %>% summarise(classes=sum(weight)) %>%
   ungroup() %>% spread(key=group, value=classes))
 
-# 1 1  345689.4 150513.8
-# 2 2  515519.5 245506.3
-# 3 3  616580.1 347527.1
-# 4 4  508987.5 328733.3
-# 5 5  548227.9 590554.1
 
 data.frame(HF_Drug_Histories %>% select(patient, weight, group, drug_class) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>%  group_by(group) %>% summarise(lines=weighted.mean(n,weight)))
-# 1 Diastolic 3.301859
-# 2  Systolic 3.927493
+
 
 # ------------------------------
 #  Class penetrance vs LoT  - Dx Last 5y ----------------------
@@ -9075,41 +8319,10 @@ SGLT2_Pats <- SGLT2_Pats %>% mutate(drug_class=ifelse(drug_group=="Injectable Th
   select(patient, weight, group, drug_class) %>% distinct()
 
 SGLT2_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group) %>% distinct() %>% group_by(group) %>% summarise(n=sum(weight))
-# 1 Diastolic 108508.
-# 2 Systolic  111194.
+
+        
 data.frame(SGLT2_Pats  %>% group_by(group, drug_class) %>%
              mutate(drug_class=str_replace(drug_class, " ", "_")) %>% summarise(n=sum(weight)))
-
-# 1  Diastolic                ACE  38447.04
-# 2  Diastolic                ARB  29210.49
-# 3  Diastolic               ARNI    820.19
-# 4  Diastolic       Beta_Blocker  62254.21
-# 5  Diastolic     Cardiac_Device   1447.52
-# 6  Diastolic           Diuretic  59905.38
-# 7  Diastolic Hospital_Inpatient   1272.30
-# 8  Diastolic        Injectables   1812.87
-# 9  Diastolic          Inotropic   2405.28
-# 10 Diastolic                MRA   9166.07
-# 11 Diastolic              Other    681.25
-# 12 Diastolic              SGLT2 108508.27
-# 13 Diastolic  Surgery_Inpatient    541.60
-# 14 Diastolic        Vasodilator  14385.63
-# 15  Systolic                ACE  36140.87
-# 16  Systolic                ARB  28707.22
-# 17  Systolic               ARNI  22384.11
-# 18  Systolic       Beta_Blocker  81033.99
-# 19  Systolic     Cardiac_Device   3791.53
-# 20  Systolic           Diuretic  55580.39
-# 21  Systolic Hospital_Inpatient   2071.83
-# 22  Systolic        Injectables    906.82
-# 23  Systolic          Inotropic   6763.95
-# 24  Systolic                MRA  29294.47
-# 25  Systolic              Other    582.08
-# 26  Systolic              SGLT2 111194.24
-# 27  Systolic  Surgery_Inpatient   1632.12
-# 28  Systolic        Vasodilator  12569.54
-
-
 
 MRA_Pats <- MRA_Pats %>% group_by(patient, weight) %>% 
   filter(grepl(string_MRA, Drugs)) %>% filter(Month==min(Month))
@@ -9119,41 +8332,10 @@ MRA_Pats <- MRA_Pats %>% mutate(drug_class=ifelse(drug_group=="Injectable Therap
   select(patient, weight, group, drug_class) %>% distinct()
 
 MRA_Pats %>% select(patient, weight, group) %>% distinct() %>% group_by(group) %>% summarise(n=sum(weight))
-# 1 Diastolic 371393.
-# 2 Systolic  457760.
+
+        
 data.frame(MRA_Pats  %>% group_by(group, drug_class) %>%
              mutate(drug_class=str_replace(drug_class, " ", "_")) %>% summarise(n=sum(weight)))
-
-# 1  Diastolic                ACE  97510.36
-# 2  Diastolic                ARB 100470.28
-# 3  Diastolic               ARNI   2402.95
-# 4  Diastolic       Beta_Blocker 240095.06
-# 5  Diastolic     Cardiac_Device   6214.37
-# 6  Diastolic           Diuretic 280646.56
-# 7  Diastolic Hospital_Inpatient  24594.79
-# 8  Diastolic        Injectables  18284.62
-# 9  Diastolic          Inotropic  14102.01
-# 10 Diastolic                MRA 371392.54
-# 11 Diastolic              Other   3678.56
-# 12 Diastolic              SGLT2   6910.43
-# 13 Diastolic  Surgery_Inpatient   4871.43
-# 14 Diastolic        Vasodilator  62457.15
-# 15  Systolic                ACE 202151.74
-# 16  Systolic                ARB 117996.78
-# 17  Systolic               ARNI  58138.53
-# 18  Systolic       Beta_Blocker 388092.25
-# 19  Systolic     Cardiac_Device  25676.77
-# 20  Systolic           Diuretic 308715.93
-# 21  Systolic Hospital_Inpatient  28510.42
-# 22  Systolic        Injectables  23477.61
-# 23  Systolic          Inotropic  39462.83
-# 24  Systolic                MRA 457760.45
-# 25  Systolic              Other   4334.04
-# 26  Systolic              SGLT2  15484.50
-# 27  Systolic  Surgery_Inpatient  14103.24
-# 28  Systolic        Vasodilator  52593.00
-
-
 
 
 ARNi_Pats <- ARNi_Pats %>% group_by(patient, weight) %>% 
@@ -9164,41 +8346,10 @@ ARNi_Pats <- ARNi_Pats %>% mutate(drug_class=ifelse(drug_group=="Injectable Ther
   select(patient, weight, group, drug_class) %>% distinct()
 
 ARNi_Pats %>% select(patient, weight, group) %>% distinct() %>% group_by(group) %>% summarise(n=sum(weight))
-# 1 Diastolic  16784.
-# 2 Systolic  248765.
+
+        
 data.frame(ARNi_Pats  %>% group_by(group, drug_class) %>%
              mutate(drug_class=str_replace(drug_class, " ", "_")) %>% summarise(n=sum(weight)))
-
-# 1  Diastolic                ACE   4577.95
-# 2  Diastolic                ARB   2663.38
-# 3  Diastolic               ARNI  16784.37
-# 4  Diastolic       Beta_Blocker  13880.72
-# 5  Diastolic     Cardiac_Device    430.89
-# 6  Diastolic           Diuretic  10888.95
-# 7  Diastolic Hospital_Inpatient    770.14
-# 8  Diastolic        Injectables    766.00
-# 9  Diastolic          Inotropic    524.47
-# 10 Diastolic                MRA   3918.77
-# 11 Diastolic              Other    673.53
-# 12 Diastolic              SGLT2   1340.98
-# 13 Diastolic  Surgery_Inpatient    249.08
-# 14 Diastolic        Vasodilator   3125.65
-# 15  Systolic                ACE  55393.73
-# 16  Systolic                ARB  38866.47
-# 17  Systolic               ARNI 248764.51
-# 18  Systolic       Beta_Blocker 211719.48
-# 19  Systolic     Cardiac_Device   9572.20
-# 20  Systolic           Diuretic 151376.78
-# 21  Systolic Hospital_Inpatient   6002.50
-# 22  Systolic        Injectables   8494.14
-# 23  Systolic          Inotropic  18036.18
-# 24  Systolic                MRA  91774.46
-# 25  Systolic              Other   3247.71
-# 26  Systolic              SGLT2  12449.75
-# 27  Systolic  Surgery_Inpatient   3404.41
-# 28  Systolic        Vasodilator  21274.44
-
-
 
 # -------------------------------------
 # Class Penetrance 12 months before and after Surgery Hospitalization Dx Last 5y --------------------------------------------------
@@ -10036,14 +9187,7 @@ sum(as.numeric(New_Pats$weight))
 
 New_Pats %>% group_by(group, Predicted.Stage) %>% summarise(n=sum(as.numeric(weight)))
 
-# 1 Diastolic 1                322824.
-# 2 Diastolic 2               1238141 
-# 3 Diastolic 3                887841.
-# 4 Diastolic 4                179873.
-# 5 Systolic  1                249297.
-# 6 Systolic  2                835347.
-# 7 Systolic  3                521055.
-# 8 Systolic  4                100865.
+
 
 HF_Drug_Histories <- HF_Drug_Histories %>% left_join(Stages)
 
@@ -10282,8 +9426,8 @@ HF_Doses %>%
   left_join(FirstMRA) %>% ungroup() %>% filter(drug_class!="MRA") %>% select(-from_dt) %>% distinct() %>%
   mutate(SeenBefore=ifelse(prov==FirstMRA,1,0)) %>%
   select(pat_id, weight, SeenBefore) %>% distinct() %>%
- # select(pat_id, weight) %>% distinct() %>% summarise(n=sum(weight))  %>% # 2429788
-  filter(SeenBefore==1) %>% select(pat_id, weight) %>% distinct() %>% summarise(n=sum(weight)) # 1285261
+ # select(pat_id, weight) %>% distinct() %>% summarise(n=sum(weight))  %>% # 
+  filter(SeenBefore==1) %>% select(pat_id, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
 
 # 0.5289601 had already had scripts from that same physician
 
@@ -10311,8 +9455,8 @@ HF_Doses %>%
   left_join(FirstSGLT2) %>% ungroup() %>% filter(drug_class!="SGLT2") %>% select(-from_dt) %>% distinct() %>%
   mutate(SeenBefore=ifelse(prov==FirstSGLT2,1,0)) %>%
   select(pat_id, weight, SeenBefore) %>% distinct() %>%
-  #select(pat_id, weight) %>% distinct() %>% summarise(n=sum(weight))  %>% # 777778
-  filter(SeenBefore==1) %>% select(pat_id, weight) %>% distinct() %>% summarise(n=sum(weight)) # 462771
+  #select(pat_id, weight) %>% distinct() %>% summarise(n=sum(weight))  %>% # 
+  filter(SeenBefore==1) %>% select(pat_id, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
 
 # 0.5949911 had already had scripts from that same physician
 
@@ -10343,8 +9487,8 @@ HF_Doses %>%
   left_join(FirstInotropic) %>% ungroup() %>% filter(drug_class!="Inotropic") %>% select(-from_dt) %>% distinct() %>%
   mutate(SeenBefore=ifelse(prov==FirstInotropic,1,0)) %>%
   select(pat_id, weight, SeenBefore) %>% distinct() %>%
-  #select(pat_id, weight) %>% distinct() %>% summarise(n=sum(weight))  %>% # 1096621
-  filter(SeenBefore==1) %>% select(pat_id, weight) %>% distinct() %>% summarise(n=sum(weight)) # 461952
+  #select(pat_id, weight) %>% distinct() %>% summarise(n=sum(weight))  %>% # 
+  filter(SeenBefore==1) %>% select(pat_id, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
 
 # 0.4212504 had already had scripts from that same physician
 
@@ -10370,10 +9514,9 @@ HF_Doses %>%
   left_join(FirstACE) %>% ungroup() %>% filter(drug_class!="ACE") %>% select(-from_dt) %>% distinct() %>%
   mutate(SeenBefore=ifelse(prov==FirstACE,1,0)) %>%
   select(pat_id, weight, SeenBefore) %>% distinct() %>%
-  #select(pat_id, weight) %>% distinct() %>% summarise(n=sum(weight))  %>% # 3687952
-  filter(SeenBefore==1) %>% select(pat_id, weight) %>% distinct() %>% summarise(n=sum(weight)) # 1925361
+  #select(pat_id, weight) %>% distinct() %>% summarise(n=sum(weight))  %>% # 
+  filter(SeenBefore==1) %>% select(pat_id, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
 
-# 0.5220678 had already had scripts from that same physician
 
 
 
@@ -10399,10 +9542,9 @@ HF_Doses %>%
   left_join(FirstARB) %>% ungroup() %>% filter(drug_class!="ARB") %>% select(-from_dt) %>% distinct() %>%
   mutate(SeenBefore=ifelse(prov==FirstARB,1,0)) %>%
   select(pat_id, weight, SeenBefore) %>% distinct() %>%
-  #select(pat_id, weight) %>% distinct() %>% summarise(n=sum(weight))  %>% # 3259619
-  filter(SeenBefore==1) %>% select(pat_id, weight) %>% distinct() %>% summarise(n=sum(weight)) # 1962351
+  #select(pat_id, weight) %>% distinct() %>% summarise(n=sum(weight))  %>% # 
+  filter(SeenBefore==1) %>% select(pat_id, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
 
-# 0.6020185 had already had scripts from that same physician
 
 
 # ---------------------------------------
@@ -10457,7 +9599,7 @@ unique(HF_Drug_Histories$generic_name)
 
 HF_Drug_Histories$generic_name <- str_replace_all(HF_Drug_Histories$generic_name, " ", "_")
 
-HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 4335241
+HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 
 
 temp_short <- HF_Drug_Histories %>% 
   select(patient, weight, group, generic_name) %>% distinct() %>%
@@ -10640,8 +9782,8 @@ MRA_Pats <- HF_Drug_Histories %>% filter(grepl(string_MRA, Drugs)) %>% select(pa
 ARNI_pats <- HF_Drug_Histories %>% filter(grepl(string_ARNI, Drugs)) %>% select(patient,weight) %>% distinct()
 
 
-SGLT2_Pats %>% summarise(n=sum(weight)) # 269041.3
-MRA_Pats %>% anti_join(ARNI_pats) %>% inner_join(SGLT2_Pats) %>% summarise(n=sum(weight)) # 153432.5
+SGLT2_Pats %>% summarise(n=sum(weight)) # 
+MRA_Pats %>% anti_join(ARNI_pats) %>% inner_join(SGLT2_Pats) %>% summarise(n=sum(weight)) # 
 
 ARNI_pats %>% inner_join(MRA_Pats) %>%  left_join(HF_Drug_Histories) %>%
   group_by(patient, weight) %>%
@@ -10691,8 +9833,8 @@ HF_Drug_Histories <- HF_Drug_Histories %>% mutate(Drugs=ifelse(Month<Exact_Month
 
 HF_Drug_Histories <- separate_rows(HF_Drug_Histories, Drugs, sep = ",", convert=T)
 
-HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 5726651 treat-experienced
-
+HF_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 
+        
 HF_Ingredients <- fread("HF Ingredients.txt",  colClasses = "character", stringsAsFactors = F)
 
 HF_Ingredients <- HF_Ingredients %>%  separate(drug_id, c('group', 'molecule'))
@@ -10906,14 +10048,7 @@ Groups_Diastolic_vs_Systolic_L5Y %>% left_join(
   left_join(ARNi_Pats %>% mutate(ARNI="ARNI")) %>%
   group_by(group, CKD, ARNI) %>% summarise(n=sum(as.numeric(weight)))
    
-1 Diastolic CKD   ARNI    10077.
-2 Diastolic CKD   NA    1347286.
-3 Diastolic NA    ARNI     6971.
-4 Diastolic NA    NA    1264344.
-5 Systolic  CKD   ARNI   100534.
-6 Systolic  CKD   NA     667676.
-7 Systolic  NA    ARNI   151460.
-8 Systolic  NA    NA     786893.
+
 
 Groups_Diastolic_vs_Systolic_L5Y %>% left_join(
   HF_Comorbidity_Inventories %>% filter(diagnosis=="I70"|diagnosis=="I73") %>% select(patient) %>% distinct() %>% 
@@ -10921,29 +10056,12 @@ Groups_Diastolic_vs_Systolic_L5Y %>% left_join(
   left_join(ARNi_Pats %>% mutate(ARNI="ARNI")) %>%
   group_by(group, PAD, ARNI) %>% summarise(n=sum(as.numeric(weight)))
    
-1 Diastolic PAD   ARNI    10046.
-2 Diastolic PAD   NA    1412167.
-3 Diastolic NA    ARNI     7002.
-4 Diastolic NA    NA    1199463.
-5 Systolic  PAD   ARNI   102391.
-6 Systolic  PAD   NA     662115.
-7 Systolic  NA    ARNI   149603.
-8 Systolic  NA    NA     792454.
-
 Groups_Diastolic_vs_Systolic_L5Y %>% left_join(
   HF_Comorbidity_Inventories %>% filter(diagnosis=="K76") %>% select(patient) %>% distinct() %>% 
   mutate(NAFLD="NAFLD"))  %>%
   left_join(ARNi_Pats %>% mutate(ARNI="ARNI")) %>%
   group_by(group, NAFLD, ARNI) %>% summarise(n=sum(as.numeric(weight)))
 
-1 Diastolic NAFLD ARNI     4155.
-2 Diastolic NAFLD NA     554473.
-3 Diastolic NA    ARNI    12892.
-4 Diastolic NA    NA    2057158.
-5 Systolic  NAFLD ARNI    49932.
-6 Systolic  NAFLD NA     265085.
-7 Systolic  NA    ARNI   202062.
-8 Systolic  NA    NA    1189485.
 
 DANU_Demographics <- fread("DANU Demographics Full.txt")
 DANU_Demographics <- DANU_Demographics %>% select(patid, weight, diagnosis) %>% filter(grepl("Diabetes", diagnosis)|grepl("Obesity", diagnosis))
@@ -10956,15 +10074,6 @@ DANU_Demographics %>% filter(grepl("Diabetes", diagnosis)) %>% select(patient) %
   select(patient, weight, group, Diabetes) %>% distinct() %>% 
   left_join(ARNi_Pats %>% mutate(ARNI="ARNI")) %>%
   group_by(group, Diabetes, ARNI) %>% summarise(n=sum(as.numeric(weight)))
-
-1 Diastolic Diabetes ARNI    11704.
-2 Diastolic Diabetes NA    1566695.
-3 Diastolic NA       ARNI     5344.
-4 Diastolic NA       NA    1044935.
-5 Systolic  Diabetes ARNI   139009.
-6 Systolic  Diabetes NA     807618.
-7 Systolic  NA       ARNI   112984.
-8 Systolic  NA       NA     646952.
 
 DANU_Events <- fread("DANU Events Full.txt")
 DANU_Events <- DANU_Events %>% filter(grepl("BMI", code ))
@@ -10982,39 +10091,12 @@ Groups_Diastolic_vs_Systolic_L5Y %>%
   left_join(ARNi_Pats %>% mutate(ARNI="ARNI")) %>%
   group_by(group, Obesity, ARNI) %>% summarise(n=sum(as.numeric(weight)))
 
-1 Diastolic Obesity ARNI     6897.
-2 Diastolic Obesity NA    1094802.
-3 Diastolic NA      ARNI    10150.
-4 Diastolic NA      NA    1516829.
-5 Systolic  Obesity ARNI    97646.
-6 Systolic  Obesity NA     530398.
-7 Systolic  NA      ARNI   154348.
-8 Systolic  NA      NA     924171.
-
-
 
 Predicted_Stages_gbm_ALL <- fread("Predicted_Stages_gbm_ALL.txt")
 Predicted_Stages_gbm_ALL <- Groups_Diastolic_vs_Systolic_L5Y %>% left_join(Predicted_Stages_gbm_ALL)
 
 Predicted_Stages_gbm_ALL  %>% left_join(SGLT2_Pats %>% mutate(SGLT2="SGLT2")) %>%
   group_by(group, Predicted.Stage, SGLT2) %>% summarise(n=sum(as.numeric(weight)))
-
-1 Diastolic               1 SGLT2   16135.
- 2 Diastolic               1 NA     306689.
- 3 Diastolic               2 SGLT2   65218.
- 4 Diastolic               2 NA    1172923.
- 5 Diastolic               3 SGLT2   44155.
- 6 Diastolic               3 NA     843685.
- 7 Diastolic               4 SGLT2   10708.
- 8 Diastolic               4 NA     169164.
- 9 Systolic                1 SGLT2   13124.
-10 Systolic                1 NA     236172.
-11 Systolic                2 SGLT2   64172.
-12 Systolic                2 NA     771175.
-13 Systolic                3 SGLT2   42031.
-14 Systolic                3 NA     479025.
-15 Systolic                4 SGLT2    9246.
-16 Systolic                4 NA      91619.
 
 # ----------------------------------
 # Lines of therapy Beta Block|RAAS|MRA|SGLT2 only -----------------------
@@ -11090,91 +10172,45 @@ HF_Drug_Histories <- HF_Drug_Histories %>%  mutate(drug_class=ifelse(drug_class=
 data.frame(HF_Drug_Histories %>% select(patient, weight, group, drug_class) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>%  group_by(group) %>% summarise(lines=weighted.mean(n,weight)))
 
-#       group    lines
-# 1 Diastolic 1.748532
-# 2  Systolic 2.124983
 
 data.frame(HF_Drug_Histories %>% select(patient, weight, group, drug_class) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>% mutate(n=ifelse(n>=5,5,n)) %>% group_by(group, n) %>% summarise(classes=sum(weight)) %>%
   ungroup() %>% spread(key=group, value=classes))
 
-#   n  Diastolic  Systolic
-# 1 1  871065.18 311966.28
-# 2 2 1097342.14 781857.36
-# 3 3  269585.64 409707.62
-# 4 4   17187.24  48092.66
-
 
 SGLT2_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group) %>% distinct() %>% group_by(group) %>% summarise(n=sum(weight))
 
-#   group          n
-#   <chr>      <dbl>
-# 1 Diastolic 55222.
-# 2 Systolic  61746.
 
 data.frame(SGLT2_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group, drug_class) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>% mutate(n=ifelse(n>=5,5,n)) %>% group_by(group, n) %>% summarise(classes=sum(weight)) %>%
   ungroup() %>% spread(key=group, value=classes))
 
-#   n Diastolic Systolic
-# 1 1   3206.82  1368.03
-# 2 2  11720.22  4452.79
-# 3 3  31143.81 27688.93
-# 4 4   9151.41 28236.19
-
 
 data.frame(SGLT2_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group, drug_class) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>%  group_by(group) %>% summarise(lines=weighted.mean(n,weight)))
 
-#       group   lines
-# 1 Diastolic 2.83734
-# 2  Systolic 3.34087
 
 ARNI_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group) %>% distinct() %>% group_by(group) %>% summarise(n=sum(weight))
-#   group           n
-#   <chr>       <dbl>
-# 1 Diastolic   8390.
-# 2 Systolic  146421.
 
 data.frame(ARNI_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group, drug_class) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>% mutate(n=ifelse(n>=5,5,n)) %>% group_by(group, n) %>% summarise(classes=sum(weight)) %>%
   ungroup() %>% spread(key=group, value=classes))
 
-#   n Diastolic Systolic
-# 1 1    223.49  1963.86
-# 2 2   4302.76 54674.34
-# 3 3   3382.73 71256.11
-# 4 4    481.52 18526.64
-
 data.frame(ARNI_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group, drug_class) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>%  group_by(group) %>% summarise(lines=weighted.mean(n,weight)))
-
-#       group    lines
-# 1 Diastolic 2.491303
-# 2  Systolic 2.726300
 
 
 MRA_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group) %>% distinct() %>% group_by(group) %>% summarise(n=sum(weight))
 
-# 1 Diastolic 153829.
-# 2 Systolic  214514
 
 data.frame(MRA_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group, drug_class) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>% mutate(n=ifelse(n>=5,5,n)) %>% group_by(group, n) %>% summarise(classes=sum(weight)) %>%
   ungroup() %>% spread(key=group, value=classes))
 
-#   n Diastolic  Systolic
-# 1 1  13871.11   2912.28
-# 2 2  47852.00  16324.85
-# 3 3  83715.36 166712.39
-# 4 4   8390.13  28564.35
 
 data.frame(MRA_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group, drug_class) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>%  group_by(group) %>% summarise(lines=weighted.mean(n,weight)))
 
-#       group    lines
-# 1 Diastolic 2.563124
-# 2  Systolic 3.029905
 
 
 
@@ -11224,93 +10260,51 @@ HF_Drug_Histories <- HF_Drug_Histories %>% ungroup() %>% select(patient, group, 
 data.frame(HF_Drug_Histories %>% select(patient, weight, group, treat_new) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>%  group_by(group) %>% summarise(lines=weighted.mean(n,weight)))
 
-#       group    lines
-# 1 Diastolic 1.796272
-# 2  Systolic 2.153227
 
 data.frame(HF_Drug_Histories %>% select(patient, weight, group, treat_new) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>% mutate(n=ifelse(n>=5,5,n)) %>% group_by(group, n) %>% summarise(classes=sum(weight)) %>%
   ungroup() %>% spread(key=group, value=classes))
 
-#   n  Diastolic  Systolic
-# 1 1 1117032.65 549315.51
-# 2 2  672228.25 512784.06
-# 3 3  343739.20 307657.83
-# 4 4   76573.28 104734.07
-# 5 5   45606.82  77132.45
-
 
 SGLT2_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group) %>% distinct() %>% group_by(group) %>% summarise(n=sum(weight))
 
-#   group          n
-#   <chr>      <dbl>
-# 1 Diastolic 55222.
-# 2 Systolic  61746.
 
 data.frame(SGLT2_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group, treat_new) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>% mutate(n=ifelse(n>=5,5,n)) %>% group_by(group, n) %>% summarise(classes=sum(weight)) %>%
   ungroup() %>% spread(key=group, value=classes))
 
-#   n Diastolic Systolic
-# 1 1   9751.23  6676.27
-# 2 2  16582.29 15021.36
-# 3 3  13911.00 16857.71
-# 4 4   7516.09 12607.22
-# 5 5   7461.65 10583.38
+
 
 data.frame(SGLT2_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group, treat_new) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>%  group_by(group) %>% summarise(lines=weighted.mean(n,weight)))
 
-#       group    lines
-# 1 Diastolic 2.857952
-# 2  Systolic 3.217764
+
 
 ARNI_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group) %>% distinct() %>% group_by(group) %>% summarise(n=sum(weight))
-#   group           n
-#   <chr>       <dbl>
-# 1 Diastolic   8390.
-# 2 Systolic  146421.
 
 data.frame(ARNI_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group, treat_new) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>% mutate(n=ifelse(n>=5,5,n)) %>% group_by(group, n) %>% summarise(classes=sum(weight)) %>%
   ungroup() %>% spread(key=group, value=classes))
 
-#   n Diastolic Systolic
-# 1 1   1555.35 30919.79
-# 2 2   2790.57 47730.34
-# 3 3   2393.33 36110.39
-# 4 4   1179.87 20013.53
-# 5 5    471.38 11646.90
+
 
 data.frame(ARNI_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group, treat_new) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>%  group_by(group) %>% summarise(lines=weighted.mean(n,weight)))
-
-#       group    lines
-# 1 Diastolic 2.575491
-# 2  Systolic 2.578789
 
 
 MRA_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group) %>% distinct() %>% group_by(group) %>% summarise(n=sum(weight))
 
-# 1 Diastolic 153829.
-# 2 Systolic  214514
 
 data.frame(MRA_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group, treat_new) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>% mutate(n=ifelse(n>=5,5,n)) %>% group_by(group, n) %>% summarise(classes=sum(weight)) %>%
   ungroup() %>% spread(key=group, value=classes))
 
-#   n Diastolic Systolic
-# 1 1  32759.07 36920.63
-# 2 2  49749.92 62156.20
-# 3 3  39937.52 53800.62
-# 4 4  17289.68 32835.55
-# 5 5  14092.41 28800.87
+
 
 data.frame(MRA_Pats %>% left_join(HF_Drug_Histories) %>% select(patient, weight, group, treat_new) %>% distinct() %>% group_by(patient, weight, group) %>% count() %>%
   ungroup() %>%  group_by(group) %>% summarise(lines=weighted.mean(n,weight)))
 
-# 1 Diastolic 2.598992
-# 2  Systolic 2.849325
+
 
 # --------------------------------------
 # All PAts inc death  - Persistency  ------------
@@ -11543,14 +10537,7 @@ data.frame(HF_Drug_Histories %>%
   select(patient, weight, generic_name, group) %>% distinct() %>%
   group_by(group, generic_name) %>% summarise(n=sum(as.numeric(weight)))) 
 
-# 1 Diastolic Canagliflozin 10899.42
-# 2 Diastolic Dapagliflozin 21395.42
-# 3 Diastolic Empagliflozin 53786.19
-# 4 Diastolic Ertugliflozin  2064.66
-# 5  Systolic Canagliflozin  8033.95
-# 6  Systolic Dapagliflozin 29975.35
-# 7  Systolic Empagliflozin 53851.18
-# 8  Systolic Ertugliflozin   947.77
+
 
 
 
@@ -11564,23 +10551,13 @@ CKD_Pats <- HF_Comorbidity_Inventories %>% filter(diagnosis=="N18") %>% select(p
 CKD_Pats %>% left_join(Groups_Diastolic_vs_Systolic_L5Y) %>%
   group_by(group) %>% summarise(n=sum(weight))
 
-1 Diastolic 1357363.
-2 Systolic   768210.
 
 data.frame(HF_Drug_Histories %>% 
              inner_join(CKD_Pats) %>%
   select(patient, weight, generic_name, group) %>% distinct() %>%
   group_by(group, generic_name) %>% summarise(n=sum(as.numeric(weight)))) 
 
-1 Diastolic Canagliflozin  5660.99
-2 Diastolic Dapagliflozin 10690.33
-3 Diastolic Empagliflozin 23212.89
-4 Diastolic Ertugliflozin   595.18
-5  Systolic Canagliflozin  3232.12
-6  Systolic Dapagliflozin 13282.61
-7  Systolic Empagliflozin 22726.91
-8  Systolic Ertugliflozin   294.76
-
+        
 # -----------------------------------------------
 # Waterfalls segmentation - Beta Blockers | RAAS| Advanced -----------------------------
 # Where are patients now?
@@ -12180,11 +11157,6 @@ HF_Demographics %>% inner_join(Stages %>% filter(Predicted.Stage>2) %>% select(p
   select(patient, weight, group) %>% distinct() %>%
   group_by(group) %>% summarise(n=sum(weight))
  
-# 1 Diastolic 2305855.
-# 2 Systolic  1457267.
-
-# 1 Diastolic 1067714.
-# 2 Systolic   621920.
 
 data.frame(HF_Drug_Histories %>% 
              inner_join(Stages %>% filter(Predicted.Stage>2) %>% select(patient))  %>%
@@ -12221,12 +11193,6 @@ HF_Demographics %>% inner_join(Stages %>% filter(Predicted.Stage>1) %>% select(p
   inner_join(AdvPats) %>%
   select(patient, weight, group) %>% distinct() %>%
   group_by(group) %>% summarise(n=sum(weight))
-# 
-# 1 Diastolic 576469.
-# 2 Systolic  383585.
-# 
-# 1 Diastolic 393173.
-# 2 Systolic  252366.
 
 
 data.frame(HF_Drug_Histories %>% 
@@ -12282,18 +11248,10 @@ Groups_Diastolic_vs_Systolic_L5Y %>% inner_join(Stages %>% filter(Predicted.Stag
   left_join(HF_Demographics) %>%
   group_by(group) %>% summarise(n=mean(age))
 
-1 Diastolic  74.9
-2 Systolic   70.8
-
 
 Groups_Diastolic_vs_Systolic_L5Y %>% inner_join(Stages %>% filter(Predicted.Stage>1) %>% select(patient))  %>%
   left_join(HF_Demographics) %>% mutate(age=ifelse(age>=65,1,0)) %>%
   group_by(group, age) %>% summarise(n=sum(weight))
-
-# 1 Diastolic     0  396823.
-# 2 Diastolic     1 1909032.
-# 3 Systolic      0  417018.
-# 4 Systolic      1 1040248.
 
 
 Groups_Diastolic_vs_Systolic_L5Y %>% inner_join(Stages %>% filter(Predicted.Stage>1) %>% select(patient))  %>%
@@ -12364,22 +11322,6 @@ data.frame(HF_Drug_Histories %>% mutate(Month=parse_number(as.character(Month)))
   arrange(group, -X60) %>%
   mutate(CAGR= 100*( ((X60/X1)^(1/5))-1) ) %>%
   select(group, generic_name, CAGR)
-
-      group         generic_name      CAGR
-1  Diastolic       Spironolactone  21.76262
-2  Diastolic        Empagliflozin  54.52111
-3  Diastolic        Dapagliflozin  26.66474
-4  Diastolic Sacubitril/Valsartan        NA
-5  Diastolic           Eplerenone  21.91369
-6  Diastolic        Canagliflozin -17.98138
-7  Diastolic        Ertugliflozin        NA
-8   Systolic       Spironolactone  34.72278
-9   Systolic Sacubitril/Valsartan 161.42897
-10  Systolic        Empagliflozin  81.21861
-11  Systolic        Dapagliflozin  37.64818
-12  Systolic           Eplerenone  22.57127
-13  Systolic        Canagliflozin -24.96236
-14  Systolic        Ertugliflozin        NA
 
 
 
@@ -12455,27 +11397,7 @@ HF_Ingredients <- HF_Ingredients %>% mutate(drug_class=ifelse(generic_name=="Ben
                                                      generic_name=="Torsemide"|
                                                      generic_name=="Furosemide", "Loop Diuretic", drug_class)))
 
-Acetazolamide         CA Inhibitor
-Amiloride             K-sparing diuretic
-Bendroflumethiazide   Thiazide diuretic
-Benzthiazide          Thiazide diuretic
-Bumetanide             Loop diuretic
-Chlorothiazide        Thiazide diuretic
-Chlorthalidone         Thiazide diuretic
-Cyclothiazide         Thiazide diuretic
-Ethacrynate            Loop diuretic
-Furosemide            Loop diuretic
-Hydrochlorothiazide   Thiazide diuretic
-Hydroflumethiazide    Thiazide diuretic
-Indapamide            Thiazide diuretic
-Mersalyl              Mercurial diuretic.
-Methyclothiazide       Thiazide diuretic
-Metolazone            Thiazide diuretic
-Polythiazide          Thiazide diuretic
-Quinethazone           Thiazide diuretic
-Torsemide             Loop diuretic
-Triamterene           K-sparing diuretic
-Trichlormethiazide     Thiazide diuretic
+
 
 
 
@@ -12709,18 +11631,13 @@ Groups_Diastolic_vs_Systolic_L5Y %>% inner_join(Stages) %>%
   left_join(DANU_Demographics %>% select(patid, weight), by=c("patient"="patid")) %>%
   group_by(group) %>% summarise(n=sum(weight))
 
-1 Diastolic 3366024.
-2 Systolic  2360626.
 
 Groups_Diastolic_vs_Systolic_L5Y %>% inner_join(Stages) %>% 
   left_join(DANU_Demographics %>% select(patid, weight), by=c("patient"="patid")) %>%
   group_by(group, `Predicted.Stage`) %>% summarise(n=sum(weight)) %>%
   ungroup() %>% spread(key=`Predicted.Stage`, value=n)
 
-  group         `1`      `2`      `3`     `4`
-  <chr>       <dbl>    <dbl>    <dbl>   <dbl>
-1 Diastolic 400859. 1502497. 1173935. 288733.
-2 Systolic  343361. 1102638.  731234. 183393.
+
 
 
 Groups_Diastolic_vs_Systolic_L5Y <- Groups_Diastolic_vs_Systolic_L5Y %>% inner_join(Stages) %>% 
@@ -12831,8 +11748,6 @@ unique(HF_Ingredients$drug_class)
 
 string_IV_Diuretics <- paste0("\\b(",paste0(HF_Ingredients$Drugs[HF_Ingredients$drug_class=="Diuretic"&HF_Ingredients$drug_group=="Injectable Therapy"], collapse = "|"),")\\b")
 string_Hospital <- paste0("\\b(",paste0(HF_Ingredients$Drugs[HF_Ingredients$drug_class=="Hospital Inpatient"], collapse = "|"),")\\b")
-# 95 Ivabradine
-# 92 Vericiguat
 
 
 HF_Drug_Histories %>% filter(Month>=49) %>% filter(grepl(string_IV_Diuretics, Drugs)) %>% group_by(patient, weight) %>% count() %>%
@@ -13082,8 +11997,8 @@ HF_Drug_Histories %>% ungroup() %>% select(patient, weight) %>% distinct() %>% s
 Total_Duration <- HF_Drug_Histories %>% select(patient, weight, Total_Duration) %>% distinct()
 ARNI_Duration <- HF_Drug_Histories %>% group_by(patient, weight) %>% count()
 
-Total_Duration %>% ungroup() %>% summarise(n=sum(as.numeric(weight)*Total_Duration))  # 994485
-ARNI_Duration %>% ungroup() %>% summarise(n=sum(as.numeric(weight)*n))  # 754775 # 0.7589607
+Total_Duration %>% ungroup() %>% summarise(n=sum(as.numeric(weight)*Total_Duration))  
+ARNI_Duration %>% ungroup() %>% summarise(n=sum(as.numeric(weight)*n))  
 
 
 
@@ -13116,8 +12031,8 @@ CKD_Drug_Histories %>% ungroup() %>% select(patient, weight) %>% distinct() %>% 
 Total_Duration <- CKD_Drug_Histories %>% select(patient, weight, Total_Duration) %>% distinct()
 SGLT2_Duration <- CKD_Drug_Histories %>% group_by(patient, weight) %>% count()
 
-Total_Duration %>% ungroup() %>% summarise(n=sum(as.numeric(weight)*Total_Duration))  # 1473825
-SGLT2_Duration %>% ungroup() %>% summarise(n=sum(as.numeric(weight)*n))  # 1119145 0.7593473
+Total_Duration %>% ungroup() %>% summarise(n=sum(as.numeric(weight)*Total_Duration))  
+SGLT2_Duration %>% ungroup() %>% summarise(n=sum(as.numeric(weight)*n)) 
 
 
 
@@ -13149,8 +12064,8 @@ CKD_Drug_Histories %>% ungroup() %>% select(patient, weight) %>% distinct() %>% 
 Total_Duration <- CKD_Drug_Histories %>% select(patient, weight, Total_Duration) %>% distinct()
 ARNI_Duration <- CKD_Drug_Histories %>% group_by(patient, weight) %>% count()
 
-Total_Duration %>% ungroup() %>% summarise(n=sum(as.numeric(weight)*Total_Duration))  # 470081
-ARNI_Duration %>% ungroup() %>% summarise(n=sum(as.numeric(weight)*n))  # 333866
+Total_Duration %>% ungroup() %>% summarise(n=sum(as.numeric(weight)*Total_Duration))  
+ARNI_Duration %>% ungroup() %>% summarise(n=sum(as.numeric(weight)*n)) 
 
 
 

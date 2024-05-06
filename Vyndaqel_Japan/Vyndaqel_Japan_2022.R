@@ -5307,20 +5307,20 @@ short_e_receipt_diseases_All_ContEnr_pts <- short_e_receipt_diseases_All_ContEnr
 # POLYNEUROPATHY YEARS -3 and -2
 short_g_receipt_diseases_All_ContEnr_pts %>% filter(grepl("G6",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
   anti_join(short_i_receipt_diseases_All_ContEnr_pts) %>%
-  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 1872872
+  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 # POLYNEUROPATHY YEARS -3 and -2 & AMYLOIDOSIS POLYNEUROPATHY
 short_g_receipt_diseases_All_ContEnr_pts %>% filter(grepl("G6",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
     anti_join(short_i_receipt_diseases_All_ContEnr_pts) %>%
   inner_join(short_e_receipt_diseases_All_ContEnr_pts %>% filter(grepl("E85",icd10_code)) %>% select(kojin_id) %>% distinct()) %>%
-  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 7499.808
+  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 # POLYNEUROPATHY YEARS -3 and -2 & AMYLOIDOSIS & POLYNEUROPATHY DUE TO AMYLOIDOSIS
 short_g_receipt_diseases_All_ContEnr_pts %>% filter(grepl("G6",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
    anti_join(short_i_receipt_diseases_All_ContEnr_pts) %>%
   inner_join(short_e_receipt_diseases_All_ContEnr_pts %>% filter(grepl("E85",icd10_code)) %>% select(kojin_id) %>% distinct()) %>%
     inner_join(short_e_receipt_diseases_All_ContEnr_pts %>% filter(grepl("E851",icd10_code)) %>% select(kojin_id) %>% distinct()) %>%
-  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 413.0787
+  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 # POLYNEUROPATHYYEARS -3 and -2 & AMYLOIDOSIS & POLYNEUROPATHY DUE TO AMYLOIDOSIS
 short_g_receipt_diseases_All_ContEnr_pts %>% filter(grepl("G6",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
@@ -5328,7 +5328,7 @@ short_g_receipt_diseases_All_ContEnr_pts %>% filter(grepl("G6",icd10_code)) %>% 
   inner_join(short_e_receipt_diseases_All_ContEnr_pts %>% filter(grepl("E85",icd10_code)) %>% select(kojin_id) %>% distinct()) %>%
     inner_join(short_e_receipt_diseases_All_ContEnr_pts %>% filter(grepl("E851",icd10_code)) %>% select(kojin_id) %>% distinct()) %>%
     inner_join(Vyndaqel_pats_CM_vs_PN) %>%
-  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 708.8623
+  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 
 
@@ -5370,7 +5370,7 @@ GapFillVyndael %>% filter(receipt_ym<="2021/03" & receipt_ym>="2018/04") %>% fil
   inner_join(Vyndaqel_pats_CM_vs_PN %>% filter(PN==1) %>% select(kojin_id)) %>% 
   inner_join(VyndaqelPts195) %>% summarise(n=sum(as.numeric(weight))) %>% # 1525.761
   anti_join(GapFillVyndael %>% filter(receipt_ym<="2020/03" & receipt_ym>="2018/04") %>% filter(Treat==1) %>% select(kojin_id) %>% distinct()) %>%
-   left_join(VyndaqelPts195) %>% summarise(n=sum(as.numeric(weight)))  # 845.0034
+   left_join(VyndaqelPts195) %>% summarise(n=sum(as.numeric(weight)))  # 
 
 
 
@@ -5383,7 +5383,7 @@ GapFillVyndael %>% filter(receipt_ym<="2021/03" & receipt_ym>="2018/04") %>% fil
 tekiyo_All_ContEnr_pts <- fread("All_Pts_ContinuousEnrolled/tekiyo_All_ContEnr_pts.txt", colClasses = "character")
 ContinuouslyEnrolled_Y3_tekiyo_weights <- fread("All_Pts_ContinuousEnrolled/ContinuouslyEnrolled_Y3_tekiyo_weights.txt", colClasses = "character")
 tekiyo_All_ContEnr_pts <- tekiyo_All_ContEnr_pts %>% left_join(ContinuouslyEnrolled_Y3_tekiyo_weights %>% select(kojin_id, weight)) %>% select(kojin_id, weight)
-sum(as.numeric(tekiyo_All_ContEnr_pts$weight)) # 26009563
+sum(as.numeric(tekiyo_All_ContEnr_pts$weight)) # 
 
 Vyndaqel_pats_CM_vs_PN <- fread("VyndaqelPts195/Vyndaqel_pats_CM_vs_PN.txt", colClasses = "character")
 Vyndaqel_pats_CM_vs_PN <- Vyndaqel_pats_CM_vs_PN %>% select(kojin_id) 
@@ -5436,7 +5436,7 @@ short_e_receipt_diseases_All_ContEnr_pts <- short_e_receipt_diseases_All_ContEnr
 # HEART FAILURE LAST 3 YEARS
 short_i_receipt_diseases_All_ContEnr_pts %>% filter(grepl("I500",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
   anti_join(short_i_receipt_diseases_All_ContEnr_pts %>% filter(grepl("I42",icd10_code)|grepl("I43",icd10_code)) %>% select(kojin_id) %>% distinct()) %>%
-  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight)))  # 9780332
+  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight)))  # 
 
 
 Cardiomyopaty_Pats <- short_i_receipt_diseases_All_ContEnr_pts %>% filter(grepl("I42",icd10_code)|grepl("I43",icd10_code)) %>% filter(icd10_code!="I420"&
@@ -5466,7 +5466,7 @@ short_i_receipt_diseases_All_ContEnr_pts %>% filter(grepl("I42",icd10_code)|grep
 short_i_receipt_diseases_All_ContEnr_pts %>% filter(grepl("I431",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
   inner_join(ATTR_SpecificCode) %>%
   anti_join(Vyndaqel_pats_CM_vs_PN) %>%
-  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 208.228
+  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 
 ATTR_CM_noVyn_Pats <- short_i_receipt_diseases_All_ContEnr_pts %>% filter(grepl("I431",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
@@ -5485,7 +5485,7 @@ short_i_receipt_diseases_All_ContEnr_pts %>% filter(grepl("I431",icd10_code)) %>
 short_i_receipt_diseases_All_ContEnr_pts %>% filter(grepl("I431",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
   anti_join(ATTR_SpecificCode) %>%
     anti_join(Vyndaqel_pats_CM_vs_PN) %>%
-  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 4834.776
+  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 Cardiac_Amyloidosis_Pats <- short_i_receipt_diseases_All_ContEnr_pts %>% filter(grepl("I431",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
   anti_join(ATTR_SpecificCode) %>%
@@ -5563,13 +5563,13 @@ short_i_receipt_diseases_All_ContEnr_pts %>% filter(grepl("I42",icd10_code)|grep
 short_i_receipt_diseases_All_ContEnr_pts %>% filter(grepl("I431",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
   inner_join(ATTR_SpecificCode) %>%
   anti_join(Vyndaqel_pats_CM_vs_PN) %>%
-  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 208.228
+  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 
 short_i_receipt_diseases_All_ContEnr_pts %>% filter(grepl("I431",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
   anti_join(ATTR_SpecificCode) %>%
     anti_join(Vyndaqel_pats_CM_vs_PN) %>%
-  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 4834.776
+  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 
 
@@ -5618,11 +5618,11 @@ GapFillVyndael %>%  filter(receipt_ym=="2021/03") %>%
   filter(Treat==1) %>% select(kojin_id) %>% distinct() %>%
   inner_join(Vyndaqel_pats_CM_vs_PN %>% filter(CM==1|Combo==1) %>% select(kojin_id)) %>% 
   inner_join(VyndaqelPts195) %>% 
-  inner_join(ContinuouslyEnrolled_Y3_tekiyo_weights %>% select(kojin_id)) %>% summarise(n=sum(as.numeric(weight)))  # 1525.761
+  inner_join(ContinuouslyEnrolled_Y3_tekiyo_weights %>% select(kojin_id)) %>% summarise(n=sum(as.numeric(weight)))  # 
   
   
   anti_join(GapFillVyndael %>% filter(receipt_ym<="2020/03" & receipt_ym>="2018/04") %>% filter(Treat==1) %>% select(kojin_id) %>% distinct()) %>%
-   left_join(VyndaqelPts195) %>% summarise(n=sum(as.numeric(weight)))  # 845.0034
+   left_join(VyndaqelPts195) %>% summarise(n=sum(as.numeric(weight)))  # 
 
 
 
@@ -5657,11 +5657,11 @@ GapFillVyndael %>% filter(receipt_ym=="2020/04") %>% filter(Treat==1) %>% select
 tekiyo_All_ContEnr_pts <- fread("All_Pts_ContinuousEnrolled/tekiyo_All_ContEnr_pts.txt", colClasses = "character")
 ContinuouslyEnrolled_Y3_tekiyo_weights <- fread("All_Pts_ContinuousEnrolled/ContinuouslyEnrolled_Y3_tekiyo_weights.txt", colClasses = "character")
 tekiyo_All_ContEnr_pts <- tekiyo_All_ContEnr_pts %>% left_join(ContinuouslyEnrolled_Y3_tekiyo_weights %>% select(kojin_id, weight)) %>% select(kojin_id, weight)
-sum(as.numeric(tekiyo_All_ContEnr_pts$weight)) # 26009563
+sum(as.numeric(tekiyo_All_ContEnr_pts$weight)) # 
 
 Vyndaqel_pats_CM_vs_PN <- fread("VyndaqelPts195/Vyndaqel_pats_CM_vs_PN.txt", colClasses = "character")
 Vyndaqel_pats_CM_vs_PN <- Vyndaqel_pats_CM_vs_PN %>% select(kojin_id) 
-Vyndaqel_pats_CM_vs_PN %>% inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 959.7988 cont. enroll.
+Vyndaqel_pats_CM_vs_PN %>% inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) #  cont. enroll.
 
 
 
@@ -5725,13 +5725,13 @@ short_e_receipt_diseases_All_ContEnr_pts <- short_e_receipt_diseases_All_ContEnr
 # POLYNEUROPATHY LAST 3 YEARS
 short_g_receipt_diseases_All_ContEnr_pts %>% filter(grepl("G6",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
   anti_join(short_i_receipt_diseases_All_ContEnr_pts) %>%
-  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 2297699  # 4064504
+  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 # POLYNEUROPATHY LAST 3 YEARS & AMYLOIDOSIS POLYNEUROPATHY
 short_g_receipt_diseases_All_ContEnr_pts %>% filter(grepl("G6",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
     anti_join(short_i_receipt_diseases_All_ContEnr_pts) %>%
   inner_join(short_e_receipt_diseases_All_ContEnr_pts %>% filter(grepl("E85",icd10_code)) %>% select(kojin_id) %>% distinct()) %>%
-  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 10195.39 # 10365.16
+  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 
 # POLYNEUROPATHY LAST 3 YEARS & AMYLOIDOSIS & POLYNEUROPATHY DUE TO AMYLOIDOSIS
@@ -5739,7 +5739,7 @@ short_g_receipt_diseases_All_ContEnr_pts %>% filter(grepl("G6",icd10_code)) %>% 
     anti_join(short_i_receipt_diseases_All_ContEnr_pts) %>%
   inner_join(short_e_receipt_diseases_All_ContEnr_pts %>% filter(grepl("E85",icd10_code)) %>% select(kojin_id) %>% distinct()) %>%
     inner_join(short_e_receipt_diseases_All_ContEnr_pts %>% filter(grepl("E851",icd10_code)) %>% select(kojin_id) %>% distinct()) %>%
-  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 583.8182 # 418.5618
+  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 # POLYNEUROPATHY LAST 3 YEARS & AMYLOIDOSIS & POLYNEUROPATHY DUE TO AMYLOIDOSIS
 # short_g_receipt_diseases_All_ContEnr_pts %>% filter(grepl("G6",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
@@ -5821,20 +5821,20 @@ short_e_receipt_diseases_All_ContEnr_pts <- short_e_receipt_diseases_All_ContEnr
 # POLYNEUROPATHY YEARS -3 and -2
 short_g_receipt_diseases_All_ContEnr_pts %>% filter(grepl("G6",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
   anti_join(short_i_receipt_diseases_All_ContEnr_pts) %>%
-  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 1872872 # 3316177
+  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 # POLYNEUROPATHY YEARS -3 and -2 & AMYLOIDOSIS POLYNEUROPATHY
 short_g_receipt_diseases_All_ContEnr_pts %>% filter(grepl("G6",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
     anti_join(short_i_receipt_diseases_All_ContEnr_pts) %>%
   inner_join(short_e_receipt_diseases_All_ContEnr_pts %>% filter(grepl("E85",icd10_code)) %>% select(kojin_id) %>% distinct()) %>%
-  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 7499.808 # 8370.39
+  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 # POLYNEUROPATHY YEARS -3 and -2 & AMYLOIDOSIS & POLYNEUROPATHY DUE TO AMYLOIDOSIS
 short_g_receipt_diseases_All_ContEnr_pts %>% filter(grepl("G6",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
    anti_join(short_i_receipt_diseases_All_ContEnr_pts) %>%
   inner_join(short_e_receipt_diseases_All_ContEnr_pts %>% filter(grepl("E85",icd10_code)) %>% select(kojin_id) %>% distinct()) %>%
     inner_join(short_e_receipt_diseases_All_ContEnr_pts %>% filter(grepl("E851",icd10_code)) %>% select(kojin_id) %>% distinct()) %>%
-  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 413.0787 # 319.9577
+  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 # POLYNEUROPATHYYEARS -3 and -2 & AMYLOIDOSIS & POLYNEUROPATHY DUE TO AMYLOIDOSIS + Vyndaqel
 # short_g_receipt_diseases_All_ContEnr_pts %>% filter(grepl("G6",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
@@ -5899,7 +5899,7 @@ sum(as.numeric(tekiyo_All_ContEnr_pts$weight)) # 26009563
 
 Vyndaqel_pats_CM_vs_PN <- fread("VyndaqelPts195/Vyndaqel_pats_CM_vs_PN.txt", colClasses = "character")
 Vyndaqel_pats_CM_vs_PN <- Vyndaqel_pats_CM_vs_PN %>% select(kojin_id) 
-Vyndaqel_pats_CM_vs_PN %>% inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 959.7988 cont. enroll.
+Vyndaqel_pats_CM_vs_PN %>% inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 
 #Is ever
@@ -5971,7 +5971,7 @@ short_g_receipt_diseases_All_ContEnr_pts %>% filter(grepl("G6",icd10_code)) %>% 
   anti_join(CardiomyopathyToRemove) %>%
   anti_join(short_e_receipt_diseases_All_ContEnr_pts %>% select(kojin_id) %>% distinct()) %>%
   anti_join(Vyndaqel_pats_CM_vs_PN %>% select(kojin_id) %>% distinct()) %>%
-  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 6968795
+  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 
 # POLYNEUROPATHY E851
@@ -5979,12 +5979,12 @@ short_e_receipt_diseases_All_ContEnr_pts %>%  select(kojin_id) %>% distinct() %>
   anti_join(short_e_receipt_diseases_All_ContEnr_pts %>% filter(diseases_code=="8848092") %>% select(kojin_id) %>% distinct()) %>%
     anti_join(CardiomyopathyToRemove) %>%
     anti_join(Vyndaqel_pats_CM_vs_PN %>% select(kojin_id) %>% distinct()) %>%
-  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 735.2831
+  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 short_e_receipt_diseases_All_ContEnr_pts %>% filter(diseases_code=="8848092") %>% select(kojin_id) %>% distinct() %>%
     anti_join(CardiomyopathyToRemove) %>%
       anti_join(Vyndaqel_pats_CM_vs_PN %>% select(kojin_id) %>% distinct()) %>%
-  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 201.5177
+  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 
 
@@ -6031,11 +6031,11 @@ GapFillVyndael %>%
   filter(Treat==1) %>% select(kojin_id) %>% distinct() %>%
   inner_join(Vyndaqel_pats_CM_vs_PN %>% filter(PN==1) %>% select(kojin_id)) %>% 
   inner_join(VyndaqelPts195) %>% 
-  inner_join(ContinuouslyEnrolled_Y3_tekiyo_weights %>% select(kojin_id)) %>% summarise(n=sum(as.numeric(weight)))  # 1525.761
+  inner_join(ContinuouslyEnrolled_Y3_tekiyo_weights %>% select(kojin_id)) %>% summarise(n=sum(as.numeric(weight)))  # 
   
   
   anti_join(GapFillVyndael %>% filter(receipt_ym<="2020/03" & receipt_ym>="2018/04") %>% filter(Treat==1) %>% select(kojin_id) %>% distinct()) %>%
-   left_join(VyndaqelPts195) %>% summarise(n=sum(as.numeric(weight)))  # 845.0034
+   left_join(VyndaqelPts195) %>% summarise(n=sum(as.numeric(weight)))  # 
 
 
   
@@ -6323,8 +6323,8 @@ ATTR_Dx_Vyndaqel
 ATTR_Dx_NO_Vyndaqel
 
 # Age
-ATTR_Dx_Vyndaqel %>% left_join(ContinuouslyEnrolled_Y3_tekiyo_weights) %>% summarise(n=weighted.mean(as.numeric(age),as.numeric(weight))) # 74.472
-ATTR_Dx_NO_Vyndaqel %>% left_join(ContinuouslyEnrolled_Y3_tekiyo_weights) %>% summarise(n=weighted.mean(as.numeric(age),as.numeric(weight))) # 72.39492
+ATTR_Dx_Vyndaqel %>% left_join(ContinuouslyEnrolled_Y3_tekiyo_weights) %>% summarise(n=weighted.mean(as.numeric(age),as.numeric(weight))) # 
+ATTR_Dx_NO_Vyndaqel %>% left_join(ContinuouslyEnrolled_Y3_tekiyo_weights) %>% summarise(n=weighted.mean(as.numeric(age),as.numeric(weight))) # 
 
 
 
@@ -6342,10 +6342,10 @@ m_icd10 <- m_icd10 %>% filter(icd10_code=="I431")
 short_i_receipt_diseases_All_ContEnr_pts <- short_i_receipt_diseases_All_ContEnr_pts %>%  inner_join(m_icd10) 
 
 ATTR_Dx_Vyndaqel %>% left_join(short_i_receipt_diseases_All_ContEnr_pts %>% group_by(kojin_id) %>% count()) %>% 
-  summarise(n2=weighted.mean(as.numeric(n),as.numeric(weight))) # 21.21836
+  summarise(n2=weighted.mean(as.numeric(n),as.numeric(weight))) # 
 
 ATTR_Dx_NO_Vyndaqel %>% left_join(short_i_receipt_diseases_All_ContEnr_pts %>% group_by(kojin_id) %>% count()) %>% 
-  summarise(n2=weighted.mean(as.numeric(n),as.numeric(weight))) # 15.60838
+  summarise(n2=weighted.mean(as.numeric(n),as.numeric(weight))) # 
 
 
 
@@ -6357,20 +6357,20 @@ short_i_receipt_diseases_All_ContEnr_pts$ElapsedTime <- round(time_length(interv
 
 # MOST RECENT 
 ATTR_Dx_Vyndaqel %>% left_join(short_i_receipt_diseases_All_ContEnr_pts) %>% group_by(kojin_id) %>% filter(ElapsedTime==min(ElapsedTime)) %>% slice(1) %>%
-  select(kojin_id, weight, ElapsedTime) %>% ungroup() %>% summarise(n=weighted.mean(as.numeric(ElapsedTime), as.numeric(weight))) # 0.0352
+  select(kojin_id, weight, ElapsedTime) %>% ungroup() %>% summarise(n=weighted.mean(as.numeric(ElapsedTime), as.numeric(weight))) # 
 
 
 ATTR_Dx_NO_Vyndaqel %>% left_join(short_i_receipt_diseases_All_ContEnr_pts) %>% group_by(kojin_id) %>% filter(ElapsedTime==min(ElapsedTime)) %>% slice(1) %>%
-  select(kojin_id, weight, ElapsedTime) %>% ungroup() %>% summarise(n=weighted.mean(as.numeric(ElapsedTime), as.numeric(weight))) # 0.286
+  select(kojin_id, weight, ElapsedTime) %>% ungroup() %>% summarise(n=weighted.mean(as.numeric(ElapsedTime), as.numeric(weight))) # 
                                
 
 # First
 ATTR_Dx_Vyndaqel %>% left_join(short_i_receipt_diseases_All_ContEnr_pts) %>% group_by(kojin_id) %>% filter(ElapsedTime==max(ElapsedTime)) %>% slice(1) %>%
-  select(kojin_id, weight, ElapsedTime) %>% ungroup() %>% summarise(n=weighted.mean(as.numeric(ElapsedTime), as.numeric(weight))) # 1.71
+  select(kojin_id, weight, ElapsedTime) %>% ungroup() %>% summarise(n=weighted.mean(as.numeric(ElapsedTime), as.numeric(weight))) #
 
 
 ATTR_Dx_NO_Vyndaqel %>% left_join(short_i_receipt_diseases_All_ContEnr_pts) %>% group_by(kojin_id) %>% filter(ElapsedTime==max(ElapsedTime)) %>% slice(1) %>%
-  select(kojin_id, weight, ElapsedTime) %>% ungroup() %>% summarise(n=weighted.mean(as.numeric(ElapsedTime), as.numeric(weight))) # 1.96
+  select(kojin_id, weight, ElapsedTime) %>% ungroup() %>% summarise(n=weighted.mean(as.numeric(ElapsedTime), as.numeric(weight))) # 
 
 
 
@@ -6415,8 +6415,8 @@ short_g_receipt_diseases_All_ContEnr_pts <- short_g_receipt_diseases_All_ContEnr
 
 
 # Is
-sum(as.numeric(ATTR_Dx_Vyndaqel$weight)) # 668.1897
-sum(as.numeric(ATTR_Dx_NO_Vyndaqel$weight)) # 3580.48
+sum(as.numeric(ATTR_Dx_Vyndaqel$weight)) # 
+sum(as.numeric(ATTR_Dx_NO_Vyndaqel$weight)) # 
 
 
 data.frame(
@@ -6430,95 +6430,10 @@ data.frame(
     arrange(-Diff)
            )
 
-icd10_code     n_Vynd    n_noVynd FoldChange             Diff
-1        I442 0.23717761 0.071747909  3.3057077  0.1654297028405
-2        I619 0.09472251 0.010602778  8.9337443  0.0841197327599
-3        I481 0.16301227 0.079564702  2.0488013  0.0834475636504
-4        I509 0.96126837 0.881550160  1.0904296  0.0797182092081
-5        I634 0.10456883 0.029305153  3.5682747  0.0752636807159
-6        I256 0.09440763 0.030390563  3.1064787  0.0640170714511
-7        I480 0.19874227 0.135267991  1.4692483  0.0634742773627
-8        I251 0.08417616 0.030764019  2.7361886  0.0534121397563
-9        I441 0.06998429 0.023500541  2.9779864  0.0464837524710
-10       I208 0.15108370 0.106098516  1.4239945  0.0449851827562
-11       I429 0.10293624 0.060415326  1.7038100  0.0425209093355
-12       I443 0.05432367 0.012829570  4.2342551  0.0414941039713
-13       I119 0.07023556 0.029352008  2.3928706  0.0408835489910
-14       I471 0.12975356 0.090237040  1.4379190  0.0395165181745
-15       I422 0.16647050 0.127770831  1.3028835  0.0386996730171
-16       I951 0.06551821 0.030618263  2.1398408  0.0348999466982
-17       I489 0.43080811 0.397535924  1.0836961  0.0332721882712
-18       I280 0.03493595 0.002001887 17.4515155  0.0329340669783
-19        I38 0.08260530 0.050757524  1.6274495  0.0318477810078
-20       I493 0.08757447 0.066541802  1.3160820  0.0210326639853
-21       I708 0.03361644 0.013527339  2.4850745  0.0200891059579
-22       I129 0.03091048 0.011112626  2.7815643  0.0197978564735
-23       I451 0.03328512 0.014820161  2.2459350  0.0184649572956
-24       I440 0.02338489 0.007019458  3.3314384  0.0163654332549
-25       I495 0.09702306 0.082308371  1.1787751  0.0147146840414
-26       I110 0.02350307 0.012782572  1.8386806  0.0107204961559
-27      I7020 0.08242570 0.071813417  1.1477758  0.0106122861712
-28       I739 0.07022285 0.059813432  1.1740314  0.0104094168916
-29       I950 0.01189018 0.001921570  6.1877432  0.0099686091185
-30       I519 0.01140987 0.002257358  5.0545231  0.0091525104045
-31       I771 0.01255144 0.004196640  2.9908314  0.0083548034497
-32       I453 0.01116990 0.004437063  2.5174076  0.0067328330895
-33       I678 0.03061459 0.024764170  1.2362453  0.0058504177930
-34       I420 0.08358024 0.078064843  1.0706515  0.0055153968943
-35       I650 0.01077149 0.006501364  1.6568053  0.0042701303679
-36       I219 0.09428291 0.091501517  1.0303973  0.0027813979913
-37       I513 0.02186737 0.019188046  1.1396349  0.0026793200482
-38       I080 0.01033486 0.007861929  1.3145451  0.0024729312744
-39       I660 0.01033486 0.008598467  1.2019422  0.0017363930107
-40       I700 0.01069747 0.009430896  1.1343005  0.0012665736776
-41       I709 0.23094553 0.229931585  1.0044098  0.0010139418649
-42       I671 0.02248761 0.021695582  1.0365063  0.0007920249894
-43       I743 0.01033486 0.009853028  1.0489020  0.0004818323440
-44       I447 0.03006512 0.029830285  1.0078724  0.0002348348388
-45       I431 1.00000007 0.999999875  1.0000002  0.0000001929923
-46       I269 0.02180029 0.023246164  0.9378017 -0.0014458724879
-47       I501 0.05397071 0.055445238  0.9734056 -0.0014745324772
-48       I255 0.01069747 0.013686620  0.7816006 -0.0029891498843
-49       I201 0.01033486 0.013636027  0.7579085 -0.0033011665478
-50       I959 0.02273589 0.027122885  0.8382547 -0.0043869979840
-51       I482 0.05579781 0.061400611  0.9087501 -0.0056028025484
-52       I731 0.03235428 0.038704206  0.8359371 -0.0063499244641
-53        I10 0.87075557 0.878870334  0.9907668 -0.0081147660823
-54       I350 0.04468660 0.052847403  0.8455779 -0.0081608072987
-55       I633 0.01069747 0.019962632  0.5358747 -0.0092651617972
-56       I351 0.08014692 0.093368585  0.8583928 -0.0132216676907
-57       I829 0.01069747 0.024513069  0.4363986 -0.0138155996545
-58       I200 0.04459820 0.060815934  0.7333308 -0.0162177376083
-59       I638 0.04381512 0.060502326  0.7241890 -0.0166872100571
-60       I071 0.06342274 0.080830230  0.7846413 -0.0174074904336
-61       I635 0.01069747 0.029034041  0.3684458 -0.0183365709515
-62       I494 0.06792361 0.086376754  0.7863645 -0.0184531414517
-63       I209 0.40982747 0.430607919  0.9517416 -0.0207804526179
-64       I652 0.06625531 0.091843458  0.7213938 -0.0255881524802
-65       I252 0.03493595 0.064185261  0.5442987 -0.0292493073106
-66       I259 0.03435174 0.066184667  0.5190286 -0.0318329320818
-67       I839 0.01189018 0.045333282  0.2622836 -0.0334431035375
-68       I802 0.14645017 0.180100931  0.8131561 -0.0336507624802
-69       I517 0.12364679 0.157306105  0.7860266 -0.0336593150501
-70       I958 0.01189018 0.045987360  0.2585532 -0.0340971810131
-71       I499 0.18042001 0.216586459  0.8330161 -0.0361664518306
-72       I639 0.07705937 0.137041898  0.5623052 -0.0599825257416
-73       I749 0.05667652 0.118161464  0.4796532 -0.0614849444518
-74       I472 0.06768561 0.133004970  0.5088953 -0.0653193631712
-75       I340 0.08982220 0.156078746  0.5754928 -0.0662565498672
-76       I693 0.05733778 0.123669255  0.4636382 -0.0663314699805
-77       I500 0.62526647 0.722931828  0.8649038 -0.0976653547956
-
-
-
-
-
-
-
 
 # Es
-sum(as.numeric(ATTR_Dx_Vyndaqel$weight)) # 668.1897
-sum(as.numeric(ATTR_Dx_NO_Vyndaqel$weight)) # 3580.48
+sum(as.numeric(ATTR_Dx_Vyndaqel$weight)) # 
+sum(as.numeric(ATTR_Dx_NO_Vyndaqel$weight)) # 
 
 data.frame(
   ATTR_Dx_Vyndaqel %>% left_join(short_e_receipt_diseases_All_ContEnr_pts)  %>% group_by(icd10_code) %>% 
@@ -6530,64 +6445,9 @@ data.frame(
     mutate(Diff=n_Vynd - n_noVynd) %>% drop_na() %>%
     arrange(-Diff)
            )
-
-icd10_code     n_Vynd    n_noVynd FoldChange             Diff
-1        E859 0.76756149 0.270705423  2.8354123  0.4968560625142
-2        E851 0.42319823 0.018942673 22.3409986  0.4042555532860
-3        E852 0.17528888 0.028071413  6.2443909  0.1472174621877
-4        E858 0.22494311 0.134262148  1.6754023  0.0906809605688
-5        E781 0.03873170 0.005664674  6.8374098  0.0330670252753
-6        E639 0.06245304 0.029986860  2.0826802  0.0324661794123
-7        E079 0.07405021 0.043927132  1.6857510  0.0301230745720
-8        E539 0.03187059 0.012647569  2.5198981  0.0192230171192
-9        E274 0.02401025 0.008151049  2.9456643  0.0158592050373
-10        E54 0.03321566 0.018016031  1.8436727  0.0151996328305
-11       E877 0.04902839 0.036631599  1.3384179  0.0123967892253
-12       E119 0.21130955 0.202076697  1.0456898  0.0092328534401
-13       E561 0.01889522 0.012125416  1.5583155  0.0067698081619
-14       E115 0.01077149 0.004707798  2.2880110  0.0060636963080
-15       E059 0.06067309 0.054724724  1.1086961  0.0059483662612
-16       E039 0.23362869 0.229963757  1.0159370  0.0036649333616
-17        E10 0.01116990 0.007509389  1.4874573  0.0036605067835
-18       E569 0.06695560 0.063931058  1.0473095  0.0030245435195
-19        E13 0.01116990 0.010781559  1.0360186  0.0003883367088
-20       E050 0.01069747 0.010388099  1.0297813  0.0003093709151
-21       E854 1.00000007 0.999999875  1.0000002  0.0000001929923
-22       E722 0.01069747 0.011454699  0.9338935 -0.0007572295886
-23       E041 0.01069747 0.011909937  0.8981970 -0.0012124674718
-24       E789 0.03415639 0.036563069  0.9341772 -0.0024066836242
-25       E144 0.03249776 0.035640670  0.9118168 -0.0031429091468
-26       E880 0.07160815 0.080822212  0.8859959 -0.0092140596084
-27       E149 0.03263886 0.043513307  0.7500892 -0.0108744461459
-28       E063 0.01077149 0.023894646  0.4507911 -0.0131231516687
-29       E519 0.01069747 0.025160959  0.4251614 -0.0144634892930
-30       E871 0.01140987 0.029491764  0.3868832 -0.0180818951526
-31        E46 0.03375754 0.053832862  0.6270806 -0.0200753173834
-32       E876 0.16253894 0.182811280  0.8891078 -0.0202723365634
-33       E142 0.03209698 0.054167598  0.5925494 -0.0220706186929
-34       E117 0.01077149 0.033700704  0.3196222 -0.0229292090159
-35       E213 0.01189018 0.035202707  0.3377632 -0.0233125280268
-36       E785 0.49247659 0.518660124  0.9495170 -0.0261835296996
-37       E049 0.01308820 0.040144261  0.3260292 -0.0270560585304
-38       E112 0.01077149 0.039652963  0.2716441 -0.0288814681177
-39       E211 0.01189018 0.054348331  0.2187773 -0.0424581525538
-40       E872 0.04603593 0.093202891  0.4939325 -0.0471669575731
-41        E11 0.33027284 0.377444943  0.8750226 -0.0471720997888
-42        E14 0.37859164 0.428312858  0.8839138 -0.0497212214303
-43       E618 0.01116990 0.071673517  0.1558441 -0.0605036207276
-44       E833 0.01189018 0.074399770  0.1598147 -0.0625095913546
-45       E143 0.03176565 0.101162629  0.3140058 -0.0693969759928
-46       E875 0.05703419 0.140856200  0.4049108 -0.0838220068142
-47        E86 0.22793967 0.338958820  0.6724701 -0.1110191492559
-48       E790 0.42506291 0.596530697  0.7125583 -0.1714677922044
-49       E780 0.21761163 0.421606556  0.5161486 -0.2039949275510
-
-
-
-
 # Gs
-sum(as.numeric(ATTR_Dx_Vyndaqel$weight)) # 668.1897
-sum(as.numeric(ATTR_Dx_NO_Vyndaqel$weight)) # 3580.48
+sum(as.numeric(ATTR_Dx_Vyndaqel$weight)) # 
+sum(as.numeric(ATTR_Dx_NO_Vyndaqel$weight)) # 
 
 
 data.frame(
@@ -6601,30 +6461,6 @@ data.frame(
     arrange(-Diff)
            )
 
-  icd10_code     n_Vynd    n_noVynd FoldChange         Diff
-1        G633 0.35727425 0.007509389 47.5770043  0.349764858
-2        G629 0.68698457 0.373277949  1.8404103  0.313706619
-3        G560 0.17420601 0.065974079  2.6405221  0.108231931
-4        G909 0.11420479 0.038139651  2.9943847  0.076065137
-5        G561 0.06270704 0.001928693 32.5127113  0.060778350
-6        G409 0.10497589 0.058211403  1.8033562  0.046764491
-7        G473 0.11522813 0.074051530  1.5560534  0.041176602
-8        G470 0.47161193 0.454510658  1.0376257  0.017101275
-9        G442 0.04120717 0.028532775  1.4442048  0.012674395
-10       G402 0.01189018 0.002442522  4.8679919  0.009447656
-11       G992 0.05607800 0.048947505  1.1456764  0.007130496
-12       G500 0.02258765 0.018826201  1.1997985  0.003761448
-13       G467 0.03348026 0.031417732  1.0656484  0.002062524
-14       G959 0.01069747 0.009511398  1.1247000  0.001186072
-15       G632 0.03249776 0.033644307  0.9659216 -0.001146546
-16        G98 0.16721310 0.168411982  0.9928813 -0.001198877
-17       G459 0.02139494 0.023096773  0.9263173 -0.001701833
-18       G479 0.01077149 0.022785393  0.4727368 -0.012013898
-19        G64 0.16914307 0.185651168  0.9110800 -0.016508100
-20       G439 0.01189018 0.028705766  0.4142087 -0.016815587
-21       G552 0.01189018 0.037443370  0.3175510 -0.025553191
-22       G309 0.01102880 0.037676400  0.2927243 -0.026647603
-23       G530 0.01069747 0.040885701  0.2616433 -0.030188231
 
 
 temp <- ATTR_Dx_Vyndaqel %>% mutate(Group="Treat") %>% select(-weight) %>% left_join(short_i_receipt_diseases_All_ContEnr_pts) %>%
@@ -6787,24 +6623,12 @@ ATTR_Dx_Vyndaqel %>% select(-weight) %>%
   left_join(short_i_receipt_diseases_All_ContEnr_pts) %>%
   group_by(diseases_code) %>% count()
 
-# > 58/60
-# [1] 0.9666667
-# > 25/60
-# [1] 0.4166667
-# > 276/276
-# [1] 1
-# > 276/278
-# [1] 0.9928058
-# > 18/278
-# [1] 0.0647482
-
-
 # ---------------------------------------------------------
 # Stocks / Flows diagram CM and PN Vyndaqel patient funnel NEW RULES ------------------------------------------
 tekiyo_All_ContEnr_pts <- fread("All_Pts_ContinuousEnrolled/tekiyo_All_ContEnr_pts.txt", colClasses = "character")
 ContinuouslyEnrolled_Y3_tekiyo_weights <- fread("All_Pts_ContinuousEnrolled/ContinuouslyEnrolled_Y3_tekiyo_weights.txt", colClasses = "character")
 tekiyo_All_ContEnr_pts <- tekiyo_All_ContEnr_pts %>% left_join(ContinuouslyEnrolled_Y3_tekiyo_weights %>% select(kojin_id, weight)) %>% select(kojin_id, weight)
-sum(as.numeric(tekiyo_All_ContEnr_pts$weight)) # 26009563
+sum(as.numeric(tekiyo_All_ContEnr_pts$weight)) # 
 
 Vyndaqel_pats_CM_vs_PN <- fread("VyndaqelPts195/Vyndaqel_pats_CM_vs_PN.txt", colClasses = "character")
 Vyndaqel_pats_CM_vs_PN <- Vyndaqel_pats_CM_vs_PN %>% select(kojin_id) 
@@ -6869,12 +6693,12 @@ short_e_receipt_diseases_All_ContEnr_pts %>% filter(grepl("E85",icd10_code)) %>%
 short_i_receipt_diseases_All_ContEnr_pts %>% filter(grepl("I431",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
   inner_join(ATTR_SpecificCode) %>%
   anti_join(Vyndaqel_pats_CM_vs_PN) %>%
-  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 208.228
+  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 short_i_receipt_diseases_All_ContEnr_pts %>% filter(grepl("I431",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
   anti_join(ATTR_SpecificCode) %>%
     anti_join(Vyndaqel_pats_CM_vs_PN) %>%
-  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 4834.776
+  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 
 
@@ -6930,31 +6754,31 @@ short_e_receipt_diseases_All_ContEnr_pts <- short_e_receipt_diseases_All_ContEnr
 short_i_receipt_diseases_All_ContEnr_pts %>% filter(grepl("I50",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
   anti_join(short_i_receipt_diseases_All_ContEnr_pts %>% filter(grepl("I42",icd10_code)|grepl("I43",icd10_code)) %>% select(kojin_id) %>% distinct()) %>%
       anti_join(short_i_receipt_diseases_All_ContEnr_pts %>% filter(grepl("I431",icd10_code)) %>% select(kojin_id) %>% distinct()) %>%
-  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight)))  # 8194013
+  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight)))  # 
 
 short_i_receipt_diseases_All_ContEnr_pts %>% filter(grepl("I42",icd10_code)|grepl("I43",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
       anti_join(short_i_receipt_diseases_All_ContEnr_pts %>% filter(grepl("I431",icd10_code)) %>% select(kojin_id) %>% distinct()) %>%
       anti_join(Vyndaqel_pats_CM_vs_PN) %>%
-  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight)))  # 8194013
+  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight)))  # 
 
 
 # HEART FAILURE LAST -3 -2 YEARS & AMYLOIDOSIS & CARDIOMYOPATHY
 short_e_receipt_diseases_All_ContEnr_pts %>% filter(grepl("E85",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
     inner_join(short_i_receipt_diseases_All_ContEnr_pts %>% filter(grepl("I42",icd10_code)|grepl("I43",icd10_code)) %>% select(kojin_id) %>% distinct()) %>%
     anti_join(short_i_receipt_diseases_All_ContEnr_pts %>% filter(grepl("I431",icd10_code)) %>% select(kojin_id) %>% distinct()) %>%
-  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) #  1343.111
+  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) #  
 
 
 # HEART FAILURE LAST -3 -2 YEARS & AMYLOIDOSIS & CARDIOMYOPATHY & CARDIOMYOPATHY DUE TO AMYLOIDOSIS
 short_i_receipt_diseases_All_ContEnr_pts %>% filter(grepl("I431",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
   inner_join(ATTR_SpecificCode) %>%
   anti_join(Vyndaqel_pats_CM_vs_PN) %>%
-  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 208.228
+  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 short_i_receipt_diseases_All_ContEnr_pts %>% filter(grepl("I431",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
   anti_join(ATTR_SpecificCode) %>%
     anti_join(Vyndaqel_pats_CM_vs_PN) %>%
-  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 4834.776
+  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 
 
@@ -7002,11 +6826,11 @@ sum(as.numeric(VyndaqelPts195$weight))
 GapFillVyndael %>%  filter(Treat==1) %>% select(kojin_id) %>% distinct() %>%
   inner_join(Vyndaqel_pats_CM_vs_PN %>% filter(CM==1|Combo==1) %>% select(kojin_id)) %>% 
   inner_join(VyndaqelPts195) %>% 
-  inner_join(ContinuouslyEnrolled_Y3_tekiyo_weights %>% select(kojin_id)) %>% summarise(n=sum(as.numeric(weight)))  # 1525.761
+  inner_join(ContinuouslyEnrolled_Y3_tekiyo_weights %>% select(kojin_id)) %>% summarise(n=sum(as.numeric(weight)))  # 
   
   
   anti_join(GapFillVyndael %>% filter(receipt_ym<="2020/03" & receipt_ym>="2018/04") %>% filter(Treat==1) %>% select(kojin_id) %>% distinct()) %>%
-   left_join(VyndaqelPts195) %>% summarise(n=sum(as.numeric(weight)))  # 845.0034
+   left_join(VyndaqelPts195) %>% summarise(n=sum(as.numeric(weight)))  # 
 
 
 
@@ -7036,11 +6860,11 @@ GapFillVyndael %>% filter(receipt_ym=="2021/03") %>% filter(Treat==1) %>% select
 tekiyo_All_ContEnr_pts <- fread("All_Pts_ContinuousEnrolled/tekiyo_All_ContEnr_pts.txt", colClasses = "character")
 ContinuouslyEnrolled_Y3_tekiyo_weights <- fread("All_Pts_ContinuousEnrolled/ContinuouslyEnrolled_Y3_tekiyo_weights.txt", colClasses = "character")
 tekiyo_All_ContEnr_pts <- tekiyo_All_ContEnr_pts %>% left_join(ContinuouslyEnrolled_Y3_tekiyo_weights %>% select(kojin_id, weight)) %>% select(kojin_id, weight)
-sum(as.numeric(tekiyo_All_ContEnr_pts$weight)) # 26009563
+sum(as.numeric(tekiyo_All_ContEnr_pts$weight)) # 
 
 Vyndaqel_pats_CM_vs_PN <- fread("VyndaqelPts195/Vyndaqel_pats_CM_vs_PN.txt", colClasses = "character")
 Vyndaqel_pats_CM_vs_PN <- Vyndaqel_pats_CM_vs_PN %>% select(kojin_id) 
-Vyndaqel_pats_CM_vs_PN %>% inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 959.7988 cont. enroll.
+Vyndaqel_pats_CM_vs_PN %>% inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) #  cont. enroll.
 
 
 
@@ -7104,13 +6928,13 @@ short_e_receipt_diseases_All_ContEnr_pts <- short_e_receipt_diseases_All_ContEnr
 # POLYNEUROPATHY LAST 3 YEARS
 short_g_receipt_diseases_All_ContEnr_pts %>% filter(grepl("G6",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
   anti_join(short_i_receipt_diseases_All_ContEnr_pts) %>%
-  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 2297699  # 4064504
+  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 # POLYNEUROPATHY LAST 3 YEARS & AMYLOIDOSIS POLYNEUROPATHY
 short_g_receipt_diseases_All_ContEnr_pts %>% filter(grepl("G6",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
     anti_join(short_i_receipt_diseases_All_ContEnr_pts) %>%
   inner_join(short_e_receipt_diseases_All_ContEnr_pts %>% filter(grepl("E85",icd10_code)) %>% select(kojin_id) %>% distinct()) %>%
-  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 10195.39 # 10365.16
+  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 
 # POLYNEUROPATHY LAST 3 YEARS & AMYLOIDOSIS & POLYNEUROPATHY DUE TO AMYLOIDOSIS
@@ -7118,7 +6942,7 @@ short_g_receipt_diseases_All_ContEnr_pts %>% filter(grepl("G6",icd10_code)) %>% 
     anti_join(short_i_receipt_diseases_All_ContEnr_pts) %>%
   inner_join(short_e_receipt_diseases_All_ContEnr_pts %>% filter(grepl("E85",icd10_code)) %>% select(kojin_id) %>% distinct()) %>%
     inner_join(short_e_receipt_diseases_All_ContEnr_pts %>% filter(grepl("E851",icd10_code)) %>% select(kojin_id) %>% distinct()) %>%
-  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 583.8182 # 418.5618
+  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 # POLYNEUROPATHY LAST 3 YEARS & AMYLOIDOSIS & POLYNEUROPATHY DUE TO AMYLOIDOSIS
 # short_g_receipt_diseases_All_ContEnr_pts %>% filter(grepl("G6",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
@@ -7200,20 +7024,20 @@ short_e_receipt_diseases_All_ContEnr_pts <- short_e_receipt_diseases_All_ContEnr
 # POLYNEUROPATHY YEARS -3 and -2
 short_g_receipt_diseases_All_ContEnr_pts %>% filter(grepl("G6",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
   anti_join(short_i_receipt_diseases_All_ContEnr_pts) %>%
-  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 1872872 # 3316177
+  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) #
 
 # POLYNEUROPATHY YEARS -3 and -2 & AMYLOIDOSIS POLYNEUROPATHY
 short_g_receipt_diseases_All_ContEnr_pts %>% filter(grepl("G6",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
     anti_join(short_i_receipt_diseases_All_ContEnr_pts) %>%
   inner_join(short_e_receipt_diseases_All_ContEnr_pts %>% filter(grepl("E85",icd10_code)) %>% select(kojin_id) %>% distinct()) %>%
-  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 7499.808 # 8370.39
+  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 # POLYNEUROPATHY YEARS -3 and -2 & AMYLOIDOSIS & POLYNEUROPATHY DUE TO AMYLOIDOSIS
 short_g_receipt_diseases_All_ContEnr_pts %>% filter(grepl("G6",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
    anti_join(short_i_receipt_diseases_All_ContEnr_pts) %>%
   inner_join(short_e_receipt_diseases_All_ContEnr_pts %>% filter(grepl("E85",icd10_code)) %>% select(kojin_id) %>% distinct()) %>%
     inner_join(short_e_receipt_diseases_All_ContEnr_pts %>% filter(grepl("E851",icd10_code)) %>% select(kojin_id) %>% distinct()) %>%
-  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 413.0787 # 319.9577
+  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 # POLYNEUROPATHYYEARS -3 and -2 & AMYLOIDOSIS & POLYNEUROPATHY DUE TO AMYLOIDOSIS + Vyndaqel
 # short_g_receipt_diseases_All_ContEnr_pts %>% filter(grepl("G6",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
@@ -7518,19 +7342,19 @@ length(
   unique(
     receipt_medical_institution_CM_Targets$kojin_id[receipt_medical_institution_CM_Targets$Group=="Cardiomiopathy"]
     )
-  ) # 16896
+  ) # 
 
 length(
   unique(
     receipt_medical_institution_CM_Targets$kojin_id[receipt_medical_institution_CM_Targets$Group=="CardiacAMyloidosis"]
     )
-  ) # 307
+  ) # 
 
 length(
   unique(
     receipt_medical_institution_CM_Targets$kojin_id[receipt_medical_institution_CM_Targets$Group=="ATTRCM_noVyn"]
     )
-  ) # 17
+  ) # 
 
 
 
@@ -7539,25 +7363,25 @@ length(
 
 receipt_medical_institution_CM_Targets <- receipt_medical_institution_CM_Targets %>% inner_join(Vyndaqel_Facilities)
 
-length(unique(receipt_medical_institution_CM_Targets$iryokikan_no)) # 74  # 49
+length(unique(receipt_medical_institution_CM_Targets$iryokikan_no)) # 
 
 length(
   unique(
     receipt_medical_institution_CM_Targets$kojin_id[receipt_medical_institution_CM_Targets$Group=="Cardiomiopathy"]
     )
-  ) # 5051
+  ) # 
 
 length(
   unique(
     receipt_medical_institution_CM_Targets$kojin_id[receipt_medical_institution_CM_Targets$Group=="CardiacAMyloidosis"]
     )
-  ) # 147
+  ) # 
 
 length(
   unique(
     receipt_medical_institution_CM_Targets$kojin_id[receipt_medical_institution_CM_Targets$Group=="ATTRCM_noVyn"]
     )
-  ) # 12
+  ) # 
 
 short_E_receipt_diseases_facility_CM_Targets <- fread("All_Pts_ContinuousEnrolled/short_E_receipt_diseases_facility_CM_Targets.txt", sep="\t", colClasses = "character")
 short_I_receipt_diseases_facility_CM_Targets <- fread("All_Pts_ContinuousEnrolled/short_I_receipt_diseases_facility_CM_Targets.txt", sep="\t", colClasses = "character")
@@ -7567,7 +7391,7 @@ short_I_receipt_diseases_facility_CM_Targets <- short_I_receipt_diseases_facilit
 
 short_I_receipt_diseases_facility_CM_Targets %>% filter(diseases_code=="8850066") %>% select(kojin_id, receipt_id) %>% distinct() %>%
   inner_join(receipt_medical_institution_CM_Targets) %>%
-  filter(Group=="ATTRCM_noVyn") %>% select(kojin_id) %>% distinct() # 12 # 4
+  filter(Group=="ATTRCM_noVyn") %>% select(kojin_id) %>% distinct() # 
 
 m_icd10 <- fread("Masters/m_icd10.csv", colClasses = "character")
 m_icd10 <- m_icd10 %>% select(diseases_code, icd10_code)
@@ -7575,13 +7399,13 @@ m_icd10 <- m_icd10 %>% select(diseases_code, icd10_code)
 short_I_receipt_diseases_facility_CM_Targets %>% 
   left_join(m_icd10) %>% filter(icd10_code=="I431") %>% select(kojin_id, receipt_id) %>% distinct() %>%
   inner_join(receipt_medical_institution_CM_Targets) %>%
-  filter(Group=="CardiacAMyloidosis") %>% select(kojin_id) %>% distinct() # 116 # 30
+  filter(Group=="CardiacAMyloidosis") %>% select(kojin_id) %>% distinct() #
 
 
 short_I_receipt_diseases_facility_CM_Targets %>% 
   left_join(m_icd10) %>% filter(grepl("I43",icd10_code)|grepl("I42",icd10_code)) %>% select(kojin_id, receipt_id) %>% distinct() %>%
   inner_join(receipt_medical_institution_CM_Targets) %>%
-  filter(Group=="Cardiomiopathy") %>% select(kojin_id) %>% distinct() # 2253 139
+  filter(Group=="Cardiomiopathy") %>% select(kojin_id) %>% distinct() # 
 
 # -------------------------------------------------------------------
 # Vyndaqel faiclities seeng X # of ATTR CM, Cardiac Amyloidosis, etc -------------------------------
@@ -7655,60 +7479,6 @@ dat_ts  <- ts(ForecastingVYN[, 2], start = c(2020, 04), end = c(2021, 03), frequ
 holt_model  <- holt(dat_ts, h = 24)
 summary(holt_model)
 
-# Forecast method: Holt's method
-# 
-# Model Information:
-# Holt's method 
-# 
-# Call:
-#  holt(y = dat_ts, h = 24) 
-# 
-#   Smoothing parameters:
-#     alpha = 0.0001 
-#     beta  = 0.0001 
-# 
-#   Initial states:
-#     l = 487.2776 
-#     b = 34.5199 
-# 
-#   sigma:  18.9049
-# 
-#      AIC     AICc      BIC 
-# 105.4994 115.4994 107.9239 
-# 
-# Error measures:
-#                     ME     RMSE      MAE        MPE     MAPE MASE
-# Training set 0.5109929 15.43578 12.25661 0.04745958 1.691226  NaN
-#                   ACF1
-# Training set 0.1285317
-# 
-# Forecasts:
-#          Point Forecast     Lo 80     Hi 80     Lo 95     Hi 95
-# Apr 2021       936.0456  911.8180  960.2732  898.9927  973.0985
-# May 2021       970.5661  946.3385  994.7937  933.5132 1007.6190
-# Jun 2021      1005.0866  980.8590 1029.3142  968.0337 1042.1396
-# Jul 2021      1039.6071 1015.3795 1063.8347 1002.5542 1076.6601
-# Aug 2021      1074.1277 1049.9001 1098.3553 1037.0747 1111.1806
-# Sep 2021      1108.6482 1084.4206 1132.8758 1071.5952 1145.7011
-# Oct 2021      1143.1687 1118.9411 1167.3963 1106.1157 1180.2216
-# Nov 2021      1177.6892 1153.4616 1201.9168 1140.6362 1214.7421
-# Dec 2021      1212.2097 1187.9821 1236.4373 1175.1567 1249.2627
-# Jan 2022      1246.7302 1222.5026 1270.9579 1209.6772 1283.7832
-# Feb 2022      1281.2507 1257.0231 1305.4784 1244.1977 1318.3037
-# Mar 2022      1315.7712 1291.5436 1339.9989 1278.7182 1352.8243
-# Apr 2022      1350.2917 1326.0641 1374.5194 1313.2387 1387.3448
-# May 2022      1384.8123 1360.5845 1409.0400 1347.7592 1421.8654
-# Jun 2022      1419.3328 1395.1050 1443.5605 1382.2796 1456.3859
-# Jul 2022      1453.8533 1429.6255 1478.0811 1416.8001 1490.9065
-# Aug 2022      1488.3738 1464.1460 1512.6016 1451.3205 1525.4270
-# Sep 2022      1522.8943 1498.6665 1547.1222 1485.8410 1559.9476
-# Oct 2022      1557.4148 1533.1869 1581.6427 1520.3614 1594.4682
-# Nov 2022      1591.9353 1567.7074 1616.1633 1554.8819 1628.9888
-# Dec 2022      1626.4558 1602.2278 1650.6838 1589.4023 1663.5094
-# Jan 2023      1660.9764 1636.7483 1685.2044 1623.9227 1698.0300
-# Feb 2023      1695.4969 1671.2687 1719.7250 1658.4431 1732.5506
-# Mar 2023      1730.0174 1705.7892 1754.2456 1692.9636 1767.0712
-
 ses_model  <- ses(dat_ts, h = 12)
 summary(ses_model)
 
@@ -7754,7 +7524,7 @@ Cardiac_Amyloidosis_Pats %>% left_join(short_i_receipt_diseases_All_ContEnr_pts 
   group_by(kojin_id) %>% filter(receipt_ym==min(receipt_ym)) %>% slice(1)  %>% select(-icd10_code) %>% rename("FirstI431"="receipt_ym")
   ) %>%
   mutate(Diff=FirstI431 - FirstCardiomiopathy  ) %>%  
-  ungroup() %>% summarise(n=mean(Diff)) # 94.71336 days
+  ungroup() %>% summarise(n=mean(Diff)) # 
 
 
 
@@ -8081,13 +7851,13 @@ short_i_receipt_diseases_utagai_AllPatients %>% filter(grepl("I42",icd10_code)|g
 short_i_receipt_diseases_utagai_AllPatients %>% filter(grepl("I431",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
   inner_join(ATTR_SpecificCode) %>%
   anti_join(Vyndaqel_pats_CM_vs_PN) %>%
-   left_join(All_Pats_11m) %>% drop_na() %>% summarise(n=sum(as.numeric(weight)))   # 177.7577  # 4.925068  # 478.555
+   left_join(All_Pats_11m) %>% drop_na() %>% summarise(n=sum(as.numeric(weight)))   # 
 
 
 short_i_receipt_diseases_utagai_AllPatients %>% filter(grepl("I431",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
   anti_join(ATTR_SpecificCode) %>%
     anti_join(Vyndaqel_pats_CM_vs_PN) %>%
-left_join(All_Pats_11m) %>% drop_na() %>% summarise(n=sum(as.numeric(weight)))  # 5216.173 # 3477.343  # 12514.01
+left_join(All_Pats_11m) %>% drop_na() %>% summarise(n=sum(as.numeric(weight)))  #
 
 
 
@@ -8143,13 +7913,13 @@ GapFillVyndael %>%  filter(receipt_ym<="2021/03") %>%
 GapFillVyndael %>%  filter(receipt_ym=="2020/03") %>%
   filter(Treat==1) %>% select(kojin_id) %>% distinct() %>%
   inner_join(Vyndaqel_pats_CM_vs_PN %>% filter(CM==1|Combo==1) %>% select(kojin_id)) %>% 
-  inner_join(VyndaqelPts195) %>%  summarise(n=sum(as.numeric(weight))) # 425.3059
+  inner_join(VyndaqelPts195) %>%  summarise(n=sum(as.numeric(weight))) # 
 
 
 GapFillVyndael %>%  filter(receipt_ym<="2020/03") %>%
   filter(Treat==1) %>% select(kojin_id) %>% distinct() %>%
   inner_join(Vyndaqel_pats_CM_vs_PN %>% filter(CM==1|Combo==1) %>% select(kojin_id)) %>% 
-  inner_join(VyndaqelPts195) %>%  summarise(n=sum(as.numeric(weight))) # 466.4527
+  inner_join(VyndaqelPts195) %>%  summarise(n=sum(as.numeric(weight))) # 
 
   
 
@@ -8241,11 +8011,6 @@ Lookup %>% left_join(FIrst_CardiacAmyloidosis) %>% select(receipt_ym, monthnumbe
   summarise(n=mean(monthnumber))
 
 
-# 1 ATTR-CM             46    # 	2018/01
-# 2 CardiacAmyloidosis  56.2 # 2018/11
-# 3 Cardiomyopathy      47.2 # 	2018/02
-
-
 
 Lookup %>% left_join(First_Cardiomyopathy) %>% select(receipt_ym, monthnumber) %>% mutate(Group="Cardiomyopathy") %>%
   full_join(
@@ -8302,10 +8067,10 @@ receipt_diseases_Vyndaqel195pts <- receipt_diseases_Vyndaqel195pts %>% inner_joi
 receipt_diseases_Vyndaqel195pts$FirstI431 <- as.Date(paste0(as.character(receipt_diseases_Vyndaqel195pts$FirstI431), '/01'))
 
 receipt_diseases_Vyndaqel195pts %>% ungroup() %>% mutate(Lapsed = as.numeric(FirstVyndaqel)-as.numeric(FirstI431)) %>%
-  inner_join(ATTR_specific) %>% summarise(n=mean(Lapsed)) # 168
+  inner_join(ATTR_specific) %>% summarise(n=mean(Lapsed)) # 
 
 receipt_diseases_Vyndaqel195pts %>% ungroup() %>% mutate(Lapsed = as.numeric(FirstVyndaqel)-as.numeric(FirstI431)) %>%
-  anti_join(ATTR_specific) %>% summarise(n=mean(Lapsed)) # 120
+  anti_join(ATTR_specific) %>% summarise(n=mean(Lapsed)) # 
                                            
 
 
@@ -8575,7 +8340,7 @@ Cardiac_Amyloidosis_Pats %>% left_join(short_i_receipt_diseases_All_ContEnr_pts 
   group_by(kojin_id) %>% filter(receipt_ym==min(receipt_ym)) %>% slice(1)  %>% select(-icd10_code) %>% rename("FirstI431"="receipt_ym")
   ) 
 
-length(unique(temp$kojin_id)) # 307
+length(unique(temp$kojin_id)) # 
 
 short_procedures_receipt_medical_practice_All_ContEnr_pts <- fread("All_Pts_Continuousenrolled/short_procedures_receipt_medical_practice_All_ContEnr_pts.txt", colClasses = "character")
 short_procedures_receipt_medical_practice_All_ContEnr_pts <- short_procedures_receipt_medical_practice_All_ContEnr_pts %>% select(kojin_id, medical_practice_code, receipt_ym) %>% distinct()
@@ -8683,8 +8448,8 @@ temp <- receipt_drug_Vyndaqel195pts %>%
   left_join(receipt_medical_institution_Vyndaqel195pts,
             by=c("kojin_id"="kojin_id", "receipt_id"="receipt_id", "receipt_ym"="receipt_ym")) 
 
-length(unique(temp$kojin_id)) # 195
-length(unique(temp$iryokikan_no)) # # 53
+length(unique(temp$kojin_id)) # 
+length(unique(temp$iryokikan_no)) # # 
 
 Vyndaqel_Facilities <- unique(temp$iryokikan_no)
 Vyndaqel_Facilities <- as.data.frame(Vyndaqel_Facilities)
@@ -8715,19 +8480,19 @@ length(
   unique(
     receipt_medical_institution_CM_Targets$kojin_id[receipt_medical_institution_CM_Targets$Group=="Cardiomiopathy"]
     )
-  ) # 16896
+  ) # 
 
 length(
   unique(
     receipt_medical_institution_CM_Targets$kojin_id[receipt_medical_institution_CM_Targets$Group=="CardiacAMyloidosis"]
     )
-  ) # 307
+  ) # 
 
 length(
   unique(
     receipt_medical_institution_CM_Targets$kojin_id[receipt_medical_institution_CM_Targets$Group=="ATTRCM_noVyn"]
     )
-  ) # 17
+  ) # 
 
 
 m_hco_med <- fread("Masters/m_hco_med.csv",  colClasses = "character")
@@ -8739,41 +8504,10 @@ receipt_medical_institution_CM_Targets %>% select(kojin_id, Group, iryokikan_no)
   select(Group, kojin_id, shisetsu_kbn_code) %>% 
   group_by(Group, shisetsu_kbn_code ) %>% count()
 
-#    Group              shisetsu_kbn_code       n
-#    <chr>              <chr>               <int>
-#  1 ATTRCM_noVyn       11                    673
-#  2 ATTRCM_noVyn       12                   2190
-#  3 ATTRCM_noVyn       32                    155
-#  4 ATTRCM_noVyn       NA                     14
-#  5 CardiacAMyloidosis 11                  18895
-#  6 CardiacAMyloidosis 12                  22579
-#  7 CardiacAMyloidosis 31                     53
-#  8 CardiacAMyloidosis 32                   2440
-#  9 CardiacAMyloidosis 99                     15
-# 10 CardiacAMyloidosis NA                    145
-# 11 Cardiomiopathy     11                 700578
-# 12 Cardiomiopathy     12                1448523
-# 13 Cardiomiopathy     31                   2706
-# 14 Cardiomiopathy     32                 161247
-# 15 Cardiomiopathy     99                     92
-# 16 Cardiomiopathy     NA                   4434
-
 receipt_medical_institution_CM_Targets %>% select(kojin_id, Group, iryokikan_no) %>% 
   left_join(m_hco_med) %>%
   select(Group, kojin_id, univ_hosp_flag) %>% 
   group_by(Group, univ_hosp_flag ) %>% count()
-
-#   Group              univ_hosp_flag       n
-#   <chr>              <chr>            <int>
-# 1 ATTRCM_noVyn       ""                2930
-# 2 ATTRCM_noVyn       "1"                 88
-# 3 ATTRCM_noVyn        NA                 14
-# 4 CardiacAMyloidosis ""               40136
-# 5 CardiacAMyloidosis "1"               3846
-# 6 CardiacAMyloidosis  NA                145
-# 7 Cardiomiopathy     ""             2229511
-# 8 Cardiomiopathy     "1"              83635
-# 9 Cardiomiopathy      NA               4434
 
 
 receipt_medical_institution_CM_Targets %>% select(kojin_id, Group, iryokikan_no) %>% 
@@ -8781,17 +8515,6 @@ receipt_medical_institution_CM_Targets %>% select(kojin_id, Group, iryokikan_no)
   select(Group, kojin_id, univ_hosp_flag) %>% distinct() %>%
   group_by(Group, univ_hosp_flag ) %>% count()
 
-#  Group              univ_hosp_flag     n
-#   <chr>              <chr>          <int>
-# 1 ATTRCM_noVyn       ""                17
-# 2 ATTRCM_noVyn       "1"               10
-# 3 ATTRCM_noVyn        NA                2
-# 4 CardiacAMyloidosis ""               306
-# 5 CardiacAMyloidosis "1"              115
-# 6 CardiacAMyloidosis  NA               17
-# 7 Cardiomiopathy     ""             16872
-# 8 Cardiomiopathy     "1"             3752
-# 9 Cardiomiopathy      NA              502
 
 
 receipt_medical_institution_CM_Targets %>% select(kojin_id, Group, iryokikan_no) %>% 
@@ -8800,12 +8523,6 @@ receipt_medical_institution_CM_Targets %>% select(kojin_id, Group, iryokikan_no)
   mutate(total_byoshousuu_code=as.numeric(total_byoshousuu_code)) %>%
   drop_na() %>%
   group_by(Group ) %>% summarise(n=median(as.numeric(total_byoshousuu_code)))
-
-#   Group                  n
-#   <chr>              <dbl>
-# 1 ATTRCM_noVyn        2.64
-# 2 CardiacAMyloidosis  4.09
-# 3 Cardiomiopathy      2.88
 
 
 receipt_medical_institution_CM_Targets %>% select(kojin_id, Group, iryokikan_no) %>% 
@@ -8816,11 +8533,6 @@ receipt_medical_institution_CM_Targets %>% select(kojin_id, Group, iryokikan_no)
   group_by(kojin_id) %>% filter(total_byoshousuu_code==max(total_byoshousuu_code)) %>% ungroup() %>%
   group_by(Group ) %>% summarise(n=mean(as.numeric(total_byoshousuu_code)))
 
-#   Group                  n
-#   <chr>              <dbl>
-# 1 ATTRCM_noVyn       11.7 
-# 2 CardiacAMyloidosis 10.5 
-# 3 Cardiomiopathy      7.39
 
 # ----------------------------------------------------------------------------------
 # Stocks / Flows diagram CM Vyndaqel patient funnel NEW RULES - Dx only in JsC facilities --------------------------
@@ -8841,8 +8553,8 @@ temp <- receipt_drug_Vyndaqel195pts %>%
   left_join(receipt_medical_institution_Vyndaqel195pts,
             by=c("kojin_id"="kojin_id", "receipt_id"="receipt_id", "receipt_ym"="receipt_ym")) 
 
-length(unique(temp$kojin_id)) # 195
-length(unique(temp$iryokikan_no)) # # 53
+length(unique(temp$kojin_id)) # 
+length(unique(temp$iryokikan_no)) # # 
 
 Vyndaqel_Facilities <- unique(temp$iryokikan_no)
 Vyndaqel_Facilities <- as.data.frame(Vyndaqel_Facilities)
@@ -8872,7 +8584,7 @@ receipt_medical_institution_CM_Targets <- receipt_medical_institution_CM_Targets
 tekiyo_All_ContEnr_pts <- fread("All_Pts_ContinuousEnrolled/tekiyo_All_ContEnr_pts.txt", colClasses = "character")
 ContinuouslyEnrolled_Y3_tekiyo_weights <- fread("All_Pts_ContinuousEnrolled/ContinuouslyEnrolled_Y3_tekiyo_weights.txt", colClasses = "character")
 tekiyo_All_ContEnr_pts <- tekiyo_All_ContEnr_pts %>% left_join(ContinuouslyEnrolled_Y3_tekiyo_weights %>% select(kojin_id, weight)) %>% select(kojin_id, weight)
-sum(as.numeric(tekiyo_All_ContEnr_pts$weight)) # 26009563
+sum(as.numeric(tekiyo_All_ContEnr_pts$weight)) # 
 Vyndaqel_pats_CM_vs_PN <- fread("VyndaqelPts195/Vyndaqel_pats_CM_vs_PN.txt", colClasses = "character")
 Vyndaqel_pats_CM_vs_PN <- Vyndaqel_pats_CM_vs_PN %>% select(kojin_id) 
 
@@ -8914,18 +8626,17 @@ short_I_receipt_diseases_facility_CM_Targets %>% filter(grepl("I42",icd10_code)|
       anti_join(short_I_receipt_diseases_facility_CM_Targets %>% filter(grepl("I431",icd10_code)) %>% select(kojin_id) %>% distinct()) %>%
       anti_join(Vyndaqel_pats_CM_vs_PN) %>%
   select(kojin_id) %>% distinct()%>%
-  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight)))  # 26358.21 # 10478.05
-
+  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight)))  # 
 short_I_receipt_diseases_facility_CM_Targets %>% filter(grepl("I431",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
   anti_join(ATTR_SpecificCode) %>%
     anti_join(Vyndaqel_pats_CM_vs_PN) %>%
-  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 1645.577  # 2435.128
+  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 
 short_I_receipt_diseases_facility_CM_Targets %>% filter(grepl("I431",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
   inner_join(ATTR_SpecificCode) %>%
   anti_join(Vyndaqel_pats_CM_vs_PN) %>%
-  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 148.0557  # 95.56035
+  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 
 
@@ -8944,8 +8655,8 @@ receipt_medical_institution_Vyndaqel195pts$receipt_ym  <- as.Date(paste0(as.char
 temp <- receipt_drug_Vyndaqel195pts %>% 
   left_join(receipt_medical_institution_Vyndaqel195pts,
             by=c("kojin_id"="kojin_id", "receipt_id"="receipt_id", "receipt_ym"="receipt_ym")) 
-length(unique(temp$kojin_id)) # 195
-length(unique(temp$iryokikan_no)) # # 53
+length(unique(temp$kojin_id)) # 
+length(unique(temp$iryokikan_no)) # # 
 Vyndaqel_Facilities <- unique(temp$iryokikan_no)
 Vyndaqel_Facilities <- as.data.frame(Vyndaqel_Facilities)
 names(Vyndaqel_Facilities)[1] <- "iryokikan_no"
@@ -8988,13 +8699,6 @@ temp[is.na(temp)] <- "Unknown"
 
 temp %>% group_by(`ATTR-CM`, CardiacAmyloidosis, Cardiomyopathy) %>% count()
 
-`ATTR-CM` CardiacAmyloidosis Cardiomyopathy     n
-  <chr>     <chr>              <chr>          <int>
-1 JsC       JsC                JsC                6
-2 JsC       JsC                Unknown           52
-3 JsC       Unknown            JsC                2
-4 JsC       Unknown            Unknown           12
-5 Unknown   JsC                Unknown            5
 
 # ---------------------------------------
 # 195 vyndaqel patients -> Comorbidities Exclusion Criteria Profile Patient Journey  -------------------------------------------------
@@ -9015,45 +8719,44 @@ temp <- receipt_diseases_Vyndaqel195pts %>% left_join(m_icd10) %>%
   inner_join(Vyndaqel_pats_CM_vs_PN %>% filter(CM==1|Combo==1) %>% select(kojin_id))  %>%
   filter(icd10_subdiv_code != "")
 
-length(unique(temp$kojin_id)) # 168
+length(unique(temp$kojin_id)) # 
 
-temp %>% filter(grepl("E11", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct() # Diabetes 47  28%
-
+temp %>% filter(grepl("E11", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct() # 
 temp %>% filter(grepl("D50", icd10_subdiv_code)|
                   grepl("D51", icd10_subdiv_code)|
                   grepl("D52", icd10_subdiv_code)|
-                  grepl("D53", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct() # Aneamia 69  41%
+                  grepl("D53", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct() #
 
-temp %>% filter(grepl("N18", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct() # CKD 40  24%
+temp %>% filter(grepl("N18", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct() #
 
 # temp %>% filter(grepl("N0", icd10_subdiv_code)|
 #                   grepl("N1", icd10_subdiv_code)|
-#                   grepl("N2", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct() # Other Kidney  105  63%
+#                   grepl("N2", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct() #
 
 
-temp %>% filter(grepl("K7", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct() # Liver  93  55%
+temp %>% filter(grepl("K7", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct() # 
 
 
-temp %>% filter(grepl("J4", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct() # Chronic Resp  51  30%
+temp %>% filter(grepl("J4", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct() # 
 
 
 temp %>% filter(grepl("E00", icd10_subdiv_code)|
                   grepl("E01", icd10_subdiv_code)|
                   grepl("E02", icd10_subdiv_code)|
-                  grepl("E03", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct() # Any Hypothyroid  88  52%
+                  grepl("E03", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct() # 
 
-temp %>% filter(grepl("E03", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct() # Other Hypothyroid  88  52%
+temp %>% filter(grepl("E03", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct() #
 
-temp %>% filter(grepl("I2", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct() # Ischemic Heart 356  21%
+temp %>% filter(grepl("I2", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct() # 
 
-temp %>% filter(grepl("I1", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct() # Hypotension 13  8%
+temp %>% filter(grepl("I1", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct() # 
 
 temp %>% filter(grepl("I34", icd10_subdiv_code)|
                   grepl("I35", icd10_subdiv_code)|
                   grepl("I36", icd10_subdiv_code)|
                   grepl("I37", icd10_subdiv_code)|
                   grepl("I38", icd10_subdiv_code)|
-                  grepl("I39", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct()  # Valvule  42  25%
+                  grepl("I39", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct()  # 
 
 # ----------------------------------------------------------
 # Cardiac Amyloidosis % Cardiomyopathy after removing codes from patient profile journey --------------------------
@@ -9061,7 +8764,7 @@ temp %>% filter(grepl("I34", icd10_subdiv_code)|
 tekiyo_All_ContEnr_pts <- fread("All_Pts_ContinuousEnrolled/tekiyo_All_ContEnr_pts.txt", colClasses = "character")
 ContinuouslyEnrolled_Y3_tekiyo_weights <- fread("All_Pts_ContinuousEnrolled/ContinuouslyEnrolled_Y3_tekiyo_weights.txt", colClasses = "character")
 tekiyo_All_ContEnr_pts <- tekiyo_All_ContEnr_pts %>% left_join(ContinuouslyEnrolled_Y3_tekiyo_weights %>% select(kojin_id, weight)) %>% select(kojin_id, weight)
-sum(as.numeric(tekiyo_All_ContEnr_pts$weight)) # 26009563
+sum(as.numeric(tekiyo_All_ContEnr_pts$weight)) # 
 
 
 Cardiomyopathy_Pats <- fread("Cardiomyopathy_Pats.txt", colClasses = "character")
@@ -9082,19 +8785,19 @@ m_icd10 <- m_icd10 %>% select(diseases_code, icd10_subdiv_code)
 
 short_i_receipt_diseases_Utagai_All_ContEnr_pts <- short_i_receipt_diseases_Utagai_All_ContEnr_pts %>% left_join(m_icd10) %>% select(kojin_id, icd10_subdiv_code) %>% distinct()
 
-Cardiomyopathy_Pats %>% left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=1.37*sum(as.numeric(weight))) # 313,149
-Cardiac_Amyloidosis_Pats %>% left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=1.37*sum(as.numeric(weight))) # 6,624
+Cardiomyopathy_Pats %>% left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=1.37*sum(as.numeric(weight))) # 
+Cardiac_Amyloidosis_Pats %>% left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=1.37*sum(as.numeric(weight))) # 
 
                                                                         
 Cardiomyopathy_Pats %>% 
   anti_join(short_i_receipt_diseases_Utagai_All_ContEnr_pts %>% filter(grepl("I1", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct()) %>%
-  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=1.37*sum(as.numeric(weight))) # 295,613
+  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=1.37*sum(as.numeric(weight))) # 
 
 
 Cardiomyopathy_Pats %>% 
   anti_join(short_i_receipt_diseases_Utagai_All_ContEnr_pts %>% filter(grepl("I1", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct()) %>%
     anti_join(short_i_receipt_diseases_Utagai_All_ContEnr_pts %>% filter(grepl("I25", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct()) %>%
-  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=1.37*sum(as.numeric(weight))) # 258,004
+  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=1.37*sum(as.numeric(weight))) # 
 
 Cardiomyopathy_Pats %>% 
   anti_join(short_i_receipt_diseases_Utagai_All_ContEnr_pts %>% filter(grepl("I1", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct()) %>%
@@ -9105,8 +8808,7 @@ Cardiomyopathy_Pats %>%
                   grepl("I37", icd10_subdiv_code)|
                   grepl("I38", icd10_subdiv_code)|
                   grepl("I39", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct()) %>%
-  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=1.37*sum(as.numeric(weight))) # 202,165
-
+  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=1.37*sum(as.numeric(weight))) # 
 
 Cardiomyopathy_Pats %>% 
   anti_join(short_i_receipt_diseases_Utagai_All_ContEnr_pts %>% filter(grepl("I1", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct()) %>%
@@ -9117,7 +8819,7 @@ Cardiomyopathy_Pats %>%
                   grepl("I37", icd10_subdiv_code)|
                   grepl("I38", icd10_subdiv_code)|
                   grepl("I39", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct()) %>%
-  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=1.37*sum(as.numeric(weight))) # 117,169
+  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=1.37*sum(as.numeric(weight))) # 
 
 
 Cardiomyopathy_Pats %>% 
@@ -9134,7 +8836,7 @@ Cardiomyopathy_Pats %>%
                                                                               grepl("I47", icd10_subdiv_code)|
                                                                               grepl("I48", icd10_subdiv_code)|
                                                                               grepl("I49", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct()) %>%
-  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=1.37*sum(as.numeric(weight))) # 59,563
+  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=1.37*sum(as.numeric(weight))) # 
 
 
 
@@ -9158,7 +8860,7 @@ Cardiomyopathy_Pats_short <- Cardiomyopathy_Pats %>%
                                            
 Cardiac_Amyloidosis_Pats %>% 
   anti_join(short_i_receipt_diseases_Utagai_All_ContEnr_pts %>% filter(grepl("I1", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct()) %>%
-  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=1.37*sum(as.numeric(weight))) # 6,301
+  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=1.37*sum(as.numeric(weight))) # 
 
 Cardiac_Amyloidosis_Pats %>% 
   anti_join(short_i_receipt_diseases_Utagai_All_ContEnr_pts %>% filter(grepl("I1", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct()) %>%
@@ -9174,7 +8876,7 @@ Cardiac_Amyloidosis_Pats %>%
                   grepl("I37", icd10_subdiv_code)|
                   grepl("I38", icd10_subdiv_code)|
                   grepl("I39", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct()) %>%
-  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=1.37*sum(as.numeric(weight))) # 4,350
+  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=1.37*sum(as.numeric(weight))) # 
 
 Cardiac_Amyloidosis_Pats %>% 
   anti_join(short_i_receipt_diseases_Utagai_All_ContEnr_pts %>% filter(grepl("I1", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct()) %>%
@@ -9185,7 +8887,7 @@ Cardiac_Amyloidosis_Pats %>%
                   grepl("I37", icd10_subdiv_code)|
                   grepl("I38", icd10_subdiv_code)|
                   grepl("I39", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct()) %>%
-  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=1.37*sum(as.numeric(weight))) # 2,466
+  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=1.37*sum(as.numeric(weight))) # 
 
 Cardiac_Amyloidosis_Pats %>% 
   anti_join(short_i_receipt_diseases_Utagai_All_ContEnr_pts %>% filter(grepl("I1", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct()) %>%
@@ -9201,7 +8903,7 @@ Cardiac_Amyloidosis_Pats %>%
                                                                               grepl("I47", icd10_subdiv_code)|
                                                                               grepl("I48", icd10_subdiv_code)|
                                                                               grepl("I49", icd10_subdiv_code)) %>% select(kojin_id) %>% distinct()) %>%
-  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=1.37*sum(as.numeric(weight))) # 829
+  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=1.37*sum(as.numeric(weight))) # 
 
 
 
@@ -9449,19 +9151,19 @@ short_procedures_receipt_medical_practice_All_ContEnr_pts <- short_procedures_re
 
 Cardiomyopathy_Pats %>% left_join(short_procedures_receipt_medical_practice_All_ContEnr_pts) %>%
   drop_na() %>% # 2362
-  filter(FirstCardiomiopathy   > FirstScinti) # 578 (24% scint before)
+  filter(FirstCardiomiopathy   > FirstScinti) # 
 
 Cardiomyopathy_Pats %>% left_join(short_procedures_receipt_medical_practice_All_ContEnr_pts) %>%
   drop_na() %>% # 2362
-  filter(FirstCardiomiopathy   <= FirstScinti) # 1784 (76% after)
+  filter(FirstCardiomiopathy   <= FirstScinti) 
 
 Cardiac_Amyloidosis_Pats %>% left_join(short_procedures_receipt_medical_practice_All_ContEnr_pts) %>%
   drop_na() %>% # 154
-  filter(FirstI431     > FirstScinti) # 76 (49% before)
+  filter(FirstI431     > FirstScinti) # 
 
 Cardiac_Amyloidosis_Pats %>% left_join(short_procedures_receipt_medical_practice_All_ContEnr_pts) %>%
   drop_na() %>% # 154
-  filter(FirstI431     <= FirstScinti) # 78 (51% after)
+  filter(FirstI431     <= FirstScinti) # 
 
 
 # ---------------------------------------------------------------------
@@ -9686,7 +9388,7 @@ short_i_receipt_diseases_All_ContEnr_pts <- receipt_medical_institution_CM_Targe
 
 short_i_receipt_diseases_All_ContEnr_pts <- short_i_receipt_diseases_All_ContEnr_pts %>% select(kojin_id, iryokikan_no) %>% distinct()
 
-length(unique(short_i_receipt_diseases_All_ContEnr_pts$kojin_id)) # 390
+length(unique(short_i_receipt_diseases_All_ContEnr_pts$kojin_id)) # 
 short_i_receipt_diseases_All_ContEnr_pts %>% group_by(iryokikan_no) %>% count() %>% arrange(-n)
 
 
@@ -9809,7 +9511,7 @@ short_i_receipt_diseases_All_ContEnr_pts_CM <- receipt_medical_institution_CM_Ta
 
 short_i_receipt_diseases_All_ContEnr_pts_CM <- short_i_receipt_diseases_All_ContEnr_pts_CM %>% select(kojin_id, iryokikan_no) %>% distinct()
 
-length(unique(short_i_receipt_diseases_All_ContEnr_pts_CM$kojin_id)) # 16993
+length(unique(short_i_receipt_diseases_All_ContEnr_pts_CM$kojin_id)) # 
 short_i_receipt_diseases_All_ContEnr_pts_CM %>% group_by(iryokikan_no) %>% count() %>% arrange(-n) %>% rename("No_CM_Pats"="n")
 
 
@@ -9847,7 +9549,7 @@ short_i_receipt_diseases_All_ContEnr_pts_CM <- receipt_medical_institution_CM_Ta
 
 short_i_receipt_diseases_All_ContEnr_pts_CM <- short_i_receipt_diseases_All_ContEnr_pts_CM %>% select(kojin_id, iryokikan_no) %>% distinct()
 
-length(unique(short_i_receipt_diseases_All_ContEnr_pts_CM$kojin_id)) # 16993
+length(unique(short_i_receipt_diseases_All_ContEnr_pts_CM$kojin_id)) # 
 short_i_receipt_diseases_All_ContEnr_pts_CM %>% group_by(iryokikan_no) %>% count() %>% arrange(-n) %>% rename("No_CM_Pats"="n")
 
 
@@ -10048,7 +9750,7 @@ short_I_receipt_diseases_facility_CM_Targets %>% filter(grepl("I42",icd10_code)|
       anti_join(short_I_receipt_diseases_facility_CM_Targets %>% filter(grepl("I431",icd10_code)) %>% select(kojin_id) %>% distinct()) %>%
       anti_join(Vyndaqel_pats_CM_vs_PN) %>%
   select(kojin_id) %>% distinct()%>%
-  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight)))  # 26358.21 # 10478.05
+  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight)))  # 
 
 JsC_CM <- short_I_receipt_diseases_facility_CM_Targets %>% filter(grepl("I42",icd10_code)|grepl("I43",icd10_code)) %>% filter(icd10_code!="I420"&
                                                                                                                   icd10_code!="I423"&
@@ -10062,7 +9764,7 @@ JsC_CM <- short_I_receipt_diseases_facility_CM_Targets %>% filter(grepl("I42",ic
 short_I_receipt_diseases_facility_CM_Targets %>% filter(grepl("I431",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
   anti_join(ATTR_SpecificCode) %>%
     anti_join(Vyndaqel_pats_CM_vs_PN) %>%
-  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 1645.577  # 2435.128
+  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 
 JsC_CA <- short_I_receipt_diseases_facility_CM_Targets %>% filter(grepl("I431",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
@@ -10072,7 +9774,7 @@ JsC_CA <- short_I_receipt_diseases_facility_CM_Targets %>% filter(grepl("I431",i
 short_I_receipt_diseases_facility_CM_Targets %>% filter(grepl("I431",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
   inner_join(ATTR_SpecificCode) %>%
   anti_join(Vyndaqel_pats_CM_vs_PN) %>%
-  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 148.0557  # 95.56035
+  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 
 JsC_ATTR <- short_I_receipt_diseases_facility_CM_Targets %>% filter(grepl("I431",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
@@ -10446,26 +10148,17 @@ sum(as.numeric(tekiyo_All_ContEnr_pts$weight))
 
 receipt_medical_practice_Target_CM %>% left_join(Vyndaqel_Facilities) %>% select(Group, iryokikan_no) %>% distinct() %>% group_by(Group) %>% count()
 
-  Group                n
-  <chr>            <int>
-1 VyndaqelFacility    40
-2 NA                 333
+
 
 receipt_medical_practice_Target_CM %>% left_join(Vyndaqel_Facilities) %>% group_by(Group) %>% count()
 
- Group                n
-  <chr>            <int>
-1 VyndaqelFacility   771
-2 NA                1969
+
 
 receipt_medical_practice_Target_CM %>% left_join(Vyndaqel_Facilities) %>% group_by(Group, iryokikan_no) %>% left_join(tekiyo_All_ContEnr_pts) %>%
    summarise(n=sum(as.numeric(weight)))   %>% arrange(-n) %>%
   ungroup() %>% group_by(Group) %>% summarise(n2=mean(n))
 
-  Group               n2
-  <chr>            <dbl>
-1 VyndaqelFacility 19.3 
-2 NA                5.91
+
 
 # --------------------------------------------------
 # % JsC vt no JsC Dx patients with vs without sicntigraphy -------------------
@@ -10592,8 +10285,8 @@ temp <- receipt_drug_Vyndaqel195pts %>%
   left_join(receipt_medical_institution_Vyndaqel195pts,
             by=c("kojin_id"="kojin_id", "receipt_id"="receipt_id", "receipt_ym"="receipt_ym")) 
 
-length(unique(temp$kojin_id)) # 195
-length(unique(temp$iryokikan_no)) # # 53
+length(unique(temp$kojin_id)) # 
+length(unique(temp$iryokikan_no)) #
 
 Vyndaqel_Facilities <- unique(temp$iryokikan_no)
 Vyndaqel_Facilities <- as.data.frame(Vyndaqel_Facilities)
@@ -10674,18 +10367,18 @@ short_I_receipt_diseases_facility_CM_Targets %>% filter(grepl("I42",icd10_code)|
       anti_join(short_I_receipt_diseases_facility_CM_Targets %>% filter(grepl("I431",icd10_code)) %>% select(kojin_id) %>% distinct()) %>%
       anti_join(Vyndaqel_pats_CM_vs_PN) %>%
   select(kojin_id) %>% distinct()%>%
-  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight)))  # 26358.21 # 10478.05
+  left_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight)))  # 
 
 short_I_receipt_diseases_facility_CM_Targets %>% filter(grepl("I431",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
   anti_join(ATTR_SpecificCode) %>%
     anti_join(Vyndaqel_pats_CM_vs_PN) %>%
-  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 1645.577  # 2435.128
+  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 
 short_I_receipt_diseases_facility_CM_Targets %>% filter(grepl("I431",icd10_code)) %>% select(kojin_id) %>% distinct() %>%
   inner_join(ATTR_SpecificCode) %>%
   anti_join(Vyndaqel_pats_CM_vs_PN) %>%
-  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 148.0557  # 95.56035
+  inner_join(tekiyo_All_ContEnr_pts) %>% summarise(n=sum(as.numeric(weight))) # 
 
 # -----------------------------------------------------------------------------
 
@@ -10861,9 +10554,8 @@ CA_Pats_Biopsy <- short_procedures_receipt_medical_practice_All_ContEnr_pts %>% 
 
 
 CA_Pats %>% left_join(CA_Pats_Biopsy %>% full_join(Vyn_Biopsy_Pats)) %>%
-  filter(Group=="biopsy") %>%  # 159
-  inner_join(ATTR_CM_Vyndaqel_Pats) # 49  (31%)
-
+  filter(Group=="biopsy") %>%  # 
+  inner_join(ATTR_CM_Vyndaqel_Pats) #
 
 # --------------------------------
 
@@ -11039,8 +10731,8 @@ ATTR_CM_Pats_Biopsy <- short_procedures_receipt_medical_practice_All_ContEnr_pts
 
 
 ATTR_CM_Pats %>% left_join(CA_Pats_Biopsy %>% full_join(Vyn_Biopsy_Pats)) %>%
-  filter(Group=="biopsy") %>%  # 52
-  inner_join(ATTR_CM_Vyndaqel_Pats) # 49  (94%)
+  filter(Group=="biopsy") %>%  #
+  inner_join(ATTR_CM_Vyndaqel_Pats) # 
 
 
 
@@ -11066,12 +10758,12 @@ short_i_receipt_diseases_All_ContEnr_pts$receipt_ym <- as.Date(paste0(as.charact
 FirstCardiomiopathy <- Cardiomyopathy_Pats %>% left_join(short_i_receipt_diseases_All_ContEnr_pts %>% filter(grepl("I43",icd10_code)|grepl("I42",icd10_code))) %>%
   group_by(kojin_id) %>% filter(receipt_ym==min(receipt_ym)) %>% slice(1) %>% select(-icd10_code) %>% rename("FirstCardiomiopathy"="receipt_ym") %>% ungroup()
 
-length(unique(FirstCardiomiopathy$kojin_id)) # 16896
+length(unique(FirstCardiomiopathy$kojin_id)) # 
 
 FirstCardiacAmyloidosis <- Cardiac_Amyloidosis_Pats %>% left_join(short_i_receipt_diseases_All_ContEnr_pts %>% filter(grepl("I431",icd10_code))) %>%
   group_by(kojin_id) %>% filter(receipt_ym==min(receipt_ym)) %>% slice(1) %>% select(-icd10_code) %>% rename("FirstCardiacAmyloidosis"="receipt_ym") %>% ungroup()
 
-length(unique(FirstCardiacAmyloidosis$kojin_id)) # 307
+length(unique(FirstCardiacAmyloidosis$kojin_id)) # 
 
 
 short_procedures_receipt_medical_practice_All_ContEnr_pts <- fread("All_Pts_Continuousenrolled/short_procedures_receipt_medical_practice_All_ContEnr_pts.txt", colClasses = "character")
@@ -11167,26 +10859,6 @@ FirstCardiacAmyloidosis %>% ungroup() %>%
   arrange(-penetrance)
 
 
-   standardized_procedure_name     n penetrance
-   <chr>                       <int>      <dbl>
- 1 ECG                           234      76.2 
- 2 ultrasonography               233      75.9 
- 3 CT                            227      73.9 
- 4 amylase                       221      72.0 
- 5 BNP                           221      72.0 
- 6 hospitalization               187      60.9 
- 7 MRI                           148      48.2 
- 8 troponin                      108      35.2 
- 9 other nuclear medicine         76      24.8 
-10 scintigraphy                   76      24.8 
-11 cardiac catheterization        62      20.2 
-12 biopsy                         53      17.3 
-13 AmyloidA                       35      11.4 
-14 genetic test                   22       7.17
-15 pacemaker                      22       7.17
-16 TTR                            13       4.23
-17 exercise test                   9       2.93
-
 # Split Jsc vs no Jsc patient
 receipt_drug_Vyndaqel195pts <- fread("VyndaqelPts195/receipt_drug_Vyndaqel195pts.txt", colClasses = "character")
 receipt_drug_Vyndaqel195pts <- receipt_drug_Vyndaqel195pts[,.(receipt_ym, kojin_id, drug_code, receipt_id)]
@@ -11227,55 +10899,11 @@ FirstCardiacAmyloidosis %>% ungroup() %>%
   group_by(standardized_procedure_name) %>% count() %>% mutate(penetrance=100*n/123) %>%
   arrange(-penetrance)
 
-   standardized_procedure_name     n penetra…¹
-   <chr>                       <int>     <dbl>
- 1 ECG                           115     93.5 
- 2 ultrasonography               114     92.7 
- 3 amylase                       106     86.2 
- 4 BNP                           106     86.2 
- 5 CT                            105     85.4 
- 6 hospitalization                93     75.6 
- 7 MRI                            78     63.4 
- 8 troponin                       54     43.9 
- 9 other nuclear medicine         39     31.7 
-10 scintigraphy                   39     31.7 
-11 cardiac catheterization        33     26.8 
-12 biopsy                         26     21.1 
-13 AmyloidA                       14     11.4 
-14 genetic test                   12      9.76
-15 pacemaker                      12      9.76
-16 TTR                            11      8.94
-17 exercise test                   5      4.07
-
 FirstCardiacAmyloidosis %>% ungroup() %>% 
   inner_join(ALL_Pats_JsC) %>%
   select(kojin_id, standardized_procedure_name) %>% distinct() %>%
   group_by(standardized_procedure_name) %>% count() %>% mutate(penetrance=100*n/184) %>%
   arrange(-penetrance)
-
-   standardized_procedure_name     n penetra…¹
-   <chr>                       <int>     <dbl>
- 1 ECG                           115     62.5 
- 2 ultrasonography               114     62.0 
- 3 amylase                       106     57.6 
- 4 BNP                           106     57.6 
- 5 CT                            105     57.1 
- 6 hospitalization                93     50.5 
- 7 MRI                            78     42.4 
- 8 troponin                       54     29.3 
- 9 other nuclear medicine         39     21.2 
-10 scintigraphy                   39     21.2 
-11 cardiac catheterization        33     17.9 
-12 biopsy                         26     14.1 
-13 AmyloidA                       14      7.61
-14 genetic test                   12      6.52
-15 pacemaker                      12      6.52
-16 TTR                            11      5.98
-17 exercise test                   5      2.72
-
-
-
-
 FirstCardiomiopathy <- 
   FirstCardiomiopathy %>% 
   left_join(Procedure_master, 
@@ -11351,23 +10979,3 @@ FirstCardiomiopathy %>% ungroup() %>%
   select(kojin_id, standardized_procedure_name) %>% distinct() %>%
   group_by(standardized_procedure_name) %>% count() %>% mutate(penetrance=100*n/16896) %>%
   arrange(-penetrance)
-
-   standardized_procedure_name     n penetrance
-   <chr>                       <int>      <dbl>
- 1 ECG                          6109     36.2  
- 2 ultrasonography              5735     33.9  
- 3 amylase                      5605     33.2  
- 4 CT                           5322     31.5  
- 5 BNP                          4405     26.1  
- 6 MRI                          3374     20.0  
- 7 hospitalization              3140     18.6  
- 8 troponin                     1289      7.63 
- 9 biopsy                        973      5.76 
-10 other nuclear medicine        581      3.44 
-11 scintigraphy                  578      3.42 
-12 cardiac catheterization       490      2.90 
-13 exercise test                 226      1.34 
-14 pacemaker                     196      1.16 
-15 TTR                           105      0.621
-16 AmyloidA                       60      0.355
-17 genetic test                   44      0.260

@@ -8989,3 +8989,92 @@ fwrite(df, "Palbo_Flows_Stocks_Month_over_Month_Mets.csv")
 
 
 # --------
+# Summary waterfall breast cancer patients Monthly basis ------------
+
+CancerDrug_Experienced <- fread("Source/CancerDrug_Experienced.txt",  integer64 = "character", stringsAsFactors = F)
+New_Primary_Cancer_Box <- fread("Source/New_Primary_Cancer_Box.txt", sep="\t")
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% inner_join(CancerDrug_Experienced)
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% filter(Primary_Cancer=="Breast Cancer") %>% select(patid, weight)
+sum(New_Primary_Cancer_Box$weight) # 
+
+PONS_Demographics <- fread("Source/PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% select(patid, cancer_metastasis) %>% mutate(cancer_metastasis=ifelse(is.na(cancer_metastasis), 0, 1))
+
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% inner_join(PONS_Demographics)
+
+New_Primary_Cancer_Box %>% group_by(cancer_metastasis) %>% summarise(n=sum(weight))
+
+CAN_Drug_Histories <- fread("Source/CAN Drug Histories.txt")
+CAN_Drug_Histories <- setDT(CAN_Drug_Histories)[New_Primary_Cancer_Box[, .(patid)], on = c("patient"="patid"), nomatch = 0]
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+CAN_Drug_Histories <- CAN_Drug_Histories %>% select(patient, weight, Month ,Treat) %>% distinct()
+
+PONS_Ingredients_JN_ChemoClass <- fread("Source/PONS_Ingredients_JN_ChemoClass.csv", colClasses = "character")
+
+string_target <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[PONS_Ingredients_JN_ChemoClass$generic_name!="Palbociclib"&(
+  PONS_Ingredients_JN_ChemoClass$chemo_class=="Immuno/Targeted")], collapse = "|"),")\\b")
+
+string_Biologic <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[PONS_Ingredients_JN_ChemoClass$generic_name!="Palbociclib"&(
+  PONS_Ingredients_JN_ChemoClass$chemo_class=="Biologic")], collapse = "|"),")\\b")
+
+
+string_OtherChemo <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[(PONS_Ingredients_JN_ChemoClass$drug_group=="GDF15"|
+                                                                                     PONS_Ingredients_JN_ChemoClass$drug_group=="Anticancer" ) &
+                                                                               PONS_Ingredients_JN_ChemoClass$chemo_class!="Immuno/Targeted"&
+                                                                               PONS_Ingredients_JN_ChemoClass$chemo_class!="Biologic"&
+                                                                                 PONS_Ingredients_JN_ChemoClass$chemo_class!="Hormonal Therapy"], collapse = "|"),")\\b")
+
+string_Hormonal <- paste0("\\b(",paste0(PONS_Ingredients_JN_ChemoClass$molecule[
+  PONS_Ingredients_JN_ChemoClass$chemo_class=="Hormonal Therapy"], collapse = "|"),")\\b")
+
+CAN_Drug_Histories$Month <- parse_number(as.character(CAN_Drug_Histories$Month))
+
+Palbo_pats <- CAN_Drug_Histories %>% filter(grepl("179", Treat)) %>% select(patient) %>% distinct()
+Target_pats <- CAN_Drug_Histories %>% filter(grepl(string_target, Treat)) %>% select(patient) %>% distinct()
+Biologic_pats <- CAN_Drug_Histories %>% filter(grepl(string_Biologic, Treat)) %>% select(patient) %>% distinct()
+OtherChemo_pats <- CAN_Drug_Histories %>% filter(grepl(string_OtherChemo, Treat)) %>% select(patient) %>% distinct()
+Hormonal_pats <- CAN_Drug_Histories %>% filter(grepl(string_Hormonal, Treat)) %>% select(patient) %>% distinct()
+
+Cancer_exp <- Palbo_pats %>% full_join(Target_pats) %>% full_join(Biologic_pats) %>% 
+  full_join(OtherChemo_pats) %>% full_join(Hormonal_pats) %>% distinct()
+
+New_Primary_Cancer_Box %>% rename("patient"="patid") %>% inner_join(Cancer_exp) %>% 
+  group_by(cancer_metastasis) %>% summarise(n=sum(weight))
+
+
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% inner_join(Cancer_exp) 
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>%  mutate(Box=ifelse(grepl("179", Treat), "Palbo",
+                                          ifelse(grepl(string_target, Treat),  "Target",
+                                                 ifelse(grepl(string_Biologic, Treat), "Biologic",
+                                                        ifelse(grepl(string_OtherChemo, Treat), "Chemo",
+                                                               ifelse(grepl(string_Hormonal, Treat), "Hormone", "Lapsed"))))))
+
+
+
+
+
+CAN_Drug_Histories %>% inner_join(New_Primary_Cancer_Box %>% select(-weight), by=c("patient"="patid")) %>%
+  filter(Month==60) %>% group_by(cancer_metastasis, Box) %>% summarise(n=sum(weight))
+
+
+temp <- CAN_Drug_Histories %>% inner_join(New_Primary_Cancer_Box %>% select(-weight), by=c("patient"="patid")) %>%
+  filter(Month==60)
+
+
+temp <- temp %>% mutate(Palbo=ifelse(grepl("179", Treat), 1,0)) %>%
+  mutate(Target=ifelse(grepl(string_target, Treat), 1,0)) %>%
+  mutate(Biologic=ifelse(grepl(string_Biologic, Treat), 1,0)) %>%
+  mutate(Chemo=ifelse(grepl(string_OtherChemo, Treat), 1,0)) %>%
+  mutate(Hormone=ifelse(grepl(string_Hormonal, Treat), 1,0)) 
+
+temp %>% group_by(cancer_metastasis, Box) %>%
+  filter(Hormone==1) %>% 
+  summarise(n=sum(weight))
+
+# --------------------
+
+
+
+

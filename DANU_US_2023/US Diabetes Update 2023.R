@@ -24,7 +24,7 @@ Pats_vec <- DIA_Drug_Histories_LONG %>% select(patient, weight)
 DIA_Drug_Histories <- Pats_vec %>% bind_cols(DIA_Drug_Histories)
 DIA_Drug_Histories <- DIA_Drug_Histories %>% filter(SUM != 0)
 
-sum(DIA_Drug_Histories$weight) # 30120087
+sum(DIA_Drug_Histories$weight) 
 
 Treatment_exp_Vector <- DIA_Drug_Histories %>% select(patient, weight)
 fwrite(Treatment_exp_Vector, "DIA Analysis Results 1.1/Treatment_exp_Vector.txt")
@@ -36,8 +36,8 @@ Treatment_exp_Vector <- fread("DIA Analysis Results 1.1/Treatment_exp_Vector.txt
 DIA_Drug_Histories     <- fread("DIA Analysis Results 1.1/DIA Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
 DIA_Drug_Histories <- Treatment_exp_Vector %>% left_join(DIA_Drug_Histories)
 
-length(unique(DIA_Drug_Histories$patient)) # 236983
-sum(as.numeric(DIA_Drug_Histories$weight)) # 30120087
+length(unique(DIA_Drug_Histories$patient)) 
+sum(as.numeric(DIA_Drug_Histories$weight)) 
 
 DANU_Ingredients <- fread("DIA Analysis Results 1.1/DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
 DANU_Ingredients <- DANU_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
@@ -163,12 +163,12 @@ data.frame(DIA_Box_Histories %>% left_join(DANU_Ingredients) %>%
 DANU_Demographics <- DANU_Demographics %>% filter(grepl("Diabetes", diagnosis))
 range(DANU_Demographics$diabetes_onset)
 
-DANU_Demographics %>% filter(diabetes_onset>="2021-05-01" & diabetes_onset<="2022-04-30") %>% summarise(n=sum(weight)) # 3805386
-DANU_Demographics %>% filter(diabetes_onset>="2020-05-01" & diabetes_onset<="2021-04-30") %>% summarise(n=sum(weight)) # 3820870
-DANU_Demographics %>% filter(diabetes_onset>="2019-05-01" & diabetes_onset<="2020-04-30") %>% summarise(n=sum(weight)) # 3853292
-DANU_Demographics %>% filter(diabetes_onset>="2018-05-01" & diabetes_onset<="2019-04-30") %>% summarise(n=sum(weight)) # 4462034
-DANU_Demographics %>% filter(diabetes_onset>="2017-05-01" & diabetes_onset<="2018-04-30") %>% summarise(n=sum(weight)) # 6132548
-DANU_Demographics %>% filter(diabetes_onset>="2016-05-01" & diabetes_onset<="2017-04-30") %>% summarise(n=sum(weight)) # 23955578
+DANU_Demographics %>% filter(diabetes_onset>="2021-05-01" & diabetes_onset<="2022-04-30") %>% summarise(n=sum(weight)) 
+DANU_Demographics %>% filter(diabetes_onset>="2020-05-01" & diabetes_onset<="2021-04-30") %>% summarise(n=sum(weight)) 
+DANU_Demographics %>% filter(diabetes_onset>="2019-05-01" & diabetes_onset<="2020-04-30") %>% summarise(n=sum(weight)) 
+DANU_Demographics %>% filter(diabetes_onset>="2018-05-01" & diabetes_onset<="2019-04-30") %>% summarise(n=sum(weight))
+DANU_Demographics %>% filter(diabetes_onset>="2017-05-01" & diabetes_onset<="2018-04-30") %>% summarise(n=sum(weight)) 
+DANU_Demographics %>% filter(diabetes_onset>="2016-05-01" & diabetes_onset<="2017-04-30") %>% summarise(n=sum(weight)) 
 
 # -----------------------------------------
 
@@ -397,7 +397,7 @@ Pats_Biguanide_GLP1_only <- DIA_Drug_Histories %>%  anti_join(Pats_to_remove)  %
 
 GLP1_pats <- Pats_Biguanide_GLP1_only %>% inner_join(GLP1_pats)
 
-sum(GLP1_pats$weight) # 355926.9 # GLP1 and/or Biguanide
+sum(GLP1_pats$weight)
 
 GLP1_pats %>%
   anti_join(
@@ -430,7 +430,7 @@ DIA_Drug_Histories %>% filter(grepl(string_InjectableGLP1,Drugs)) %>% select(pat
 # Off label use Oral GLP1 ------------------
 
 DIA_Flows_Aux_Long <- fread("DIA Analysis Results 1.1/DIA_Flows_Aux_Long.txt", integer64 = "character", stringsAsFactors = F)
-DIA_Flows_Aux_Long %>% filter(grepl("47",d1)|grepl("47",d2)) %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 544894.7
+DIA_Flows_Aux_Long %>% filter(grepl("47",d1)|grepl("47",d2)) %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) 
 GLP1_pats <- DIA_Flows_Aux_Long %>% filter(grepl("47",d1)|grepl("47",d2)) %>% select(patient, weight) %>% distinct()
 
 # Pick patients that had *ONLY* |Biguanide| AND |GLP1|
@@ -461,8 +461,8 @@ Pats_Biguanide_GLP1_only <- DIA_Drug_Histories %>%  anti_join(Pats_to_remove)  %
 
 GLP1_pats <- Pats_Biguanide_GLP1_only %>% inner_join(GLP1_pats)
 
-sum(GLP1_pats$weight) # 102653 # GLP1 and/or Biguanide
-
+sum(GLP1_pats$weight) 
+                                           
 GLP1_pats %>%
   anti_join(
     DIA_Drug_Histories %>% filter(grepl(string_Biguanide,Drugs)) %>% select(patient) %>% distinct()
@@ -486,7 +486,7 @@ DIA_Drug_Histories %>% filter(grepl(string_Biguanide,Drugs)) %>% group_by(patien
   ungroup() %>% 
   inner_join(GLP1_pats) %>%
   filter(First_Big<First_GLP1) %>%
-  summarise(n=sum(weight)) # 67991
+  summarise(n=sum(weight)) 
 
 DIA_Drug_Histories <- fread("DIA Analysis Results 1.1/DIA Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
 DIA_Drug_Histories <- gather(DIA_Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
@@ -576,7 +576,7 @@ DIA_Drug_Histories_Biguanide <- DIA_Drug_Histories_Biguanide %>% group_by(patien
 DIA_Drug_Histories_Biguanide %>% ungroup() %>% group_by(n) %>% summarise(pats=sum(weight))
 DIA_Drug_Histories_Biguanide %>% ungroup() %>% summarise(mean=weighted.mean(n, weight)) # 1.9
 DIA_Drug_Histories_Biguanide %>% ungroup() %>% summarise(median=weighted.median(n, weight)) # 1
-sum(DIA_Drug_Histories_Biguanide$weight) #8767251
+sum(DIA_Drug_Histories_Biguanide$weight) 
 
 # Time to first  Antidiabetic
 DIA_Drug_Histories_Antidiabetic <- DIA_Drug_Histories %>% group_by(patient, weight) %>% 
@@ -585,34 +585,34 @@ DIA_Drug_Histories_Antidiabetic <- DIA_Drug_Histories_Antidiabetic %>% group_by(
 DIA_Drug_Histories_Antidiabetic %>% ungroup() %>% group_by(n) %>% summarise(pats=sum(weight))
 DIA_Drug_Histories_Antidiabetic %>% ungroup() %>% summarise(mean=weighted.mean(n, weight)) # 6.65
 DIA_Drug_Histories_Antidiabetic %>% ungroup() %>% summarise(median=weighted.median(n, weight)) # 1
-sum(DIA_Drug_Histories_Antidiabetic$weight) #1880554
+sum(DIA_Drug_Histories_Antidiabetic$weight) 
 
 # Time to first  DPP4
 DIA_Drug_Histories_DPP4 <- DIA_Drug_Histories %>% group_by(patient, weight) %>% 
   slice(if(any(grepl(string_DPP4,Drugs))) which.max(!grepl("-",Drugs)):which.max(grepl(string_DPP4,Drugs)) else NA) 
 DIA_Drug_Histories_DPP4 <- DIA_Drug_Histories_DPP4 %>% group_by(patient, weight) %>% count() %>% arrange(-n)
 DIA_Drug_Histories_DPP4 %>% ungroup() %>% group_by(n) %>% summarise(pats=sum(weight))
-DIA_Drug_Histories_DPP4 %>% ungroup() %>% summarise(mean=weighted.mean(n, weight)) # 7.33
-DIA_Drug_Histories_DPP4 %>% ungroup() %>% summarise(median=weighted.median(n, weight)) # 1
-sum(DIA_Drug_Histories_DPP4$weight) #950927.7
+DIA_Drug_Histories_DPP4 %>% ungroup() %>% summarise(mean=weighted.mean(n, weight)) 
+DIA_Drug_Histories_DPP4 %>% ungroup() %>% summarise(median=weighted.median(n, weight)) 
+sum(DIA_Drug_Histories_DPP4$weight) 
 
 # Time to first  SGLT2
 DIA_Drug_Histories_SGLT2 <- DIA_Drug_Histories %>% group_by(patient, weight) %>% 
   slice(if(any(grepl(string_SGLT2,Drugs))) which.max(!grepl("-",Drugs)):which.max(grepl(string_SGLT2,Drugs)) else NA) 
 DIA_Drug_Histories_SGLT2 <- DIA_Drug_Histories_SGLT2 %>% group_by(patient, weight) %>% count() %>% arrange(-n)
 DIA_Drug_Histories_SGLT2 %>% ungroup() %>% group_by(n) %>% summarise(pats=sum(weight))
-DIA_Drug_Histories_SGLT2 %>% ungroup() %>% summarise(mean=weighted.mean(n, weight)) # 10.6
-DIA_Drug_Histories_SGLT2 %>% ungroup() %>% summarise(median=weighted.median(n, weight)) # 3.5
-sum(DIA_Drug_Histories_SGLT2$weight) #1280760
+DIA_Drug_Histories_SGLT2 %>% ungroup() %>% summarise(mean=weighted.mean(n, weight)) 
+DIA_Drug_Histories_SGLT2 %>% ungroup() %>% summarise(median=weighted.median(n, weight)) 
+sum(DIA_Drug_Histories_SGLT2$weight) 
 
 # Time to first  Insulin
 DIA_Drug_Histories_Insulin <- DIA_Drug_Histories %>% group_by(patient, weight) %>% 
   slice(if(any(grepl(string_Insulin,Drugs))) which.max(!grepl("-",Drugs)):which.max(grepl(string_Insulin,Drugs)) else NA) 
 DIA_Drug_Histories_Insulin <- DIA_Drug_Histories_Insulin %>% group_by(patient, weight) %>% count() %>% arrange(-n)
 DIA_Drug_Histories_Insulin %>% ungroup() %>% group_by(n) %>% summarise(pats=sum(weight))
-DIA_Drug_Histories_Insulin %>% ungroup() %>% summarise(mean=weighted.mean(n, weight)) # 3.80
-DIA_Drug_Histories_Insulin %>% ungroup() %>% summarise(median=weighted.median(n, weight)) # 1
-sum(DIA_Drug_Histories_Insulin$weight) #3682418
+DIA_Drug_Histories_Insulin %>% ungroup() %>% summarise(mean=weighted.mean(n, weight)) 
+DIA_Drug_Histories_Insulin %>% ungroup() %>% summarise(median=weighted.median(n, weight)) 
+sum(DIA_Drug_Histories_Insulin$weight) 
 
 # Time to first  OralGLP1
 DIA_Drug_Histories_OralGLP1 <- DIA_Drug_Histories %>% group_by(patient, weight) %>% 
@@ -903,7 +903,7 @@ DIA_Drug_Histories_3 %>% ungroup() %>% filter(grp!=1) %>%
   rename("Injgrp"="grp")
   ) %>%
   filter(Injgrp>Stopgrp) %>%
-  select(patient, weight)  %>% distinct() %>% ungroup() %>% summarise(n=sum(weight)) # 3376958 
+  select(patient, weight)  %>% distinct() %>% ungroup() %>% summarise(n=sum(weight)) 
 
 
 # ---------------------------------------------------------------
@@ -918,7 +918,7 @@ DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% select(-c(disease, starts, stops, r
 DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% filter(p1>=48) %>% filter(!grepl("47",d1)) %>% filter(grepl("47",d2)) %>% filter(s1=="G") %>%
   select(patient, weight, d1)
 
-sum(DIA_Flows_Aux_Long$weight) # 26046.61
+sum(DIA_Flows_Aux_Long$weight) 
 
 DIA_Flows_Aux_Long <- separate_rows(DIA_Flows_Aux_Long, d1, sep = ",", convert=T)
 DIA_Flows_Aux_Long %>% left_join(DANU_Ingredients, by=c("d1"="molecule")) %>% filter(drug_group=="GLP1 Injectable") %>%
@@ -930,7 +930,7 @@ DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% select(-c(disease, starts, stops, r
 DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% filter(p1>=48) %>% filter(grepl("47",d1)) %>% filter(!grepl("47",d2)) %>% filter(s2=="G") %>%
   select(patient, weight, d2)
 
-sum(DIA_Flows_Aux_Long$weight) # 27786.38
+sum(DIA_Flows_Aux_Long$weight)
 
 DIA_Flows_Aux_Long <- separate_rows(DIA_Flows_Aux_Long, d2, sep = ",", convert=T)
 DIA_Flows_Aux_Long %>% left_join(DANU_Ingredients, by=c("d2"="molecule")) %>% filter(drug_group=="GLP1 Injectable") %>%
@@ -951,9 +951,9 @@ Dia_US_Doses$doses <- parse_number(Dia_US_Doses$med_strength)
 Dia_US_Doses %>% filter(drug_group == "GLP1 Oral") %>% 
   select(generic_name, dayssup, pat_id, from_dt, doses) %>% group_by(pat_id) %>%  summarise(n=n()) %>% arrange(-n)
 
-unique(Dia_US_Doses$doses) # 14, 7, 3
-weighted.mean(Dia_US_Doses$doses, Dia_US_Doses$weight) #7.851905
-weighted.median(Dia_US_Doses$doses, Dia_US_Doses$weight) #5
+unique(Dia_US_Doses$doses) 
+weighted.mean(Dia_US_Doses$doses, Dia_US_Doses$weight) 
+weighted.median(Dia_US_Doses$doses, Dia_US_Doses$weight) 
 
 Dia_US_Doses_semaglutide_Oral <- Dia_US_Doses %>% filter(drug_group == "GLP1 Oral") %>% 
   select(generic_name, dayssup, pat_id, weight, from_dt, doses) 
@@ -977,7 +977,7 @@ Dia_US_Doses_semaglutide_Oral_summary %>% ungroup() %>% select(pat_id, doses, ti
   xlim(0,600) +
   scale_y_continuous(breaks = c(3, 7, 14))
 
-length(unique(Dia_US_Doses_semaglutide_Oral_summary$pat_id)) #5102
+length(unique(Dia_US_Doses_semaglutide_Oral_summary$pat_id)) 
 
 Dia_US_Doses_semaglutide_Oral_summary %>% ungroup() %>% 
   left_join(Dia_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
@@ -1020,11 +1020,11 @@ Treatment_exp_Vector <- fread("DIA Analysis Results 1.1/Treatment_exp_Vector.txt
 Dia_US_Doses <- Treatment_exp_Vector %>% inner_join(Dia_US_Doses, by=c("patient"="pat_id"))
 Dia_US_Doses <- Dia_US_Doses %>% select(drug_class, patient , weight.x, from_dt, paid) %>% filter(paid=="P")
 
-Dia_US_Doses %>% filter(from_dt>="2018-01-01"&from_dt<="2018-12-31") %>% select(patient, weight.x) %>% distinct() %>% summarise(n=sum(weight.x)) # 17716844
-Dia_US_Doses %>% filter(from_dt>="2019-01-01"&from_dt<="2019-12-31") %>% select(patient, weight.x) %>% distinct() %>% summarise(n=sum(weight.x)) # 18769868
-Dia_US_Doses %>% filter(from_dt>="2020-01-01"&from_dt<="2020-12-31") %>% select(patient, weight.x) %>% distinct() %>% summarise(n=sum(weight.x)) # 19442917
-Dia_US_Doses %>% filter(from_dt>="2021-01-01"&from_dt<="2021-12-31") %>% select(patient, weight.x) %>% distinct() %>% summarise(n=sum(weight.x)) # 21608708
-Dia_US_Doses %>% filter(from_dt>="2021-05-31"&from_dt<="2022-04-30") %>% select(patient, weight.x) %>% distinct() %>% summarise(n=sum(weight.x)) # 21867948
+Dia_US_Doses %>% filter(from_dt>="2018-01-01"&from_dt<="2018-12-31") %>% select(patient, weight.x) %>% distinct() %>% summarise(n=sum(weight.x)) 
+Dia_US_Doses %>% filter(from_dt>="2019-01-01"&from_dt<="2019-12-31") %>% select(patient, weight.x) %>% distinct() %>% summarise(n=sum(weight.x)) 
+Dia_US_Doses %>% filter(from_dt>="2020-01-01"&from_dt<="2020-12-31") %>% select(patient, weight.x) %>% distinct() %>% summarise(n=sum(weight.x)) 
+Dia_US_Doses %>% filter(from_dt>="2021-01-01"&from_dt<="2021-12-31") %>% select(patient, weight.x) %>% distinct() %>% summarise(n=sum(weight.x)) 
+Dia_US_Doses %>% filter(from_dt>="2021-05-31"&from_dt<="2022-04-30") %>% select(patient, weight.x) %>% distinct() %>% summarise(n=sum(weight.x)) 
 
 Dia_US_Doses %>% filter(grepl("GLP", drug_class)) %>% filter(from_dt>="2018-01-01"&from_dt<="2018-12-31") %>% select(patient, weight.x) %>% distinct() %>% summarise(n=sum(weight.x)) # 2040236
 Dia_US_Doses %>% filter(grepl("GLP", drug_class)) %>% filter(from_dt>="2019-01-01"&from_dt<="2019-12-31") %>% select(patient, weight.x) %>% distinct() %>% summarise(n=sum(weight.x)) # 2598573
@@ -1193,7 +1193,7 @@ DIA_Drug_Histories_Biguanide <- DIA_Drug_Histories %>% group_by(patient, weight)
   slice(if(any(grepl(string_Biguanide,Drugs))) which.max(!grepl("-",Drugs)):which.max(grepl(string_Biguanide,Drugs)) else NA) 
 DIA_Drug_Histories_Biguanide <- DIA_Drug_Histories_Biguanide %>% group_by(patient, weight) %>% count() %>% arrange(-n)
 DIA_Drug_Histories_Biguanide %>% ungroup() %>% summarise(pats=sum(weight)) 
-DIA_Drug_Histories_Biguanide %>% ungroup() %>% summarise(mean=weighted.mean(n, weight))  # 1.30 # 1.36 # 1.39
+DIA_Drug_Histories_Biguanide %>% ungroup() %>% summarise(mean=weighted.mean(n, weight)) 
 
 
 # Time to first  Antidiabetic
@@ -1201,42 +1201,42 @@ DIA_Drug_Histories_Antidiabetic <- DIA_Drug_Histories %>% group_by(patient, weig
   slice(if(any(grepl(string_Antidiabetic,Drugs))) which.max(!grepl("-",Drugs)):which.max(grepl(string_Antidiabetic,Drugs)) else NA) 
 DIA_Drug_Histories_Antidiabetic <- DIA_Drug_Histories_Antidiabetic %>% group_by(patient, weight) %>% count() %>% arrange(-n)
 DIA_Drug_Histories_Antidiabetic %>% ungroup() %>%  summarise(pats=sum(weight)) 
-DIA_Drug_Histories_Antidiabetic %>% ungroup() %>% summarise(mean=weighted.mean(n, weight))  # 2.92 # 2.97 # 2.96
+DIA_Drug_Histories_Antidiabetic %>% ungroup() %>% summarise(mean=weighted.mean(n, weight)) 
 
 # Time to first  DPP4
 DIA_Drug_Histories_DPP4 <- DIA_Drug_Histories %>% group_by(patient, weight) %>% 
   slice(if(any(grepl(string_DPP4,Drugs))) which.max(!grepl("-",Drugs)):which.max(grepl(string_DPP4,Drugs)) else NA) 
 DIA_Drug_Histories_DPP4 <- DIA_Drug_Histories_DPP4 %>% group_by(patient, weight) %>% count() %>% arrange(-n)
 DIA_Drug_Histories_DPP4 %>% ungroup() %>%  summarise(pats=sum(weight)) 
-DIA_Drug_Histories_DPP4 %>% ungroup() %>% summarise(mean=weighted.mean(n, weight))  # 3.38 # 3.28 # 3.09
+DIA_Drug_Histories_DPP4 %>% ungroup() %>% summarise(mean=weighted.mean(n, weight))  
 
 # Time to first  SGLT2
 DIA_Drug_Histories_SGLT2 <- DIA_Drug_Histories %>% group_by(patient, weight) %>% 
   slice(if(any(grepl(string_SGLT2,Drugs))) which.max(!grepl("-",Drugs)):which.max(grepl(string_SGLT2,Drugs)) else NA) 
 DIA_Drug_Histories_SGLT2 <- DIA_Drug_Histories_SGLT2 %>% group_by(patient, weight) %>% count() %>% arrange(-n)
 data.frame(DIA_Drug_Histories_SGLT2 %>% ungroup() %>%  summarise(pats=sum(weight))) 
-DIA_Drug_Histories_SGLT2 %>% ungroup() %>% summarise(mean=weighted.mean(n, weight))  # 4.62 # 4.30 # 4.11
+DIA_Drug_Histories_SGLT2 %>% ungroup() %>% summarise(mean=weighted.mean(n, weight))  
  
 # Time to first  Insulin
 DIA_Drug_Histories_Insulin <- DIA_Drug_Histories %>% group_by(patient, weight) %>% 
   slice(if(any(grepl(string_Insulin,Drugs))) which.max(!grepl("-",Drugs)):which.max(grepl(string_Insulin,Drugs)) else NA) 
 DIA_Drug_Histories_Insulin <- DIA_Drug_Histories_Insulin %>% group_by(patient, weight) %>% count() %>% arrange(-n)
 DIA_Drug_Histories_Insulin %>% ungroup() %>% summarise(pats=sum(weight)) 
-DIA_Drug_Histories_Insulin %>% ungroup() %>% summarise(mean=weighted.mean(n, weight))  # 1.88 # 1.92 # 1.94
+DIA_Drug_Histories_Insulin %>% ungroup() %>% summarise(mean=weighted.mean(n, weight))  
 
 # Time to first  OralGLP1
 DIA_Drug_Histories_OralGLP1 <- DIA_Drug_Histories %>% group_by(patient, weight) %>% 
   slice(if(any(grepl(string_OralGLP1,Drugs))) which.max(!grepl("-",Drugs)):which.max(grepl(string_OralGLP1,Drugs)) else NA) 
 DIA_Drug_Histories_OralGLP1 <- DIA_Drug_Histories_OralGLP1 %>% group_by(patient, weight) %>% count() %>% arrange(-n)
 DIA_Drug_Histories_OralGLP1 %>% ungroup() %>%  summarise(pats=sum(weight)) 
-DIA_Drug_Histories_OralGLP1 %>% ungroup() %>% summarise(mean=weighted.mean(n, weight))  # 6.85 # 5.64 # 4.94
+DIA_Drug_Histories_OralGLP1 %>% ungroup() %>% summarise(mean=weighted.mean(n, weight))  
  
 # Time to first  InjectableGLP1
 DIA_Drug_Histories_InjectableGLP1 <- DIA_Drug_Histories %>% group_by(patient, weight) %>% 
   slice(if(any(grepl(string_InjectableGLP1,Drugs))) which.max(!grepl("-",Drugs)):which.max(grepl(string_InjectableGLP1,Drugs)) else NA) 
 DIA_Drug_Histories_InjectableGLP1 <- DIA_Drug_Histories_InjectableGLP1 %>% group_by(patient, weight) %>% count() %>% arrange(-n)
 DIA_Drug_Histories_InjectableGLP1 %>% ungroup() %>%  summarise(pats=sum(weight))
-DIA_Drug_Histories_InjectableGLP1 %>% ungroup() %>% summarise(mean=weighted.mean(n, weight)) # 3.98 # 3.63 # 3.71
+DIA_Drug_Histories_InjectableGLP1 %>% ungroup() %>% summarise(mean=weighted.mean(n, weight))
 
 # ---------------------------
 
@@ -1411,13 +1411,6 @@ DIA_Flows_Aux_Long <- DIA_Flows_Aux_Long %>% group_by(patient, weight) %>%
 DIA_Flows_Aux_Long %>% filter(p2==60) %>%
   group_by(s2, s2_GLP1_exp) %>% summarise(n=sum(weight))
 
-# 1 GLP1_Inj            1  3,318,178.
-# 2 GLP1_Oral           1   228,223.
-# 3 Lapsed              0 10,694,350.
-# 4 Lapsed              1  1,656,308.
-# 5 Other               0 12,655,982.
-# 6 Other               1  1,567,046.
-
 
 DIA_Flows_Aux_Long %>% filter(p2>=49 & flow==1) %>%
   mutate(s1=paste(s1, s1_GLP1_exp, sep="_")) %>%
@@ -1426,13 +1419,6 @@ DIA_Flows_Aux_Long %>% filter(p2>=49 & flow==1) %>%
   ungroup() %>% spread(key=s2, value=n)
 
 
-#   s1          GLP1_Inj_1 GLP1_Oral_1 Lapsed_0 Lapsed_1   Other_0  Other_1
-# 1 GLP1_Inj_1    4638523.      20836.      0   816942.       0  1344394.
-# 2 GLP1_Oral_1     22879.     206445.      0    76798.       0   138051.
-# 3 Lapsed_0       654673.      68577.      0       0   8263606.      0 
-# 4 Lapsed_1       492964.      32307.      0       0         0   694826
-# 5 Other_0        972704.     154177. 7192491.      0  11318020.      0 
-# 6 Other_1        888460.      67773.       0  849921           0 2277295
 
 # -------------------------------------------------------
 # SGLT2+GLP1 vs GLP1 vs SGLT2 --------------------------------------------------------------------------
@@ -1779,37 +1765,20 @@ names(DIA_Comorbidity_Inventories)[3] <- "Dxs"
 Comorbidity_Inventories %>% filter(grepl("I50", Dxs)) %>% inner_join(DANU_Demographics) %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 HF <- DIA_Comorbidity_Inventories %>% filter(grepl("I50", Dxs)) %>% inner_join(DANU_Demographics)  %>% select(patid, weight) %>% distinct()
 
-# 1 Diabetes            784164.
-# 2 Diabetes + Obesity 6000794.
-# 3 Obesity            3777803
-
 Comorbidity_Inventories %>% filter(grepl("N18", Dxs)) %>% inner_join(DANU_Demographics) %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 CKD <- DIA_Comorbidity_Inventories %>% filter(grepl("N18", Dxs)) %>% inner_join(DANU_Demographics)  %>% select(patid, weight) %>% distinct()
 
-# 1 Diabetes           1190729.
-# 2 Diabetes + Obesity 8132717.
-# 3 Obesity            5467795.
 
 Comorbidity_Inventories %>% filter(grepl("I70", Dxs)|grepl("I73", Dxs)) %>% inner_join(DANU_Demographics) %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 PAD <- DIA_Comorbidity_Inventories %>% filter(grepl("I70", Dxs)|grepl("I73", Dxs)) %>% inner_join(DANU_Demographics)  %>% select(patid, weight) %>% distinct()
 
-# 1 Diabetes            1925399.
-# 2 Diabetes + Obesity 11364070.
-# 3 Obesity             8446560.
-
 Comorbidity_Inventories %>% filter(grepl("G47", Dxs)) %>% inner_join(DANU_Demographics) %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 SA <- DIA_Comorbidity_Inventories %>% filter(grepl("G47", Dxs)) %>% inner_join(DANU_Demographics)  %>% select(patid, weight) %>% distinct()
 
-# 1 Diabetes            1624704.
-# 2 Diabetes + Obesity 16410072.
-# 3 Obesity            24322915.
 
 Comorbidity_Inventories %>% filter(grepl("E28", Dxs)) %>% inner_join(DANU_Demographics) %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 POS <- DIA_Comorbidity_Inventories %>% filter(grepl("E28", Dxs)) %>% inner_join(DANU_Demographics)  %>% select(patid, weight) %>% distinct()
 
-# 1 Diabetes            275887.
-# 2 Diabetes + Obesity 2065556.
-# 3 Obesity            2019958.
 
 sum(DANU_Demographics$weight)
 
@@ -1850,14 +1819,6 @@ DIA_Drug_Histories %>% select(patid, group, weight) %>% distinct() %>% group_by(
 
 DIA_Drug_Histories %>% group_by(group, drug_group) %>% summarise(n=sum(weight)) %>%
   spread(key=drug_group, value=n)
-
-
-CKD	9323446
-HF	6784958
-PAD	13289469
-POS	2341443
-SA	18034776
-No Comorb	17443243
 
 # ------------------------------------
 # Prevalence DIA / OBE / CKD / HF / PAD / SA / POS per age group -----------------------------------
@@ -1975,14 +1936,6 @@ DIA_Drug_Histories <- DIA_Drug_Histories %>% group_by(patient, weight, drug_grou
 
 DIA_Drug_Histories %>% ungroup() %>% group_by(drug_group) %>% summarise(mean=weighted.mean(n, as.numeric(weight)))
 
-# 1 Antidiabetic    14.8 
-# 2 Biguanide       14.7 
-# 3 DPP4            13.2 
-# 4 GLP1 Injectable 11.5 
-# 5 GLP1 Oral        6.00
-# 6 Insulin         12.8 
-# 7 SGLT2           12.0 
-
 
 DIA_Drug_Histories <- DIA_Drug_Histories %>% ungroup() %>% group_by(drug_group, n) %>% summarise(Total=sum(as.numeric(weight))) %>% arrange(drug_group, n)
 
@@ -2006,15 +1959,6 @@ temp %>%
   #scale_x_continuous(breaks = c(-60, -50, -40, -30, -20, -10, 0)) +
   scale_colour_manual(values=c("#c49a7c","#7d95be","#0d2b4e","#ff9933","#7cc49a", "#e87496","#a52a2a")) +
   xlab("\n Number of Months Elapsed Since Therapy Initiation ") + ylab("Proportion of Patients Still ON Drugs \n")
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2052,8 +1996,8 @@ GLP1_Injectable_Periods <- GLP1_Injectable_Periods %>% group_by(patient) %>% mut
 GLP1_Injectable_Periods <- GLP1_Injectable_Periods %>% distinct()
 
 library(spatstat)
-weighted.mean(GLP1_Injectable_Periods$Total_Duration, GLP1_Injectable_Periods$weight)  # 17.3716
-weighted.median(GLP1_Injectable_Periods$Total_Duration, GLP1_Injectable_Periods$weight) # 10.5
+weighted.mean(GLP1_Injectable_Periods$Total_Duration, GLP1_Injectable_Periods$weight)  
+weighted.median(GLP1_Injectable_Periods$Total_Duration, GLP1_Injectable_Periods$weight) 
 
 data.frame(GLP1_Injectable_Periods %>% distinct() %>% group_by(Total_Duration) %>% summarise(pats = sum(weight)))
 
@@ -2093,8 +2037,8 @@ GLP1_Oral_Periods <- GLP1_Oral_Periods %>% group_by(patient) %>% mutate(Total_Du
 GLP1_Oral_Periods <- GLP1_Oral_Periods %>% distinct()
 
 library(spatstat)
-weighted.mean(GLP1_Oral_Periods$Total_Duration, GLP1_Oral_Periods$weight)  # 4.285284
-weighted.median(GLP1_Oral_Periods$Total_Duration, GLP1_Oral_Periods$weight) # 2.5
+weighted.mean(GLP1_Oral_Periods$Total_Duration, GLP1_Oral_Periods$weight)  
+weighted.median(GLP1_Oral_Periods$Total_Duration, GLP1_Oral_Periods$weight)
 
 data.frame(GLP1_Oral_Periods %>% distinct() %>% group_by(Total_Duration) %>% summarise(pats = sum(weight)))
 
@@ -2607,13 +2551,6 @@ temp %>% filter(Elapsed<0) %>%
   summarise(n=mean(BMI))
 
 
-# 1 Antidiabetic     34.9
-# 2 DPP4             34.6
-# 3 GLP1 Injectable  37.8
-# 4 GLP1 Oral        36.7
-# 5 Insulin          34.6
-# 6 SGLT2            35.8
-
 
 temp %>% group_by(patient) %>% filter(BMI==max(BMI)) %>% slice(1) %>% rename("MAX"="BMI") %>% select(-Elapsed) %>%
   left_join(
@@ -2683,9 +2620,6 @@ DIA_US_Doses_GLP1_Injectable <- DIA_US_Doses_GLP1_Injectable %>% filter(!(paid==
 
 DIA_US_Doses_GLP1_Injectable %>% group_by(paid) %>% count()
 
-# 1 D     201026
-# 2 P     797903
-
 # Oral GLP1
 DIA_US_Doses_GLP1_Oral <- DIA_US_Doses %>% filter(drug_group=="GLP1 Oral")
 Paid_dates_GLP1 <- DIA_US_Doses_GLP1_Oral %>% filter(paid=="P") %>% select(-paid)
@@ -2700,10 +2634,6 @@ DIA_US_Doses_GLP1_Oral <- DIA_US_Doses_GLP1_Oral %>% filter(!(paid=="D"&is.na(to
 
 DIA_US_Doses_GLP1_Oral %>% group_by(paid) %>% count()
 
-# 1 D      7458
-# 2 P     25581
-
-
 # Biguanide
 DIA_US_Doses_Biguanide <- DIA_US_Doses %>% filter(drug_group=="Biguanide")
 Paid_dates_Biguanide <- DIA_US_Doses_Biguanide %>% filter(paid=="P") %>% select(-paid)
@@ -2717,9 +2647,6 @@ DIA_US_Doses_Biguanide <- DIA_US_Doses_Biguanide %>% left_join(To_keep)
 DIA_US_Doses_Biguanide <- DIA_US_Doses_Biguanide %>% filter(!(paid=="D"&is.na(tokeep)))
 
 DIA_US_Doses_Biguanide %>% group_by(paid) %>% count()
-
-# 1 D      439796
-# 2 P     3293694
 
 
 
@@ -2737,10 +2664,6 @@ DIA_US_Doses_Antidiabetic <- DIA_US_Doses_Antidiabetic %>% filter(!(paid=="D"&is
 
 DIA_US_Doses_Antidiabetic %>% group_by(paid) %>% count()
 
-# 1 D      165743
-# 2 P     1294090
-
-
 # Insulin
 DIA_US_Doses_Insulin <- DIA_US_Doses %>% filter(drug_group=="Insulin")
 Paid_dates_Insulin <- DIA_US_Doses_Insulin %>% filter(paid=="P") %>% select(-paid)
@@ -2754,11 +2677,6 @@ DIA_US_Doses_Insulin <- DIA_US_Doses_Insulin %>% left_join(To_keep)
 DIA_US_Doses_Insulin <- DIA_US_Doses_Insulin %>% filter(!(paid=="D"&is.na(tokeep)))
 
 DIA_US_Doses_Insulin %>% group_by(paid) %>% count()
-
-
-# 1 D      607390
-# 2 P     2266034
-
 
 
 # DPP4
@@ -2775,10 +2693,6 @@ DIA_US_Doses_DPP4 <- DIA_US_Doses_DPP4 %>% filter(!(paid=="D"&is.na(tokeep)))
 
 DIA_US_Doses_DPP4 %>% group_by(paid) %>% count()
 
-# 1 D     118616
-# 2 P     645055
-
-
 
 
 # SGLT2
@@ -2794,10 +2708,6 @@ DIA_US_Doses_SGLT2 <- DIA_US_Doses_SGLT2 %>% left_join(To_keep)
 DIA_US_Doses_SGLT2 <- DIA_US_Doses_SGLT2 %>% filter(!(paid=="D"&is.na(tokeep)))
 
 DIA_US_Doses_SGLT2 %>% group_by(paid) %>% count()
-
-
-# 1 D     128788
-# 2 P     651207
 
 
 
@@ -2857,13 +2767,13 @@ DIA_Drug_Histories <- DIA_Drug_Histories %>% mutate(rank=ifelse(drug_group=="GLP
 Inj_naive_early <- DIA_Drug_Histories %>%group_by(patient) %>% filter(rank==min(rank)) %>% slice(1) %>% ungroup() %>%
   filter(rank==6|rank==5) %>% select(patient, weight) %>% distinct()
 
-sum(Inj_naive_early$weight) # 13449533
+sum(Inj_naive_early$weight) 
 
 Inj_naive_advanced <- DIA_Drug_Histories %>% anti_join(Inj_naive_early) %>% group_by(patient) %>% 
   filter(rank==min(rank)) %>% slice(1) %>% ungroup() %>%
   filter(rank==4|rank==3) %>% select(patient, weight) %>% distinct()
 
-sum(Inj_naive_advanced$weight) # 2267763
+sum(Inj_naive_advanced$weight) 
 
 
 DIA_Drug_Histories <- DIA_Drug_Histories %>% anti_join(Inj_naive_advanced) %>% anti_join(Inj_naive_early)
@@ -2873,14 +2783,14 @@ GLP1_Inj <- DIA_Drug_Histories  %>% group_by(patient) %>%
   filter(rank==min(rank)) %>% slice(1) %>% ungroup() %>%
   filter(rank==1) %>% select(patient, weight) %>% distinct() 
 
-sum(GLP1_Inj$weight) # 6444437
+sum(GLP1_Inj$weight) 
 
 
 Insulins <- DIA_Drug_Histories %>% anti_join(GLP1_Inj) %>% group_by(patient) %>% 
   filter(rank==min(rank)) %>% slice(1) %>% ungroup() %>%
   filter(rank==2) %>% select(patient, weight) %>% distinct() 
 
-sum(Insulins$weight) # 7958353
+sum(Insulins$weight) 
 
 
 
@@ -2917,7 +2827,7 @@ DIA_Drug_Histories_3 <- DIA_Drug_Histories_2 %>% group_by(patient, weight) %>%
 
 DIA_Drug_Histories_3 <- DIA_Drug_Histories_3 %>% group_by(patient) %>% mutate(grp = rle(Drugs)$lengths %>% {rep(seq(length(.)), .)})
 DIA_Drug_Histories_3 <- DIA_Drug_Histories_3 %>% arrange(patient, Month)
-DIA_Drug_Histories_3 %>% ungroup() %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 6444437 Inj exp
+DIA_Drug_Histories_3 %>% ungroup() %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) 
 
 DIA_Drug_Histories_3 %>% ungroup() %>% filter(grp!=1) %>%
    filter(!grepl("I", Drugs)) %>% select(patient, weight, Drugs, grp) %>%
@@ -2945,15 +2855,6 @@ Returned_Inj_GLP1 <- DIA_Drug_Histories_3 %>% ungroup() %>% filter(grp!=1) %>%
   select(patient, weight)  %>% distinct() 
 
 Stopped_Inj_GLP1 <- Stopped_Inj_GLP1 %>% anti_join(Returned_Inj_GLP1)
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2990,11 +2891,11 @@ DIA_Drug_Histories_3 <- DIA_Drug_Histories_2 %>% group_by(patient, weight) %>%
 
 DIA_Drug_Histories_3 <- DIA_Drug_Histories_3 %>% group_by(patient) %>% mutate(grp = rle(Drugs)$lengths %>% {rep(seq(length(.)), .)})
 DIA_Drug_Histories_3 <- DIA_Drug_Histories_3 %>% arrange(patient, Month)
-DIA_Drug_Histories_3 %>% ungroup() %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 7958353 Insulin
+DIA_Drug_Histories_3 %>% ungroup() %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) 
 DIA_Drug_Histories_3 %>% ungroup() %>% filter(grp!=1) %>%
    filter(!grepl("I", Drugs)) %>% select(patient, weight, Drugs, grp) %>%
   group_by(patient, weight, grp) %>% count() %>% ungroup() %>%
-  filter(n>=6) %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight))  # 4860376 stop
+  filter(n>=6) %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) 
 
 
 Stopped_Insulin <- DIA_Drug_Histories_3 %>% ungroup() %>% filter(grp!=1) %>%
@@ -3019,14 +2920,14 @@ Returned_Insulin <- DIA_Drug_Histories_3 %>% ungroup() %>% filter(grp!=1) %>%
 Stopped_Insulin <- Stopped_Insulin %>% anti_join(Returned_Insulin)
 
 
-sum(Inj_naive_early$weight) # 13449533
-sum(Inj_naive_advanced$weight) # 2267763
+sum(Inj_naive_early$weight) 
+sum(Inj_naive_advanced$weight) 
  
-sum(GLP1_Inj$weight) # 6444437   # 4622001
-sum(Stopped_Inj_GLP1$weight) # 1822436
+sum(GLP1_Inj$weight) 
+sum(Stopped_Inj_GLP1$weight) 
 
-sum(Insulins$weight) # 7958353  4928148
-sum(Stopped_Insulin$weight) # 3030205
+sum(Insulins$weight) 
+sum(Stopped_Insulin$weight) 
 
 GLP1_Inj <- GLP1_Inj %>% anti_join(Stopped_Inj_GLP1)
 Insulins <- Insulins %>% anti_join(Stopped_Insulin)
@@ -3697,14 +3598,6 @@ New_Comorbidity_Groups_Jun1 %>% left_join(DANU_Demographics) %>% mutate(new_bin 
   spread(key=new_bin, value=n)
 
 
-#   group             `<50`    `<65`    `<75`   `>=75`
-# 1 ""             4548792. 5210642. 3370784. 1799245.
-# 2 "CKD"           388916. 1353744. 1993043. 2296692.
-# 3 "HFpEF"          47094.  180363.  220885.  209387.
-# 4 "OSLAP"        1659650. 3129290. 2219065. 1167790.
-# 5 "PAD_restrict"  323488. 1138240. 1589346. 1714238 
-# 6 "PCOS"         1327774.  121056.   13901.    3769.
-
 DANU_Ingredients <- fread("DIA Analysis Results 1.1/DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
 DANU_Ingredients <- DANU_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
 DANU_Ingredients <- DANU_Ingredients %>% select(molecule, drug_group)
@@ -4098,12 +3991,6 @@ BMI %>% inner_join(HbA1c) %>%
   summarise(n=sum(weight)*2.493987) %>%
   spread(key=HbA1c, value=n)
 
-#   BMI     `<6.5`   `<7.5`   `<8.5`   `<9.5`   `>9.5`
-# 1 <27    552501.  437388.  346674.  204450.  375770.
-# 2 <30    962887.  960805.  673833.  438191.  750669.
-# 3 <35   1796696. 1714436. 1320270.  827844. 1609610.
-# 4 >35   3668408. 2733694. 2096164. 1486259. 3300743.
-
 
 DANU_Ingredients <- fread("DIA Analysis Results 1.1/DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
 DANU_Ingredients <- DANU_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
@@ -4249,14 +4136,6 @@ DIA_Drug_Histories <- DIA_Drug_Histories %>% group_by(patient, weight, drug_grou
 
 DIA_Drug_Histories %>% ungroup() %>% group_by(drug_group) %>% summarise(mean=weighted.mean(n, as.numeric(weight)))
 
-# 1 Antidiabetic    11.0 
-# 2 Biguanide       10.6 
-# 3 DPP4            10.0 
-# 4 GLP1 Injectable 10.7 
-# 5 GLP1 Oral        8.01
-# 6 Insulin          7.35
-# 7 SGLT2           11.0 
-
 
 DIA_Drug_Histories <- DIA_Drug_Histories %>% ungroup() %>% group_by(drug_group, n) %>% summarise(Total=sum(as.numeric(weight))) %>% arrange(drug_group, n)
 
@@ -4309,21 +4188,13 @@ DIA_Drug_Histories <- DIA_Drug_Histories %>% group_by(patient, weight) %>% filte
 
 DIA_Drug_Histories$Total_Duration <- 60 - DIA_Drug_Histories$First + 1
 
-DIA_Drug_Histories %>% ungroup() %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 306,878 (x12 3,682,536)
+DIA_Drug_Histories %>% ungroup() %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) 
 
 Total_Duration <- DIA_Drug_Histories %>% select(patient, weight, Total_Duration) %>% distinct()
 GLP1_Duration <- DIA_Drug_Histories %>% group_by(patient, weight) %>% count()
 
-Total_Duration %>% ungroup() %>% summarise(n=sum(as.numeric(weight)*Total_Duration))  # 1,983,343
-GLP1_Duration %>% ungroup() %>% summarise(n=sum(as.numeric(weight)*n))  # 1,186,574  0.5982697  | 
-
-
-
-
-
-
-
-
+Total_Duration %>% ungroup() %>% summarise(n=sum(as.numeric(weight)*Total_Duration))  
+GLP1_Duration %>% ungroup() %>% summarise(n=sum(as.numeric(weight)*n))  
 
 
 
@@ -4351,13 +4222,13 @@ OBE2_Drug_Histories <- OBE2_Drug_Histories %>% group_by(patient, weight) %>% fil
 
 OBE2_Drug_Histories$Total_Duration <- 60 - OBE2_Drug_Histories$First + 1
 
-OBE2_Drug_Histories %>% ungroup() %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 23,425 (x12 281,100)
+OBE2_Drug_Histories %>% ungroup() %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) 
 
 Total_Duration <- OBE2_Drug_Histories %>% select(patient, weight, Total_Duration) %>% distinct()
 GLP1_Duration <- OBE2_Drug_Histories %>% group_by(patient, weight) %>% count()
 
-Total_Duration %>% ungroup() %>% summarise(n=sum(as.numeric(weight)*Total_Duration))  # 140,795
-GLP1_Duration %>% ungroup() %>% summarise(n=sum(as.numeric(weight)*n))  # 63,179  0.5982697  | 
+Total_Duration %>% ungroup() %>% summarise(n=sum(as.numeric(weight)*Total_Duration))  
+GLP1_Duration %>% ungroup() %>% summarise(n=sum(as.numeric(weight)*n))  
 
 
 # ---------------------
@@ -4452,14 +4323,6 @@ temp %>% group_by(Year) %>% mutate(total_scripts=sum(total_scripts)) %>%
   mutate(glp_injectable_scripts =sum(glp_injectable_scripts )) %>%
   select(-prov) %>%
   distinct()
-
-#    Year total_scripts glp_scripts glp_oral_scripts glp_injectable_scripts
-# 1     1    232195224.   11979447.               0               11979447.
-# 2     2    136823356.    9724770.               0                9724770.
-# 3     3    139343483.   12181496.          127416.              12054080.
-# 4     4    143945545.   15052949.          702669.              14350280.
-# 5     5    138478273.   18163555.         1214169.              16949386.
-
  
 # temp$glp_scripts <- temp$glp_scripts / temp$total_scripts
 # temp$glp_oral_scripts  <- temp$glp_oral_scripts  / temp$total_scripts
@@ -4709,13 +4572,13 @@ DIA_Drug_Histories <- DIA_Drug_Histories %>% group_by(patient, weight) %>% filte
 
 DIA_Drug_Histories$Total_Duration <- 60 - DIA_Drug_Histories$First + 1
 
-DIA_Drug_Histories %>% ungroup() %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 306,878 (x12 3,682,536)
+DIA_Drug_Histories %>% ungroup() %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) 
 
 Total_Duration <- DIA_Drug_Histories %>% select(patient, weight, Total_Duration) %>% distinct()
 GLP1_Duration <- DIA_Drug_Histories %>% group_by(patient, weight) %>% count()
 
-Total_Duration %>% ungroup() %>% summarise(n=sum(as.numeric(weight)*Total_Duration))  # 1,983,343
-GLP1_Duration %>% ungroup() %>% summarise(n=sum(as.numeric(weight)*n))  # 1,186,574  0.5982697  | 
+Total_Duration %>% ungroup() %>% summarise(n=sum(as.numeric(weight)*Total_Duration))  
+GLP1_Duration %>% ungroup() %>% summarise(n=sum(as.numeric(weight)*n))  
 
 
 DANU_Demographics <- fread("DANU Demographics 1.1/DANU Demographics.txt")
@@ -4761,13 +4624,13 @@ OBE2_Drug_Histories <- OBE2_Drug_Histories %>% group_by(patient, weight) %>% fil
 
 OBE2_Drug_Histories$Total_Duration <- 60 - OBE2_Drug_Histories$First + 1
 
-OBE2_Drug_Histories %>% ungroup() %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) # 23,425 (x12 281,100)
+OBE2_Drug_Histories %>% ungroup() %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight))) 
 
 Total_Duration <- OBE2_Drug_Histories %>% select(patient, weight, Total_Duration) %>% distinct()
 GLP1_Duration <- OBE2_Drug_Histories %>% group_by(patient, weight) %>% count()
 
-Total_Duration %>% ungroup() %>% summarise(n=sum(as.numeric(weight)*Total_Duration))  # 140,795
-GLP1_Duration %>% ungroup() %>% summarise(n=sum(as.numeric(weight)*n))  # 63,179  0.5982697  | 
+Total_Duration %>% ungroup() %>% summarise(n=sum(as.numeric(weight)*Total_Duration)) 
+GLP1_Duration %>% ungroup() %>% summarise(n=sum(as.numeric(weight)*n))  
 
 
 
@@ -4793,8 +4656,6 @@ New_Comorbidity_Groups_Jun1 %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 New_Comorbidity_Groups_Jun1 %>% select(patid,weight,diagnosis) %>% distinct() %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 New_Comorbidity_Groups_Jun1 <- New_Comorbidity_Groups_Jun1 %>% select(patid,weight,diagnosis) %>% distinct()
 
-# 1 Diabetes  30120087.
-# 2 Obesity   49151140.
 
 DIA_Comorbidity_Inventories <- fread("DIA Analysis Results 1.1/DIA Comorbidity Inventories.txt")
 DIA_Comorbidity_Inventories <- DIA_Comorbidity_Inventories %>% select(patid, diagnosis)
@@ -4989,8 +4850,7 @@ New_Comorbidity_Groups_Jun1 %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 New_Comorbidity_Groups_Jun1 %>% select(patid,weight,diagnosis) %>% distinct() %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 New_Comorbidity_Groups_Jun1 <- New_Comorbidity_Groups_Jun1 %>% select(patid,weight,diagnosis) %>% distinct()
 
-# 1 Diabetes  30120087.
-# 2 Obesity   49151140.
+
 
 DIA_Comorbidity_Inventories <- fread("DIA Analysis Results 1.1/DIA Comorbidity Inventories.txt")
 DIA_Comorbidity_Inventories <- DIA_Comorbidity_Inventories %>% select(patid, diagnosis)
@@ -5189,9 +5049,6 @@ data.frame(DANUP_Demographics %>% filter(diagnosis=="Obesity")  %>% select(patid
 New_Comorbidity_Groups_Jun1 <- fread("Mkt_Comorbidity_Groups_OBE_adjusted_Jun22.txt", sep="\t")
 New_Comorbidity_Groups_Jun1 %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 
-# 1 Diabetes            3862796.
-# 2 Diabetes + Obesity 26257291.
-# 3 Obesity            95506738
 
 DANU_Measures <- fread("DANU Measures 1.1/DANU Measures.txt",  integer64 = "character", stringsAsFactors = F)
 DANU_Measures <- DANU_Measures %>% select(-weight) %>% inner_join(New_Comorbidity_Groups_Jun1 %>% select(patid, weight, diagnosis))
@@ -5200,23 +5057,15 @@ DANU_Measures <- DANU_Measures %>% select(patid, value, weight, diagnosis) %>% d
 
 DANU_Measures %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 
-# 1 Diabetes             934859.
-# 2 Diabetes + Obesity 17145906.
-# 3 Obesity            95506738.
 
 DANU_Measures %>% filter(value>=30) %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 
-# 1 Diabetes              11742.
-# 2 Diabetes + Obesity 12950513.
-# 3 Obesity            73280987
 
-# 12950513./17145906.
 
 DANU_Measures <- DANU_Measures %>% filter(value>=30) %>% select(patid, weight, diagnosis)
 
 DANU_Measures %>% inner_join(New_Comorbidity_Groups_Jun1 %>% filter(HFpEF==1) %>% select(patid)) %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 
-# 281665/12950513.
 
 # From Heart Failure Data
 
@@ -5236,14 +5085,9 @@ DANU_Measures_Full <- DANU_Measures_Full %>% inner_join(HF_Demographics %>% filt
 
 DANU_Measures_Full %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 
-# 1 Diabetes + Obesity 739714.
-# 2 Obesity            375898.
 
 DANU_Measures_Full %>% left_join(Predicted_Stages_gbm_All, by=c("patid"="patient")) %>% filter(Predicted.Stage!=1) %>%
   group_by(diagnosis) %>% summarise(n=sum(weight))
-
-# 1 Diabetes + Obesity 687285.
-# 2 Obesity            322572.
 
 Target <- DANU_Measures_Full %>% left_join(Predicted_Stages_gbm_All, by=c("patid"="patient")) %>% filter(Predicted.Stage!=1) %>% select(-Predicted.Stage)
 
@@ -5260,9 +5104,6 @@ Target %>% inner_join(HF_Drug_Histories, by=c("patid"="patient")) %>% group_by(d
 Target <- Target %>% inner_join(HF_Drug_Histories, by=c("patid"="patient"))
 Target %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 
-
-# 1 Diabetes + Obesity 687285.
-# 2 Obesity            322572.
 
 
 # From DANU Diabetes Data
@@ -5294,8 +5135,6 @@ Drug_Histories <- Drug_Histories %>% select(patient, Drugs) %>% distinct()
 Drug_Histories %>% filter(grepl(string_GLP1, Drugs)) %>% select(patient) %>% distinct() %>%
   inner_join(Target, by=c("patient"="patid")) %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 
-# 1 Diabetes + Obesity 89036.
-# 2 Obesity              956.
 
 Drug_Histories %>% filter(grepl(string_OralGLP1, Drugs)) %>% select(patient) %>% distinct() %>%
   inner_join(Target, by=c("patient"="patid")) %>% group_by(diagnosis) %>% summarise(n=sum(weight))
@@ -5310,9 +5149,6 @@ Drug_Histories %>% filter(grepl(string_OralGLP1, Drugs)) %>% select(patient) %>%
 New_Comorbidity_Groups_Jun1 <- fread("Mkt_Comorbidity_Groups_OBE_adjusted_Jun22.txt", sep="\t")
 New_Comorbidity_Groups_Jun1 %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 
-# 1 Diabetes            3862796.
-# 2 Diabetes + Obesity 26257291.
-# 3 Obesity            95506738
 
 DANU_Measures <- fread("DANU Measures 1.1/DANU Measures.txt",  integer64 = "character", stringsAsFactors = F)
 DANU_Measures <- DANU_Measures %>% select(-weight) %>% inner_join(New_Comorbidity_Groups_Jun1 %>% select(patid, weight, diagnosis))
@@ -5321,23 +5157,16 @@ DANU_Measures <- DANU_Measures %>% select(patid, value, weight, diagnosis,) %>% 
 
 DANU_Measures %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 
-# 1 Diabetes             934859.
-# 2 Diabetes + Obesity 17145906.
-# 3 Obesity            95506738.
+
 
 DANU_Measures %>% filter(value>=27) %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 
-# 1 Diabetes              17908.
-# 2 Diabetes + Obesity 15585321.
-# 3 Obesity            95506738.
+
 
 DANU_Measures <- DANU_Measures %>% filter(value>=27) %>% select(patid, weight, diagnosis)
 
 DANU_Measures %>% inner_join(New_Comorbidity_Groups_Jun1 %>% filter(CKD==1) %>% select(patid)) %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 
-# 1 Diabetes              3966.
-# 2 Diabetes + Obesity 3218935.
-# 3 Obesity            4561006.
 
 # From CKD Data
 
@@ -5375,9 +5204,6 @@ DANU_Measures <- DANU_Measures %>% inner_join(DANU_Measures_ACR %>% select(-weig
 
 DANU_Measures %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 
-# 1 Diabetes + Obesity 1296058.
-# 2 Obesity             319157.
-
 
 
 DANU_Measures %>% left_join(CKD_Stages_Complete_FilledIn, by=c("patid"="patient")) %>% filter(Stage=="Stage3"|
@@ -5386,8 +5212,6 @@ DANU_Measures %>% left_join(CKD_Stages_Complete_FilledIn, by=c("patid"="patient"
                                                                                                 (Stage=="Stage2"&value=="Yes")) %>%
   group_by(diagnosis) %>% summarise(n=sum(weight))
 
-# 1 Diabetes + Obesity 833673.
-# 2 Obesity            231098.
 
 Target <- DANU_Measures %>% left_join(CKD_Stages_Complete_FilledIn, by=c("patid"="patient")) %>% filter(Stage=="Stage3"|
                                                                                                 Stage=="Stage4"|
@@ -5406,9 +5230,6 @@ Target %>% inner_join(CKD_Drug_Histories, by=c("patid"="patient")) %>% group_by(
 Target <- Target %>% inner_join(CKD_Drug_Histories, by=c("patid"="patient"))
 Target %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 
-
-# 1 Diabetes + Obesity 833673.
-# 2 Obesity            231098.
 
 
 # From DANU Diabetes Data
@@ -5440,12 +5261,8 @@ Drug_Histories <- Drug_Histories %>% select(patient, Drugs) %>% distinct()
 Drug_Histories %>% filter(grepl(string_GLP1, Drugs)) %>% select(patient) %>% distinct() %>%
   inner_join(Target, by=c("patient"="patid")) %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 
- # Diabetes + Obesity 139557.
-
 Drug_Histories %>% filter(grepl(string_OralGLP1, Drugs)) %>% select(patient) %>% distinct() %>%
   inner_join(Target, by=c("patient"="patid")) %>% group_by(diagnosis) %>% summarise(n=sum(weight))
-
-# Diabetes + Obesity 4373.
 
 
 # --------------------
@@ -5455,9 +5272,6 @@ Drug_Histories %>% filter(grepl(string_OralGLP1, Drugs)) %>% select(patient) %>%
 New_Comorbidity_Groups_Jun1 <- fread("Mkt_Comorbidity_Groups_OBE_adjusted_Jun22.txt", sep="\t")
 New_Comorbidity_Groups_Jun1 %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 
-# 1 Diabetes            3862796.
-# 2 Diabetes + Obesity 26257291.
-# 3 Obesity            95506738
 
 DANU_Measures <- fread("DANU Measures 1.1/DANU Measures.txt",  integer64 = "character", stringsAsFactors = F)
 DANU_Measures <- DANU_Measures %>% select(-weight) %>% inner_join(New_Comorbidity_Groups_Jun1 %>% select(patid, weight, diagnosis))
@@ -5466,23 +5280,11 @@ DANU_Measures <- DANU_Measures %>% select(patid, value, weight, diagnosis,) %>% 
 
 DANU_Measures %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 
-# 1 Diabetes             934859.
-# 2 Diabetes + Obesity 17145906.
-# 3 Obesity            95506738.
-
 DANU_Measures %>% filter(value>=27) %>% group_by(diagnosis) %>% summarise(n=sum(weight))
-
-# 1 Diabetes              17908.
-# 2 Diabetes + Obesity 15585321.
-# 3 Obesity            95506738.
 
 DANU_Measures <- DANU_Measures %>% filter(value>=27) %>% select(patid, weight, diagnosis)
 
 DANU_Measures %>% inner_join(New_Comorbidity_Groups_Jun1 %>% filter(OSLAP==1) %>% select(patid)) %>% group_by(diagnosis) %>% summarise(n=sum(weight))
-
-# 1 Diabetes               1625.
-# 2 Diabetes + Obesity  4844037.
-# 3 Obesity            11818708.
 
 
 
@@ -5513,10 +5315,6 @@ Drug_Histories %>% select(patient) %>% distinct() %>%
   inner_join(New_Comorbidity_Groups_Jun1 %>% filter(OSLAP==1) %>% select(patid, weight, diagnosis), by=c("patient"="patid")) %>%
   group_by(diagnosis) %>% summarise(n=sum(weight))
 
-# 1 Diabetes             65756.
-# 2 Diabetes + Obesity 1538270.
-# 3 Obesity            2306604.
-
 Drug_Histories <- gather(Drug_Histories, Month, Drugs, month1:month60, factor_key=TRUE)
 Drug_Histories <- Drug_Histories %>% filter(Drugs!="-")
 Drug_Histories$Month <- as.character(Drug_Histories$Month)
@@ -5529,17 +5327,11 @@ Drug_Histories %>% filter(grepl(string_GLP1, Drugs)) %>% select(patient) %>% dis
     inner_join(New_Comorbidity_Groups_Jun1 %>% filter(OSLAP==1) %>% select(patid, weight, diagnosis), by=c("patient"="patid")) %>%
   group_by(diagnosis) %>% summarise(n=sum(weight))
 
-# 1 Diabetes             7873.
-# 2 Diabetes + Obesity 372915.
-# 3 Obesity             13805.
+
 
 Drug_Histories %>% filter(grepl(string_OralGLP1, Drugs)) %>% select(patient) %>% distinct() %>%
     inner_join(New_Comorbidity_Groups_Jun1 %>% filter(OSLAP==1) %>% select(patid, weight, diagnosis), by=c("patient"="patid")) %>%
   group_by(diagnosis) %>% summarise(n=sum(weight))
-
-# 1 Diabetes             591.
-# 2 Diabetes + Obesity 15545.
-# 3 Obesity             1211.
 
 
 #  --------------------
@@ -6336,13 +6128,7 @@ DANU_Measures %>% inner_join(Groups) %>%
 
 # Obesity ASCVD HFpEF CKD OSLAP -----------------------------
 
-# Targets
 
-# HFpEF 2,213,511
-# CKD 18,108,312
-# PAD 16,451,350
-# PCOS 4,153,631
-# OSA 29,665,040
 
 Mkt_Comorbidity_Groups_OBE_adjusted_Jun22 <- fread("Mkt_Comorbidity_Groups_OBE_adjusted_Jun22.txt", sep="\t")
 Mkt_Comorbidity_Groups_OBE_adjusted_Jun22 <- Mkt_Comorbidity_Groups_OBE_adjusted_Jun22 %>% filter(diagnosis=="Obesity")
@@ -6405,13 +6191,6 @@ Mkt_Comorbidity_Groups_OBE_adjusted_Jun22 %>% left_join(OBE_ASCVD) %>% filter(OB
 # ------------------------
 # Obesity ASCVD (w DIA) HFpEF CKD OSLAP -----------------------------
 
-# Targets
-
-# HFpEF 2,213,511
-# CKD 18,108,312
-# PAD 16,451,350
-# PCOS 4,153,631
-# OSA 29,665,040
 
 Mkt_Comorbidity_Groups_OBE_adjusted_Jun22 <- fread("Mkt_Comorbidity_Groups_OBE_adjusted_Jun22.txt", sep="\t")
 Mkt_Comorbidity_Groups_OBE_adjusted_Jun22 <- Mkt_Comorbidity_Groups_OBE_adjusted_Jun22 %>% filter(diagnosis=="Obesity"|diagnosis=="Diabetes + Obesity")
@@ -6499,13 +6278,6 @@ Mkt_Comorbidity_Groups_OBE_adjusted_Jun22 %>% left_join(ASCVD) %>% filter(ASCVD=
 # --------------------------
 # Obesity ASCVD HFpEF CKD OSLAP  > 65 vs <65 -----------------------------
 
-# Targets
-
-# HFpEF 2,213,511
-# CKD 18,108,312
-# PAD 16,451,350
-# PCOS 4,153,631
-# OSA 29,665,040
 
 
 
@@ -6579,14 +6351,7 @@ Mkt_Comorbidity_Groups_OBE_adjusted_Jun22 %>% left_join(OBE_ASCVD) %>% filter(OB
 
 # ----------------------
 # Obesity ASCVD (w DIA)  HFpEF CKD OSLAP  > 65 vs <65 -----------------------------
- 
-# Targets
 
-# HFpEF 2,213,511
-# CKD 18,108,312
-# PAD 16,451,350
-# PCOS 4,153,631
-# OSA 29,665,040
 
 
 
@@ -8056,14 +7821,6 @@ temp %>%
   select(patient, Diff, Month) %>%
   group_by(Diff)  %>% summarise(mean=mean(Month))
 
-# 1 -5%    8.27
-# 2 -10%   9.86
-# 3 -15%  11.5 
-# 4 -20%  11.7 
-# 5 -25%  11.8 
-# 6 -30%  11.1 
-# 7 -35%  10.4 
-# 8 -40%  10.3 
 
 
 DANU_Demographics <- fread("DIA Analysis Results 1.1/DANU Demographics.txt")
@@ -8074,15 +7831,7 @@ temp %>% inner_join(DANU_Demographics, by=c("patient"="patid")) %>%
   group_by(Diff, gender) %>% count() %>%
   spread(key=gender, value=n)
 
-#   Diff      F     M
-# 1 -5%     170   167
-# 2 -10%    577   527
-# 3 -15%    529   390
-# 4 -20%    316   178
-# 5 -25%    154    77
-# 6 -30%     55    31
-# 7 -35%     46    19
-# 8 -40%     50    26
+
 
 temp %>% inner_join(DANU_Demographics, by=c("patient"="patid")) %>%
   select(patient, gender, Diff) %>% distinct() %>%
@@ -8092,9 +7841,6 @@ temp %>% inner_join(DANU_Demographics, by=c("patient"="patid")) %>%
 temp %>% inner_join(DANU_Demographics, by=c("patient"="patid")) %>%
   select(patient, gender, Diff) %>% distinct() %>%
   group_by(gender) %>% count()
-
-# 1 F       1897
-# 2 M       1415
 
 
 temp %>% inner_join(DANU_Demographics, by=c("patient"="patid")) %>%
@@ -8173,11 +7919,6 @@ Dia_US_Doses <- fread("DIA Doses 1.1/DIA Doses.txt")
 Dia_US_Doses <- Dia_US_Doses %>% filter(from_dt>="2020-05-31")  
 Dia_US_Doses <- Dia_US_Doses %>% select(-c(prov, prov_type, specialty, taxonomy1, taxonomy2, status))
 Dia_US_Doses <- Dia_US_Doses %>% filter(paid=="P")
-
-#Fixed Combo
-#8:51:337:11571
-#8:52:339:11574
-#8:52:339:11575
 
 
 unique(Dia_US_Doses$drug_class)
@@ -8276,39 +8017,6 @@ data.frame(Molecules_2 %>% group_by(SGLT2) %>% summarise(n=sum(weight)))
 data.frame(Molecules_2 %>% mutate(GLP1=ifelse(GLP1=="Albiglutide"|GLP1=="Exenatide"|GLP1=="Liraglutide"|GLP1=="Lixisenatide", "Other", GLP1)) %>% 
              group_by(SGLT2, GLP1) %>% summarise(n=sum(weight)))
 
-
-
-
-
-#            SGLT2                   GLP1          n
-# 1  Canagliflozin            Albiglutide   45102.11
-# 2  Canagliflozin            Dulaglutide 2034246.28
-# 3  Canagliflozin              Exenatide  598127.75
-# 4  Canagliflozin            Liraglutide 1554695.92
-# 5  Canagliflozin           Lixisenatide  118510.81
-# 6  Canagliflozin Semaglutide Injectable  855112.93
-# 7  Canagliflozin       Semaglutide Oral   82764.66
-# 8  Dapagliflozin            Albiglutide   24337.83
-# 9  Dapagliflozin            Dulaglutide 2764196.13
-# 10 Dapagliflozin              Exenatide  734427.38
-# 11 Dapagliflozin            Liraglutide 1273480.99
-# 12 Dapagliflozin           Lixisenatide  155847.26
-# 13 Dapagliflozin Semaglutide Injectable 1667477.18
-# 14 Dapagliflozin       Semaglutide Oral  265801.40
-# 15 Empagliflozin            Albiglutide   41165.56
-# 16 Empagliflozin            Dulaglutide 5991574.01
-# 17 Empagliflozin              Exenatide 1065371.38
-# 18 Empagliflozin            Liraglutide 3217487.52
-# 19 Empagliflozin           Lixisenatide  287945.82
-# 20 Empagliflozin Semaglutide Injectable 3997516.81
-# 21 Empagliflozin       Semaglutide Oral  475659.67
-# 22 Ertugliflozin            Albiglutide    1028.07
-# 23 Ertugliflozin            Dulaglutide  190548.39
-# 24 Ertugliflozin              Exenatide   67706.71
-# 25 Ertugliflozin            Liraglutide  100067.91
-# 26 Ertugliflozin           Lixisenatide   18016.85
-# 27 Ertugliflozin Semaglutide Injectable  115233.55
-# 28 Ertugliflozin       Semaglutide Oral   25242.75
 
 
 # -----------------------------
@@ -8459,8 +8167,6 @@ sum(Mkt_Comorbidity_Groups_OBE_adjusted_Jun22$weight)
 
 Mkt_Comorbidity_Groups_OBE_adjusted_Jun22 %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 
-# 1 Diabetes + Obesity 26257291.
-# 2 Obesity            95506738.
 
 DANU_Measures <- fread("DANU Measures 1.1/DANU Measures.txt",  integer64 = "character", stringsAsFactors = F)
 BMI <- DANU_Measures %>% filter(test=="BMI") %>% select(patid, value)
@@ -8473,20 +8179,6 @@ Mkt_Comorbidity_Groups_OBE_adjusted_Jun22 <- Mkt_Comorbidity_Groups_OBE_adjusted
 
 Mkt_Comorbidity_Groups_OBE_adjusted_Jun22 %>% group_by(value, diagnosis) %>% summarise(n=(sum(weight))) 
 
-# 1 27-30 Diabetes + Obesity  2653230.
-# 2 27-30 Obesity            22572603.
-# 3 30-35 Diabetes + Obesity  4799102.
-# 4 30-35 Obesity            39610538.
-# 5 >35   Diabetes + Obesity  8072950.
-# 6 >35   Obesity            32711788.
-
-95506738.*(22572603./(22572603.+39610538.+32711788.))
-95506738.*(39610538./(22572603.+39610538.+32711788.))
-95506738.*(32711788./(22572603.+39610538.+32711788.))
-
-26257291.*(2653230./(2653230.+4799102.+8072950.))
-26257291.*(4799102./(2653230.+4799102.+8072950.))
-26257291.*(8072950./(2653230.+4799102.+8072950.))
 
 Mkt_Comorbidity_Groups_OBE_adjusted_Jun22 %>% group_by(value, diagnosis, OSLAP) %>% summarise(n=sum(weight)) %>%
   spread(key=OSLAP, value = n) %>% mutate(perc=`1`/(`1`+`0`))
@@ -9060,14 +8752,6 @@ DIA_Drug_Histories_2 <- DIA_Drug_Histories_2 %>% group_by(patient, weight, gener
 
 DIA_Drug_Histories_2 %>% ungroup() %>% group_by(generic_name) %>% summarise(mean=weighted.mean(n, as.numeric(weight)))
 
-#   generic_name            mean
-# 1 Albiglutide             7.36
-# 2 Dulaglutide            12.4 
-# 3 Exenatide              10.2 
-# 4 Liraglutide            11.7 
-# 5 Lixisenatide           10.5 
-# 6 Semaglutide Injectable  8.47
-# 7 Semaglutide Oral        5.55
 
 
 DIA_Drug_Histories_2 <- DIA_Drug_Histories_2 %>% ungroup() %>% group_by(generic_name, n) %>% summarise(Total=sum(as.numeric(weight))) %>% arrange(generic_name, n)
@@ -9130,14 +8814,6 @@ DIA_Drug_Histories <- DIA_Drug_Histories %>% group_by(patient, weight, generic_n
 
 DIA_Drug_Histories %>% ungroup() %>% group_by(generic_name) %>% summarise(mean=weighted.mean(n, as.numeric(weight)))
 
-#   generic_name            mean
-# 1 Albiglutide             7.75
-# 2 Dulaglutide            15.4 
-# 3 Exenatide              12.9 
-# 4 Liraglutide            15.9 
-# 5 Lixisenatide           14.1 
-# 6 Semaglutide Injectable 10.2 
-# 7 Semaglutide Oral        6.03
 
 DIA_Drug_Histories <- DIA_Drug_Histories %>% ungroup() %>% group_by(generic_name, n) %>% summarise(Total=sum(as.numeric(weight))) %>% arrange(generic_name, n)
 
@@ -9599,13 +9275,6 @@ DIA_Drug_Histories <- DIA_Drug_Histories %>% group_by(patient, weight, drug_grou
 
 DIA_Drug_Histories %>% ungroup() %>% group_by(drug_group) %>% summarise(mean=weighted.mean(n, as.numeric(weight)))
 
-# 1 Antidiabetic    26.7 
-# 2 Biguanide       27.4 
-# 3 DPP4            21.7 
-# 4 GLP1 Injectable 17.4 
-# 5 GLP1 Oral        6.03
-# 6 Insulin         22.5 
-# 7 SGLT2           18.3 
 
 DIA_Drug_Histories <- DIA_Drug_Histories %>% ungroup() %>% group_by(drug_group, n) %>% summarise(Total=sum(as.numeric(weight))) %>% arrange(drug_group, n)
 
@@ -9674,9 +9343,6 @@ DIA_Drug_Histories <- DIA_Drug_Histories %>% inner_join(First_Month)
 DIA_Drug_Histories <- DIA_Drug_Histories %>% group_by(patient, weight, drug_group) %>% count()
 
 DIA_Drug_Histories %>% ungroup() %>% group_by(drug_group) %>% summarise(mean=weighted.mean(n, as.numeric(weight)))
-
-# 1 Antidiabetic     19.0
-# 4 GLP1 Injectable  18.8
 
 
 DIA_Drug_Histories <- DIA_Drug_Histories %>% ungroup() %>% group_by(drug_group, n) %>% summarise(Total=sum(as.numeric(weight))) %>% arrange(drug_group, n)
@@ -9748,10 +9414,6 @@ DIA_Drug_Histories <- DIA_Drug_Histories %>% group_by(patient, weight, drug_grou
 DIA_Drug_Histories %>% ungroup() %>% group_by(drug_group) %>% summarise(mean=weighted.mean(n, as.numeric(weight)))
 
 
-# 4 GLP1 Injectable  21.1
-# 6 SGLT2            21.1
-
-
 
 DIA_Drug_Histories <- DIA_Drug_Histories %>% ungroup() %>% group_by(drug_group, n) %>% summarise(Total=sum(as.numeric(weight))) %>% arrange(drug_group, n)
 
@@ -9809,21 +9471,6 @@ DIA_Drug_Histories <- DIA_Drug_Histories %>% group_by(patient, weight, drug_clas
 DIA_Drug_Histories %>% ungroup() %>% group_by(drug_class) %>% 
   summarise(mean=weighted.mean(n, as.numeric(weight))) %>%
   arrange(-mean)
-
-#    drug_class       mean
-#  1 Biguanide       27.4 
-#  2 Sulfonylurea    26.6 
-#  3 Insulin Long    24.9 
-#  4 Glitazone       22.4 
-#  5 Insulin Short   21.8 
-#  6 DPP4            21.7 
-#  7 SGLT2           18.3 
-#  8 GLP1 Injectable 17.4 
-#  9 Glinide         17.3 
-# 10 AGI             13.8 
-# 11 Antidiabetic    13.6 
-# 12 GLP1 Oral        6.03
-# 13 Insulin Therapy  5.82
 
 DIA_Drug_Histories <- DIA_Drug_Histories %>% ungroup() %>% group_by(drug_class, n) %>% summarise(Total=sum(as.numeric(weight))) %>% arrange(drug_class, n)
 
@@ -9888,15 +9535,6 @@ DIA_Drug_Histories <- DIA_Drug_Histories %>% group_by(patient, weight, drug_grou
 DIA_Drug_Histories %>% left_join(First_Month) %>%
   ungroup() %>% mutate(perc=n/VIZ) %>% filter(VIZ!=0) %>%
   group_by(drug_group) %>% summarise(mean=weighted.mean(perc, as.numeric(weight)))
-
-
-# 1 Antidiabetic    0.643
-# 2 Biguanide       0.657
-# 3 DPP4            0.562
-# 4 GLP1 Injectable 0.673
-# 5 GLP1 Oral       0.689
-# 6 Insulin         0.545
-# 7 SGLT2           0.682
 
 
 

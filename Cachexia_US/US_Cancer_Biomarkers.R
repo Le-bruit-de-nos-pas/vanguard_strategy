@@ -9053,10 +9053,124 @@ CAN_Drug_Histories <- CAN_Drug_Histories %>%  mutate(Box=ifelse(grepl("179", Tre
 
 
 
+PONS_Demographics <- fread("Source/PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% select(patid, diagnosis) %>% filter(grepl("Breast", diagnosis))
+PONS_Demographics <- separate_rows(PONS_Demographics, diagnosis, sep = ",", convert=T)
+PONS_Demographics$diagnosis <- str_replace_all(PONS_Demographics$diagnosis, " Cancer", "")
+PONS_Demographics$diagnosis <- str_replace_all(PONS_Demographics$diagnosis, " ", "")
+PONS_Demographics <- PONS_Demographics %>% mutate(exp=1) %>% spread(key=diagnosis, value=exp)
+PONS_Demographics[is.na(PONS_Demographics)] <- 0
+
+PONS_Demographics <- PONS_Demographics %>% mutate(Group=ifelse(Liver==1|Lung==1|Bone==1, "LLB",
+                                          ifelse(Lymphoma==1, "Lymphoma", "Other"))) %>% 
+  select(patid, Group)
+
+LLB <- PONS_Demographics %>% filter(Group=="LLB") %>% select(patid)
+
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% mutate(Box=ifelse(Treat=="355", "Dead", Box))
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% arrange(patient, Month) 
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% group_by(patient) %>% mutate(ON=ifelse(Treat=="-",0,1)) %>% 
+  mutate(ON=cumsum(ON)) %>% mutate(ON=(ifelse(ON==0,0,1))) %>% ungroup()
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% mutate(Box=ifelse(Box=="Lapsed" & ON==0,"Naive", Box))
+
+
+cancer_metastasis <- fread("Source/PONS Demographics.txt")
+cancer_metastasis <- cancer_metastasis %>% select(patid, cancer_metastasis) %>% drop_na() %>% select(patid, cancer_metastasis) 
+
+Months_lookup <- fread("Source/Months_lookup.txt",  integer64 = "character", stringsAsFactors = F)
+
+Months_lookup$Month <- as.character(
+  format(
+    as.Date(
+      paste0(Months_lookup$Month,"-1")
+      ), "%Y-%m"
+    )
+  )
+
+cancer_metastasis[, cancer_metastasis := as.character(cancer_metastasis)][, cancer_metastasis := substr(cancer_metastasis, 1L, 7L)]
+
+cancer_metastasis <- cancer_metastasis[
+  Months_lookup, on = c("cancer_metastasis" = "Month")
+  ][
+    ,.SD, .SDcols = !c("cancer_metastasis")
+    ][, {setnames(.SD, old = "Exact_Month", new = "cancer_metastasis")}]
+
+
+names(cancer_metastasis)[2] <- "Month_Mets"
+
+
+
+flows <- CAN_Drug_Histories %>% inner_join(New_Primary_Cancer_Box %>% select(-weight), by=c("patient"="patid")) %>%
+  select(patient, Month, weight, Treat, Box) %>%
+  left_join(
+    CAN_Drug_Histories %>% inner_join(New_Primary_Cancer_Box %>% select(-weight), by=c("patient"="patid")) %>%
+  select(patient, Month, weight, Treat, Box) %>% mutate(Month=Month-1) %>%
+    rename("Treat_2"="Treat") %>% rename("Box_2"="Box")
+  )
+
+
+
+
+
+flows <- flows %>% arrange(patient, Month) 
+
+
+flows %>% 
+  inner_join(New_Primary_Cancer_Box %>% filter(cancer_metastasis==1) %>% select(patid), by=c("patient"="patid")) %>%
+#  inner_join(LLB, by=c("patient"="patid")) %>%
+  filter(Month<60 & Month>=48) %>%
+  group_by(patient) %>%
+  mutate(flow=ifelse(Treat_2!=Treat,1,0)) %>%
+  filter(flow==1) %>% ungroup() %>%
+  group_by(Box, Box_2) %>% summarise(n=sum(weight)) %>%
+  spread(key=Box_2, value=n)
+
+flows %>% 
+  inner_join(New_Primary_Cancer_Box %>% filter(cancer_metastasis==1) %>% select(patid), by=c("patient"="patid")) %>%
+#  inner_join(LLB, by=c("patient"="patid")) %>%
+  inner_join(cancer_metastasis, by=c("patient"="patid")) %>%
+  mutate(Month=Month-Month_Mets) %>%
+  filter(Month<=12&Month>=(-1)) %>%
+  group_by(patient) %>%
+  mutate(flow=ifelse(Treat_2!=Treat,1,0)) %>%
+  filter(flow==1) %>% ungroup() %>%
+  group_by(Box, Box_2) %>% summarise(n=sum(weight)) %>%
+  spread(key=Box_2, value=n)
+
+
+
+
+flows %>% 
+  inner_join(New_Primary_Cancer_Box %>% filter(cancer_metastasis==1) %>% select(patid), by=c("patient"="patid")) %>%
+  filter(Month<60 & Month>=48) %>%
+  group_by(patient) %>%
+  mutate(flow=ifelse(Treat_2!=Treat,1,0)) %>%
+  filter(flow==1) %>% ungroup() %>% 
+  filter(Box!="Palbo"&Box_2=="Palbo") %>%
+  group_by(Box) %>% summarise(n=sum(weight))
+
+flows %>% 
+  inner_join(New_Primary_Cancer_Box %>% filter(cancer_metastasis==1) %>% select(patid), by=c("patient"="patid")) %>%
+  filter(Month<60& Month>=48) %>%
+  group_by(patient) %>%
+  mutate(flow=ifelse(Treat_2!=Treat,1,0)) %>%
+  filter(flow==1) %>% ungroup() %>% 
+  filter(Box=="Palbo"&Box_2!="Palbo") %>%
+  group_by(Box_2) %>% summarise(n=sum(weight))
+
+
+
 
 
 CAN_Drug_Histories %>% inner_join(New_Primary_Cancer_Box %>% select(-weight), by=c("patient"="patid")) %>%
-  filter(Month==60) %>% group_by(cancer_metastasis, Box) %>% summarise(n=sum(weight))
+  #  inner_join(LLB, by=c("patient"="patid")) %>%
+  inner_join(cancer_metastasis, by=c("patient"="patid")) %>%
+  mutate(Month=Month-Month_Mets) %>%
+  filter(Month==12) %>% group_by(cancer_metastasis, Box) %>% summarise(n=sum(weight))
 
 
 temp <- CAN_Drug_Histories %>% inner_join(New_Primary_Cancer_Box %>% select(-weight), by=c("patient"="patid")) %>%

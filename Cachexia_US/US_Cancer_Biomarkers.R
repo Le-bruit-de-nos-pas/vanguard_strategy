@@ -37,9 +37,9 @@ names(biomarkers)[1] <- "patid"
 lookup <- unique(biomarkers[, .(BIOMARKER, VARIATION_DETAIL, BIOMARKER_STATUS)])[order(BIOMARKER)]
 
 biomarkers <- biomarkers[BIOMARKER_STATUS != "equivocal"]
-
-biomarkers[, BIOMARKER_STATUS := ifelse(BIOMARKER_STATUS == "amplified", "positive",
-                                        ifelse(BIOMARKER_STATUS == "non-amplified", "negative", BIOMARKER_STATUS))]                                                            ifelse(BIOMARKER_STATUS=="non-amplified", "negative", BIOMARKER_STATUS)))
+# 
+# biomarkers[, BIOMARKER_STATUS := ifelse(BIOMARKER_STATUS == "amplified", "positive",
+#                                         ifelse(BIOMARKER_STATUS == "non-amplified", "negative", BIOMARKER_STATUS)]                                                            ifelse(BIOMARKER_STATUS=="non-amplified", "negative", BIOMARKER_STATUS)))
 
 
 New_Primary_Cancer_Box[, .N, by = Primary_Cancer]
@@ -9192,3 +9192,268 @@ temp %>% group_by(cancer_metastasis, Box) %>%
 
 
 
+
+# Albumin / Hemoglobuin ~ Drugs Used After Palbo -------------- 
+CancerDrug_Experienced <- fread("Source/CancerDrug_Experienced.txt",  integer64 = "character", stringsAsFactors = F)
+New_Primary_Cancer_Box <- fread("Source/New_Primary_Cancer_Box.txt", sep="\t")
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% inner_join(CancerDrug_Experienced)
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% filter(Primary_Cancer=="Breast Cancer") %>% select(patid, weight)
+sum(New_Primary_Cancer_Box$weight) 
+
+PONS_Demographics <- fread("Source/PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% select(patid, cancer_metastasis) %>% filter(!is.na(cancer_metastasis))
+New_Primary_Cancer_Box <- PONS_Demographics %>% inner_join(New_Primary_Cancer_Box)
+
+CAN_Drug_Histories <- fread("Source/CAN Drug Histories.txt")
+CAN_Drug_Histories <- setDT(CAN_Drug_Histories)[New_Primary_Cancer_Box[, .(patid)], on = c("patient"="patid"), nomatch = 0]
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+CAN_Drug_Histories <- CAN_Drug_Histories %>% select(patient, weight, Month ,Treat) %>% distinct()
+CAN_Drug_Histories$Month <- parse_number(as.character(CAN_Drug_Histories$Month))
+
+First_Palbo <- CAN_Drug_Histories %>% select(patient, Month, Treat) %>% distinct() %>%
+  filter(grepl("179", Treat)) %>% group_by(patient) %>% filter(Month==min(Month)) %>% ungroup() %>%
+  select(patient, Month) %>% rename("First_Palbo"="Month")
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% inner_join(First_Palbo) %>% filter(Month>=First_Palbo)
+CAN_Drug_Histories <- CAN_Drug_Histories %>% mutate(Month=Month-First_Palbo)
+CAN_Drug_Histories <- CAN_Drug_Histories %>% mutate(ON_Palbo=ifelse(grepl("179",Treat), 1,0))
+CAN_Drug_Histories <- CAN_Drug_Histories %>% arrange(patient, Month)
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% inner_join(
+  CAN_Drug_Histories %>% filter(ON_Palbo==0) %>% group_by(patient) %>% filter(Month==min(Month)) %>%
+  select(patient, Month) %>% rename("First_Stop"="Month")
+) %>% 
+  filter(Month>=First_Stop)
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% select(patient, weight, Month, Treat)
+
+CAN_Drug_Histories <- separate_rows(CAN_Drug_Histories, Treat, sep = ",", convert=T)
+
+PONS_Ingredients_JN_ChemoClass <- fread("Source/PONS_Ingredients_JN_ChemoClass.csv", colClasses = "character")
+PONS_Ingredients_JN_ChemoClass <- PONS_Ingredients_JN_ChemoClass %>% select(molecule, chemo_class)
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% left_join(PONS_Ingredients_JN_ChemoClass, by=c("Treat"="molecule")) 
+CAN_Drug_Histories <- CAN_Drug_Histories %>% mutate(chemo_class=ifelse(is.na(chemo_class),"Lapsed", chemo_class))
+
+CAN_Drug_Histories$Exp <- 1
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% select(-Treat) %>% distinct() %>% spread(key=chemo_class, value=Exp)
+CAN_Drug_Histories[is.na(CAN_Drug_Histories)] <- 0
+
+names(CAN_Drug_Histories)
+
+AfterPalbo_Month_Over_Month_Markers <- fread("Source/AfterPalbo_Month_Over_Month_Markers.txt")
+AfterPalbo_Month_Over_Month_Markers <- AfterPalbo_Month_Over_Month_Markers %>% select(-ON_Palbo)
+
+names(CAN_Drug_Histories)
+names(CAN_Drug_Histories)
+
+temp <- CAN_Drug_Histories %>% 
+  select(patient, Month, `Alkylating Agent`, `Antimetabolites`,  `Antimicrotubule Agent`,  `Biologic`,  `Hormonal Therapy`, 
+         `Hospital Inpatient`, `Immuno/Targeted`, `Other Antineoplastics`, `PD1/PDL1`, `Platinum agent`,
+         `Radio`,`Surgery Inpatient`,`Topoisomerase Inhibitor`, Lapsed, Death) %>%
+  left_join(AfterPalbo_Month_Over_Month_Markers %>% select(patient, Elapsed, Albumin),
+            by=c("patient"="patient", "Month"="Elapsed")
+            )
+
+
+colnames(temp) <- gsub(" ", "_", colnames(temp))
+colnames(temp) <- gsub("/", "_", colnames(temp))
+
+predictor_names <- names(temp)[3:17]
+
+
+odds_ratio_list <- list()
+
+for (predictor in predictor_names) {
+
+    model <- glm(as.formula(paste(predictor, "~ Albumin")), data = temp, family = "binomial")
+  
+  # Extract  and standard error
+  coefficient <- summary(model)$coefficients[2, "Estimate"]
+  std_error <- summary(model)$coefficients[2, "Std. Error"]
+  
+  odds_ratio <- exp(coefficient)
+  
+  lower_bound <- exp(coefficient - 1.96 * std_error)
+  upper_bound <- exp(coefficient + 1.96 * std_error)
+  
+  odds_ratio_list[[predictor]] <- list(predictor = predictor, 
+                                       odds_ratio = odds_ratio,
+                                       lower_bound = lower_bound,
+                                       upper_bound = upper_bound)
+}
+
+# Print odds ratios and their errors
+for (result in odds_ratio_list) {
+  cat("Predictor:", result$predictor, 
+      "\tOdds Ratio:", result$odds_ratio, 
+      "\tLower Bound:", result$lower_bound,
+      "\tUpper Bound:", result$upper_bound, "\n")
+}
+
+odds_ratio_df <- data.frame(variable = character(), 
+                            odds_ratio = numeric(), stringsAsFactors = FALSE)
+
+
+for (result in odds_ratio_list) {
+
+    odds_ratio_df <- rbind(odds_ratio_df, 
+                           data.frame(variable = result$predictor, 
+                                      odds_ratio = result$odds_ratio))
+
+}
+
+
+
+odds_ratio_df <- odds_ratio_df[order(odds_ratio_df$odds_ratio), ]
+
+odds_ratio_df$variable <- factor(odds_ratio_df$variable, levels = odds_ratio_df$variable)
+
+odds_ratio_df %>% 
+  mutate(group=ifelse(odds_ratio>1,1,2)) %>%
+  ggplot(aes(x = variable, y = odds_ratio, colour=as.factor(group), fill=as.factor(group))) +
+  geom_segment(aes(xend = variable, yend = 1), 
+               size = 1, linetype = "solid",  show.legend = FALSE) +
+  geom_point(size = 5, show.legend = FALSE) +
+  scale_color_manual(values = c("firebrick", "deepskyblue4")) +
+  coord_flip() +
+  labs(x = "Variable \n", y = "\n Odds Ratio", title = "Odds Ratios ~ 1 Unit Albumin Increase") +
+  theme_minimal()
+
+
+
+# ----------------
+# Albumin / Hemoglobuin ~ Drugs Used After Palbo MIN Albumin ~Ever tried classes -------------- 
+CancerDrug_Experienced <- fread("Source/CancerDrug_Experienced.txt",  integer64 = "character", stringsAsFactors = F)
+New_Primary_Cancer_Box <- fread("Source/New_Primary_Cancer_Box.txt", sep="\t")
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% inner_join(CancerDrug_Experienced)
+New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% filter(Primary_Cancer=="Breast Cancer") %>% select(patid, weight)
+sum(New_Primary_Cancer_Box$weight) 
+
+PONS_Demographics <- fread("Source/PONS Demographics.txt")
+PONS_Demographics <- PONS_Demographics %>% select(patid, cancer_metastasis) %>% filter(!is.na(cancer_metastasis))
+New_Primary_Cancer_Box <- PONS_Demographics %>% inner_join(New_Primary_Cancer_Box)
+
+CAN_Drug_Histories <- fread("Source/CAN Drug Histories.txt")
+CAN_Drug_Histories <- setDT(CAN_Drug_Histories)[New_Primary_Cancer_Box[, .(patid)], on = c("patient"="patid"), nomatch = 0]
+CAN_Drug_Histories <- gather(CAN_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+CAN_Drug_Histories <- CAN_Drug_Histories %>% select(patient, weight, Month ,Treat) %>% distinct()
+CAN_Drug_Histories$Month <- parse_number(as.character(CAN_Drug_Histories$Month))
+
+First_Palbo <- CAN_Drug_Histories %>% select(patient, Month, Treat) %>% distinct() %>%
+  filter(grepl("179", Treat)) %>% group_by(patient) %>% filter(Month==min(Month)) %>% ungroup() %>%
+  select(patient, Month) %>% rename("First_Palbo"="Month")
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% inner_join(First_Palbo) %>% filter(Month>=First_Palbo)
+CAN_Drug_Histories <- CAN_Drug_Histories %>% mutate(Month=Month-First_Palbo)
+CAN_Drug_Histories <- CAN_Drug_Histories %>% mutate(ON_Palbo=ifelse(grepl("179",Treat), 1,0))
+CAN_Drug_Histories <- CAN_Drug_Histories %>% arrange(patient, Month)
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% inner_join(
+  CAN_Drug_Histories %>% filter(ON_Palbo==0) %>% group_by(patient) %>% filter(Month==min(Month)) %>%
+  select(patient, Month) %>% rename("First_Stop"="Month")
+) %>% 
+  filter(Month>=First_Stop)
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% select(patient, weight, Treat) %>% distinct()
+
+CAN_Drug_Histories <- separate_rows(CAN_Drug_Histories, Treat, sep = ",", convert=T)
+
+PONS_Ingredients_JN_ChemoClass <- fread("Source/PONS_Ingredients_JN_ChemoClass.csv", colClasses = "character")
+PONS_Ingredients_JN_ChemoClass <- PONS_Ingredients_JN_ChemoClass %>% select(molecule, chemo_class)
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>% left_join(PONS_Ingredients_JN_ChemoClass, by=c("Treat"="molecule")) 
+CAN_Drug_Histories <- CAN_Drug_Histories %>% mutate(chemo_class=ifelse(is.na(chemo_class),"Lapsed", chemo_class))
+CAN_Drug_Histories <- CAN_Drug_Histories %>% select(patient, chemo_class) %>% distinct()
+CAN_Drug_Histories$Exp <- 1
+
+CAN_Drug_Histories <- CAN_Drug_Histories %>%  spread(key=chemo_class, value=Exp)
+CAN_Drug_Histories[is.na(CAN_Drug_Histories)] <- 0
+
+names(CAN_Drug_Histories)
+
+AfterPalbo_Month_Over_Month_Markers <- fread("Source/AfterPalbo_Month_Over_Month_Markers.txt")
+AfterPalbo_Month_Over_Month_Markers <- AfterPalbo_Month_Over_Month_Markers %>% select(-ON_Palbo)
+AfterPalbo_Month_Over_Month_Markers <- AfterPalbo_Month_Over_Month_Markers %>% select(patient, Albumin, Hemoglobin)
+
+names(CAN_Drug_Histories)
+names(CAN_Drug_Histories)
+
+temp <- CAN_Drug_Histories %>% 
+  select(patient, `Alkylating Agent`, `Antimetabolites`,  `Antimicrotubule Agent`,  `Biologic`,  `Hormonal Therapy`, 
+         `Hospital Inpatient`, `Immuno/Targeted`, `Other Antineoplastics`, `PD1/PDL1`, `Platinum agent`,
+         `Radio`,`Surgery Inpatient`,`Topoisomerase Inhibitor`, Lapsed, Death) %>%
+  left_join(AfterPalbo_Month_Over_Month_Markers %>% select(patient, Hemoglobin) %>%
+              group_by(patient) %>% summarise(Hemoglobin=min(Hemoglobin)) %>% ungroup(),
+            by=c("patient"="patient")
+            )
+
+
+colnames(temp) <- gsub(" ", "_", colnames(temp))
+colnames(temp) <- gsub("/", "_", colnames(temp))
+
+predictor_names <- names(temp)[2:16]
+
+
+odds_ratio_list <- list()
+
+for (predictor in predictor_names) {
+
+    model <- glm(as.formula(paste(predictor, "~ Hemoglobin")), data = temp, family = "binomial")
+  
+  # Extract  and standard error
+  coefficient <- summary(model)$coefficients[2, "Estimate"]
+  std_error <- summary(model)$coefficients[2, "Std. Error"]
+  
+  odds_ratio <- exp(coefficient)
+  
+  lower_bound <- exp(coefficient - 1.96 * std_error)
+  upper_bound <- exp(coefficient + 1.96 * std_error)
+  
+  odds_ratio_list[[predictor]] <- list(predictor = predictor, 
+                                       odds_ratio = odds_ratio,
+                                       lower_bound = lower_bound,
+                                       upper_bound = upper_bound)
+}
+
+# Print odds ratios and their errors
+for (result in odds_ratio_list) {
+  cat("Predictor:", result$predictor, 
+      "\tOdds Ratio:", result$odds_ratio, 
+      "\tLower Bound:", result$lower_bound,
+      "\tUpper Bound:", result$upper_bound, "\n")
+}
+
+odds_ratio_df <- data.frame(variable = character(), 
+                            odds_ratio = numeric(), stringsAsFactors = FALSE)
+
+
+for (result in odds_ratio_list) {
+
+    odds_ratio_df <- rbind(odds_ratio_df, 
+                           data.frame(variable = result$predictor, 
+                                      odds_ratio = result$odds_ratio))
+
+}
+
+
+
+odds_ratio_df <- odds_ratio_df[order(odds_ratio_df$odds_ratio), ]
+
+odds_ratio_df$variable <- factor(odds_ratio_df$variable, levels = odds_ratio_df$variable)
+
+odds_ratio_df %>% 
+  mutate(group=ifelse(odds_ratio>1,1,2)) %>%
+  ggplot(aes(x = variable, y = odds_ratio, colour=as.factor(group), fill=as.factor(group))) +
+  geom_segment(aes(xend = variable, yend = 1), 
+               size = 1, linetype = "solid",  show.legend = FALSE) +
+  geom_point(size = 5, show.legend = FALSE) +
+  scale_color_manual(values = c("firebrick", "deepskyblue4")) +
+  coord_flip() +
+  labs(x = "Variable \n", y = "\n Odds Ratio", title = "Odds Ratios ~ 1 Unit Hemoglobin Increase") +
+  theme_minimal()
+
+
+
+# ----------------

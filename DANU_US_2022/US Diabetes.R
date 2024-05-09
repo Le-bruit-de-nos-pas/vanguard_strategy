@@ -9839,22 +9839,10 @@ HbA1c_Evolution_US_All_3months_2_classes_only_Duration %>% filter(Duration>=Mont
   mutate(Difference= HbA1c_After-HbA1c_Before) %>%
   group_by(Therapy) %>% summarise(n=mean(Difference))
 
-# Therapy     n
-# <chr>   <dbl>
-# 1 Combo   -2.02
-# 2 GLP1    -1.37
-# 3 SGLT2   -1.24
-
 
 HbA1c_Evolution_US_All_3months_2_classes_only_Duration %>% filter(Duration>=Month_After) %>% 
   mutate(Difference= HbA1c_After-HbA1c_Before) %>%
   group_by(Therapy) %>% count()
-
-# Therapy     n
-# <chr>   <int>
-# 1 Combo      95
-# 2 GLP1      361
-# 3 SGLT2     320
 
 
 HbA1c_Evolution_US_All_3months_2_classes_only_Duration <- HbA1c_Evolution_US_All_3months_2_classes_only_Duration %>% 
@@ -9920,32 +9908,6 @@ model_SGLT2 <- lm(Difference ~ HbA1c_Before , data = SGLT2_temp)
 
 summary(model_SGLT2)
 
-# Call:
-#   lm(formula = Difference ~ HbA1c_Before, data = SGLT2_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -4.5962 -0.3030  0.1089  0.6326  2.2793 
-# 
-# Coefficients:
-#   Estimate Std. Error t value            Pr(>|t|)    
-# (Intercept)   4.55485    0.36529   12.47 <0.0000000000000002 ***
-#   HbA1c_Before -0.76537    0.04752  -16.11 <0.0000000000000002 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 1.131 on 318 degrees of freedom
-# Multiple R-squared:  0.4492,	Adjusted R-squared:  0.4475 
-# F-statistic: 259.4 on 1 and 318 DF,  p-value: < 0.00000000000000022
-
-
-
-4.55485+(7.5*-0.76537)
-4.55485+(8*-0.76537)
-4.55485+(8.5*-0.76537)
-4.55485+(9.5*-0.76537)
-
-
 SGLT2_temp %>% ggplot(aes(HbA1c_Before , Difference)) +
   geom_jitter(colour="midnightblue", size=2, alpha=0.7)+
   geom_smooth(method="loess", colour="deeppink4", fill="deeppink4")+
@@ -9965,31 +9927,6 @@ GLP1_temp <- HbA1c_Evolution_US_All_3months_2_classes_only_Duration %>%
 model_GLP1 <- lm(Difference ~ HbA1c_Before, data = GLP1_temp)
 
 summary(model_GLP1)
-
-# Call:
-#   lm(formula = Difference ~ HbA1c_Before, data = GLP1_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -4.4981 -0.3398 -0.0050  0.4096  4.4400 
-# 
-# Coefficients:
-#   Estimate Std. Error t value            Pr(>|t|)    
-# (Intercept)   4.56033    0.25661   17.77 <0.0000000000000002 ***
-#   HbA1c_Before -0.83150    0.03523  -23.60 <0.0000000000000002 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 0.9718 on 359 degrees of freedom
-# Multiple R-squared:  0.6081,	Adjusted R-squared:  0.607 
-# F-statistic: 556.9 on 1 and 359 DF,  p-value: < 0.00000000000000022
-
-
-4.56033+(7.5*-0.83150)
-4.56033+(8*-0.83150)
-4.56033+(8.5*-0.83150)
-4.56033+(9.5*-0.83150)
-
 
 
 GLP1_temp %>% ggplot(aes(HbA1c_Before, Difference)) +
@@ -10012,28 +9949,6 @@ model_Combo <- lm(Difference ~ HbA1c_Before, data = Combo_temp)
 
 summary(model_Combo)
 
-# Call:
-#   lm(formula = Difference ~ HbA1c_Before, data = Combo_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -4.2452 -0.4398  0.0688  0.5269  4.1726 
-# 
-# Coefficients:
-#   Estimate Std. Error t value             Pr(>|t|)    
-# (Intercept)   5.09650    0.51182   9.958 0.000000000000000252 ***
-#   HbA1c_Before -0.85273    0.05987 -14.242 < 0.0000000000000002 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 1.067 on 93 degrees of freedom
-# Multiple R-squared:  0.6856,	Adjusted R-squared:  0.6823 
-# F-statistic: 202.8 on 1 and 93 DF,  p-value: < 0.00000000000000022
-
-5.09650+(7.5*-0.85273)
-5.09650+(8*-0.85273)
-5.09650+(8.5*-0.85273)
-5.09650+(9.5*-0.85273)
 
 
 
@@ -10981,16 +10896,6 @@ BMI_Evolution_US_All_6months_2_classes_only <- fread("BMI_Evolution_US_All_6mont
 
 BMI_Evolution_US_All_6months_2_classes_only %>% group_by(Therapy, Period) %>% summarise(n=mean(BMI))
 
-# Therapy Period     n
-# <chr>   <chr>  <dbl>
-# 1 Combo   After   34.1
-# 2 Combo   Before  37.9
-# 3 GLP1    After   35.4
-# 4 GLP1    Before  39.3
-# 5 SGLT2   After   32.7
-# 6 SGLT2   Before  36.3
-
-
 
 # GLP1 Patients
 length(unique(BMI_Evolution_US_All_6months_2_classes_only$patient
@@ -11025,27 +10930,6 @@ model_GLP1 <- lm(Difference ~ BMI...1, data = GLP1_temp)
 
 summary(model_GLP1)
 
-# Call:
-#   lm(formula = Difference ~ BMI...1, data = GLP1_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -46.886  -5.298   1.293   6.961  28.001 
-# 
-# Coefficients:
-#   Estimate Std. Error t value          Pr(>|t|)    
-# (Intercept)  6.14852    2.16014   2.846           0.00455 ** 
-#   BMI...1     -0.39048    0.05223  -7.476 0.000000000000223 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 10.92 on 719 degrees of freedom
-# Multiple R-squared:  0.07213,	Adjusted R-squared:  0.07084 
-# F-statistic:  55.9 on 1 and 719 DF,  p-value: 0.0000000000002228
-
-
-
-
 # SGLT2 Patients
 length(unique(BMI_Evolution_US_All_6months_2_classes_only$patient
               [BMI_Evolution_US_All_6months_2_classes_only$Therapy=="SGLT2"])) # 502
@@ -11079,50 +10963,10 @@ model_SGLT2 <- lm(Difference ~ BMI...1, data = SGLT2_temp)
 
 summary(model_SGLT2)
 
-# Call:
-#   lm(formula = Difference ~ BMI...1, data = SGLT2_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -45.104  -3.634   0.866   4.951  52.378 
-# 
-# Coefficients:
-#   Estimate Std. Error t value         Pr(>|t|)
-# (Intercept)  2.52968    1.70673   1.482            0.139
-# BMI...1     -0.32020    0.04582  -6.989 0.00000000000891
-# 
-# (Intercept)    
-# BMI...1     ***
-#   ---
-#   Signif. codes:  
-#   0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 8.801 on 500 degrees of freedom
-# Multiple R-squared:  0.08899,	Adjusted R-squared:  0.08717 
-# F-statistic: 48.84 on 1 and 500 DF,  p-value: 0.000000000008906
-
-
-
-
-
 # BMI reductions patients SGLT2 /  GLP1 Injectable / Combo
 BMI_Evolution_US_All_6months <- fread("BMI_Evolution_US_All_6months.csv")
 
 BMI_Evolution_US_All_6months %>% group_by(Therapy, Period) %>% summarise(n=mean(BMI))
-
-# Therapy Period     n
-# <chr>   <chr>  <dbl>
-# 1 Combo   After   33.9
-# 2 Combo   Before  37.9
-# 3 GLP1    After   34.3
-# 4 GLP1    Before  38.3
-# 5 SGLT2   After   32.8
-# 6 SGLT2   Before  36.6
-
-
-
-
-
 
 
 # --------
@@ -11399,11 +11243,6 @@ BMI_Evolution_US_All_6months_2_classes_only_Duration %>% filter(Duration>=Month_
   group_by(Therapy) %>% summarise(n=mean(Difference))
 
 
-Therapy     n
-<chr>   <dbl>
-  1 Combo   -10.5
-2 GLP1    -10.4
-3 SGLT2   -10.1
 
 
 BMI_Evolution_US_All_6months_2_classes_only_Duration %>% filter(Duration>=Month_After) %>% 
@@ -11411,12 +11250,6 @@ BMI_Evolution_US_All_6months_2_classes_only_Duration %>% filter(Duration>=Month_
   mutate(Difference= (BMI_After-BMI_Before)*100/BMI_Before) %>%
   group_by(Therapy) %>% count()
 
-
-Therapy     n
-<chr>   <int>
-  1 Combo      79
-2 GLP1      419
-3 SGLT2     317
 
 BMI_Evolution_2classes <- BMI_Evolution_US_All_6months_2_classes_only_Duration %>% 
   filter(BMI_Before>24)%>%
@@ -11477,26 +11310,8 @@ SGLT2_temp <- BMI_Evolution_2classes %>%
 model_SGLT2 <- lm(Difference ~ BMI_Before, data = SGLT2_temp)
 
 summary(model_SGLT2)
-  
-# Call:
-#   lm(formula = Difference ~ BMI_Before, data = SGLT2_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -44.903  -3.029   1.024   4.730  53.517 
-# 
-# Coefficients:
-#   Estimate Std. Error t value  Pr(>|t|)    
-# (Intercept) -1.14016    2.17115  -0.525       0.6    
-# BMI_Before  -0.24396    0.05729  -4.258 0.0000272 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 8.936 on 315 degrees of freedom
-# Multiple R-squared:  0.05443,	Adjusted R-squared:  0.05143 
-# F-statistic: 18.13 on 1 and 315 DF,  p-value: 0.00002721
-
-# GLP1 
+                                                         
+#GLP1 
 
 GLP1_temp <- BMI_Evolution_2classes %>% 
   mutate(Difference= (BMI_After-BMI_Before)*100/BMI_Before) %>% 
@@ -11505,28 +11320,6 @@ GLP1_temp <- BMI_Evolution_2classes %>%
 model_GLP1 <- lm(Difference ~ BMI_Before, data = GLP1_temp)
 
 summary(model_GLP1)
-
-# Call:
-#   lm(formula = Difference ~ BMI_Before, data = GLP1_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -47.436  -4.129   0.597   6.198  34.557 
-# 
-# Coefficients:
-#   Estimate Std. Error t value   Pr(>|t|)    
-# (Intercept)  1.68949    2.41752   0.699      0.485    
-# BMI_Before  -0.30244    0.05936  -5.095 0.00000053 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 10.21 on 417 degrees of freedom
-# Multiple R-squared:  0.0586,	Adjusted R-squared:  0.05634 
-# F-statistic: 25.96 on 1 and 417 DF,  p-value: 0.0000005301
-
-
-
-
 # Combo 
 
 Combo_temp <- BMI_Evolution_2classes %>% 
@@ -11536,46 +11329,6 @@ Combo_temp <- BMI_Evolution_2classes %>%
 model_Combo <- lm(Difference ~ BMI_Before, data = Combo_temp)
 
 summary(model_Combo)
-
-# Call:
-#   lm(formula = Difference ~ BMI_Before, data = Combo_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -27.058  -4.369   1.545   5.516  16.612 
-# 
-# Coefficients:
-#   Estimate Std. Error t value  Pr(>|t|)    
-# (Intercept)   8.2261     4.1514   1.982    0.0511 .  
-# BMI_Before   -0.4741     0.1023  -4.633 0.0000144 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 8.615 on 77 degrees of freedom
-# Multiple R-squared:  0.218,	Adjusted R-squared:  0.2078 
-# F-statistic: 21.46 on 1 and 77 DF,  p-value: 0.00001442
-
-1.14016                 +(20*-0.24396    )
-1.14016                 +(30*-0.24396    )
-1.14016                 +(35*-0.24396    )
-1.14016                 +(40*-0.24396    )
-1.14016                 +(45*-0.24396    )
-1.14016                 +(50*-0.24396    )
-
-1.68949                 +(20*-0.30244    )
-
-1.68949                 +(30*-0.30244    )
-1.68949                 +(35*-0.30244    )
-1.68949                 +(40*-0.30244    )
-1.68949                 +(45*-0.30244    )
-1.68949                 +(50*-0.30244    )
-
-8.2261              +(20*-0.4741)
-8.2261              +(30*-0.4741)
-8.2261              +(35*-0.4741)
-8.2261              +(40*-0.4741)
-8.2261              +(45*-0.4741)
-8.2261              +(50*-0.4741)
 
 BMI_Reduction_Predictions <- fread("BMI_Reduction_Predictions_ALL.txt")
 
@@ -12596,17 +12349,6 @@ BMI_Evolution_US_All_6months_2_classes_only_Duration %>% filter(Duration>=Month_
   group_by(Therapy) %>% summarise(n=mean(Difference))
 
 
-# Therapy      n
-# <chr>    <dbl>
-#   1 Combo    -8.76
-# 2 GLP1    -10.0 
-# 3 SGLT2   -10.0 
-# 
-# Therapy     n
-# <chr>   <int>
-#   1 Combo      26
-# 2 GLP1      139
-# 3 SGLT2      93
 
 
 BMI_Evolution_2classes_Above30 <- BMI_Evolution_US_All_12months_2_classes_only_Duration %>% 
@@ -12668,23 +12410,6 @@ model_SGLT2 <- lm(Difference ~ BMI_Before , data = SGLT2_temp)
 
 summary(model_SGLT2)
 
-# Call:
-#   lm(formula = Difference ~ BMI_Before, data = SGLT2_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -2.0229 -0.2817  0.1251  0.3806  1.1291 
-# 
-# Coefficients:
-#   Estimate Std. Error t value Pr(>|t|)  
-# (Intercept)  0.061151   0.339565   0.180   0.8575  
-# BMI_Before  -0.018026   0.008699  -2.072   0.0411 *
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 0.5776 on 91 degrees of freedom
-# Multiple R-squared:  0.04506,	Adjusted R-squared:  0.03457 
-# F-statistic: 4.294 on 1 and 91 DF,  p-value: 0.04108
 
 # GLP1 
 
@@ -12696,21 +12421,6 @@ model_GLP1 <- lm(Difference ~ BMI_Before, data = GLP1_temp)
 
 summary(model_GLP1)
 # 
-# Call:
-#   lm(formula = Difference ~ BMI_Before, data = GLP1_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -2.7387 -0.3863  0.1313  0.4763  1.2977 
-# 
-# Coefficients:
-#   Estimate Std. Error t value Pr(>|t|)
-# (Intercept) -0.17265    0.29651  -0.582    0.561
-# BMI_Before  -0.01181    0.00721  -1.637    0.104
-# 
-# Residual standard error: 0.6632 on 137 degrees of freedom
-# Multiple R-squared:  0.0192,	Adjusted R-squared:  0.01204 
-# F-statistic: 2.681 on 1 and 137 DF,  p-value: 0.1038
 
 
 
@@ -12725,19 +12435,6 @@ model_Combo <- lm(Difference ~ BMI_Before, data = Combo_temp)
 summary(model_Combo)
 Call:
   lm(formula = Difference ~ BMI_Before, data = Combo_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -2.3422 -0.1260  0.1601  0.3219  0.5854 
-# 
-# Coefficients:
-#   Estimate  Std. Error t value Pr(>|t|)
-# (Intercept) -0.56097279  0.80927150  -0.693    0.495
-# BMI_Before   0.00003928  0.01927510   0.002    0.998
-# 
-# Residual standard error: 0.6347 on 24 degrees of freedom
-# Multiple R-squared:  1.731e-07,	Adjusted R-squared:  -0.04167 
-# F-statistic: 4.154e-06 on 1 and 24 DF,  p-value: 0.9984
 # 
 
 
@@ -12785,21 +12482,6 @@ DIA_Flows_Aux._Long <- DIA_Flows_Aux._Long %>% mutate(Year=ifelse(p2>=13&p2<=24,
 
 DIA_Flows_Aux._Long %>% group_by(Year) %>% filter(starts==1) %>% summarise(n=sum(weight))
 
-# Too high ???????
-# Year        n
-# <dbl>    <dbl>
-# 1     2 3310049.
-# 2     3 2816230.
-# 3     4 2782916.
-# 4     5 2988113.
-
-
-
-
-
-
-
-
 
 
 
@@ -12835,13 +12517,6 @@ Treatment_Experience <- Treatment_Experience %>% left_join(DIA_Drug_Histories)
 
 Treatment_Experience %>% group_by(Year) %>% summarise(n=sum(weight))
 
-# Too high ???????
-# Year        n
-# <dbl>    <dbl>
-# 1     2 2979698.
-# 2     3 2816230.
-# 3     4 2782916.
-# 4     5 2988113.
 
 names(Treatment_Experience)[2] <- "First_Treat_Month"
 
@@ -12862,16 +12537,6 @@ Treatment_Experience_filtered <- Treatment_Experience %>% anti_join(to_remove)
 
 
 Treatment_Experience_filtered %>% group_by(Year) %>% summarise(n=sum(weight))
-
-
-# Year        n
-# <dbl>    <dbl>
-# 1     2 1033680.
-# 2     3 1057512.
-# 3     4 1107400.
-# 4     5 1158023.
-
-
 
 
 
@@ -12903,13 +12568,6 @@ DANU_Events %>% inner_join(DIA_Drug_Histories) %>%
                                                            ifelse(First_Dx_Month>=37&First_Dx_Month<=48,4,5)))) %>%
   group_by(Year) %>% summarise(n=sum(weight))
 
-# Year        n
-# <dbl>    <dbl>
-# 1     2 5486255.
-# 2     3 2823578.
-# 3     4 1610415.
-# 4     5  994990.
-
 DANU_Events_to_keep <- DANU_Events
 
 DIA_Flows_Aux._Long     <- fread("DIA_Flows_Aux._Long.txt", integer64 = "character", stringsAsFactors = F)
@@ -12922,18 +12580,6 @@ DANU_Events_to_keep %>% inner_join(DIA_Drug_Histories) %>%
                                                     ifelse(First_Dx_Month>=25&First_Dx_Month<=36,3,
                                                            ifelse(First_Dx_Month>=37&First_Dx_Month<=48,4,5)))) %>%
   group_by(Year) %>% summarise(n=sum(weight))
-
-
-# Year        n
-# <dbl>    <dbl>
-# 1     2 4733502.
-# 2     3 2541134.
-# 3     4 1452845.
-# 4     5  902681
-
-
-
-
 
 
 # Dx or Rx, whichever comes first
@@ -12954,12 +12600,7 @@ temp <- temp %>% inner_join(DIA_Drug_Histories, by=c("patient"="patient"))
 
 temp %>% filter(!is.na(First_Dx_Month)) %>% group_by(Year_Both) %>% summarise(n=sum(weight.y))
 
-# Year_Both        n
-# <dbl>    <dbl>
-# 1         2 4943577.
-# 2         3 2531765.
-# 3         4 1369368.
-# 4         5  785452.
+
 # ----------
 # NEW HbA1cs and BMIs - ALL GLP1 Patients Injectable ------------
 
@@ -13385,22 +13026,10 @@ HbA1c_Evolution_US_All_6months_2_classes_only_Duration %>%
   mutate(Difference= HbA1c_After-HbA1c_Before) %>%
   group_by(Therapy) %>% summarise(n=mean(Difference))
 
-# Therapy              n
-# <chr>            <dbl>
-#   1 Combo           -1.73 
-# 2 GLP1 Injectable -0.953
-# 3 SGLT2           -0.945
-
 
 HbA1c_Evolution_US_All_6months_2_classes_only_Duration %>% 
   mutate(Difference= HbA1c_After-HbA1c_Before) %>%
   group_by(Therapy) %>% count()
-
-# Therapy             n
-# <chr>           <int>
-#   1 Combo             704
-# 2 GLP1 Injectable  2978
-# 3 SGLT2             419
 
 
 HbA1c_Evolution_US_All_6months_2_classes_only_Duration <- HbA1c_Evolution_US_All_6months_2_classes_only_Duration 
@@ -13461,32 +13090,6 @@ model_SGLT2 <- lm(Difference ~ HbA1c_Before, data = SGLT2_temp)
 
 summary(model_SGLT2)
 # 
-# Call:
-#   lm(formula = Difference ~ HbA1c_Before, data = SGLT2_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -4.5625 -0.3383  0.0436  0.5348  2.1775 
-# 
-# Coefficients:
-#   Estimate Std. Error t value            Pr(>|t|)    
-# (Intercept)   5.07651    0.40569   12.51 <0.0000000000000002 ***
-#   HbA1c_Before -0.82309    0.05414  -15.20 <0.0000000000000002 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 0.9905 on 229 degrees of freedom
-# Multiple R-squared:  0.5023,	Adjusted R-squared:  0.5001 
-# F-statistic: 231.1 on 1 and 229 DF,  p-value: < 0.00000000000000022
-
-
-5.07651     +(7*-0.82309      ) # -0.68512
-4.37166             +(7.5*-0.70867        ) # -1.096665
-4.37166         +(8*-0.70867           ) # -1.50821
-5.07651     +(8.5*-0.82309     ) # -1.919755
-5.07651     +(9.5*-0.82309     ) # -2.742845
-
-
 
 SGLT2_temp %>% ggplot(aes(HbA1c_Before, Difference)) +
   geom_jitter(colour="midnightblue", size=2, alpha=0.7)+
@@ -13508,33 +13111,6 @@ GLP1_temp <- HbA1c_Evolution_US_All_6months_2_classes_only_Duration %>%
 model_GLP1 <- lm(Difference ~ HbA1c_Before, data = GLP1_temp)
 
 summary(model_GLP1)
-
-# Call:
-#   lm(formula = Difference ~ HbA1c_Before, data = GLP1_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -4.8520 -0.4112 -0.0529  0.3574  9.4729 
-# 
-# Coefficients:
-#   Estimate Std. Error t value            Pr(>|t|)    
-# (Intercept)    4.4335     0.1378   32.19 <0.0000000000000002 ***
-#   HbA1c_Before  -0.7897     0.0190  -41.57 <0.0000000000000002 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 1.067 on 1299 degrees of freedom
-# Multiple R-squared:  0.5708,	Adjusted R-squared:  0.5705 
-# F-statistic:  1728 on 1 and 1299 DF,  p-value: < 0.00000000000000022
-
-
-4.04689     +(7*-0.71952      ) # -1.0944
-4.04689     +(7.5*-0.71952    ) # -1.48925
-4.04689     +(8*-0.71952       ) # -1.8841
-4.04689     +(8.5*-0.71952     ) # -2.27895
-4.04689     +(9*-0.71952     ) # -2.6738
-
-4.4335 +(9.5*-0.7897 ) # -3.06865
 
 
 
@@ -13559,34 +13135,6 @@ model_Combo <- lm(Difference ~ HbA1c_Before, data = Combo_temp)
 
 summary(model_Combo)
 # 
-# Call:
-#   lm(formula = Difference ~ HbA1c_Before, data = Combo_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -4.8844 -0.4270  0.1499  0.6502  3.6581 
-# 
-# Coefficients:
-#   Estimate Std. Error t value            Pr(>|t|)    
-# (Intercept)   5.17452    0.33232   15.57 <0.0000000000000002 ***
-#   HbA1c_Before -0.85751    0.03849  -22.28 <0.0000000000000002 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 1.247 on 282 degrees of freedom
-# Multiple R-squared:  0.6377,	Adjusted R-squared:  0.6364 
-# F-statistic: 496.3 on 1 and 282 DF,  p-value: < 0.00000000000000022
-
-4.90388    +(7*-0.80069    ) #  -0.82805
-4.90388     +(7.5*-0.80069    ) #  -1.256805
-4.90388      +(8*-0.80069    ) # -1.68556
-4.90388     +(8.5*-0.80069        ) # -2.114315
-4.90388     +(9*-0.80069    ) # -2.54307
-
-5.17452  +(9.5*-0.85751) # -2.971825
-
-
-
 Combo_temp %>% ggplot(aes(HbA1c_Before, Difference)) +
   geom_jitter(colour="firebrick", size=2, alpha=0.7)+
   geom_smooth(method="loess", colour="darkkhaki", fill="darkkhaki")+
@@ -14016,22 +13564,10 @@ BMI_Evolution_US_All_6months_2_classes_only_Duration %>%
   mutate(Difference= (BMI_After-BMI_Before)*100/BMI_Before) %>%
   group_by(Therapy) %>% summarise(n=mean(Difference))
 
-# Therapy              n
-# <chr>            <dbl>
-#   1 Combo           -10.2 
-# 2 GLP1 Injectable  -9.39
-# 3 SGLT2            -9.08
-
 BMI_Evolution_US_All_6months_2_classes_only_Duration %>% 
   filter(BMI_Before>24) %>%
   mutate(Difference= (BMI_After-BMI_Before)*100/BMI_Before) %>%
   group_by(Therapy) %>% count()
-
-# Therapy             n
-# <chr>           <int>
-#   1 Combo             874
-# 2 GLP1 Injectable  6225
-# 3 SGLT2             502
 
 
 BMI_Evolution_US_All_6months_2_classes_only_Duration <- BMI_Evolution_US_All_6months_2_classes_only_Duration 
@@ -14095,29 +13631,6 @@ summary(model_SGLT2)
 Call:
   lm(formula = Difference ~ BMI_Before, data = SGLT2_temp)
 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -45.104  -3.634   0.866   4.951  52.378 
-# 
-# Coefficients:
-#   Estimate Std. Error t value
-# (Intercept)  2.52968    1.70673   1.482
-# BMI_Before  -0.32020    0.04582  -6.989
-# Pr(>|t|)    
-# (Intercept)            0.139    
-# BMI_Before  0.00000000000891 ***
-#   ---
-#   Signif. codes:  
-#   0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 8.801 on 500 degrees of freedom
-# Multiple R-squared:  0.08899,	Adjusted R-squared:  0.08717 
-# F-statistic: 48.84 on 1 and 500 DF,  p-value: 0.000000000008906
-
-
-
-
-
 # GLP1 
 
 GLP1_temp <- BMI_Evolution_US_All_6months_2_classes_only_Duration %>% 
@@ -14128,24 +13641,6 @@ GLP1_temp <- BMI_Evolution_US_All_6months_2_classes_only_Duration %>%
 model_GLP1 <- lm(Difference ~ BMI_Before, data = GLP1_temp)
 
 summary(model_GLP1)
-
-# Call:
-#   lm(formula = Difference ~ BMI_Before, data = GLP1_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -66.151  -5.841   1.168   7.316  59.587 
-# 
-# Coefficients:
-#   Estimate Std. Error t value            Pr(>|t|)    
-# (Intercept)  5.92754    0.68836   8.611 <0.0000000000000002 ***
-#   BMI_Before  -0.38498    0.01686 -22.838 <0.0000000000000002 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 12.19 on 6223 degrees of freedom
-# Multiple R-squared:  0.07733,	Adjusted R-squared:  0.07718 
-# F-statistic: 521.6 on 1 and 6223 DF,  p-value: < 0.00000000000000022
 
 
 
@@ -14161,23 +13656,6 @@ model_Combo <- lm(Difference ~ BMI_Before, data = Combo_temp)
 
 summary(model_Combo)
 
-# Call:
-#   lm(formula = Difference ~ BMI_Before, data = Combo_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -49.109  -4.292   1.091   5.693  43.582 
-# 
-# Coefficients:
-#   Estimate Std. Error t value        Pr(>|t|)    
-# (Intercept) -0.67456    1.46656  -0.460           0.646    
-# BMI_Before  -0.24843    0.03737  -6.648 0.0000000000523 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 9.364 on 872 degrees of freedom
-# Multiple R-squared:  0.04824,	Adjusted R-squared:  0.04715 
-# F-statistic:  44.2 on 1 and 872 DF,  p-value: 0.00000000005226
 
 
 
@@ -14617,22 +14095,12 @@ BMI_Evolution_US_All_6months_2_classes_only_Duration %>%
   mutate(Difference= (BMI_After-BMI_Before)*100/BMI_Before) %>%
   group_by(Therapy) %>% summarise(n=mean(Difference))
 
-# Therapy              n
-# <chr>            <dbl>
-# 1 Combo           -11.0 
-# 2 GLP1 Injectable -12.3 
-# 3 SGLT2            -9.91
 
 BMI_Evolution_US_All_6months_2_classes_only_Duration %>% 
   filter(Duration>=Month_After) %>%
   mutate(Difference= (BMI_After-BMI_Before)*100/BMI_Before) %>%
   group_by(Therapy) %>% count()
 
-Therapy             n
-<chr>           <int>
-  1 Combo             348
-2 GLP1 Injectable  2272
-3 SGLT2             325
 
 
 BMI_Evolution_US_All_6months_2_classes_only_Duration <- BMI_Evolution_US_All_6months_2_classes_only_Duration %>% filter(Duration>=Month_After)
@@ -14697,24 +14165,6 @@ model_SGLT2 <- lm(Difference ~ BMI_Before, data = SGLT2_temp)
 
 summary(model_SGLT2)
 
-# Call:
-#   lm(formula = Difference ~ BMI_Before, data = SGLT2_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -44.832  -3.176   1.001   4.576  53.300 
-# 
-# Coefficients:
-#   Estimate Std. Error t value  Pr(>|t|)    
-# (Intercept) -0.14790    2.09615  -0.071     0.944    
-# BMI_Before  -0.26731    0.05576  -4.794 0.0000025 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 8.989 on 323 degrees of freedom
-# Multiple R-squared:  0.06643,	Adjusted R-squared:  0.06354 
-# F-statistic: 22.98 on 1 and 323 DF,  p-value: 0.000002497
-
 
 
 
@@ -14729,24 +14179,6 @@ model_GLP1 <- lm(Difference ~ BMI_Before, data = GLP1_temp)
 
 summary(model_GLP1)
 
-# Call:
-#   lm(formula = Difference ~ BMI_Before, data = GLP1_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -59.275  -5.340   1.471   6.940  54.950 
-# 
-# Coefficients:
-#   Estimate Std. Error t value            Pr(>|t|)    
-# (Intercept)  0.52288    1.07654   0.486               0.627    
-# BMI_Before  -0.32006    0.02629 -12.174 <0.0000000000000002 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 11.36 on 2270 degrees of freedom
-# Multiple R-squared:  0.06129,	Adjusted R-squared:  0.06087 
-# F-statistic: 148.2 on 1 and 2270 DF,  p-value: < 0.00000000000000022
-
 
 
 # Combo 
@@ -14760,46 +14192,6 @@ model_Combo <- lm(Difference ~ BMI_Before, data = Combo_temp)
 
 summary(model_Combo)
 
-# Call:
-#   lm(formula = Difference ~ BMI_Before, data = Combo_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -42.732  -4.531   1.298   5.541  44.356 
-# 
-# Coefficients:
-#   Estimate Std. Error t value    Pr(>|t|)    
-# (Intercept)  0.48155    2.23558   0.215        0.83    
-# BMI_Before  -0.30340    0.05743  -5.283 0.000000226 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 9.078 on 346 degrees of freedom
-# Multiple R-squared:  0.07463,	Adjusted R-squared:  0.07196 
-# F-statistic: 27.91 on 1 and 346 DF,  p-value: 0.0000002257
-
-
-
-
-
-0.35454     + (30*-0.26240         )
-0.35454         + (35*-0.26240        )
-0.35454     + (40*-0.26240         )
-0.35454     + (45*-0.26240         )
-0.35454     + (50*-0.26240        )
-
-
-0.36456        + (30*-0.31643        )
-0.36456        + (35*-0.31643       )
-0.36456        + (40*-0.31643        )
-0.36456        + (45*-0.31643        )
-0.36456        + (50*-0.31643       )
-
-0.48155         + (30*-0.30340         )
-0.48155         + (35*-0.30340         )
-0.48155         + (40*-0.30340         )
-0.48155         + (45*-0.30340         )
-0.48155         + (50*-0.30340         )
 
 
 
@@ -14924,16 +14316,7 @@ DIA_Drug_Histories_only <- DIA_Drug_Histories_only %>% left_join(DIA_Box_Histori
 DIA_Drug_Histories_Comorbid %>% inner_join(DANU_Measures %>% filter(test=="HbA1c Level")) %>%
   group_by(patient) %>% slice(n()) %>% ungroup() %>% group_by(Box) %>% summarise(n=mean(value)) 
 
-# Box       n
-# <chr> <dbl>
-# 1 b      6.65
-# 2 d      7.36
-# 3 D      7.35
-# 4 g      7.67
-# 5 G      7.69
-# 6 I      8.18
-# 7 S      7.57
-# 8 x      6.40
+
 
 DIA_Drug_Histories_Comorbid %>% inner_join(DANU_Measures %>% filter(test=="HbA1c Level")) %>%
   group_by(patient) %>% slice(n()) %>% ungroup() %>% 
@@ -14959,16 +14342,7 @@ DIA_Drug_Histories_Comorbid %>% inner_join(DANU_Measures %>% filter(test=="HbA1c
 DIA_Drug_Histories_only %>% inner_join(DANU_Measures %>% filter(test=="HbA1c Level")) %>%
   group_by(patient) %>% slice(n()) %>% ungroup() %>% group_by(Box) %>% summarise(n=mean(value)) 
 
-# Box       n
-# <chr> <dbl>
-# 1 b      6.60
-# 2 d      7.35
-# 3 D      7.34
-# 4 g      7.72
-# 5 G      7.53
-# 6 I      8.25
-# 7 S      7.60
-# 8 x      6.13
+
 
 DIA_Drug_Histories_only %>% inner_join(DANU_Measures %>% filter(test=="HbA1c Level")) %>%
   group_by(patient) %>% slice(n()) %>% ungroup() %>% 
@@ -15016,16 +14390,6 @@ DIA_Drug_Histories_only <- DIA_Drug_Histories_only %>% select(patient) %>% disti
 DIA_Drug_Histories_Comorbid %>% inner_join(DANU_Measures %>% filter(test=="HbA1c Level"), by=c("patient"="patient", "Month"="Exact_Month")) %>%
    group_by(Box) %>% summarise(n=mean(value)) 
 
-# Box       n
-# <chr> <dbl>
-# 1 b      6.78
-# 2 d      7.39
-# 3 D      7.39
-# 4 g      7.87
-# 5 G      7.70
-# 6 I      8.25
-# 7 S      7.54
-# 8 x      6.71
 
 
 DIA_Drug_Histories_Comorbid %>% inner_join(DANU_Measures %>% filter(test=="HbA1c Level"), 
@@ -15048,16 +14412,6 @@ DIA_Drug_Histories_Comorbid %>% inner_join(DANU_Measures %>% filter(test=="HbA1c
 DIA_Drug_Histories_only %>% inner_join(DANU_Measures %>% filter(test=="HbA1c Level"), by=c("patient"="patient", "Month"="Exact_Month")) %>%
   group_by(Box) %>% summarise(n=mean(value)) 
 
-# Box       n
-# <chr> <dbl>
-# 1 b      6.69
-# 2 d      7.32
-# 3 D      7.23
-# 4 g      6.75
-# 5 G      7.59
-# 6 I      8.13
-# 7 S      7.62
-# 8 x      6.37
 
 
 DIA_Drug_Histories_only %>% inner_join(DANU_Measures %>% filter(test=="HbA1c Level"), 
@@ -15108,10 +14462,6 @@ DIA_Drug_Histories_Comorbid %>% filter(test=="AST Level") %>% mutate(Group="Como
   #filter(value<75&value>10) %>%
   group_by(Group) %>% summarise(n=mean(value))
 
-# Group         n
-# <chr>     <dbl>
-# 1 Comorbid   46.2
-# 2 T2DM_only  36.8
 
 DIA_Drug_Histories_Comorbid %>% filter(test=="AST Level") %>% mutate(Group="Comorbid") %>%
   bind_rows(DIA_Drug_Histories_only %>% filter(test=="AST Level") %>% mutate(Group="T2DM_only")) %>%
@@ -15133,10 +14483,6 @@ DIA_Drug_Histories_Comorbid %>% filter(test=="ALT Level") %>% mutate(Group="Como
   #filter(value<75&value>10) %>%
   group_by(Group) %>% summarise(n=mean(value))
 
-# Group         n
-# <chr>     <dbl>
-# 1 Comorbid   50.6
-# 2 T2DM_only  36.2
 
 DIA_Drug_Histories_Comorbid %>% filter(test=="ALT Level") %>% mutate(Group="Comorbid") %>%
   bind_rows(DIA_Drug_Histories_only %>% filter(test=="ALT Level") %>% mutate(Group="T2DM_only")) %>%
@@ -15161,10 +14507,6 @@ DIA_Drug_Histories_Comorbid %>% filter(test=="Platelet Count") %>% mutate(Group=
   #filter(value<75&value>10) %>%
   group_by(Group) %>% summarise(n=mean(value))
 
-# Group         n
-# <chr>     <dbl>
-# 1 Comorbid   50.6
-# 2 T2DM_only  36.2
 
 DIA_Drug_Histories_Comorbid %>% filter(test=="ALT Level") %>% mutate(Group="Comorbid") %>%
   bind_rows(DIA_Drug_Histories_only %>% filter(test=="ALT Level") %>% mutate(Group="T2DM_only")) %>%
@@ -15281,16 +14623,6 @@ DIA_Drug_Histories_only <- DIA_Drug_Histories_only %>% left_join(DIA_Box_Histori
 DIA_Drug_Histories_Comorbid %>% inner_join(DANU_Measures %>% filter(test=="BMI")) %>%
   group_by(patient) %>% slice(n()) %>% ungroup() %>% group_by(Box) %>% summarise(n=mean(value)) 
 
-# Box       n
-# <chr> <dbl>
-#   1 b      33.9
-# 2 d      33.6
-# 3 D      33.0
-# 4 g      35.5
-# 5 G      36.2
-# 6 I      33.7
-# 7 S      34.0
-# 8 x      32.8
 
 DIA_Drug_Histories_Comorbid %>% inner_join(DANU_Measures %>% filter(test=="BMI")) %>%
   group_by(patient) %>% slice(n()) %>% ungroup() %>% 
@@ -15316,16 +14648,6 @@ DIA_Drug_Histories_Comorbid %>% inner_join(DANU_Measures %>% filter(test=="BMI")
 DIA_Drug_Histories_only %>% inner_join(DANU_Measures %>% filter(test=="BMI")) %>%
   group_by(patient) %>% slice(n()) %>% ungroup() %>% group_by(Box) %>% summarise(n=mean(value)) 
 
-# Box       n
-# <chr> <dbl>
-#   1 b      22.3
-# 2 d      22.1
-# 3 D      22.1
-# 4 g      23.0
-# 5 G      22.8
-# 6 I      21.9
-# 7 S      22.5
-# 8 x      21.9
 
 DIA_Drug_Histories_only %>% inner_join(DANU_Measures %>% filter(test=="BMI")) %>%
   group_by(patient) %>% slice(n()) %>% ungroup() %>% 
@@ -15374,17 +14696,6 @@ DIA_Drug_Histories_Comorbid %>% inner_join(DANU_Measures %>% filter(test=="BMI")
   group_by(Box) %>% summarise(n=mean(value)) 
 
 
-# Box       n
-# <chr> <dbl>
-#   1 b      34.4
-# 2 d      34.0
-# 3 D      33.5
-# 4 g      34.8
-# 5 G      37.1
-# 6 I      34.5
-# 7 S      34.4
-# 8 x      33.3
-
 
 DIA_Drug_Histories_Comorbid %>% inner_join(DANU_Measures %>% filter(test=="BMI"), 
                                            by=c("patient"="patient", "Month"="Exact_Month")) %>%
@@ -15406,16 +14717,6 @@ DIA_Drug_Histories_Comorbid %>% inner_join(DANU_Measures %>% filter(test=="BMI")
 DIA_Drug_Histories_only %>% inner_join(DANU_Measures %>% filter(test=="BMI"), by=c("patient"="patient", "Month"="Exact_Month")) %>%
   group_by(Box) %>% summarise(n=mean(value)) 
 
-# Box       n
-# <chr> <dbl>
-#   1 b      21.8
-# 2 d      21.8
-# 3 D      21.7
-# 4 g      21.5
-# 5 G      21.9
-# 6 I      21.2
-# 7 S      22.2
-# 8 x      21.3
 
 
 DIA_Drug_Histories_only %>% inner_join(DANU_Measures %>% filter(test=="BMI"), 
@@ -15466,22 +14767,7 @@ DIA_Drug_Histories_Comorbid <- DIA_Drug_Histories_Comorbid %>% mutate(comorbs = 
 DIA_Drug_Histories_Comorbid <- separate_rows(DIA_Drug_Histories_Comorbid, comorbs, sep = "", convert=F )
 DIA_Drug_Histories_Comorbid %>% group_by(comorbs) %>% count() %>% mutate(percent = n/288998)
  
-# comorbs      n percent
-# <chr>    <int>   <dbl>
-#   1 ""      288998  1     
-# 2 "-"      15765  0.0546
-# 3 "a"      31619  0.109 
-# 4 "c"      21162  0.0732
-# 5 "d"     174139  0.603 
-# 6 "f"      53809  0.186 
-# 7 "k"      52120  0.180 
-# 8 "l"      63540  0.220 
-# 9 "p"     114546  0.396 
-# 10 "r"      23904  0.0827
-# 11 "s"      58134  0.201 
-# 12 "u"      15041  0.0520
-# 13 "v"      78839  0.273 
-# 14 "z"      16361  0.0566
+
 
 DIA_Drug_Histories_only <- DIA_Drug_Histories_only %>% mutate(comorbs = str_extract(month60, "[a-z]+"))
 DIA_Drug_Histories_only <- DIA_Drug_Histories_only %>% mutate(comorbs = ifelse(is.na(comorbs), "-", comorbs))
@@ -15489,22 +14775,6 @@ DIA_Drug_Histories_only <- separate_rows(DIA_Drug_Histories_only, comorbs, sep =
 DIA_Drug_Histories_only %>% group_by(comorbs) %>% count() %>% mutate(percent = n/55202)
 
 
-# comorbs     n percent
-# <chr>   <int>   <dbl>
-#   1 ""      55202  1     
-# 2 "-"      3416  0.0619
-# 3 "a"      4324  0.0783
-# 4 "c"      4874  0.0883
-# 5 "d"     38426  0.696 
-# 6 "f"      7588  0.137 
-# 7 "k"      8120  0.147 
-# 8 "l"      7868  0.143 
-# 9 "p"     16878  0.306 
-# 10 "r"      3955  0.0716
-# 11 "s"     11052  0.200 
-# 12 "u"      2333  0.0423
-# 13 "v"     13551  0.245 
-# 14 "z"      4415  0.0800
 # -----------
 
 # Develop a classification method for GLP1 Experience ---------------
@@ -15817,15 +15087,6 @@ Dems_Labs_TreatExp <- Dems_Labs_TreatExp %>% group_by(Group) %>% sample_n(14000)
 Dems_Labs_TreatExp <- Dems_Labs_TreatExp %>% ungroup()
 
 
-# Dems_Labs_TreatExp <- Dems_Labs_TreatExp %>% mutate(age=scale(age),
-#                               MAX_HbA1c =scale(MAX_HbA1c ),
-#                               MAX_BMI =scale(MAX_BMI ),
-#                               MAX_ALT =scale(MAX_ALT ),
-#                               MAX_AST =scale(MAX_AST ),
-#                               age=scale(age))
-
-
-
 
 create_train_test <- function(data, size = 0.8, train = TRUE) {
   n_row = nrow(data)
@@ -15906,10 +15167,7 @@ Dems_Labs_TreatExp %>% filter(MAX_BMI<65) %>% ggplot(aes(x = MAX_BMI, y = Group,
 
 Dems_Labs_TreatExp %>% group_by(Group) %>% summarise(n=mean(MAX_BMI))
 
-# Group        n
-# <fct>    <dbl>
-#   1 No_GLP1   34.9
-# 2 GLP1_Exp  39.0
+
 
 Dems_Labs_TreatExp %>% filter(MAX_HbA1c>3&MAX_HbA1c<15) %>% ggplot(aes(x = MAX_HbA1c, y = Group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
   geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
@@ -15922,10 +15180,7 @@ Dems_Labs_TreatExp %>% filter(MAX_HbA1c>3&MAX_HbA1c<15) %>% ggplot(aes(x = MAX_H
 
 Dems_Labs_TreatExp %>% group_by(Group) %>% summarise(n=mean(MAX_HbA1c))
 
-# Group        n
-# <fct>    <dbl>
-#   1 No_GLP1   7.44
-# 2 GLP1_Exp  9.20
+
 
 Dems_Labs_TreatExp %>% ggplot(aes(x = age, y = Group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
   geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
@@ -15936,11 +15191,6 @@ Dems_Labs_TreatExp %>% ggplot(aes(x = age, y = Group, fill = 0.5 - abs(0.5 - sta
   xlab("\n Age") + ylab("GLP1 Injectable Experience \n")
 
 Dems_Labs_TreatExp %>% group_by(Group) %>% summarise(n=mean(age))
-
-# Group        n
-# <fct>    <dbl>
-#   1 No_GLP1   64.0
-# 2 GLP1_Exp  59.1
 
 Dems_Labs_TreatExp %>% filter(MAX_AST<80) %>% ggplot(aes(x = MAX_AST, y = Group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
   geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
@@ -15953,10 +15203,7 @@ Dems_Labs_TreatExp %>% filter(MAX_AST<80) %>% ggplot(aes(x = MAX_AST, y = Group,
 
 Dems_Labs_TreatExp %>% group_by(Group) %>% summarise(n=mean(MAX_AST))
 
-# Group        n
-# <fct>    <dbl>
-#   1 No_GLP1   49.7
-# 2 GLP1_Exp  54.3
+
 
 Dems_Labs_TreatExp %>% filter(MAX_ALT<80) %>% ggplot(aes(x = MAX_ALT, y = Group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
   geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
@@ -15968,10 +15215,7 @@ Dems_Labs_TreatExp %>% filter(MAX_ALT<80) %>% ggplot(aes(x = MAX_ALT, y = Group,
 
 Dems_Labs_TreatExp %>% group_by(Group) %>% summarise(n=mean(MAX_ALT))
 
-# Group        n
-# <fct>    <dbl>
-#   1 No_GLP1   54.5
-# 2 GLP1_Exp  61.5
+
 
 
 Dems_Labs_TreatExp %>% filter(cumflow<30) %>% ggplot(aes(x = cumflow, y = Group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
@@ -15984,10 +15228,6 @@ Dems_Labs_TreatExp %>% filter(cumflow<30) %>% ggplot(aes(x = cumflow, y = Group,
 
 Dems_Labs_TreatExp %>% group_by(Group) %>% summarise(n=mean(cumflow))
 
-# Group        n
-# <fct>    <dbl>
-#   1 No_GLP1   3.48
-# 2 GLP1_Exp 10.3 
 
 Dems_Labs_TreatExp %>% filter(Lines<15) %>% ggplot(aes(x = Lines, y = Group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
   geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
@@ -15999,10 +15239,7 @@ Dems_Labs_TreatExp %>% filter(Lines<15) %>% ggplot(aes(x = Lines, y = Group, fil
 
 Dems_Labs_TreatExp %>% group_by(Group) %>% summarise(n=mean(Lines))
 
-# Group        n
-# <fct>    <dbl>
-#   1 No_GLP1   1.69
-# 2 GLP1_Exp  6.49
+
 
 Dems_Labs_TreatExp %>% filter(Diff_Drugs_exp<40) %>% ggplot(aes(x = Diff_Drugs_exp, y = Group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
   geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
@@ -16013,12 +15250,6 @@ Dems_Labs_TreatExp %>% filter(Diff_Drugs_exp<40) %>% ggplot(aes(x = Diff_Drugs_e
   xlab("\n Total Number of Different Molecules") + ylab("GLP1 Injectable Experience \n")
 
 Dems_Labs_TreatExp %>% group_by(Group) %>% summarise(n=mean(Diff_Drugs_exp))
-
-# Group        n
-# <fct>    <dbl>
-#   1 No_GLP1   2.96
-# 2 GLP1_Exp 15.9 
-
 
 ggplot(Dems_Labs_TreatExp, aes(x = Group, fill = as.factor(p1_OralExp))) +
   geom_bar(position = "fill", alpha=0.8) +
@@ -16264,10 +15495,7 @@ Dems_Labs_TreatExp %>% filter(MAX_BMI<65) %>% ggplot(aes(x = MAX_BMI, y = Group,
 
 Dems_Labs_TreatExp %>% group_by(Group) %>% summarise(n=mean(MAX_BMI))
 
-# Group        n
-# <fct>    <dbl>
-#   1 No_GLP1   36.0
-# 2 GLP1_Exp  38.3
+
 
 Dems_Labs_TreatExp %>% filter(MAX_HbA1c>3&MAX_HbA1c<15) %>% ggplot(aes(x = MAX_HbA1c, y = Group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
   geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
@@ -16280,11 +15508,6 @@ Dems_Labs_TreatExp %>% filter(MAX_HbA1c>3&MAX_HbA1c<15) %>% ggplot(aes(x = MAX_H
 
 Dems_Labs_TreatExp %>% group_by(Group) %>% summarise(n=mean(MAX_HbA1c))
 
-# Group        n
-# <fct>    <dbl>
-#   1 No_GLP1   7.76
-# 2 GLP1_Exp  8.93
-
 Dems_Labs_TreatExp %>% ggplot(aes(x = age, y = Group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
   geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
   scale_fill_viridis_c(name = "Tail Probability", option = "D", direction = -1)  +
@@ -16295,10 +15518,6 @@ Dems_Labs_TreatExp %>% ggplot(aes(x = age, y = Group, fill = 0.5 - abs(0.5 - sta
 
 Dems_Labs_TreatExp %>% group_by(Group) %>% summarise(n=mean(age))
 
-# Group        n
-# <fct>    <dbl>
-#   1 No_GLP1   64.2
-# 2 GLP1_Exp  58.3
 
 Dems_Labs_TreatExp %>% filter(MAX_AST<80) %>% ggplot(aes(x = MAX_AST, y = Group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
   geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
@@ -16311,11 +15530,6 @@ Dems_Labs_TreatExp %>% filter(MAX_AST<80) %>% ggplot(aes(x = MAX_AST, y = Group,
 
 Dems_Labs_TreatExp %>% group_by(Group) %>% summarise(n=mean(MAX_AST))
 
-# Group        n
-# <fct>    <dbl>
-#   1 No_GLP1   39.2
-# 2 GLP1_Exp  49.2
-
 Dems_Labs_TreatExp %>% filter(MAX_ALT<80) %>% ggplot(aes(x = MAX_ALT, y = Group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
   geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
   scale_fill_viridis_c(name = "Tail Probability", option = "D", direction = -1)  +
@@ -16326,10 +15540,6 @@ Dems_Labs_TreatExp %>% filter(MAX_ALT<80) %>% ggplot(aes(x = MAX_ALT, y = Group,
 
 Dems_Labs_TreatExp %>% group_by(Group) %>% summarise(n=mean(MAX_ALT))
 
-# Group        n
-# <fct>    <dbl>
-#   1 No_GLP1   44.8
-# 2 GLP1_Exp  57.0
 
 
 Dems_Labs_TreatExp %>% filter(cumflow<30) %>% ggplot(aes(x = cumflow, y = Group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
@@ -16342,11 +15552,6 @@ Dems_Labs_TreatExp %>% filter(cumflow<30) %>% ggplot(aes(x = cumflow, y = Group,
 
 Dems_Labs_TreatExp %>% group_by(Group) %>% summarise(n=mean(cumflow))
 
-# Group        n
-# <fct>    <dbl>
-#   1 No_GLP1   4.57
-# 2 GLP1_Exp  9.25
-
 Dems_Labs_TreatExp %>% filter(Lines <20) %>% ggplot(aes(x = Lines, y = Group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
   geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
   scale_fill_viridis_c(name = "Tail Probability", option = "D", direction = -1)  +
@@ -16357,10 +15562,6 @@ Dems_Labs_TreatExp %>% filter(Lines <20) %>% ggplot(aes(x = Lines, y = Group, fi
 
 Dems_Labs_TreatExp %>% group_by(Group) %>% summarise(n=mean(Lines))
 
-# Group        n
-# <fct>    <dbl>
-#   1 No_GLP1   2.54
-# 2 GLP1_Exp  5.92
 
 Dems_Labs_TreatExp %>% filter(Diff_Drugs_exp<40) %>% ggplot(aes(x = Diff_Drugs_exp, y = Group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
   geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
@@ -16371,11 +15572,6 @@ Dems_Labs_TreatExp %>% filter(Diff_Drugs_exp<40) %>% ggplot(aes(x = Diff_Drugs_e
   xlab("\n Total Number of Different Molecules") + ylab("GLP1 Oral Experience \n")
 
 Dems_Labs_TreatExp %>% group_by(Group) %>% summarise(n=mean(Diff_Drugs_exp))
-
-# Group        n
-# <fct>    <dbl>
-#   1 No_GLP1   5.28
-# 2 GLP1_Exp 14.2 
 
 
 ggplot(Dems_Labs_TreatExp, aes(x = Group, fill = as.factor(p1_InjExp))) +
@@ -17465,38 +16661,6 @@ Dx_Treat_VS_Untred_Penetrance <- Dx_Treat_VS_Untred_Penetrance %>% filter(peneta
 # Dx_Treat_VS_Untred_Penetrance <- Dx_Treat_VS_Untred_Penetrance[nchar(Dx_Treat_VS_Untred_Penetrance$code) == 6,]
 
 
-
-# Type 2 diabetes mellitus with other specified complications                                    30.5525586   8.27867706    22.2738815
-# Type 2 diabetes mellitus with neurological complications                                       16.3114868   4.44857650    11.8629103
-# Overweight and obesity                                                                         30.5394425   21.61332988   8.9261126
-# Type 2 diabetes mellitus with kidney complications                                             13.6767752   4.91924851    8.7575266
-# Type 2 diabetes mellitus with diabetic polyneuropathy                                          9.8632119    2.48807854    7.3751334
-# Type 2 diabetes mellitus with ophthalmic complications                                         8.8813720    1.86561912    7.0157529
-# Obesity due to excess calories                                                                 16.1372857   9.70351394    6.4337717
-# Type 2 diabetes mellitus with other specified complication                                     8.7580379    2.69679808    6.0612398
-# Type 2 diabetes mellitus with diabetic chronic kidney disease                                  9.9748951    3.93806411    6.0368310
-# Type 2 diabetes mellitus with diabetic neuropathy, unspecified                                 7.9713154    1.97634597    5.9949694
-# Morbid (severe) obesity due to excess calories                                                 13.9732152   8.05746480    5.9157504
-# Type 2 diabetes mellitus with circulatory complications                                        8.4659112    2.86052761    5.6053836
-# Type 1 diabetes mellitus                                                                       6.3216351    0.88811671    5.4335184 
-# Body mass index [BMI] 40 or greater, adult                                                     10.1330495   5.43422904    4.6988204
-# Body mass index [BMI] 30-39, adult                                                             18.0398215   13.75758094   4.2822406
-# Type 1 diabetes mellitus without complications                                                 4.0559548    0.54008035    3.5158745
-# Type 2 diabetes mellitus with unspecified complications                                        5.2182340    1.80654410    3.4116899
-# Type 1 diabetes mellitus with other specified complications                                    3.4210842    0.22130211    3.1997821
-# Type 2 diabetes mellitus with mild nonproliferative diabetic retinopathy                       3.9830076    0.78634810    3.1966595
-# Type 2 diabetes mellitus with diabetic peripheral angiopathy without gangrene                  4.9330821    1.75224378    3.1808383
-# Type 2 diabetes mellitus with diabetic nephropathy                                             4.1784757    1.03197267    3.1465030
-# Type 2 diabetes mellitus with other circulatory complications                                  4.1770033    1.24425506    2.9327482
-# Type 2 diabetes mellitus with mild nonproliferative diabetic retinopathy without macular edema 3.6016925    0.72479634    2.8768961
-# Type 1 diabetes mellitus with hyperglycemia                                                    3.0312742    0.16597032    2.8653039
-# Proteinuria                                                                                    4.4155366    2.07949504    2.3360416
-# Proteinuria, unspecified                                                                       3.9667310    1.81231449    2.1544165
-# Type 2 diabetes mellitus with other diabetic kidney complication                               2.7993001    0.69431453    2.1049855
-
-
-
-
 # Visits per patient are trickier as there are conditions that lead to way too many visits
 # Whilst having nothing to deal with Diabetes
 
@@ -17559,32 +16723,6 @@ Dx_Treat_VS_Untred_Penetrance <- Dx_Treat_VS_Untred_Penetrance[1:181,]
 fwrite(Dx_Treat_VS_Untred_Penetrance, "Circular_Bar_Chart_Dx_Pen_TreatVSNonTreat_Obesity.txt", sep="\t")
 
 Dx_Treat_VS_Untred_Penetrance <- Dx_Treat_VS_Untred_Penetrance %>% filter(penetance_treat_pop>=4)
-
-
-
-# Attention-deficit hyperactivity disorders                                                                     28.1604915  0.59410416  27.5663873
-# Other anxiety disorders                                                                                       30.8435970  15.01820728  15.8253897
-# Attention-deficit hyperactivity disorder, predominantly inattentive type                                      13.5596554  0.21117465  13.3484807
-# Attention-deficit hyperactivity disorder, unspecified type                                                    11.1527313   0.26559697  10.8871344
-# Generalized anxiety disorder                                                                                  15.5478333  6.08771141  9.4601218
-# Anxiety disorder, unspecified                                                                                 17.9823679  9.41323043  8.5691375
-# Major depressive disorder, recurrent                                                                          13.5316259  5.02052138  8.5111045
-# Depressive episode                                                                                            14.8581526  7.21187432  7.6462783
-# Attention-deficit hyperactivity disorder, combined type                                                       7.2584362  0.14954320  7.1088930
-# Other behavioral and emotional disorders with onset usually occurring in childhood and adolescence            6.2221312  0.11318938  6.1089418
-# Other specified behavioral and emotional disorders with onset usually occurring in childhood and adolescence  6.1738874  0.09019626  6.0836911
-# Major depressive disorder, single episode, unspecified                                                        11.4295635 5.48963609  5.9399274
-# Obesity due to excess calories                                                                                11.6732648  5.76690124  5.9063635
-# Other malaise and fatigue                                                                                     15.4219454  9.66047948  5.7614659
-# Sleep disorders                                                                                               16.9721602  11.34576392  5.6263962
-# Malaise and fatigue                                                                                           16.5684485  11.14029273  5.4281558
-# Reaction to severe stress, and adjustment disorders                                                           9.8530168  4.58761873  5.2653981
-# Other fatigue                                                                                                 13.3990893  8.29764564  5.1014437
-# Morbid (severe) obesity due to excess calories                                                                9.3173278  4.30685527  5.0104726
-# Bariatric surgery status                                                                                      4.1678357  0.35625676  3.8115789
-# Body mass index [BMI] 40 or greater, adult                                                                    7.0795935  3.38956584  3.6900277
-# Bipolar disorder                                                                                              5.2543009  1.56627600  3.6880249
-
 
 
 
@@ -19186,35 +18324,6 @@ Risk_pred_model <- glm( Group ~ ., data = data_train, family = binomial)
 
 summary(Risk_pred_model)
 
-
-# Call:
-#   glm(formula = Group ~ ., family = binomial, data = data_train)
-# 
-# Deviance Residuals: 
-#   Min       1Q   Median       3Q      Max  
-# -5.0442  -0.7750  -0.3671   0.8388   2.3155  
-# 
-# Coefficients:
-#   Estimate Std. Error z value            Pr(>|z|)    
-# (Intercept)          -1.302777   0.053027  -24.57 <0.0000000000000002 ***
-#   age                  -0.017966   0.000697  -25.77 <0.0000000000000002 ***
-#   gender               -0.267581   0.019560  -13.68 <0.0000000000000002 ***
-#   diagnosis             0.716045   0.033305   21.50 <0.0000000000000002 ***
-#   Lines                 0.451791   0.004734   95.44 <0.0000000000000002 ***
-#   p1_SGLT2Exp           0.329615   0.026160   12.60 <0.0000000000000002 ***
-#   ENDOCRINOLOGY         0.431503   0.023994   17.98 <0.0000000000000002 ***
-#   `EMERGENCY MEDICINE` -0.545623   0.054172  -10.07 <0.0000000000000002 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# (Dispersion parameter for binomial family taken to be 1)
-# 
-# Null deviance: 90410  on 65216  degrees of freedom
-# Residual deviance: 65597  on 65209  degrees of freedom
-# AIC: 65613
-# 
-# Number of Fisher Scoring iterations: 5
-
 predict <- predict(Risk_pred_model, data_test, type = 'response')
 
 
@@ -19355,30 +18464,6 @@ Risk_pred_model <- glm( Group ~ ., data = data_train, family = binomial)
 summary(Risk_pred_model)
 
 
-# Call:
-#   glm(formula = Group ~ ., family = binomial, data = data_train)
-# 
-# Deviance Residuals: 
-#   Min       1Q   Median       3Q      Max  
-# -3.0807  -0.9618   0.2095   1.0354   2.0113  
-# 
-# Coefficients:
-#   Estimate Std. Error z value             Pr(>|z|)    
-# (Intercept)    0.25162    0.17820   1.412                0.158    
-# age           -0.01927    0.00295  -6.533      0.0000000000645 ***
-#   Lines          0.29650    0.01841  16.109 < 0.0000000000000002 ***
-#   p1_InsulinExp -1.33796    0.10333 -12.948 < 0.0000000000000002 ***
-#   p1_SGLT2Exp    0.54073    0.10098   5.355      0.0000000855747 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# (Dispersion parameter for binomial family taken to be 1)
-# 
-# Null deviance: 4514.5  on 3256  degrees of freedom
-# Residual deviance: 3825.1  on 3252  degrees of freedom
-# AIC: 3835.1
-# 
-# Number of Fisher Scoring iterations: 4
 
 
 predict <- predict(Risk_pred_model, data_test, type = 'response')
@@ -19631,42 +18716,6 @@ Risk_pred_model <- glm( Group ~ ., data = data_train, family = binomial)
 
 summary(Risk_pred_model)
 
-# Call:
-#   glm(formula = Group ~ ., family = binomial, data = data_train)
-# 
-# Deviance Residuals: 
-#   Min       1Q   Median       3Q      Max  
-# -4.7789  -0.7424  -0.3240   0.7868   2.3264  
-# 
-# Coefficients:
-#   Estimate Std. Error z value             Pr(>|z|)
-# (Intercept)          -1.2470143  0.0606562 -20.559 < 0.0000000000000002
-# age                  -0.0187137  0.0007866 -23.792 < 0.0000000000000002
-# gender               -0.2607882  0.0220697 -11.817 < 0.0000000000000002
-# diagnosis             0.7046010  0.0379782  18.553 < 0.0000000000000002
-# cumflow              -0.0523238  0.0039625 -13.205 < 0.0000000000000002
-# Lines                 0.5128141  0.0158497  32.355 < 0.0000000000000002
-# Diff_Drugs_exp        0.0304898  0.0049113   6.208       0.000000000536
-# p1_SGLT2Exp           0.3090032  0.0311158   9.931 < 0.0000000000000002
-# ENDOCRINOLOGY         0.4721689  0.0274639  17.192 < 0.0000000000000002
-# `EMERGENCY MEDICINE` -0.5906170  0.0633459  -9.324 < 0.0000000000000002
-# 
-# (Intercept)          ***
-#   age                  ***
-#   gender               ***
-#   diagnosis            ***
-#   cumflow              ***
-#   Lines                ***
-#   Diff_Drugs_exp       ***
-#   p1_SGLT2Exp          ***
-#   ENDOCRINOLOGY        ***
-#   `EMERGENCY MEDICINE` ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-
-
-
-
 
 predict <- predict(Risk_pred_model, data_test, type = 'response')
 
@@ -19723,24 +18772,13 @@ pred <- pred %>% left_join(GLP1_Exp_M48forward) %>% mutate(s2=ifelse(is.na(s2),"
 pred %>% select(c(Probability, s2, weight)) %>% mutate(RiskLevel = ifelse(Probability>0.5, "HighRisk", "LowRisk")) %>%
   group_by(s2, RiskLevel) %>% summarise(n=sum(weight)) %>% ungroup()
 
-s2       RiskLevel         n
-<chr>    <chr>         <dbl>
-  1 GLP1_Exp HighRisk   2124618.
-2 GLP1_Exp LowRisk    1143519.
-3 No_GLP1  HighRisk   4579116.
-4 No_GLP1  LowRisk   22767353.
+
 
 
 pred %>% select(c(Probability, s2, weight)) %>% mutate(RiskLevel = ifelse(Probability>0.95, "HighRisk", "LowRisk")) %>%
   group_by(s2, RiskLevel) %>% summarise(n=sum(weight)) %>% ungroup()
 
 
-s2       RiskLevel         n
-<chr>    <chr>         <dbl>
-  1 GLP1_Exp HighRisk    816633.
-2 GLP1_Exp LowRisk    2451504.
-3 No_GLP1  HighRisk    980605.
-4 No_GLP1  LowRisk   26365864.
 
 
 
@@ -19754,16 +18792,6 @@ pred %>% left_join(Stock_M54) %>%  select(c(Probability, s2, weight)) %>%
   group_by(s2, RiskLevel) %>% summarise(n=sum(weight)) %>% ungroup() %>%
   spread(key=RiskLevel, value=n)
 
-# s2    HighRisk   LowRisk
-# <chr>    <dbl>     <dbl>
-#   1 b      303766.  5533903.
-# 2 d      391007.  2011132.
-# 3 D      230698.   930966.
-# 4 g       47919.    26557.
-# 5 G     1704790.   553051.
-# 6 I     2159471.  1814045 
-# 7 S      525548.   559661.
-# 8 x     1418009. 12404082.
 
 ggplot(Dems_Labs_TreatExp, aes(x = Group, fill = as.factor(p1_SGLT2Exp))) +
   geom_bar(position = "fill", alpha=0.8) +
@@ -19871,11 +18899,6 @@ DIA_US_Doses_GLP1_Injectable <- DIA_US_Doses_GLP1_Injectable %>% filter(!(paid==
 
 DIA_US_Doses_GLP1_Injectable %>% group_by(paid) %>% count()
 
-# paid       n
-# <chr>  <int>
-#   1 D     138753
-# 2 P     605745
-
 # Oral GLP1
 DIA_US_Doses_GLP1_Oral <- DIA_US_Doses %>% filter(drug_group=="GLP1 Oral")
 Paid_dates_GLP1 <- DIA_US_Doses_GLP1_Oral %>% filter(paid=="P") %>% select(-paid)
@@ -19890,10 +18913,6 @@ DIA_US_Doses_GLP1_Oral <- DIA_US_Doses_GLP1_Oral %>% filter(!(paid=="D"&is.na(to
 
 DIA_US_Doses_GLP1_Oral %>% group_by(paid) %>% count()
 
-# paid      n
-# <chr> <int>
-#   1 D      3236
-# 2 P      9916
 
 
 # Biguanide
@@ -19910,10 +18929,6 @@ DIA_US_Doses_Biguanide <- DIA_US_Doses_Biguanide %>% filter(!(paid=="D"&is.na(to
 
 DIA_US_Doses_Biguanide %>% group_by(paid) %>% count()
 
-# paid        n
-# <chr>   <int>
-#   1 D      398508
-# 2 P     3209791
 
 
 # Antidiabetic
@@ -19930,11 +18945,6 @@ DIA_US_Doses_Antidiabetic <- DIA_US_Doses_Antidiabetic %>% filter(!(paid=="D"&is
 
 DIA_US_Doses_Antidiabetic %>% group_by(paid) %>% count()
 
-# paid        n
-# <chr>   <int>
-#   1 D      149469
-# 2 P     1312894
-
 # Insulin
 DIA_US_Doses_Insulin <- DIA_US_Doses %>% filter(drug_group=="Insulin")
 Paid_dates_Insulin <- DIA_US_Doses_Insulin %>% filter(paid=="P") %>% select(-paid)
@@ -19948,11 +18958,6 @@ DIA_US_Doses_Insulin <- DIA_US_Doses_Insulin %>% left_join(To_keep)
 DIA_US_Doses_Insulin <- DIA_US_Doses_Insulin %>% filter(!(paid=="D"&is.na(tokeep)))
 
 DIA_US_Doses_Insulin %>% group_by(paid) %>% count()
-
-# paid        n
-# <chr>   <int>
-#   1 D      525885
-# 2 P     2174511
 
 
 
@@ -19971,11 +18976,6 @@ DIA_US_Doses_DPP4 <- DIA_US_Doses_DPP4 %>% filter(!(paid=="D"&is.na(tokeep)))
 DIA_US_Doses_DPP4 %>% group_by(paid) %>% count()
 
 
-# paid       n
-# <chr>  <int>
-#   1 D     108524
-# 2 P     643660
-
 
 
 # SGLT2
@@ -19991,12 +18991,6 @@ DIA_US_Doses_SGLT2 <- DIA_US_Doses_SGLT2 %>% left_join(To_keep)
 DIA_US_Doses_SGLT2 <- DIA_US_Doses_SGLT2 %>% filter(!(paid=="D"&is.na(tokeep)))
 
 DIA_US_Doses_SGLT2 %>% group_by(paid) %>% count()
-
-
-# paid       n
-# <chr>  <int>
-#   1 D     100733
-# 2 P     533448
 
 
 
@@ -20112,41 +19106,6 @@ weighted.median(GLP1_Injectable_Periods$Total_Duration, GLP1_Injectable_Periods$
 data.frame(GLP1_Injectable_Periods %>% distinct() %>% group_by(Total_Duration) %>% summarise(pats = sum(weight)))
 
 
-Total_Duration     pats
-1               1 23708.13
-2               2  9139.54
-3               3  9027.67
-4               4  5975.55
-5               5  5327.78
-6               6  4706.44
-7               7  5223.91
-8               8  4976.39
-9               9  4324.46
-10             10  4108.44
-11             11  3520.22
-12             12  3081.39
-13             13  2831.77
-14             14  2127.52
-15             15  2204.29
-16             16  1990.05
-17             17  2045.70
-18             18  2683.72
-19             19  1887.72
-20             20  1714.04
-21             21  1987.20
-22             22  1116.05
-23             23   993.96
-24             24  1311.05
-25             25  1505.85
-26             26  1646.40
-27             27   689.53
-28             28  1274.03
-29             29  1084.46
-30             30   347.04
-31             31   413.85
-32             32   220.42
-33             33   109.09
-34             35   206.16
 
 
 # Dulaglutide
@@ -20195,72 +19154,6 @@ weighted.median(GLP1_Injectable_Periods$Total_Duration, GLP1_Injectable_Periods$
 
 data.frame(GLP1_Injectable_Periods %>% distinct() %>% group_by(Total_Duration) %>% summarise(pats = sum(weight)))
 
-Total_Duration      pats
-1               1 322450.32
-2               2 175543.32
-3               3 174566.36
-4               4 126795.58
-5               5 100331.78
-6               6  82893.04
-7               7  69417.98
-8               8  62963.53
-9               9  64230.44
-10             10  56793.27
-11             11  49219.64
-12             12  44493.82
-13             13  44005.12
-14             14  47011.58
-15             15  46210.66
-16             16  41933.22
-17             17  38875.29
-18             18  40305.11
-19             19  37870.36
-20             20  33906.78
-21             21  36529.04
-22             22  31645.68
-23             23  27672.17
-24             24  29602.61
-25             25  28128.10
-26             26  26912.42
-27             27  30079.39
-28             28  24100.25
-29             29  22459.82
-30             30  23001.98
-31             31  22276.88
-32             32  18570.83
-33             33  18876.65
-34             34  17474.30
-35             35  19652.41
-36             36  17514.54
-37             37  13958.90
-38             38  13914.29
-39             39  17259.08
-40             40  12883.58
-41             41  13350.43
-42             42  12234.82
-43             43  10536.06
-44             44   9608.44
-45             45  10031.50
-46             46   7901.90
-47             47   9803.73
-48             48   8368.23
-49             49   8327.08
-50             50   7679.94
-51             51   8755.62
-52             52   6303.68
-53             53   5612.33
-54             54   5573.46
-55             55   5196.84
-56             56   5927.03
-57             57   4263.30
-58             58   5913.05
-59             59   1897.95
-60             60  14902.62
-
-
-
-
-
 # Exenatide
 DIA_Drug_Histories <- read.table("DIA Drug Histories.txt", header = T, sep="\t", colClasses = "character", stringsAsFactors = FALSE)
 Treatment_exp_Vector <- fread("Treatment_exp_Vector.txt", colClasses = "character")
@@ -20308,70 +19201,6 @@ weighted.median(GLP1_Injectable_Periods$Total_Duration, GLP1_Injectable_Periods$
 data.frame(GLP1_Injectable_Periods %>% distinct() %>% group_by(Total_Duration) %>% summarise(pats = sum(weight)))
 
 
-Total_Duration      pats
-1               1 150032.93
-2               2  80309.07
-3               3  77058.05
-4               4  40984.27
-5               5  34481.07
-6               6  28764.49
-7               7  23192.76
-8               8  22881.64
-9               9  22376.87
-10             10  15621.36
-11             11  13959.41
-12             12  13099.69
-13             13  11388.22
-14             14  14687.05
-15             15  12893.20
-16             16  10666.41
-17             17  10623.09
-18             18   9182.90
-19             19   9235.10
-20             20   9708.19
-21             21   7617.08
-22             22   8579.50
-23             23   8111.39
-24             24   7537.11
-25             25   6476.19
-26             26   7061.26
-27             27   6622.37
-28             28   5938.78
-29             29   6093.57
-30             30   4253.85
-31             31   4715.74
-32             32   5726.64
-33             33   4912.11
-34             34   4170.45
-35             35   6037.36
-36             36   4768.10
-37             37   4269.32
-38             38   5086.04
-39             39   3953.72
-40             40   2505.32
-41             41   2504.78
-42             42   2690.39
-43             43   2375.14
-44             44   4264.06
-45             45   3440.11
-46             46   3470.87
-47             47   1567.83
-48             48   1648.95
-49             49   2196.88
-50             50   2992.35
-51             51   2921.00
-52             52   1575.53
-53             53   2032.65
-54             54   1771.86
-55             55   1764.03
-56             56   1085.73
-57             57   2407.22
-58             58   2828.65
-59             59    920.49
-60             60  11349.23
-
-
-
 # Liraglutide
 DIA_Drug_Histories <- read.table("DIA Drug Histories.txt", header = T, sep="\t", colClasses = "character", stringsAsFactors = FALSE)
 Treatment_exp_Vector <- fread("Treatment_exp_Vector.txt", colClasses = "character")
@@ -20417,68 +19246,6 @@ weighted.mean(GLP1_Injectable_Periods$Total_Duration, GLP1_Injectable_Periods$we
 weighted.median(GLP1_Injectable_Periods$Total_Duration, GLP1_Injectable_Periods$weight) #9.5
 
 data.frame(GLP1_Injectable_Periods %>% distinct() %>% group_by(Total_Duration) %>% summarise(pats = sum(weight)))
-
-Total_Duration      pats
-1               1 291602.79
-2               2 152504.60
-3               3 151620.07
-4               4  95655.69
-5               5  84142.93
-6               6  67628.67
-7               7  58741.36
-8               8  58750.55
-9               9  50607.45
-10             10  45056.71
-11             11  43647.84
-12             12  36599.74
-13             13  38146.74
-14             14  33448.33
-15             15  35197.09
-16             16  31970.27
-17             17  28474.41
-18             18  28608.58
-19             19  27775.03
-20             20  29280.89
-21             21  26686.09
-22             22  24125.80
-23             23  25554.02
-24             24  21448.44
-25             25  22009.38
-26             26  20139.96
-27             27  24525.97
-28             28  20901.86
-29             29  18041.25
-30             30  19309.19
-31             31  18406.82
-32             32  18358.88
-33             33  21430.17
-34             34  17939.69
-35             35  17354.30
-36             36  14225.95
-37             37  14133.08
-38             38  14978.29
-39             39  14625.61
-40             40  12531.00
-41             41  14010.71
-42             42  14514.67
-43             43  11041.61
-44             44  11815.86
-45             45  11465.80
-46             46  12124.24
-47             47  11100.09
-48             48   8607.90
-49             49   9591.56
-50             50   8589.41
-51             51  10531.95
-52             52  10840.29
-53             53  10319.83
-54             54  10298.17
-55             55   8716.40
-56             56   9244.88
-57             57  13445.45
-58             58  10974.51
-59             59   3448.48
-60             60  46666.33
 
 
 
@@ -20528,59 +19295,6 @@ weighted.mean(GLP1_Injectable_Periods$Total_Duration, GLP1_Injectable_Periods$we
 weighted.median(GLP1_Injectable_Periods$Total_Duration, GLP1_Injectable_Periods$weight) #7.5
 
 data.frame(GLP1_Injectable_Periods %>% distinct() %>% group_by(Total_Duration) %>% summarise(pats = sum(weight)))
-
-Total_Duration     pats
-1               1 18257.03
-2               2 12020.62
-3               3 11514.09
-4               4  5832.57
-5               5  6195.67
-6               6  6217.60
-7               7  3697.11
-8               8  4904.25
-9               9  3402.51
-10             10  5090.97
-11             11  3031.71
-12             12  1618.34
-13             13  4216.91
-14             14  2907.35
-15             15  2367.48
-16             16  2303.74
-17             17  2411.04
-18             18  1691.16
-19             19  3804.29
-20             20  1423.32
-21             21  1825.03
-22             22  2297.84
-23             23  1099.19
-24             24  2099.97
-25             25  1679.76
-26             26   665.67
-27             27  1033.14
-28             28   777.00
-29             29  1105.32
-30             30   963.04
-31             31  1974.42
-32             32  1359.12
-33             33   765.82
-34             34   797.71
-35             35   515.97
-36             36   942.05
-37             37   822.96
-38             38   650.46
-39             39  1039.23
-40             40   462.23
-41             41   329.51
-42             42   127.16
-43             43   510.19
-44             44   372.68
-45             45   634.18
-46             46   135.67
-47             47   302.35
-48             48   268.33
-49             51   108.40
-
-
 
 
 # Semaglutide Injectable
@@ -21001,29 +19715,9 @@ DANU_Measures <- DANU_Measures %>% mutate(stock = str_extract(stock, "[a-zA-Z]")
 
 DANU_Measures %>% group_by(stock) %>% summarise(n=weighted.mean(as.numeric(value), as.numeric(weight)))
 
-# stock     n
-# <chr> <dbl>
-#   1 b      33.9
-# 2 d      33.4
-# 3 D      32.9
-# 4 g      34.4
-# 5 G      36.9
-# 6 I      33.8
-# 7 S      34.0
-# 8 x      32.5
 
 DANU_Measures %>% group_by(stock) %>% summarise(n=weighted.median(as.numeric(value), as.numeric(weight)))
 
-# stock     n
-# <chr> <dbl>
-# 1 b      32.5
-# 2 d      32.2
-# 3 D      31.8
-# 4 g      33.3
-# 5 G      35.4
-# 6 I      32.5
-# 7 S      32.7
-# 8 x      31.3
 
 
 DANU_Measures %>% select(stock, value, weight) %>% 
@@ -21066,32 +19760,6 @@ data.frame(DANU_Measures %>% select(stock, value, weight) %>%
              mutate(stock = factor(stock, levels=c("x", "b", "d", "D", "S", "I", "g", "G"))) %>% group_by(stock) %>% 
              summarise(x = quantile(value, c(0.25, 0.5, 0.75)), q = c(0.25, 0.5, 0.75)))
 
-# stock      x    q
-# 1      x 27.000 0.25
-# 2      x 31.450 0.50
-# 3      x 37.000 0.75
-# 4      b 28.300 0.25
-# 5      b 32.610 0.50
-# 6      b 38.300 0.75
-# 7      d 28.200 0.25
-# 8      d 32.400 0.50
-# 9      d 37.600 0.75
-# 10     D 27.800 0.25
-# 11     D 32.100 0.50
-# 12     D 37.300 0.75
-# 13     S 28.900 0.25
-# 14     S 32.900 0.50
-# 15     S 38.035 0.75
-# 16     I 27.900 0.25
-# 17     I 32.700 0.50
-# 18     I 38.700 0.75
-# 19     g 28.900 0.25
-# 20     g 33.590 0.50
-# 21     g 39.410 0.75
-# 22     G 31.000 0.25
-# 23     G 35.600 0.50
-# 24     G 41.800 0.75
-
 
 library(plyr)
 library(dplyr)
@@ -21107,42 +19775,8 @@ DANU_Measures %>% select(stock, value, weight) %>%
                                          probs = .75, na.rm = TRUE))
 
 
-ptile25 ptile50 ptile75
-1    26.9    31.3    36.8
-
-ptile25 ptile50 ptile75
-1    28.2    32.5    38.1
-
-ptile25 ptile50 ptile75
-1    28.1    32.2   37.45
-
-ptile25 ptile50 ptile75
-1    27.7    31.8      37
-
-ptile25 ptile50 ptile75
-1    28.8   32.74    37.9
-
-ptile25 ptile50 ptile75
-1    27.7    32.5   38.45
-
-ptile25 ptile50 ptile75
-1   28.41    33.3    39.4
-
-ptile25 ptile50 ptile75
-1   30.91   35.45    41.6
-
 DANU_Measures %>% group_by(stock) %>% summarise(n=sum(weight))
 
-# stock          n
-# <chr>      <dbl>
-# 1 b      57875868.
-# 2 d      28112738.
-# 3 D      12246686.
-# 4 g        131501.
-# 5 G      17548389.
-# 6 I      53874009.
-# 7 S       7296613.
-# 8 x     277494896.
 
 data.frame(DANU_Measures %>% select(stock, value, weight) %>%
              mutate(BMI_bucket=ifelse(value>40,">40",
@@ -21163,13 +19797,6 @@ data.frame(DANU_Measures %>% select(stock, value, weight) %>%
 
 
 
-# `summarise()` has grouped output by 'stock'. You can override using the `.groups` argument.
-# BMI_bucket        b        d        D         g         G        I         S        x
-# 1        <25 10.09845 10.22751 11.26772  7.441259  3.759669 13.37268  8.098491 16.02572
-# 2        >25 25.93601 26.65039 28.32804 27.365556 16.885752 23.94028 24.681132 27.18949
-# 3        >30 26.87921 28.65895 27.48640 26.130813 27.153514 24.50460 29.615282 25.26874
-# 4        >35 17.95920 17.65083 17.86906 17.402157 22.581512 17.87594 19.420474 16.01475
-# 5        >40 19.12713 16.81232 15.04877 21.660421 29.619551 20.30650 18.184619 15.50130
 # ----------------
 # Insulin use schemes (acute, intermitent, continuous) -----------------------
 
@@ -21244,20 +19871,6 @@ Total_Duration %>% group_by(Total_Duration) %>% summarise(n=sum(as.numeric(weigh
 
 sum(as.numeric(Total_Duration$weight))
 
-# Total_Duration        n
-# <int>    <dbl>
-# 1              1  917684.
-# 2              2  459036.
-# 3              3  537438.
-# 4              4  385414.
-# 5              5  348742.
-# 6              6  310725.
-# 7              7  294601.
-# 8              8  303003.
-# 9              9  390150.
-# 10             10  375646.
-# 11             11  277977.
-# 12             12 3017249.
 
 # -----
 # % of patients on each stock above HbA1c > 1 FLow vs no flow -------------------------------------------
@@ -21449,42 +20062,6 @@ summary(Risk_pred_model)
 
 
 
-# Who gets vs who doesn't get 
-
-
-# Call:
-#   glm(formula = Group ~ ., family = binomial, data = data_train)
-# 
-# Deviance Residuals: 
-#   Min       1Q   Median       3Q      Max  
-# -4.9982  -0.4995  -0.1267   0.4819   2.2283  
-# 
-# Coefficients:
-#   Estimate Std. Error z value             Pr(>|z|)    
-# (Intercept)         -3.056958   0.366938  -8.331 < 0.0000000000000002 ***
-#   age                 -0.030342   0.002905 -10.446 < 0.0000000000000002 ***
-#   gender              -0.136891   0.077170  -1.774              0.07608 .  
-# diagnosis            0.822306   0.300485   2.737              0.00621 ** 
-#   Lines                1.550269   0.054250  28.577 < 0.0000000000000002 ***
-#   cumflow             -0.236849   0.019609 -12.079 < 0.0000000000000002 ***
-#   Diff_Drugs_exp      -0.078818   0.010138  -7.774  0.00000000000000759 ***
-#   p1_SGLT2Exp          0.389701   0.134036   2.907              0.00364 ** 
-#   p1_DPP4Exp          -0.566955   0.123551  -4.589  0.00000445713875301 ***
-#   ENDOCRINOLOGY        0.448370   0.099731   4.496  0.00000693069416125 ***
-#   `INTERNAL MEDICINE`  0.217266   0.080123   2.712              0.00669 ** 
-#   MAX_BMI              0.044456   0.004432  10.030 < 0.0000000000000002 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# (Dispersion parameter for binomial family taken to be 1)
-# 
-# Null deviance: 8983.1  on 6479  degrees of freedom
-# Residual deviance: 4542.0  on 6468  degrees of freedom
-# AIC: 4566
-# 
-# Number of Fisher Scoring iterations: 6
-
-
 
 
 Odd_ratios_GLP1_noGLP1_AllPats <- fread("Odd_ratios_GLP1_noGLP1_AllPats.txt", sep="\t")
@@ -21627,44 +20204,6 @@ Temp %>% group_by(Group) %>% summarise(n=mean(cumflow))
 
 
 
-
-
-
-
-
-# Persists (>9m) vs Not Persist  (<3m)
-
-# Call:
-#   glm(formula = Group ~ ., family = binomial, data = data_train)
-# 
-# Deviance Residuals: 
-#   Min       1Q   Median       3Q      Max  
-# -2.9434  -1.1118   0.3995   1.0993   2.0393  
-# 
-# Coefficients:
-#   Estimate Std. Error z value             Pr(>|z|)    
-# (Intercept)         -1.239541   0.238604  -5.195         0.0000002047 ***
-#   diagnosis            0.958852   0.228785   4.191         0.0000277655 ***
-#   Lines                0.159825   0.027838   5.741         0.0000000094 ***
-#   cumflow             -0.173914   0.010642 -16.343 < 0.0000000000000002 ***
-#   Diff_Drugs_exp       0.057848   0.006713   8.618 < 0.0000000000000002 ***
-#   p1_SGLT2Exp         -0.106097   0.063504  -1.671              0.09478 .  
-# p1_DPP4Exp          -0.265754   0.067879  -3.915         0.0000903607 ***
-#   p1_OralExp          -1.952950   0.341408  -5.720         0.0000000106 ***
-#   ENDOCRINOLOGY       -0.245019   0.059789  -4.098         0.0000416598 ***
-#   `INTERNAL MEDICINE`  0.316705   0.056553   5.600         0.0000000214 ***
-#   PCP                  0.164472   0.056576   2.907              0.00365 ** 
-#   Ratio                0.139857   0.047465   2.947              0.00321 ** 
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# (Dispersion parameter for binomial family taken to be 1)
-# 
-# Null deviance: 8983.0  on 6479  degrees of freedom
-# Residual deviance: 8364.7  on 6468  degrees of freedom
-# AIC: 8388.7
-# 
-# Number of Fisher Scoring iterations: 4
 
 
 
@@ -21852,23 +20391,6 @@ temp[is.na(temp)] <- 0
 
 names(temp)
 
-# [1] "patient"                 "age"                    
-# [3] "gender"                  "diagnosis"              
-# [5] "MAX_HbA1c"               "MAX_BMI"                
-# [7] "MAX_AST"                 "MAX_ALT"                
-# [9] "p1"                      "p2"                     
-# [11] "p1_OralExp"              "p1_InjExp"              
-# [13] "p1_InsulinExp"           "p1_SGLT2Exp"            
-# [15] "p1_DPP4Exp"              "p1_AntiDiabeticExp"     
-# [17] "p1_BiguanideExp"         "cumflow"                
-# [19] "Lines"                   "DurationGLP1Exp"        
-# [21] "Diff_Drugs_exp"          "CARDIOLOGY"             
-# [23] "EMERGENCY MEDICINE"      "ENDOCRINOLOGY"          
-# [25] "GERIATRIC MEDICINE"      "INTERNAL MEDICINE"      
-# [27] "NEPHROLOGY"              "OBSTETRICS & GYNECOLOGY"
-# [29] "PCP"                     "Group"                  
-# [31] "s1" 
-
 temp <- temp %>% select(-Group)
 temp <- temp %>% group_by(patient) %>% summarize(across(everything(), max))
 
@@ -21928,23 +20450,6 @@ temp[is.na(temp)] <- 0
 
 names(temp)
 
-# [1] "patient"                 "age"                    
-# [3] "gender"                  "diagnosis"              
-# [5] "MAX_HbA1c"               "MAX_BMI"                
-# [7] "MAX_AST"                 "MAX_ALT"                
-# [9] "p1"                      "p2"                     
-# [11] "p1_OralExp"              "p1_InjExp"              
-# [13] "p1_InsulinExp"           "p1_SGLT2Exp"            
-# [15] "p1_DPP4Exp"              "p1_AntiDiabeticExp"     
-# [17] "p1_BiguanideExp"         "cumflow"                
-# [19] "Lines"                   "DurationGLP1Exp"        
-# [21] "Diff_Drugs_exp"          "CARDIOLOGY"             
-# [23] "EMERGENCY MEDICINE"      "ENDOCRINOLOGY"          
-# [25] "GERIATRIC MEDICINE"      "INTERNAL MEDICINE"      
-# [27] "NEPHROLOGY"              "OBSTETRICS & GYNECOLOGY"
-# [29] "PCP"                     "Group"                  
-# [31] "s1" 
-
 temp <- temp %>% group_by(patient) %>% summarize(across(everything(), max))
 
 describeBy(temp$age, group=temp$s2) # 
@@ -21969,16 +20474,6 @@ temp <- temp %>% group_by(patient) %>% summarize(across(everything(), max))
 
 temp %>% ungroup() %>% group_by(s2) %>% count()
 
-# s2        n
-# <chr> <int>
-# 1 b     15768
-# 2 d      6948
-# 3 D      3089
-# 4 g       351
-# 5 G      7313
-# 6 I     11475
-# 7 S      3281
-# 8 x     58183
 
 
 temp %>% mutate(To_keep = ifelse(s2=="x"&age<=56.47&MAX_HbA1c>=8.08&MAX_BMI>=38.74&cumflow>=7.21&Lines>=3.88&Diff_Drugs_exp>=6.34,"Yes",
@@ -21990,24 +20485,6 @@ temp %>% mutate(To_keep = ifelse(s2=="x"&age<=56.47&MAX_HbA1c>=8.08&MAX_BMI>=38.
                                                                     ifelse(s2=="G"&age<=59.62&MAX_HbA1c>=9.52&MAX_BMI>=38.04&cumflow>=11.19&Lines>=8.12&Diff_Drugs_exp>=29.34,"Yes","No")))))))) %>%
   group_by(s2, To_keep) %>% count()
 
-
-# s2    To_keep     n
-# <chr> <chr>   <int>
-# 1 b     No      15694
-# 2 b     Yes        74
-# 3 d     No       6903
-# 4 d     Yes        45
-# 5 D     No       3064
-# 6 D     Yes        25
-# 7 g     No        351
-# 8 G     No       7145
-# 9 G     Yes       168
-# 10 I     No      11387
-# 11 I     Yes        88
-# 12 S     No       3215
-# 13 S     Yes        66
-# 14 x     No      57747
-# 15 x     Yes       436
 # -------
 # Predict how many are likely to start oral GLP1 from each class ----------
 
@@ -22077,42 +20554,6 @@ Risk_pred_model <- glm( Group ~ ., data = data_train, family = binomial)
 
 summary(Risk_pred_model)
 
-
-
-
-# Call:
-#   glm(formula = Group ~ ., family = binomial, data = data_train)
-# 
-# Deviance Residuals: 
-#   Min       1Q   Median       3Q      Max  
-# -2.7101  -0.7746  -0.3773   0.8683   2.0686  
-# 
-# Coefficients:
-#   Estimate Std. Error z value       Pr(>|z|)    
-# (Intercept)        -0.816703   0.556756  -1.467       0.142405    
-# age                -0.029098   0.005660  -5.141 0.000000272943 ***
-#   gender              0.164775   0.145956   1.129       0.258928    
-# Lines               0.535926   0.086385   6.204 0.000000000551 ***
-#   cumflow            -0.047614   0.025235  -1.887       0.059189 .  
-# Diff_Drugs_exp     -0.090407   0.019154  -4.720 0.000002359459 ***
-#   MAX_BMI             0.020321   0.008029   2.531       0.011379 *  
-#   MAX_HbA1c           0.016395   0.033899   0.484       0.628647    
-# p1_InjExp           0.689345   0.197476   3.491       0.000482 ***
-#   p1_InsulinExp      -1.007820   0.209428  -4.812 0.000001492421 ***
-#   p1_SGLT2Exp         0.729608   0.182771   3.992 0.000065537803 ***
-#   p1_DPP4Exp          0.590526   0.186071   3.174       0.001505 ** 
-#   p1_AntiDiabeticExp  0.134484   0.175155   0.768       0.442606    
-# p1_BiguanideExp     0.385908   0.185655   2.079       0.037652 *  
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# (Dispersion parameter for binomial family taken to be 1)
-# 
-# Null deviance: 1619.4  on 1168  degrees of freedom
-# Residual deviance: 1207.0  on 1155  degrees of freedom
-# AIC: 1235
-# 
-# Number of Fisher Scoring iterations: 5
 
 
 
@@ -22542,27 +20983,6 @@ pred <- pred %>% left_join(Stocksm60)
 pred %>% select(c(Probability, s2)) %>% mutate(RiskLevel = ifelse(Probability>0.75, "HighRisk", "LowRisk")) %>%
   group_by(s2,RiskLevel) %>% count()
 
-s2    RiskLevel     n
-<chr> <chr>     <int>
-  1 b     HighRisk    484
-2 b     LowRisk   16794
-3 d     HighRisk    673
-4 d     LowRisk    6975
-5 D     HighRisk    551
-6 D     LowRisk    2813
-7 g     HighRisk    340
-8 g     LowRisk      44
-9 G     HighRisk   2718
-10 G     LowRisk    5342
-11 I     HighRisk   1680
-12 I     LowRisk   10989
-13 S     HighRisk   1477
-14 S     LowRisk    2126
-15 x     HighRisk   1884
-16 x     LowRisk   61313
-
-
-
 pred <- data.frame(predict(GLP1_gbm, temp, type = "response")) %>% bind_cols(temp)
 
 names(pred)[1] <- "Probability"
@@ -22582,28 +21002,6 @@ Treatment_exp_Vector <- fread("Treatment_exp_Vector.txt")
 pred %>% inner_join(Treatment_exp_Vector) %>% select(c(Probability, s2)) %>% mutate(RiskLevel = ifelse(Probability>0.75, "HighRisk", "LowRisk")) %>%
   group_by(s2,RiskLevel) %>% count()
 
-s2    RiskLevel     n
-<chr> <chr>     <int>
-  1 b     HighRisk   1363
-2 b     LowRisk   15915
-3 d     HighRisk   1855
-4 d     LowRisk    5793
-5 D     HighRisk   1345
-6 D     LowRisk    2019
-7 g     HighRisk    319
-8 g     LowRisk      65
-9 G     HighRisk   4112
-10 G     LowRisk    3948
-11 I     HighRisk   4597
-12 I     LowRisk    8072
-13 S     HighRisk   2132
-14 S     LowRisk    1471
-15 x     HighRisk   4543
-16 x     LowRisk   58654
-
-
-
-
 pred <- data.frame(predict(GLP1_lmr, temp)) %>% bind_cols(temp)
 
 names(pred)[1] <- "Probability"
@@ -22618,24 +21016,6 @@ pred %>% select(c(Probability, s2)) %>% mutate(RiskLevel = ifelse(Probability>0.
 
 
 
-s2    RiskLevel     n
-<chr> <chr>     <int>
-  1 b     HighRisk    612
-2 b     LowRisk   16666
-3 d     HighRisk    919
-4 d     LowRisk    6729
-5 D     HighRisk    805
-6 D     LowRisk    2559
-7 g     HighRisk    188
-8 g     LowRisk     196
-9 G     HighRisk   3882
-10 G     LowRisk    4178
-11 I     HighRisk   2891
-12 I     LowRisk    9778
-13 S     HighRisk   1923
-14 S     LowRisk    1680
-15 x     HighRisk   2731
-16 x     LowRisk   60466
 
 # ------------
 # Predict how many are likely to start Injectable GLP1 from each class COMPARE MODELS ----------
@@ -22783,25 +21163,6 @@ Treatment_exp_Vector <- fread("Treatment_exp_Vector.txt")
 pred %>% inner_join(Treatment_exp_Vector) %>% select(c(Probability, s2)) %>% mutate(RiskLevel = ifelse(Probability>0.95, "HighRisk", "LowRisk")) %>%
   group_by(s2,RiskLevel) %>% count()
 
-# s2    RiskLevel     n
-# <chr> <chr>     <int>
-#   1 b     HighRisk    411
-# 2 b     LowRisk   16867
-# 3 d     HighRisk    168
-# 4 d     LowRisk    7480
-# 5 D     HighRisk     70
-# 6 D     LowRisk    3294
-# 7 g     HighRisk     40
-# 8 g     LowRisk     344
-# 9 G     HighRisk   3805
-# 10 G     LowRisk    4255
-# 11 I     HighRisk   1445
-# 12 I     LowRisk   11224
-# 13 S     HighRisk    326
-# 14 S     LowRisk    3277
-# 15 x     HighRisk   1519
-# 16 x     LowRisk   29303
-
 
 pred <- data.frame(predict(GLP1_gbm, temp)) %>% bind_cols(temp)
 
@@ -22817,24 +21178,6 @@ Treatment_exp_Vector <- fread("Treatment_exp_Vector.txt")
 pred %>% inner_join(Treatment_exp_Vector) %>% select(c(Probability, s2)) %>% mutate(RiskLevel = ifelse(Probability>0.95, "HighRisk", "LowRisk")) %>%
   group_by(s2,RiskLevel) %>% count()
 
-# s2    RiskLevel     n
-# <chr> <chr>     <int>
-#   1 b     HighRisk    957
-# 2 b     LowRisk   16321
-# 3 d     HighRisk   1098
-# 4 d     LowRisk    6550
-# 5 D     HighRisk    645
-# 6 D     LowRisk    2719
-# 7 g     HighRisk    187
-# 8 g     LowRisk     197
-# 9 G     HighRisk   6540
-# 10 G     LowRisk    1520
-# 11 I     HighRisk   5945
-# 12 I     LowRisk    6724
-# 13 S     HighRisk   1554
-# 14 S     LowRisk    2049
-# 15 x     HighRisk   4397
-# 16 x     LowRisk   26425
 
 
 
@@ -22853,24 +21196,6 @@ Treatment_exp_Vector <- fread("Treatment_exp_Vector.txt")
 pred %>% inner_join(Treatment_exp_Vector) %>% select(c(Probability, s2)) %>% mutate(RiskLevel = ifelse(Probability>0.95, "HighRisk", "LowRisk")) %>%
   group_by(s2,RiskLevel) %>% count()
 
-# s2    RiskLevel     n
-# <chr> <chr>     <int>
-#   1 b     HighRisk    634
-# 2 b     LowRisk   16644
-# 3 d     HighRisk    845
-# 4 d     LowRisk    6803
-# 5 D     HighRisk    473
-# 6 D     LowRisk    2891
-# 7 g     HighRisk    184
-# 8 g     LowRisk     200
-# 9 G     HighRisk   4960
-# 10 G     LowRisk    3100
-# 11 I     HighRisk   5519
-# 12 I     LowRisk    7150
-# 13 S     HighRisk   1247
-# 14 S     LowRisk    2356
-# 15 x     HighRisk   3176
-# 16 x     LowRisk   27646
 # -----
 # Molecule Penetrance  Month 60 -------------------------------------------------------------------
 DANU_Ingredients       <- fread("DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
@@ -22937,14 +21262,6 @@ DIA_Drug_Histories <- DIA_Drug_Histories %>% left_join(DANU_Ingredients) %>% dro
 
 DIA_Drug_Histories %>% group_by(generic_name) %>% summarise(n=sum(weight))
 
-# On Month 60
-# generic_name                  n
-# <chr>                     <dbl>
-# 1 Dulaglutide            1075383.
-# 2 Exenatide               126535.
-# 3 Liraglutide             527130.
-# 4 Lixisenatide             45358.
-# 5 Semaglutide Injectable  834641.
 
 # ----------
 # Flows to Injectable per molecule last 12 months and last 60 months -----------
@@ -22961,28 +21278,12 @@ temp <- temp %>% filter(d2==48|d2==49|d2==50|d2==51|d2==52|d2==53)
 
 temp %>% group_by(d2) %>% summarise(n=sum(weight))
 
-# d2       n
-# <int>   <dbl>
-# 1    49 781935.
-# 2    50 119154.
-# 3    51 458829.
-# 4    52  39355.
-# 5    53 759464.
 
 length(unique(temp$patient)) # 14725
 
 
 
 temp %>% group_by(d2) %>% summarise(n=sum(weight))
-
-# d2        n
-# <int>    <dbl>
-# 1    48   84616.
-# 2    49 2789900.
-# 3    50  865985.
-# 4    51 2749296.
-# 5    52  166613.
-# 6    53 1581509.
 
 length(unique(temp$patient)) # 38565
 
@@ -23003,13 +21304,6 @@ temp <- temp %>% filter(d1==48|d1==49|d1==50|d1==51|d1==52|d1==53)
 
 temp %>% group_by(d1) %>% summarise(n=sum(weight))
 
-# d1     n
-# <int> <dbl>
-# 1    49 5488.
-# 2    50 1030.
-# 3    51 4246.
-# 4    52  616.
-# 5    53 4987.
 
 length(unique(temp$patient)) # 123
 
@@ -23028,13 +21322,6 @@ temp <- separate_rows(temp, d2, sep = ",", convert=T )
 temp <- temp %>% filter(d2==48|d2==49|d2==50|d2==51|d2==52|d2==53)
 
 temp %>% group_by(d2) %>% summarise(n=sum(weight))
-
-# d2     n
-# <int> <dbl>
-# 1    49 3845.
-# 2    50  448.
-# 3    51 1647.
-# 4    53 5899.
 
 length(unique(temp$patient)) # 88
 
@@ -23172,16 +21459,6 @@ DIA_Box_Histories <- DIA_Box_Histories %>% group_by(patient) %>% filter(grp==max
 
 DIA_Box_Histories %>% ungroup() %>% group_by(Stock) %>% summarise(N=weighted.mean(grp, weight))
 
-# Stock     N
-# <chr> <dbl>
-# 1 b      2.71
-# 2 d      3.12
-# 3 D      3.23
-# 4 g      5.87
-# 5 G      4.15
-# 6 I      3.25
-# 7 S      3.90
-# 8 x      4.00
 
 
 DIA_Box_Histories <- fread("DIA Box Histories.txt")
@@ -23212,17 +21489,6 @@ DIA_Box_Histories <- DIA_Box_Histories %>% group_by(patient) %>% filter(grp==max
 
 DIA_Box_Histories %>% ungroup() %>% group_by(Stock) %>% summarise(N=weighted.mean(grp, weight))
 
-
-# Stock     N
-# <chr> <dbl>
-# 1 b      5.19
-# 2 d      3.84
-# 3 D      3.72
-# 4 g      5.75
-# 5 G      4.25
-# 6 I      3.51
-# 7 S      3.89
-# 8 x      5.75
 
 
 # ----------
@@ -23472,32 +21738,10 @@ Sem_temp %>% group_by(PhysicianClass) %>% count()
 Sem_temp %>% group_by(PhysicianClass) %>% summarise(n=sum(Delta))
 
 
-PhysicianClass      n
-<chr>           <dbl>
-  1 Decreased_Share -1074
-2 Increased_Share  5631
-3 Lost_Physician  -7179
-4 Maintain_High    5499
-5 Maintain_Low     1094
-6 New_Physician   22393
-7 None                0
-
 
 fwrite(Sem_temp, "Sem_temp_physicians.csv")
 
 Sem_temp %>% group_by(PhysicianClass, ClassYear5) %>% summarise(n=sum(SemaglutideYear5))
-
-
-# PhysicianClass  ClassYear5         n
-# <chr>           <chr>          <dbl>
-# 1 Decreased_Share Low_Share       1680
-# 2 Increased_Share High_Share      9273
-# 3 Lost_Physician  No_Semaglutide     0
-# 4 Maintain_High   High_Share     30472
-# 5 Maintain_Low    Low_Share       5589
-# 6 New_Physician   High_Share     18682
-# 7 New_Physician   Low_Share       3711
-# 8 None            No_Semaglutide     0
 
 
 
@@ -23552,41 +21796,12 @@ sum(Dulaglutide_temp$DulaglutideYear5) # 98049
 sum(Dulaglutide_temp$Delta) # 15177
 Dulaglutide_temp %>% group_by(PhysicianClass) %>% count()
 
-# PhysicianClass      n
-# <chr>           <int>
-# 1 Decreased_Share   348
-# 2 Increased_Share   366
-# 3 Lost_Physician   3016
-# 4 Maintain_High    4653
-# 5 Maintain_Low      502
-# 6 New_Physician    4772
-# 7 None            14486
 
 Dulaglutide_temp %>% group_by(PhysicianClass) %>% summarise(n=sum(Delta))
 
 
-# PhysicianClass       n
-# <chr>            <dbl>
-# 1 Decreased_Share  -1705
-# 2 Increased_Share   3522
-# 3 Lost_Physician  -15647
-# 4 Maintain_High     2743
-# 5 Maintain_Low       226
-# 6 New_Physician    26038
-# 7 None                 0
 
 Dulaglutide_temp %>% group_by(PhysicianClass, ClassYear5) %>% summarise(n=sum(DulaglutideYear5))
-
-# PhysicianClass  ClassYear5         n
-# <chr>           <chr>          <dbl>
-# 1 Decreased_Share Low_Share       2737
-# 2 Increased_Share High_Share      6284
-# 3 Lost_Physician  No_Dulaglutide     0
-# 4 Maintain_High   High_Share     58102
-# 5 Maintain_Low    Low_Share       4888
-# 6 New_Physician   High_Share     22890
-# 7 New_Physician   Low_Share       3148
-# 8 None            No_Dulaglutide     0
 
 
 Dia_US_Doses <- fread("DIA Doses.txt")
@@ -23619,24 +21834,6 @@ Sem_temp %>% inner_join(Provs_unique) %>%
   summarise(n=sum(SemaglutideYear5))
 
 
-# PhysicianClass ClassYear5     PHYSICIAN         n
-# <chr>          <chr>          <chr>         <dbl>
-# 1 Existing       High_Share     ENDOCRINOLOGY 11503
-# 2 Existing       High_Share     GP             9961
-# 3 Existing       High_Share     OTHER         18281
-# 4 Existing       Low_Share      ENDOCRINOLOGY  3635
-# 5 Existing       Low_Share      GP             1077
-# 6 Existing       Low_Share      OTHER          2553
-# 7 Existing       No_Semaglutide ENDOCRINOLOGY     0
-# 8 Existing       No_Semaglutide GP                0
-# 9 Existing       No_Semaglutide OTHER             0
-# 10 New_Physican   High_Share     ENDOCRINOLOGY  2783
-# 11 New_Physican   High_Share     GP             5864
-# 12 New_Physican   High_Share     OTHER         10022
-# 13 New_Physican   Low_Share      ENDOCRINOLOGY  1173
-# 14 New_Physican   Low_Share      GP             1090
-# 15 New_Physican   Low_Share      OTHER          1434
-
 
 
 Dulaglutide_temp %>% inner_join(Provs_unique) %>% 
@@ -23644,24 +21841,6 @@ Dulaglutide_temp %>% inner_join(Provs_unique) %>%
   group_by(PhysicianClass, ClassYear5,PHYSICIAN) %>% 
   summarise(n=sum(DulaglutideYear5))
 
-
-# PhysicianClass ClassYear5     PHYSICIAN         n
-# <chr>          <chr>          <chr>         <dbl>
-# 1 Existing       High_Share     ENDOCRINOLOGY 14689
-# 2 Existing       High_Share     GP            22816
-# 3 Existing       High_Share     OTHER         26799
-# 4 Existing       Low_Share      ENDOCRINOLOGY  3204
-# 5 Existing       Low_Share      GP             1444
-# 6 Existing       Low_Share      OTHER          2977
-# 7 Existing       No_Dulaglutide ENDOCRINOLOGY     0
-# 8 Existing       No_Dulaglutide GP                0
-# 9 Existing       No_Dulaglutide OTHER             0
-# 10 New_Physican   High_Share     ENDOCRINOLOGY  2592
-# 11 New_Physican   High_Share     GP             7941
-# 12 New_Physican   High_Share     OTHER         12351
-# 13 New_Physican   Low_Share      ENDOCRINOLOGY   898
-# 14 New_Physican   Low_Share      GP              807
-# 15 New_Physican   Low_Share      OTHER          1442
 
 
 # ----------
@@ -23708,38 +21887,11 @@ Dia_US_Doses <- Dia_US_Doses %>% drop_na()
 Dia_US_Doses %>% inner_join(Provs_unique) %>% group_by(PHYSICIAN, generic) %>% count()
 
 
-PHYSICIAN     generic                    n
-<chr>         <chr>                  <int>
-  1 ENDOCRINOLOGY Dulaglutide            45078
-2 ENDOCRINOLOGY Exenatide               6566
-3 ENDOCRINOLOGY Liraglutide            23463
-4 ENDOCRINOLOGY Lixisenatide            3177
-5 ENDOCRINOLOGY Semaglutide Injectable 35907
-6 GP            Albiglutide                2
-7 GP            Dulaglutide            66559
-8 GP            Exenatide              11892
-9 GP            Liraglutide            38170
-10 GP            Lixisenatide            3110
-11 GP            Semaglutide Injectable 32682
-12 OTHER         Dulaglutide            88257
-13 OTHER         Exenatide              14849
-14 OTHER         Liraglutide            57056
-15 OTHER         Lixisenatide            3883
-16 OTHER         Semaglutide Injectable 58450
-
 
 
 
 Dia_US_Doses %>% inner_join(Provs_unique) %>% select(generic, prov, PHYSICIAN) %>% distinct() %>%
   group_by(PHYSICIAN, prov) %>% count() %>% ungroup() %>% group_by(PHYSICIAN) %>% summarise(n2=mean(n))
-
-
-# PHYSICIAN        n2
-# <chr>         <dbl>
-# 1 ENDOCRINOLOGY  1.64
-# 2 GP             1.24
-# 3 OTHER          1.26
-
 
 Dia_US_Doses %>% inner_join(Provs_unique) %>% select(generic, prov, PHYSICIAN) %>%
   group_by(PHYSICIAN, prov) %>% mutate(total=n()) %>% ungroup() %>% group_by(PHYSICIAN, prov,generic) %>% mutate(totalgeneric=n()) %>%
@@ -23911,16 +22063,6 @@ data.frame(temp %>% mutate(Type=ifelse(Dulaglutide==1,"100Dulaglutide",
   group_by(Type) %>% count())
 
 
-1 100Dulaglutide 9705
-2       100other 7703
-3 100Semaglutide 5539
-4  50Dulaglutide 2168
-5        50other 2082
-6  50Semaglutide 1837
-7      portfolio  832
-
-
-
 
 # --------
 # GLP1 dosages over time --------------------------------
@@ -23942,15 +22084,6 @@ GLP1_sel_lstYr_prescrip %>% select(strength) %>% ungroup() %>%
 Wegovy_1y_pats <- GLP1_sel_lstYr_prescrip %>% select(ptid) %>% distinct()
 
 
-# strength     n
-# <chr>    <int>
-# 1 ""          89
-# 2 "0.25"    1813
-# 3 "0.5"      801
-# 4 "1"        598
-# 5 "1.7"      437
-# 6 "2.4"      621
-
 
 # Last 5 Years
 GLP1_sel_lstYr_prescrip_with_brand <- fread("GLP1_sel_lstYr_prescrip with brand.txt")
@@ -23964,14 +22097,6 @@ GLP1_sel_lst5Yr_prescrip <- Wegovy_ndcs %>% distinct() %>% left_join(GLP1_sel_ls
 GLP1_sel_lst5Yr_prescrip  %>% group_by(ptid) %>% filter(strength==max(strength)) %>% slice(1) %>%
   ungroup() %>% group_by(strength) %>% count()
 
-# strength     n
-# <chr>    <int>
-# 1 ""          85
-# 2 "0.25"    1688
-# 3 "0.5"      761
-# 4 "1"        622
-# 5 "1.7"      422
-# 6 "2.4"      781
 
 GLP1_sel_lst5Yr_prescrip$rxdate <- as.Date(GLP1_sel_lst5Yr_prescrip$rxdate)
 GLP1_sel_lst5Yr_prescrip <- GLP1_sel_lst5Yr_prescrip %>% group_by(ptid) %>% filter(rxdate==max(rxdate))
@@ -23982,15 +22107,6 @@ GLP1_sel_lst5Yr_prescrip %>% select(strength) %>% ungroup() %>%
 
 Wegovy_5y_pats <- GLP1_sel_lst5Yr_prescrip %>% select(ptid) %>% distinct()
 
-# <chr>    <int>
-# 1 ""          89
-# 2 "0.25"    1813
-# 3 "0.5"      801
-# 4 "1"        598
-# 5 "1.7"      437
-# 6 "2.4"      621
-
-# Over time (....)
 
 
 
@@ -24021,25 +22137,10 @@ GLP1_sel_lst5Yr_prescrip_summary %>% ungroup() %>% select(ptid, strength, time_p
 GLP1_sel_lst5Yr_prescrip_summary %>% ungroup() %>% select(ptid, strength, time_progression) %>%
   filter(strength != "") %>% group_by(strength) %>% summarise(n=mean(time_progression))
 
-# strength     n
-# <chr>    <dbl>
-# 1 0.25      11.3
-# 2 0.5       31.3
-# 3 1         47.3
-# 4 1.7       63.9
-# 5 2.4       64.8
+
 
 GLP1_sel_lst5Yr_prescrip_summary %>% ungroup() %>% select(ptid, strength, time_progression) %>%
   filter(strength != "") %>% group_by(strength) %>% summarise(n=median(time_progression))
-
-# strength     n
-# <chr>    <dbl>
-# 1 0.25         0
-# 2 0.5         25
-# 3 1           47
-# 4 1.7         65
-# 5 2.4         63
-
 
 
 
@@ -24075,15 +22176,6 @@ GLP1_sel_lstYr_prescrip <- GLP1_sel_lstYr_prescrip  %>% group_by(ptid) %>% filte
 GLP1_sel_lstYr_prescrip %>% select(strength) %>% ungroup() %>%
   group_by(strength) %>% count()
 
-# strength      n
-# <chr>     <int>
-# 1 1.8           1
-# 2 18         1548
-# 3 3         11064
-# 4 3.0           1
-# 5 30.5(183)   168
-
-
 
 # Last 5 Years
 GLP1_sel_lstYr_prescrip_with_brand <- fread("GLP1_sel_lstYr_prescrip with brand.txt")
@@ -24097,30 +22189,6 @@ GLP1_sel_lst5Yr_prescrip <- GLP1_sel_lst5Yr_prescrip  %>% group_by(ptid) %>% fil
 
 data.frame(GLP1_sel_lst5Yr_prescrip %>% select(strength) %>% ungroup() %>%
              group_by(strength) %>% count())
-
-# strength     n
-# 1           .6    10
-# 2            0    10
-# 3          0.0     3
-# 4          0.2     1
-# 5          0.6    27
-# 6            1     2
-# 7          1.0     1
-# 8          1.2   108
-# 9          1.5     1
-# 10         1.8   133
-# 11          18  6783
-# 12      18 / 3    41
-# 13   18 MG/3ML  1095
-# 14         2.0     1
-# 15         2.4     5
-# 16           3 38379
-# 17 3 mg/0.5 mL    32
-# 18         3.0     1
-# 19         3.6     2
-# 20   30.5(183)  1021
-# 21           6    13
-# 22          60     1
 
 GLP1_sel_lst5Yr_scripts <- fread("GLP1_sel_lst5Yr_scripts.txt")
 GLP1_sel_lst5Yr_medAdmin <- fread("GLP1_sel_lst5Yr_medAdmin.txt")
@@ -24145,12 +22213,6 @@ GLP1_sel_lstYr_prescrip %>% select(strength) %>% ungroup() %>%
   group_by(strength) %>% count()
 
 
-# strength     n
-# <chr>    <int>
-# 1 14        1509
-# 2 3         2307
-# 3 7         3836
-
 
 # Last 5 Years
 GLP1_sel_lst5Yr_prescrip <- fread("GLP1_sel_lst5Yr_prescrip.txt")
@@ -24173,24 +22235,12 @@ GLP1_sel_lst5Yr_prescrip <- GLP1_sel_lst5Yr_prescrip %>% filter(strength=="3"|st
 data.frame(GLP1_sel_lst5Yr_prescrip %>% group_by(strength) %>% count())
 
 
-# strength     n
-# 1       14  9629
-# 2        3 16669
-# 3        7 25821
 
 GLP1_sel_lst5Yr_prescrip <- GLP1_sel_lst5Yr_prescrip %>% group_by(ptid) %>% filter(rxdate==max(rxdate))
 GLP1_sel_lst5Yr_prescrip <- GLP1_sel_lst5Yr_prescrip  %>% group_by(ptid) %>% filter(strength==max(strength)) %>% slice(1)
 
 GLP1_sel_lst5Yr_prescrip %>% select(strength) %>% ungroup() %>%
   group_by(strength) %>% count()
-
-# strength     n
-# <chr>    <int>
-# 1 14        1846
-# 2 3         3360
-# 3 7         5205
-
-# Over time (....)
 
 
 
@@ -24224,22 +22274,8 @@ GLP1_sel_lst5Yr_prescrip_summary %>% ungroup() %>% select(ptid, strength, time_p
 GLP1_sel_lst5Yr_prescrip_summary %>% ungroup() %>% select(ptid, strength, time_progression) %>%
   group_by(strength) %>% summarise(n=mean(time_progression))
 
-# strength     n
-# <fct>    <dbl>
-# 1 3         49.8
-# 2 7        113. 
-# 3 14       215.
-
 GLP1_sel_lst5Yr_prescrip_summary %>% ungroup() %>% select(ptid, strength, time_progression) %>%
   group_by(strength) %>% summarise(n=median(time_progression))
-
-# strength     n
-# <fct>    <dbl>
-# 1 3            1
-# 2 7           66
-# 3 14         187
-
-
 
 
 temp <- GLP1_sel_lst5Yr_prescrip_summary %>% ungroup() %>% 
@@ -24986,23 +23022,12 @@ BODYWEIGHT_Evolution_US_All_6months_2_classes_only_Duration %>% filter(Duration>
   mutate(Difference= (BMI_After-BMI_Before)*100/BMI_Before) %>%
   group_by(Therapy) %>% summarise(n=mean(Difference))
 
-
-# Therapy     n
-# <chr>   <dbl>
-#   1 Combo   -11.7
-# 2 GLP1    -10.5
-
-
 BODYWEIGHT_Evolution_US_All_6months_2_classes_only_Duration %>% filter(Duration>=Month_After) %>% 
   #filter(BMI_Before>24)%>%
   mutate(Difference= (BMI_After-BMI_Before)*100/BMI_Before) %>%
   group_by(Therapy) %>% count()
 
 
-# Therapy     n
-# <chr>   <int>
-#   1 Combo      64
-# 2 GLP1      341
 
 BODYWEIGHT_Evolution_2classes <- BODYWEIGHT_Evolution_US_All_6months_2_classes_only_Duration %>% 
   #filter(BMI_Before>24)%>%
@@ -25066,23 +23091,6 @@ summary(model_GLP1)
 Call:
   lm(formula = Difference ~ BMI_Before, data = GLP1_temp)
 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -40.006  -4.668   0.865   5.341  29.339 
-# 
-# Coefficients:
-#   Estimate Std. Error t value Pr(>|t|)   
-# (Intercept) -6.46557    2.07831  -3.111  0.00202 **
-#   BMI_Before  -0.03571    0.01785  -2.001  0.04621 * 
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 9.017 on 339 degrees of freedom
-# Multiple R-squared:  0.01167,	Adjusted R-squared:  0.008755 
-# F-statistic: 4.003 on 1 and 339 DF,  p-value: 0.04621
-
-
-
 # Combo 
 
 Combo_temp <- BODYWEIGHT_Evolution_2classes %>% 
@@ -25092,37 +23100,6 @@ Combo_temp <- BODYWEIGHT_Evolution_2classes %>%
 model_Combo <- lm(Difference ~ BMI_Before, data = Combo_temp)
 
 summary(model_Combo)
-
-# Call:
-#   lm(formula = Difference ~ BMI_Before, data = Combo_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -40.373  -3.344   1.528   6.540  13.176 
-# 
-# Coefficients:
-#   Estimate Std. Error t value  Pr(>|t|)    
-# (Intercept)  6.32666    4.29163   1.474     0.145    
-# BMI_Before  -0.15350    0.03499  -4.387 0.0000454 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 10.03 on 62 degrees of freedom
-# Multiple R-squared:  0.2369,	Adjusted R-squared:  0.2246 
-# F-statistic: 19.25 on 1 and 62 DF,  p-value: 0.00004538
-
--6.46557                 +(60*-0.03571    )
--6.46557                 +(70*-0.03571    )
--6.46557                 +(80*-0.03571    )
--6.46557                 +(90*-0.03571    )
--6.46557                 +(100*-0.03571    )
-
-6.32666              +(60*-0.15350)
-6.32666              +(70*-0.15350)
-6.32666              +(80*-0.15350)
-6.32666              +(90*-0.15350)
-6.32666              +(*100*-0.15350)
-
 
 BODYWEGHT_Reduction_Predictions_ALL <- fread("BODYWEGHT_Reduction_Predictions_ALL.txt")
 
@@ -25426,10 +23403,6 @@ OralGLP1Pats <- OralGLP1Pats %>% ungroup() %>% mutate(Group = ifelse(n<12, "Earl
 
 OralGLP1Pats %>% group_by(Group) %>% count()
 
-#   Group     n
-#   <chr> <int>
-# 1 Early   365
-# 2 Late   1340
 
 MAX_Labs_Demographics <- fread("MAX_Labs_Demographics.txt")
 MAX_Labs_Demographics <- MAX_Labs_Demographics %>% select(c(patient, age, gender, diagnosis, MAX_BMI,MAX_HbA1c ))
@@ -25439,33 +23412,14 @@ OralGLP1Pats <- OralGLP1Pats %>% left_join(MAX_Labs_Demographics)
 
 OralGLP1Pats %>% group_by(Group) %>% count()
  
-#   Group     n
-#   <chr> <int>
-# 1 Early    97
-# 2 Late    527
-
 OralGLP1Pats %>% group_by(Group) %>% summarise(n=mean(MAX_BMI))
 
-#   Group     n
-#   <chr> <dbl>
-# 1 Early  38.5
-# 2 Late   38.0
 
 OralGLP1Pats %>% group_by(Group) %>% summarise(n=mean(MAX_HbA1c))
 
-#   Group     n
-#   <chr> <dbl>
-# 1 Early  7.91
-# 2 Late   9.14
 
 OralGLP1Pats %>% group_by(Group, gender) %>% count()
 
-#   Group gender     n
-#   <chr> <chr>  <int>
-# 1 Early F         51
-# 2 Early M         46
-# 3 Late  F        282
-# 4 Late  M        245
 
 OralGLP1Pats <- OralGLP1Pats %>% mutate(gender = ifelse(gender=="M", 1, 0))
 
@@ -25485,23 +23439,6 @@ OralGLP1Pats <- OralGLP1Pats %>% select(-patient)
 
 
 OralGLP1Pats_lmr <- lrm(Group==1 ~ age+gender+MAX_BMI+MAX_HbA1c, data = OralGLP1Pats)
-
- #                       Model Likelihood      Discrimination    Rank Discrim.    
- #                              Ratio Test             Indexes          Indexes    
- # Obs           624    LR chi2      38.75      R2       0.104    C       0.694    
- #  FALSE        527    d.f.             4      R2(4,624)0.054    Dxy     0.389    
- #  TRUE          97    Pr(> chi2) <0.0001    R2(4,245.8)0.132    gamma   0.389    
- # max |deriv| 3e-05                            Brier    0.122    tau-a   0.102    
- # 
- #           Coef    S.E.   Wald Z Pr(>|Z|)
- # Intercept  2.4962 0.9425  2.65  0.0081  
- # age       -0.0395 0.0114 -3.47  0.0005  
- # gender     0.2347 0.2343  1.00  0.3165  
- # MAX_BMI    0.0030 0.0129  0.23  0.8181  
- # MAX_HbA1c -0.2528 0.0571 -4.43  <0.0001 
- # 
-
-
 
 OralGLP1Pats_gbm <- gbm(Group == 1 ~ ., data = OralGLP1Pats, 
                 n.trees = 15000, distribution = "bernoulli")
@@ -25672,90 +23609,8 @@ DIA_Flows_Aux._Long <- DIA_Flows_Aux._Long %>% mutate(s1=ifelse(s1=="g",s1,
 data.frame(DIA_Flows_Aux._Long %>% filter(s2=="g") %>% group_by(p2,s1) %>% summarise(n=sum(weight))) %>%
   spread(key=s1,value=n)
 
-   p2        g       G    other
-1  43       NA  206.40  3278.07
-2  44   300.26  247.78  5871.37
-3  45  1145.07  608.59  6623.33
-4  46  2250.87  780.82  8081.67
-5  47  2701.55  701.49  7550.52
-6  48  3379.07  460.03 10839.51
-7  49  3212.95  632.27 10672.83
-8  50  4631.94 1332.48  9696.78
-9  51  3981.99  609.54 11793.87
-10 52  5224.14  313.58 11964.64
-11 53  6770.92 1010.33 14771.35
-12 54  6912.87  939.14 17617.00
-13 55  6975.92 1855.59 19850.51
-14 56  7924.58 2189.01 19534.05
-15 57  9196.77 1802.66 18432.83
-16 58 12969.48 2123.35 22429.56
-17 59 12635.97 1323.91 23580.91
-18 60 12738.33 1751.21 27040.87
-
 data.frame(DIA_Flows_Aux._Long %>% filter(s2=="G") %>% group_by(p2,s1) %>% summarise(n=sum(weight))) %>%
   spread(key=s1,value=n)
-
-   p2       g        G     other
-1   2      NA 121023.7  84226.20
-2   3      NA 122634.8  77834.17
-3   4      NA 115742.1  80717.44
-4   5      NA 128450.7  85513.00
-5   6      NA 130594.5  82228.06
-6   7      NA 135357.9  82544.80
-7   8      NA 128321.8  86813.40
-8   9      NA 136286.1  86271.60
-9  10      NA 151008.2 114953.39
-10 11      NA 140534.7  94438.03
-11 12      NA 154596.1 101789.58
-12 13      NA 150161.4  99513.25
-13 14      NA 158332.9 107805.30
-14 15      NA 153184.6  99369.70
-15 16      NA 159705.2  96674.41
-16 17      NA 149513.5 101955.33
-17 18      NA 157104.1  96345.08
-18 19      NA 165747.1 125960.33
-19 20      NA 174410.1 110480.40
-20 21      NA 174978.9 100534.08
-21 22      NA 192138.8 127934.18
-22 23      NA 177342.0 115692.39
-23 24      NA 186212.1 120172.44
-24 25      NA 183228.4 138654.43
-25 26      NA 187456.9 129309.83
-26 27      NA 194693.1 117099.08
-27 28      NA 197667.4 142039.81
-28 29      NA 202130.3 127565.78
-29 30      NA 208851.6 130539.19
-30 31      NA 218353.3 143351.39
-31 32      NA 213314.6 124377.89
-32 33      NA 225302.2 143226.86
-33 34      NA 251416.0 159409.36
-34 35      NA 232954.5 145607.12
-35 36      NA 249058.1 163074.02
-36 37      NA 240656.2 162816.63
-37 38      NA 251046.7 170054.39
-38 39      NA 246567.4 154620.26
-39 40      NA 253681.6 173821.61
-40 41      NA 254262.2 147481.33
-41 42      NA 261931.8 167604.00
-42 43      NA 271864.4 179226.43
-43 44   97.76 271988.6 148174.67
-44 45   97.80 292745.8 167796.60
-45 46  102.26 315576.0 196137.92
-46 47  820.30 298700.3 156531.42
-47 48      NA 281206.1 172082.15
-48 49   99.84 263771.8 146969.27
-49 50  392.81 287581.4 159804.33
-50 51  425.44 297084.3 152821.24
-51 52  641.09 304302.3 168531.84
-52 53  430.87 306885.7 153176.68
-53 54  819.44 314670.5 164985.95
-54 55  907.11 298020.4 157745.24
-55 56 1007.89 300184.2 188409.56
-56 57 1755.62 322663.5 197457.35
-57 58  918.67 351399.7 193381.28
-58 59 1562.63 318888.6 195728.69
-59 60 2006.82 360109.4 225364.42
-
 
 # ---------------------------------------------------------------------------------------------------------------------
 
@@ -25801,25 +23656,6 @@ Dia_US_Doses %>% select(prov, Specialty, Year) %>% distinct() %>%
     by=c("Year"="Year", "Specialty"="Specialty")) %>%
   mutate(Percentage=n.y/n.x)
 
-
-   Year  Specialty       n.x   n.y Percentage
-   <chr> <chr>         <int> <int>      <dbl>
- 1 Year1 ENDOCRINOLOGY  6366  1962     0.308 
- 2 Year1 GP            57149  5338     0.0934
- 3 Year1 OTHER         31741  2377     0.0749
- 4 Year2 ENDOCRINOLOGY  6674  2336     0.350 
- 5 Year2 GP            59438  6776     0.114 
- 6 Year2 OTHER         34725  3225     0.0929
- 7 Year3 ENDOCRINOLOGY  6771  2788     0.412 
- 8 Year3 GP            60784  8541     0.141 
- 9 Year3 OTHER         37338  4236     0.113 
-10 Year4 ENDOCRINOLOGY  6830  3061     0.448 
-11 Year4 GP            61511 10574     0.172 
-12 Year4 OTHER         40057  5642     0.141 
-13 Year5 ENDOCRINOLOGY  6834  3377     0.494 
-14 Year5 GP            62055 12377     0.199 
-15 Year5 OTHER         42675  7151     0.168 
-
 Dia_US_Doses %>% group_by(Year, Specialty) %>% count() %>% 
   left_join(
     Dia_US_Doses %>% filter(drug_class=="GLP1") %>% group_by(Year, Specialty) %>% count(), 
@@ -25828,23 +23664,6 @@ Dia_US_Doses %>% group_by(Year, Specialty) %>% count() %>%
 
 Dia_US_Doses %>% filter(drug_class=="GLP1") %>% group_by(Year, Specialty) %>% count()
 
-   Year  Specialty        n.x   n.y Percentage
-   <chr> <chr>          <int> <int>      <dbl>
- 1 Year1 ENDOCRINOLOGY 204789 19462     0.0950
- 2 Year1 GP            869279 33395     0.0384
- 3 Year1 OTHER         317517 15646     0.0493
- 4 Year2 ENDOCRINOLOGY 222427 23864     0.107 
- 5 Year2 GP            925436 44824     0.0484
- 6 Year2 OTHER         355694 21552     0.0606
- 7 Year3 ENDOCRINOLOGY 234465 31705     0.135 
- 8 Year3 GP            929277 59365     0.0639
- 9 Year3 OTHER         385268 30180     0.0783
-10 Year4 ENDOCRINOLOGY 251952 38919     0.154 
-11 Year4 GP            970556 78715     0.0811
-12 Year4 OTHER         430595 41673     0.0968
-13 Year5 ENDOCRINOLOGY 260739 43940     0.169 
-14 Year5 GP            970735 94066     0.0969
-15 Year5 OTHER         469885 53917     0.115
 
 
 Dia_US_Doses %>% filter(drug_class=="GLP1") %>% 
@@ -25855,25 +23674,6 @@ Dia_US_Doses %>% filter(drug_class=="GLP1") %>%
 data.frame(Dia_US_Doses %>% filter(drug_class=="GLP1") %>% 
   group_by(Year, Specialty) %>% count() %>% spread(key=Year, value=n))
 
-   Year  Specialty          n
-   <chr> <chr>          <int>
- 1 Year1 ENDOCRINOLOGY 19462
- 2 Year1 GP            33395
- 3 Year1 OTHER         15646
- 4 Year2 ENDOCRINOLOGY 23864
- 5 Year2 GP            44824
- 6 Year2 OTHER         21552
- 7 Year3 ENDOCRINOLOGY 31705
- 8 Year3 GP            59365
- 9 Year3 OTHER         30180
-10 Year4 ENDOCRINOLOGY 38919
-11 Year4 GP            78715
-12 Year4 OTHER         41673
-13 Year5 ENDOCRINOLOGY 43940
-14 Year5 GP            94066
-15 Year5 OTHER         53917
-
-
 
 Dia_US_Doses %>% filter(drug_class=="GLP1") %>% select(prov, Specialty, Year) %>% distinct()  %>% 
   group_by(Year, Specialty) %>% count() %>%
@@ -25883,23 +23683,6 @@ Dia_US_Doses %>% filter(drug_class=="GLP1") %>% select(prov, Specialty, Year) %>
   mutate(ScriptPerPhysi = n.y/n.x)
 
 
-  Year  Specialty       n.x   n.y ScriptPerPhysi
-   <chr> <chr>         <int> <int>          <dbl>
- 1 Year1 ENDOCRINOLOGY  1962 19462           9.92
- 2 Year1 GP             5338 33395           6.26
- 3 Year1 OTHER          2377 15646           6.58
- 4 Year2 ENDOCRINOLOGY  2336 23864          10.2 
- 5 Year2 GP             6776 44824           6.62
- 6 Year2 OTHER          3225 21552           6.68
- 7 Year3 ENDOCRINOLOGY  2788 31705          11.4 
- 8 Year3 GP             8541 59365           6.95
- 9 Year3 OTHER          4236 30180           7.12
-10 Year4 ENDOCRINOLOGY  3061 38919          12.7 
-11 Year4 GP            10574 78715           7.44
-12 Year4 OTHER          5642 41673           7.39
-13 Year5 ENDOCRINOLOGY  3377 43940          13.0 
-14 Year5 GP            12377 94066           7.60
-15 Year5 OTHER          7151 53917           7.54
 # -------------------------------------------------------------
 
 # HbA1c Last vs Stock - Projected to the 30,626k ---------------------------------------------------------------
@@ -25940,28 +23723,11 @@ DANU_Measures_HbA1c <- DANU_Measures_HbA1c %>% inner_join(Treatment_Exp_vector, 
 
 DANU_Measures_HbA1c %>% group_by(Box, value) %>% summarise(n=sum(weight.x)) %>% ungroup() %>% spread(key=value, value=n)
 
-  Box       `<6`    `>9` `6-6.5` `6.5-7` `7-7.5` `7.5-8` `8-8.5` `8.5-9`
-  <chr>    <dbl>   <dbl>   <dbl>   <dbl>   <dbl>   <dbl>   <dbl>   <dbl>
-1 b      768608. 168426. 743555. 602628. 343851. 186529. 102418.  56620.
-2 d      153746. 164838. 219803. 252093. 221650. 152982.  98832.  71107.
-3 D       63092.  69397.  93573. 112885.  98095.  70006.  40872.  32758.
-4 g        4347.   5656.   4109.   4130.   3512.   3927.   2244.   1707.
-5 G      134262. 169662. 129848. 141592. 148057. 119618.  93090.  59071.
-6 I      168405. 570535. 168294. 231694. 274658. 262027. 216846. 159825.
-7 S       33699.  62098.  57958.  86162.  91204.  67283.  43531.  30155.
-8 x     1696203. 484372. 894143. 637659. 441182. 289007. 189227. 124280.
 
 DANU_Measures_HbA1c %>% mutate(Box=ifelse(Box=="x"|Box=="b"|Box=="d","Early",
                                           ifelse(Box=="D"|Box=="S", "Interm",
                                                  ifelse(Box=="g"|Box=="G","GLP1","Insulin")))) %>% 
   group_by(Box, value) %>% summarise(n=sum(weight.x)) %>% ungroup() %>% spread(key=value, value=n)
-
-  Box         `<6`    `>9`  `6-6.5`  `6.5-7`  `7-7.5` `7.5-8` `8-8.5` `8.5-9`
-  <chr>      <dbl>   <dbl>    <dbl>    <dbl>    <dbl>   <dbl>   <dbl>   <dbl>
-1 Early   2618558. 817637. 1857501. 1492380. 1006683. 628519. 390476. 252007.
-2 GLP1     138608. 175318.  133957.  145722.  151568. 123546.  95333.  60778.
-3 Insulin  168405. 570535.  168294.  231694.  274658. 262027. 216846. 159825.
-4 Interm    96791. 131495.  151531.  199047.  189300. 137290.  84402.  62913.
 
 Stock_vs_NeedHbA1c <- fread("Stock_vs_NeedHbA1c_Dec1.csv")
 #Stock_vs_NeedHbA1c <- gather(Stock_vs_NeedHbA1c , Need, Pop, 2:9, factor_key=TRUE)
@@ -26120,23 +23886,11 @@ GLP1_Hist <- GLP1_Hist %>% left_join(DIA_Box_Histories)
 GLP1_Hist <- GLP1_Hist %>% drop_na()
 GLP1_Hist %>% ungroup() %>% group_by(n) %>% summarise(n2=sum(as.numeric(weight)))
  
-#   n           n2
-#   <chr>    <dbl>
-# 1 <3    1385716.
-# 2 >12    900989.
 
 GLP1_Hist %>% ungroup() %>% group_by(n, Treat) %>% summarise(n2=sum(as.numeric(weight))) %>%
   spread(key=Treat, value=n2)
 
-  n           b       d      D     g       I       S       x
-  <chr>   <dbl>   <dbl>  <dbl> <dbl>   <dbl>   <dbl>   <dbl>
-1 <3    203523. 132328. 58790.  782. 400172  102941. 487179.
-2 >12   129121.  79627. 27859. 4581. 318568.  96867. 244367.
-
-
-
-
-
+ 
 
 # --------------------------------------------------------------
 # Diabetes with ASCVD -------------------------------------------------------------------------------
@@ -26174,10 +23928,6 @@ ASCVD_pats <- ASCVD_pats %>% left_join(Cum_Class_Experience_EveryMonth, by=c("pa
 
 ASCVD_pats %>% group_by(GLP1INJExp) %>% summarise(n=sum(weight))
 
-#   GLP1INJExp         n
-#   <chr>          <dbl>
-# 1 Glp1InjExp  2103212.  (0.1081001)
-# 2 NA         17352945
 
 DIA_Flows_Aux._Long <- fread("DIA_Flows_Aux._Long.txt", integer64 = "character", stringsAsFactors = F)
 DIA_Flows_Aux._Long <- DIA_Flows_Aux._Long %>% filter(p2==60) %>% select(patient, s2) %>% filter(s2=="G") %>% select(-s2) %>% mutate(GLP1m60="GLP1m60")
@@ -26186,12 +23936,6 @@ ASCVD_pats <- ASCVD_pats %>% left_join(DIA_Flows_Aux._Long, by=c("patid"="patien
 
 ASCVD_pats %>% group_by(GLP1m60) %>% summarise(n=sum(weight))
 
-#   GLP1m60         n
-#   <chr>       <dbl>
-# 1 GLP1m60   980906.
-# 2 NA      18475251.
-
-
 Treatment_exp_Vector   <-fread("Treatment_exp_Vector.txt", colClasses = "character", stringsAsFactors = FALSE)
 ASCVD_pats <- Treatment_exp_Vector %>% select(patient) %>% inner_join(ASCVD_pats, by=c("patient"="patid"))
 
@@ -26199,17 +23943,7 @@ sum(ASCVD_pats$weight) # 11707890
 
 ASCVD_pats %>% group_by(GLP1INJExp) %>% summarise(n=sum(weight))
 
-#   GLP1INJExp        n
-#   <chr>         <dbl>
-# 1 Glp1InjExp 2103212.
-# 2 NA         9604678.
-
 ASCVD_pats %>% group_by(GLP1m60) %>% summarise(n=sum(weight))
-# 
-#   GLP1m60         n
-#   <chr>       <dbl>
-# 1 GLP1m60   980906.
-# 2 NA      10726985.
 
 # ---------------------------------------
 # Who has SGLT2 vs GLP1 --------------------------------------------------------------------------
@@ -26314,88 +24048,6 @@ summary(modelAll_1_glm)
 library("gbm")
 modelAll_1_gradientBoost <- gbm(Group=="No_SGLT2" ~ ., data = Dems_Labs_TreatExp, n.trees = 15000, distribution = "bernoulli")
 summary(modelAll_1_gradientBoost)
-
-
-# SUMMARY
-# SGLT2 but no GLP1 
-
-Call:
-glm(formula = Group ~ ., family = binomial, data = Dems_Labs_TreatExp)
-
-Deviance Residuals: 
-    Min       1Q   Median       3Q      Max  
--3.4109  -0.8390  -0.0282   0.8862   1.7534  
-
-Coefficients:
-                   Estimate Std. Error z value Pr(>|z|)    
-(Intercept)         0.28781    1.26660   0.227 0.820243    
-age                -0.00794    0.01136  -0.699 0.484504    
-gender              0.15389    0.29110   0.529 0.597039    
-diagnosis          -0.63315    0.73766  -0.858 0.390716    
-MAX_BMI             0.04897    0.01734   2.824 0.004748 ** 
-MAX_HbA1c          -0.20780    0.07230  -2.874 0.004050 ** 
-p1_InsulinExp      -0.78285    0.39166  -1.999 0.045631 *  
-p1_DPP4Exp          0.10830    0.36912   0.293 0.769223    
-p1_AntiDiabeticExp -0.70670    0.37631  -1.878 0.060384 .  
-p1_BiguanideExp    -0.95059    0.38445  -2.473 0.013414 *  
-cumflow            -0.06605    0.05155  -1.281 0.200106    
-Lines               0.57897    0.16626   3.482 0.000497 ***
-Diff_Drugs_exp     -0.01213    0.04375  -0.277 0.781576    
-LiverDisease        0.61206    0.33645   1.819 0.068887 .  
-KidneyDisease      -0.69741    0.32627  -2.138 0.032554 *  
-HeartDisease       -0.14398    0.49370  -0.292 0.770568    
----
-Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-
-(Dispersion parameter for binomial family taken to be 1)
-
-    Null deviance: 402.03  on 289  degrees of freedom
-Residual deviance: 310.53  on 274  degrees of freedom
-AIC: 342.53
-
-Number of Fisher Scoring iterations: 5
-
-
-
-
-# GLP1 but no SGLT2 
-
-Call:
-glm(formula = Group ~ ., family = binomial, data = Dems_Labs_TreatExp)
-
-Deviance Residuals:
-    Min       1Q   Median       3Q      Max
--3.4775  -0.9389  -0.1007   1.0411   2.3193
-
-Coefficients:
-                    Estimate Std. Error z value             Pr(>|z|)
-(Intercept)        -2.332410   0.154077 -15.138 < 0.0000000000000002 ***
-age                -0.007947   0.001298  -6.123 0.000000000915617599 ***
-gender             -0.261791   0.032102  -8.155 0.000000000000000349 ***
-diagnosis           0.712696   0.105688   6.743 0.000000000015471175 ***
-MAX_BMI             0.036503   0.001920  19.013 < 0.0000000000000002 ***
-MAX_HbA1c           0.016899   0.007319   2.309               0.0209 *
-p1_InsulinExp       0.184940   0.041153   4.494 0.000006991779020373 ***
-p1_DPP4Exp         -0.279710   0.044405  -6.299 0.000000000299534984 ***
-p1_AntiDiabeticExp -0.237127   0.038308  -6.190 0.000000000601906359 ***
-p1_BiguanideExp    -0.424223   0.041778 -10.154 < 0.0000000000000002 ***
-cumflow            -0.041754   0.005265  -7.930 0.000000000000002194 ***
-Lines               0.527815   0.020855  25.309 < 0.0000000000000002 ***
-Diff_Drugs_exp     -0.071410   0.005622 -12.702 < 0.0000000000000002 ***
-LiverDisease        0.089009   0.037370   2.382               0.0172 *
-KidneyDisease      -0.062256   0.037280  -1.670               0.0949 .
-HeartDisease       -0.389201   0.047681  -8.163 0.000000000000000328 ***
----
-Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-
-(Dispersion parameter for binomial family taken to be 1)
-
-    Null deviance: 27726  on 19999  degrees of freedom
-Residual deviance: 23699  on 19984  degrees of freedom
-AIC: 23731
-
-Number of Fisher Scoring iterations: 4
-
 
 
 
@@ -26943,11 +24595,7 @@ DIA_Comorbidity_Inventories <-DIA_Comorbidity_Inventories %>% filter(!grepl("A",
 
 DIA_Comorbidity_Inventories %>% select(km.cluster, patient, weight) %>% distinct() %>% group_by(km.cluster) %>% summarise(n=sum(as.numeric(weight)))
 
- km.cluster        n
-       <int>    <dbl>
-1          1 4418425.
-2          2  671908.
-
+ 
 
 ignore2 <-  DIA_Comorbidity_Inventories %>% group_by(km.cluster,diagnosis ) %>% summarise(n=sum(weight)) %>%
   spread(key=km.cluster, value=n) %>% 
@@ -27094,11 +24742,6 @@ DANU_Events <- DANU_Events %>% filter(grepl("E11", code)) %>% select(patid, code
 km_clusters %>% inner_join(DANU_Events %>% group_by(patid) %>% count(), by=c("patient"="patid")) %>% ungroup() %>%
   group_by(km.cluster) %>% summarise(mean=mean(n))
 
-#  km.cluster  mean
-#        <int> <dbl>
-# 1          1  3.58
-# 2          2  2.48
-
 
 DANU_Utilizations <- fread("DANU Utilizations.txt")
 
@@ -27117,17 +24760,6 @@ DANU_Demographics <- DANU_Demographics %>% mutate(diabetes_onset=format(as.Date(
 km_clusters %>% inner_join(DANU_Demographics, by=c("patient"="patid")) %>%
   group_by(km.cluster) %>% summarise(n=median(age))
 
-  km.cluster     n
-       <int> <dbl>
-1          1  16.9
-2          2  33.1
-
-
-  km.cluster     n
-       <int> <int>
-1          1    13
-2          2    37
-
 
 DANU_Events <- fread("DANU Events.txt")
 
@@ -27141,10 +24773,6 @@ DANU_Events %>% inner_join(km_clusters, by=c("patid"="patient")) %>% drop_na() %
   left_join(Months_lookup, by=c("claimed"="Month")) %>% drop_na() %>%
   group_by(km.cluster) %>% summarise(n=mean(Exact_Month))
   
-  km.cluster     n
-       <int> <dbl>
-1          1    12
-2          2    31
 
 
 DANU_Measures_HbA1c <- fread("DANU Measures.txt",  integer64 = "character", stringsAsFactors = F)
@@ -27154,12 +24782,6 @@ DANU_Measures_HbA1c %>% inner_join(km_clusters, by=c("patid"="patient")) %>% dro
   ungroup() %>%
   select(patid, km.cluster, value) %>%
   group_by(km.cluster) %>% summarise(n=mean(value))
-
-  km.cluster     n
-       <int> <dbl>
-1          1  7.46
-2          2  6.41
-
 
 DANU_Measures_HbA1c <- fread("DANU Measures.txt",  integer64 = "character", stringsAsFactors = F)
 
@@ -27315,10 +24937,7 @@ DIA_Drug_Histories_3 %>% ungroup() %>% filter(grp!=1) %>%
 
 DIA_Drug_Histories_3 %>% ungroup() %>% group_by(Drugs) %>% summarise(n=sum(weight))
 
-1 -     45776905.
-2 I     25806264.
-3 I+O   67537546.
-4 O     36426230.
+
 
 # SGLT2+GLP1 vs GLP1 vs SGLT2 --------------------------------------------------------------------------
 MAX_Labs_Demographics <- fread("MAX_Labs_Demographics.txt")
@@ -27455,9 +25074,7 @@ unique(DANU_Demographics$diagnosis)
 DANU_Demographics <- DANU_Demographics %>% filter(diagnosis!="-")
 DANU_Demographics %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 
-# 1 Diabetes             7949715.
-# 2 Diabetes + Obesity  40282960.
-# 3 Obesity            106469049.
+
 
 DANU_Demographics %>% mutate(diagnosis=ifelse(diagnosis!="Obesity", "Diabetes", diagnosis)) %>%
   group_by(diagnosis, gender) %>% summarise(n=sum(weight))
@@ -27527,8 +25144,6 @@ Comorbidity_Inventories <- DANU_Demographics %>% inner_join(Comorbidity_Inventor
 
 DANU_Demographics %>% group_by(diagnosis) %>% summarise(n=sum(weight)) 
 
-# 1 Diabetes   48232675.
-# 2 Obesity   106469049.
 
 # CKD
 Comorbidity_Inventories %>% filter(grepl("N18", ICD)) %>% select(patid, weight, diagnosis) %>% distinct() %>%
@@ -28644,33 +26259,6 @@ DIA_Flows_Aux._Long <- DIA_Flows_Aux._Long %>% group_by(patient, weight) %>%
 DIA_Flows_Aux._Long %>% filter(p2==60) %>%
   group_by(s2, s2_GLP1_exp) %>% summarise(n=sum(weight))
 
- s2        GLP1_exp         n
-1 GLP1_Inj         1  2580184.
-2 GLP1_Oral        1   137623.
-3 Lapsed           0 11484392.
-4 Lapsed           1  1406246.
-5 Other            0 13625633.
-6 Other            1  1391612.
-
-LAG 1  - - - - - - - - -
-  
-  s2        s2_GLP1_exp         n
-1 GLP1_Inj            1  2627976.
-2 GLP1_Oral           1   143334.
-3 Lapsed              0 10826443.
-4 Lapsed              1  1285327.
-5 Other               0 14283582.
-6 Other               1  1459028.
-
-LAG 2  - - - - - - - - -
-
-  s2        s2_GLP1_exp         n
-1 GLP1_Inj            1  2719960.
-2 GLP1_Oral           1   151749.
-3 Lapsed              0  9721225.
-4 Lapsed              1  1068004.
-5 Other               0 15388800.
-6 Other               1  1575952.
 
 
 
@@ -28685,35 +26273,6 @@ DIA_Flows_Aux._Long %>% filter(p2>=49 & flow==1) %>%
   group_by(s1, s2) %>% summarise(n=sum(weight)) %>%
   ungroup() %>% spread(key=s2, value=n)
 
-  s1          GLP1_Inj_1 GLP1_Oral_1 Lapsed_0 Lapsed_1   Other_0  Other_1
-1 GLP1_Inj_1    3725562.      15883.       0   549167.        0  1081479.
-2 GLP1_Oral_1     10968.      93176.       0    38799.        0    66574.
-3 Lapsed_0       376457.      48374.       0        0   8438811.       0 
-4 Lapsed_1       341585.      18533.       0        0         0  590648
-5 Other_0        666805.      97378. 7257945.       0  11573641.       0 
-6 Other_1        719529.      43100.       0   712178         0  2024570
-
-
-LAG 1 - - - - - - - - -
-
-  s1          GLP1_Inj_1 GLP1_Oral_1 Lapsed_0 Lapsed_1   Other_0  Other_1
-1 GLP1_Inj_1    3730067.      17286.       0   512078.        0  1108940.
-2 GLP1_Oral_1     11612.      93176.       0    31520.        0    68628.
-3 Lapsed_0       357280.      45948.       0        0   8173856.       0 
-4 Lapsed_1       312202.      16415.       0        0         0   520670
-5 Other_0        685982.      99804. 6952696.       0  11829337.       0 
-6 Other_1        743550.      43816.       0   638828         0  2064543
-
-LAG 2  - - - - - - - - -
-    
-  s1          GLP1_Inj_1 GLP1_Oral_1 Lapsed_0 Lapsed_1   Other_0  Other_1
-1 GLP1_Inj_1    3764232.      19420.       0   380563.        0  1158556.
-2 GLP1_Oral_1     12278.      93918.       0    21948.        0    71329.
-3 Lapsed_0       324546.      41861.       0        0   6123726.       0 
-4 Lapsed_1       181809.      10870.       0        0         0   315703
-5 Other_0        718716.     103891. 5210011.       0  12397259.       0 
-6 Other_1        780283.      45714.       0   448524         0  2140341
-  
 # ---------------------------------------------
 
 
@@ -28760,14 +26319,6 @@ DIA_Drug_Histories %>% group_by(patient) %>% filter(Month==min(Month)) %>%
   group_by(drug_group) %>% summarise(n=sum(weight)/30625690) %>%
   arrange(-n)
 
-#   drug_group       n
-# 1 b          0.955  
-# 2 I          0.383  
-# 3 d          0.369  
-# 4 D          0.189  
-# 5 S          0.107  
-# 6 G          0.106  
-# 7 g          0.00119
 
 DIA_Drug_Histories %>%
   anti_join(DIA_Drug_Histories %>% group_by(patient) %>% filter(Month==min(Month)) %>% select(patient, drug_group) %>% ungroup()) %>%
@@ -28775,15 +26326,6 @@ DIA_Drug_Histories %>%
   ungroup() %>% separate_rows(drug_group, sep = ",", convert=T) %>%
   group_by(drug_group) %>% summarise(n=sum(weight)/30625690) %>%
   arrange(-n)
-
-#   drug_group       n
-# 1 b          0.660  
-# 2 d          0.396  
-# 3 I          0.322  
-# 4 D          0.233  
-# 5 G          0.180  
-# 6 S          0.176  
-# 7 g          0.00424
 
 temp <- DIA_Drug_Histories
 
@@ -28795,30 +26337,11 @@ temp %>% ungroup() %>% filter(grp==1) %>%
   group_by(drug_group) %>% summarise(n=sum(weight)/30625690) %>%
   arrange(-n)
 
-  drug_group        n
-  <chr>         <dbl>
-1 b          0.684   
-2 I          0.259   
-3 d          0.191   
-4 D          0.0842  
-5 G          0.0529  
-6 S          0.0464  
-7 g          0.000844
 
 temp %>% ungroup() %>% filter(grp==2) %>%
   separate_rows(drug_group, sep = ",", convert=T) %>%
   group_by(drug_group) %>% summarise(n=sum(weight)/30625690) %>%
   arrange(-n)
-
- drug_group       n
-  <chr>        <dbl>
-1 b          0.307  
-2 d          0.179  
-3 I          0.151  
-4 D          0.0940 
-5 G          0.0791 
-6 S          0.0721 
-7 g          0.00229
 
 
 temp %>% ungroup() %>% filter(grp==3) %>%
@@ -28826,15 +26349,7 @@ temp %>% ungroup() %>% filter(grp==3) %>%
   group_by(drug_group) %>% summarise(n=sum(weight)/30625690) %>%
   arrange(-n)
 
-  drug_group       n
-  <chr>        <dbl>
-1 b          0.176  
-2 d          0.122  
-3 I          0.107  
-4 G          0.0721 
-5 D          0.0704 
-6 S          0.0636 
-7 g          0.00198
+
 
 temp %>% ungroup() %>% 
   separate_rows(drug_group, sep = ",", convert=T) %>%
@@ -28843,16 +26358,6 @@ temp %>% ungroup() %>%
   mutate(Perc=100*n/Total) %>% select(-c(n, Total)) %>%
   spread(key=grp, value=Perc)
 
-
-#   drug_group     `1`    `2`    `3`   `4`   `5`   `6`   `7`   `8`   `9`  `10`  `11`  `12`  `13`  `14`  `15`  `16`  `17`  `18`  `19`  `20`  `21`
-#   <chr>        <dbl>  <dbl>  <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl>
-# 1 b          68.4    64.6   57.0   57.1  54.8  54.6  53.6  52.5  52.3  52.9  51.5  54.4  54.4  49.9  49.7  54.9  54.0  38.4   63.8  41.4  60.9
-# 2 d          19.1    37.6   39.4   39.9  38.6  39.1  38.8  38.3  37.6  37.5  39.1  42.6  43.7  38.7  41.5  40.8  45.0  58.8   22.2  58.6  NA  
-# 3 D           8.42   19.8   22.8   24.6  23.7  23.1  21.7  21.9  21.2  19.9  21.3  21.3  16.1  18.5  23.4  23.0  21.6   8.99  22.2  31.8  NA  
-# 4 g           0.0844  0.482  0.640  1.03  1.26  1.32  1.59  1.92  2.44  2.11  1.58  3.18  2.76  4.32  3.90  5.58  6.57 17.9   16.2  NA    NA  
-# 5 G           5.29   16.6   23.3   30.5  34.7  38.2  40.9  42.8  42.7  43.0  43.5  45.4  48.2  43.1  48.6  54.8  48.7  46.4   47.0  41.4 100  
-# 6 I          25.9    31.8   34.6   40.0  43.2  45.5  47.2  49.5  50.5  50.7  49.5  54.7  51.5  50.7  52.5  57.2  65.5  48.5   61.6  79.6  NA  
-# 7 S           4.64   15.1   20.6   26.2  28.8  31.3  33.4  35.1  37.0  38.3  40.0  39.3  41.0  42.6  40.2  37.5  40.2  56.4   34.9  47.8  60.9
 
 
 data.frame(temp %>% group_by(patient) %>% filter(grp==max(grp)) %>% ungroup() %>%  group_by(grp) %>% summarise(Total=sum(weight)/30625690))
@@ -29163,12 +26668,6 @@ GLPs <- GLPs %>% mutate(First=ifelse(FirstOral<FirstInj, "Oral", ifelse(FirstOra
 
 GLPs %>% group_by(First) %>% count()
 
-#   First     n
-# 1 Both     35
-# 2 Inj     198
-# 3 Oral     88
-# 4 NA     1258
-
 
 temp <- fread("Cum_Class_Experience_EveryMonth.txt", sep="\t")
 names(temp)
@@ -29272,11 +26771,6 @@ GLPs <- GLPs %>% mutate(group=ifelse(Oral=="Oral"&Inj=="Inj", "Both", "Oral"))
 GLPs %>% group_by(group) %>% count()
 GLPs <- GLPs %>% mutate(group=ifelse(is.na(group), "Oral", group))
 
-# Groups:   group [2]
-#   group     n
-#   <chr> <int>
-# 1 Both    321
-# 2 NA     1258
 
 
 temp <- fread("Cum_Class_Experience_EveryMonth.txt", sep="\t")
@@ -29631,16 +27125,6 @@ temp %>% ungroup() %>%
   mutate(Perc=100*n/Total) %>% select(-c(n, Total)) %>%
   spread(key=grp, value=Perc)
 
-
-#   drug_group     `1`    `2`    `3`   `4`   `5`   `6`   `7`   `8`   `9`  `10`  `11`  `12`  `13`  `14`  `15`  `16`  `17`  `18`  `19`  `20`  `21`
-#   <chr>        <dbl>  <dbl>  <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl>
-# 1 b          68.4    64.6   57.0   57.1  54.8  54.6  53.6  52.5  52.3  52.9  51.5  54.4  54.4  49.9  49.7  54.9  54.0  38.4   63.8  41.4  60.9
-# 2 d          19.1    37.6   39.4   39.9  38.6  39.1  38.8  38.3  37.6  37.5  39.1  42.6  43.7  38.7  41.5  40.8  45.0  58.8   22.2  58.6  NA  
-# 3 D           8.42   19.8   22.8   24.6  23.7  23.1  21.7  21.9  21.2  19.9  21.3  21.3  16.1  18.5  23.4  23.0  21.6   8.99  22.2  31.8  NA  
-# 4 g           0.0844  0.482  0.640  1.03  1.26  1.32  1.59  1.92  2.44  2.11  1.58  3.18  2.76  4.32  3.90  5.58  6.57 17.9   16.2  NA    NA  
-# 5 G           5.29   16.6   23.3   30.5  34.7  38.2  40.9  42.8  42.7  43.0  43.5  45.4  48.2  43.1  48.6  54.8  48.7  46.4   47.0  41.4 100  
-# 6 I          25.9    31.8   34.6   40.0  43.2  45.5  47.2  49.5  50.5  50.7  49.5  54.7  51.5  50.7  52.5  57.2  65.5  48.5   61.6  79.6  NA  
-# 7 S           4.64   15.1   20.6   26.2  28.8  31.3  33.4  35.1  37.0  38.3  40.0  39.3  41.0  42.6  40.2  37.5  40.2  56.4   34.9  47.8  60.9
 
 
 temp %>% arrange(patient, grp)

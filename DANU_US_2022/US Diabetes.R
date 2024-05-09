@@ -62,72 +62,38 @@ Dia_US_Doses_semaglutide_Oral_summary %>% ungroup() %>%
   left_join(Dia_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% slice_head() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
 
-doses      n
-<dbl>  <dbl>
-1     3 183422.
-2     7 132076.
-3    14  13398.
 
 
 Dia_US_Doses_semaglutide_Oral_summary %>% ungroup() %>% 
   left_join(Dia_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=30) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
 
-doses       n
-<dbl>   <dbl>
-1     3 149363.
-2     7 159765.
-3    14  19768.
 
 Dia_US_Doses_semaglutide_Oral_summary %>% ungroup() %>% 
   left_join(Dia_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=60) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
 
-doses       n
-<dbl>   <dbl>
-1     3 121753.
-2     7 176449.
-3    14  30693.
+
 
 Dia_US_Doses_semaglutide_Oral_summary %>% ungroup() %>% 
   left_join(Dia_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=90) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
 
-doses       n
-<dbl>   <dbl>
-1     3 113760.
-2     7 171667.
-3    14  43468.
-
 Dia_US_Doses_semaglutide_Oral_summary %>% ungroup() %>% 
   left_join(Dia_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=120) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
 
-doses       n
-<dbl>   <dbl>
-1     3 109521.
-2     7 167784.
-3    14  51590.
 
 Dia_US_Doses_semaglutide_Oral_summary %>% ungroup() %>% 
   left_join(Dia_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=150) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
 
-doses       n
-<dbl>   <dbl>
-1     3 106238.
-2     7 166219.
-3    14  56439.
+
 
 Dia_US_Doses_semaglutide_Oral_summary %>% ungroup() %>% 
   left_join(Dia_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=180) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
 
-doses       n
-<dbl>   <dbl>
-1     3 105544.
-2     7 164899.
-3    14  58453.
 # ----
 # Generating Long Flows Table ------------------------
 DIA_Drug_Histories     <- fread("DIA Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
@@ -222,37 +188,12 @@ DIA_Flows_Aux._Long <- DIA_Flows_Aux._Long %>% select(-c(disease, starts, stops,
 DIA_Flows_Aux._Long %>% filter(p1>=48) %>% filter(!grepl("47",d1)) %>% filter(grepl("47",d2)) %>%
   group_by(s1) %>% summarise(pats=sum(as.numeric(weight))) #1727
 
-# s1      pats
-# <chr>  <dbl>
-# 1 b     44219.
-# 2 d     20711.
-# 3 D     14993.
-# 4 G     20053.
-# 5 I     27146.
-# 6 S     37132.
-# 7 x     68923.
 
 DIA_Flows_Aux._Long %>% filter(p1>=48) %>% filter(grepl("47",d1)) %>% filter(!grepl("47",d2)) %>% 
   group_by(s2) %>% summarise(pats=sum(as.numeric(weight))) #912
  
-# s2      pats
-# <chr>  <dbl>
-# 1 b     20511.
-# 2 d      8808.
-# 3 D      4764.
-# 4 G     15732 
-# 5 I     19406.
-# 6 S     14954.
-# 7 x     39925.
 
-# #SANKEY
-# Oral Semaglutide [69] Lapsed
-# Oral Semaglutide [44] Biguanide
-# Oral Semaglutide [21] Antidiabetic
-# Oral Semaglutide [15] DPP4
-# Oral Semaglutide [37] SGLT2
-# Oral Semaglutide [27] Insulin
-# Oral Semaglutide [20] Injectable GLP1
+
 # ----
 # Flows to/ from GLP1s --------------------------
 DANU_Ingredients       <- fread("DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
@@ -274,29 +215,12 @@ DIA_Flows_Aux._Long %>% filter(p1>=48) %>% filter(!grepl("g",s1)) %>% filter(gre
 
 DIA_Flows_Aux._Long %>% filter(p1>=48) %>% filter(!grepl("g",s1)) %>% filter(grepl("g",s2)) %>% select(patient) %>% distinct() #1661
 
-# s1      pats
-# <chr>  <dbl>
-# 1 b     42904.
-# 2 d     20354.
-# 3 D     14363.
-# 4 G     15883.
-# 5 I     26120.
-# 6 S     36736.
-# 7 x     66908.
 
 
 DIA_Flows_Aux._Long %>% filter(p1>=48) %>% filter(!grepl("G",s1)) %>% filter(grepl("G",s2)) %>%
   group_by(s1) %>% summarise(pats=sum(as.numeric(weight)))
 
-# s1       pats
-# <chr>   <dbl>
-# 1 b     330447.
-# 2 d     189307.
-# 3 D      91729.
-# 4 g      10968.
-# 5 I     566519.
-# 6 S     208332.
-# 7 x     718042.
+
 
 
 DIA_Flows_Aux._Long %>% filter(p1>=48) %>% filter(!grepl("G",s1)) %>% filter(grepl("G",s2)) %>% select(patient) %>% distinct() #14725
@@ -314,27 +238,8 @@ row.names(df) <- df$s1
 
 df <- df %>% select(-c(s1))
 
-#     x          b          d         D         S         I        g          G
-# x         NA 4520251.18  971193.96 412720.25 429362.57 2695930.6 66907.54  718041.83
-# b 3871011.89         NA  537281.68 191592.89 271456.00  454304.4 42903.57  330447.35
-# d  908284.21  421163.43 1002701.95 199797.32 191723.90  336664.8 20354.22  189306.97
-# D  359749.48  134704.38  177715.18 676275.09 141498.57  180786.8 14363.46   91729.47
-# S  332850.39  162741.69  149386.57  91905.31 869157.47  177440.2 36736.11  208331.62
-# I 2498226.55  455233.38  302365.28 154093.71 173721.97 6144499.1 26120.30  566518.61
-# g   38798.55   19911.87    8807.67   4467.58  14791.71   18595.5 93175.86   10968.23
-# G  549166.63  236063.95  139465.43  41960.84 164339.35  499649.5 15883.07 3725561.68
-
 df <- round(df/1000)
 
-#     x    b    d   D   S    I  g    G
-# x   NA 4520  971 413 429 2696 67  718
-# b 3871   NA  537 192 271  454 43  330
-# d  908  421 1003 200 192  337 20  189
-# D  360  135  178 676 141  181 14   92
-# S  333  163  149  92 869  177 37  208
-# I 2498  455  302 154 174 6144 26  567
-# g   39   20    9   4  15   19 93   11
-# G  549  236  139  42 164  500 16 3726
 
 
 grid.bubble.plot <- function(df, 
@@ -452,11 +357,6 @@ DIA_Flows_Aux._Long %>% ungroup() %>% filter(p1_InjExp != 0) %>% select(patient,
 DIA_Flows_Aux._Long %>% filter(p1_OralExp != 0 | p1_InjExp != 0) %>% group_by(patient) %>% slice(1) %>%
   ungroup() %>% group_by(p1_OralExp, p1_InjExp) %>% summarise(n = sum(weight))
 
-# p1_OralExp p1_InjExp        n
-# <dbl>     <dbl>    <dbl>
-# 1          0         1 1431407.
-# 2          1         0  155193.
-# 3          1         1    4590.
 
 # -----
 # Split inflows to Rybelsus based on prev treat exp for advanced therapies --------------------------------
@@ -489,116 +389,29 @@ DIA_Flows_Aux._Long <- DIA_Flows_Aux._Long %>% group_by(patient) %>% mutate(p1_D
 DIA_Flows_Aux._Long %>% filter(p1>=48) %>% filter(!grepl("47",d1)) %>% filter(grepl("47",d2)) %>%
   group_by(s1) %>% summarise(pats=sum(as.numeric(weight))) #1727
 
-# s1      pats
-# <chr>  <dbl>
-# 1 b     44219.
-# 2 d     20711.
-# 3 D     14993.
-# 4 G     20053.
-# 5 I     27146.
-# 6 S     37132.
-# 7 x     68923.
 
 
 DIA_Flows_Aux._Long %>% filter(p1>=48) %>% filter(!grepl("47",d1)) %>% filter(grepl("47",d2)) %>%
   group_by(s1, p1_OralExp) %>% summarise(pats=sum(as.numeric(weight))) 
 
-# s1    p1_OralExp   pats
-# <chr>      <dbl>  <dbl>
-# 1 b              0 41279.
-# 2 b              1  2939.
-# 3 d              0 19358.
-# 4 d              1  1353.
-# 5 D              0 14642.
-# 6 D              1   351.
-# 7 G              0 18453.
-# 8 G              1  1601.
-# 9 I              0 23974.
-# 10 I              1  3172.
-# 11 S              0 34492.
-# 12 S              1  2640.
-# 13 x              0 63705.
-# 14 x              1  5218.
 
 DIA_Flows_Aux._Long %>% filter(p1>=48) %>% filter(!grepl("47",d1)) %>% filter(grepl("47",d2)) %>%
   group_by(s1, p1_InjExp) %>% summarise(pats=sum(as.numeric(weight))) 
 
-# s1    p1_InjExp   pats
-# <chr>     <dbl>  <dbl>
-# 1 b             0 35059.
-# 2 b             1  9160.
-# 3 d             0 16522.
-# 4 d             1  4189.
-# 5 D             0 12959.
-# 6 D             1  2034.
-# 7 G             1 20053.
-# 8 I             0 13775.
-# 9 I             1 13371.
-# 10 S             0 28298.
-# 11 S             1  8834.
-# 12 x             0 52861.
-# 13 x             1 16062.
 
 
 DIA_Flows_Aux._Long %>% filter(p1>=48) %>% filter(!grepl("47",d1)) %>% filter(grepl("47",d2)) %>%
   group_by(s1, p1_InsulinExp) %>% summarise(pats=sum(as.numeric(weight))) 
 
-# s1    p1_InsulinExp   pats
-# <chr>         <dbl>  <dbl>
-# 1 b                 0 37632.
-# 2 b                 1  6587.
-# 3 d                 0 16207.
-# 4 d                 1  4504.
-# 5 D                 0 12873.
-# 6 D                 1  2121.
-# 7 G                 0  9242.
-# 8 G                 1 10811.
-# 9 I                 1 27146.
-# 10 S                 0 30237.
-# 11 S                 1  6895.
-# 12 x                 0 58294.
-# 13 x                 1 10629.
 
 
 DIA_Flows_Aux._Long %>% filter(p1>=48) %>% filter(!grepl("47",d1)) %>% filter(grepl("47",d2)) %>%
   group_by(s1, p1_SGLT2Exp) %>% summarise(pats=sum(as.numeric(weight))) 
 
-# s1    p1_SGLT2Exp   pats
-# <chr>       <dbl>  <dbl>
-# 1 b               0 36258.
-# 2 b               1  7961.
-# 3 d               0 14251.
-# 4 d               1  6460.
-# 5 D               0 10896.
-# 6 D               1  4097.
-# 7 G               0 11045.
-# 8 G               1  9008.
-# 9 I               0 13563.
-# 10 I               1 13583.
-# 11 S               1 37132.
-# 12 x               0 58235.
-# 13 x               1 10688.
-
 
 
 DIA_Flows_Aux._Long %>% filter(p1>=48) %>% filter(!grepl("47",d1)) %>% filter(grepl("47",d2)) %>%
   group_by(s1, p1_DPP4Exp) %>% summarise(pats=sum(as.numeric(weight))) 
-
-# s1    p1_DPP4Exp   pats
-# <chr>      <dbl>  <dbl>
-# 1 b              0 38117.
-# 2 b              1  6102.
-# 3 d              0 15095.
-# 4 d              1  5616.
-# 5 D              1 14993.
-# 6 G              0 12615.
-# 7 G              1  7438.
-# 8 I              0 16538.
-# 9 I              1 10608.
-# 10 S              0 18433.
-# 11 S              1 18699.
-# 12 x              0 58736.
-# 13 x              1 10187.
 
 
 data.frame(DIA_Flows_Aux._Long %>% filter(p1>=48) %>% filter(!grepl("47",d1)) %>% filter(grepl("47",d2)) %>%
@@ -839,39 +652,15 @@ DIA_Flows_Aux._Long_Rybelsus  %>% filter(n=="After") %>% group_b
   
   data %>% group_by(s2) %>% summarise(n = weighted.mean(nr_lines, weight))
   
-  # s2        n
-  # <chr> <dbl>
-  # 1 b      1.55
-  # 2 d      3.11
-  # 3 D      3.57
-  # 4 g      5.16
-  # 5 G      6.30
-  # 6 I      5.20
-  # 7 S      4.33
-  # 8 x      2.06
-  
+
   data %>% mutate(nr_lines = ifelse(nr_lines>=6, 6, nr_lines)) %>% group_by(nr_lines) %>% 
     summarise(n = sum(weight))
-  
-  # 1        1 14246611.
-  # 2        2  4508280 
-  # 3        3  3360240.
-  # 4        4  2160612.
-  # 5        5  1639860.
-  # 6        6  4710088.
+
   
   data %>% mutate(nr_lines = ifelse(nr_lines>=6, 6, nr_lines)) %>% group_by(s2, nr_lines) %>% 
     summarise(n = sum(weight)) %>% spread(key = s2, value = n)
   
-  # nr_lines        b       d       D      g        G        I       S        x
-  # <dbl>    <dbl>   <dbl>   <dbl>  <dbl>    <dbl>    <dbl>   <dbl>    <dbl>
-  # 1        1 4622914. 498190. 171204.  7405.  110780.  490817.  94216. 8251083.
-  # 2        2  657759. 703564. 289988. 26948.  298388.  550735. 270761. 1710138.
-  # 3        3  352693. 537969. 251992. 21411.  321158.  585277. 241918. 1047821.
-  # 4        4  145549  249534. 164444. 17464.  295495.  521240. 181410.  585476.
-  # 5        5   86892. 161486. 109541. 15276.  283145.  438968. 138386.  406167.
-  # 6        6  161604. 276739. 186928. 49120. 1271218. 1558614. 315912.  889953.
-  
+
   
 temp <-  data %>% mutate(nr_lines = ifelse(nr_lines>=6, 6, nr_lines)) %>% group_by(nr_lines, s2) %>% 
     summarise(n = sum(weight)) %>% spread(key = nr_lines, value = n)
@@ -954,17 +743,7 @@ fwrite(temp, "temp.csv")
   
   Start_df <- DIA_Flows_Aux._Long %>% filter(p2==60) %>% group_by(s2) %>% summarise(pats=sum(as.numeric(weight))) 
   
-  # s2         pats
-  # <chr>     <dbl>
-  # 1 b      6027410.
-  # 2 d      2427483.
-  # 3 D      1174097.
-  # 4 g       137623.
-  # 5 G      2580184.
-  # 6 I      4145652.
-  # 7 S      1242602.
-  # 8 x     12890638.
-  
+
   Start_df <- Start_df %>% left_join(DIA_Flows_Aux._Long %>% filter(p2==60) %>% group_by(s2, p1_OralExp) %>% 
                                        summarise(pats_p1_OralExp=sum(as.numeric(weight))) %>% filter(p1_OralExp == 1))
   
@@ -1065,38 +844,13 @@ fwrite(temp, "temp.csv")
   
   DIA_Box_Histories %>% group_by(Box_m60) %>% summarise(n=sum(as.numeric(weight)))
   
-  # Box_m60         n
-  # <chr>       <dbl>
-  # 1 b        6027410.
-  # 2 d        2427483.
-  # 3 D        1174097.
-  # 4 g         137623.
-  # 5 G        2580184.
-  # 6 I        4145652.
-  # 7 S        1242602.
-  # 8 x       12890638.
-  
+ 
   
   DIA_Box_Histories <- DIA_Box_Histories %>% mutate(combo = ifelse(grepl(",",month60), "Combo", "Mono"))
   
   DIA_Box_Histories %>% group_by(Box_m60, combo) %>% summarise(n=sum(as.numeric(weight)))
   
-  # Box_m60 combo         n
-  # <chr>   <chr>     <dbl>
-  # 1 b       Mono   6027410.
-  # 2 d       Combo  1530879.
-  # 3 d       Mono    896604.
-  # 4 D       Combo   910085.
-  # 5 D       Mono    264012.
-  # 6 g       Combo   104791.
-  # 7 g       Mono     32832.
-  # 8 G       Combo  2137881.
-  # 9 G       Mono    442303.
-  # 10 I       Combo  2455413.
-  # 11 I       Mono   1690239.
-  # 12 S       Combo  1002737.
-  # 13 S       Mono    239865.
-  # 14 x       Mono  12890638.
+
   
   DIA_Box_Histories <- separate_rows(DIA_Box_Histories, month60, sep = ",", convert=T)
   names(DIA_Box_Histories)[4] <- "molecule"
@@ -1109,36 +863,7 @@ fwrite(temp, "temp.csv")
   data.frame(DIA_Box_Histories %>% left_join(DANU_Ingredients) %>% select(patient, weight, Box_m60, drug_group) %>% distinct() %>%
                group_by(Box_m60, drug_group) %>% summarise(n=sum(as.numeric(weight))))
   
-  # Box_m60      drug_group           n
-  # 1        b       Biguanide  6027410.42
-  # 2        d    Antidiabetic  2427483.41
-  # 3        d       Biguanide  1458402.61
-  # 4        D    Antidiabetic   451984.42
-  # 5        D       Biguanide   758381.34
-  # 6        D            DPP4  1174097.35
-  # 7        g    Antidiabetic    32034.89
-  # 8        g       Biguanide    77487.78
-  # 9        g            DPP4    13336.86
-  # 10       g       GLP1 Oral   137623.25
-  # 11       g         Insulin    20550.61
-  # 12       g           SGLT2    36742.64
-  # 13       G    Antidiabetic   608623.02
-  # 14       G       Biguanide  1451897.17
-  # 15       G            DPP4   157519.97
-  # 16       G GLP1 Injectable  2580183.65
-  # 17       G       GLP1 Oral     4217.31
-  # 18       G         Insulin  1018231.17
-  # 19       G           SGLT2   644479.85
-  # 20       I    Antidiabetic   600127.76
-  # 21       I       Biguanide  1284522.48
-  # 22       I            DPP4   349102.87
-  # 23       I         Insulin  4145652.07
-  # 24       I           SGLT2   350964.98
-  # 25       S    Antidiabetic   383714.74
-  # 26       S       Biguanide   855090.52
-  # 27       S            DPP4   288801.15
-  # 28       S           SGLT2  1242601.94
-  # 29       x            <NA> 12890637.92
+  
 # -------
 # SGLT2 & GLP1 Oral Status -----------------------------------------
   DANU_Ingredients       <- fread("DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
@@ -1181,20 +906,6 @@ DIA_Flows_Aux._Long %>% select(patient, weight, flow) %>% inner_join(Treatment_e
   mutate(total_flows = sum(flow)) %>% select(patient, weight, total_flows) %>% distinct() %>%
   ungroup() %>% group_by(total_flows) %>% summarise(n = sum (weight))
 
-# total_flows         n
-# <int>     <dbl>
-# 1           0 15513343.
-# 2           1  7699678.
-# 3           2  3547697.
-# 4           3  1886565.
-# 5           4  1050894.
-# 6           5   520630.
-# 7           6   244706.
-# 8           7   112075.
-# 9           8    34677.
-# 10           9    12843.
-# 11          10     2581.
-
 
 DIA_Flows_Aux._Long %>% select(patient, weight, flow) %>% inner_join(Treatment_exp_Vector) %>% group_by(patient) %>%
   mutate(total_flows = sum(flow)) %>% select(patient, weight, total_flows) %>% distinct() %>%
@@ -1214,51 +925,19 @@ data.frame(DIA_Flows_Aux._Long %>% select(patient, weight, flow) %>%  inner_join
   ungroup() %>% left_join(DIA_Box_Histories) %>% group_by(month60, total_flows) %>% summarise(n = sum (weight)) %>%
     spread(key = month60, value = n))
 
-# total_flows          b         d         D        g         G         I         S          x
-# 1            0 2962548.44 982929.40 438276.02  4516.27 484866.02 879864.98 310157.49 9450184.61
-# 2            1 2341328.40 650373.30 321359.09 42429.67 574839.30 961050.25 368949.23 2439348.97
-# 3            2  461849.42 437391.27 223042.56 41347.24 584398.91 931225.35 270650.28  597792.28
-# 4            3  155904.80 200529.53 107475.90 22650.55 409322.34 596170.19 152073.44  242438.17
-# 5            4   62307.50  95450.48  53430.85 15046.08 251709.27 390576.98  78225.38  104146.98
-# 6            5   26544.93  37335.81  18566.38  6213.61 144945.91 211114.26  38241.77   37667.30
-# 7            6   11401.00  13908.89   7838.31  3033.98  77549.60 103354.91  13915.06   13704.30
-# 8            7    4044.61   6289.10   3089.61  1157.04  37275.45  48605.74   7771.67    3842.11
-# 9            8    1093.48   2636.00    813.20   447.23   9796.47  16915.43   2042.16     932.83
-# 10           9     387.84    541.00    205.43   680.64   4565.82   5306.70    575.46     580.37
-# 11          10         NA     98.63        NA   100.94    914.56   1467.28        NA         NA
-
-
 
 
 DIA_Flows_Aux._Long %>% select(patient, weight, flow) %>%  inner_join(Treatment_exp_Vector) %>% group_by(patient) %>%
   mutate(total_flows = sum(flow)) %>% select(patient, weight, total_flows) %>% distinct() %>%
   ungroup() %>% left_join(DIA_Box_Histories) %>% group_by(month60) %>% summarise(n = weighted.mean(total_flows, weight)) 
 
-# month60     n
-# <chr>   <dbl>
-# 1 b       0.701
-# 2 d       1.17 
-# 3 D       1.25 
-# 4 g       2.33 
-# 5 G       2.15 
-# 6 I       2.02 
-# 7 S       1.63 
-# 8 x       0.395
+
 
 DIA_Flows_Aux._Long %>% select(patient, weight, flow) %>%  inner_join(Treatment_exp_Vector) %>% group_by(patient) %>%
   mutate(total_flows = sum(flow)) %>% select(patient, weight, total_flows) %>% distinct() %>%
   ungroup() %>% left_join(DIA_Box_Histories) %>% group_by(month60) %>% summarise(n = weighted.median(total_flows, weight))
 
-# month60     n
-# <chr>   <dbl>
-# 1 b         0.5
-# 2 d         0.5
-# 3 D         0.5
-# 4 g         1.5
-# 5 G         1.5
-# 6 I         1.5
-# 7 S         0.5
-# 8 x         0 
+
 # --------
 # For how long have they been lapsed? -----------
 Treatment_exp_Vector <- fread("Treatment_exp_Vector.txt")
@@ -1292,15 +971,7 @@ DIA_Box_Histories %>% group_by(patient, weight) %>% count() %>% ungroup() %>%
   group_by(Total_lapsed_bucket) %>%
   summarise(pats = sum(as.numeric(weight)))
 
-# Total_lapsed_bucket     pats
-# <chr>                  <dbl>
-# 1 1                    778869.
-# 2 12 to 24            2974961.
-# 3 2 to 6              2208456.
-# 4 24 to 36            1944564.
-# 5 36 to 48            1667318.
-# 6 48 to 60            1358504.
-# 7 6 to 12             1957967.
+
 
 Lapsed_summary <- DIA_Box_Histories %>% group_by(patient, weight) %>% count() %>% ungroup()
 
@@ -1333,126 +1004,10 @@ temp2 <- temp %>% group_by(patient, weight, grp) %>% count() %>% distinct()
 # Not followed by return to therapy
 data.frame(temp2 %>% group_by(patient) %>% filter(grp == max(grp)) %>% group_by(n) %>% summarise(pats = sum(weight)))
 
-n       pats
-1   1 1403866.44
-2   2 2251971.25
-3   3 2442028.40
-4   4 1371072.12
-5   5  921903.33
-6   6  748437.40
-7   7  603768.61
-8   8  582610.38
-9   9  527871.88
-10 10  429367.92
-11 11  399488.67
-12 12  373205.62
-13 13  397411.13
-14 14  449515.25
-15 15  470164.68
-16 16  363230.57
-17 17  287007.55
-18 18  272319.96
-19 19  244015.91
-20 20  239876.24
-21 21  229784.25
-22 22  225986.55
-23 23  225024.74
-24 24  208605.68
-25 25  225770.06
-26 26  221595.37
-27 27  233433.31
-28 28  207594.69
-29 29  175986.30
-30 30  179485.12
-31 31  169836.25
-32 32  165573.88
-33 33  173338.66
-34 34  160308.09
-35 35  162692.38
-36 36  158744.06
-37 37  176134.33
-38 38  159128.78
-39 39  179136.04
-40 40  166549.29
-41 41  148934.82
-42 42  149356.52
-43 43  139637.11
-44 44  141559.73
-45 45  149715.34
-46 46  139855.02
-47 47  134237.35
-48 48  136813.31
-49 49  141586.33
-50 50  128467.54
-51 51  141488.86
-52 52  125013.27
-53 53  108741.61
-54 54  107823.40
-55 55  108612.53
-56 56  106860.37
-57 57   99849.94
-58 58  108845.85
-59 59  110270.59
-
 #  followed by return to therapy
 data.frame(temp2 %>% group_by(patient) %>% filter(grp != max(grp)) %>% group_by(n) %>% summarise(pats = sum(weight)))
 
 
-1   1 1291016.11
-2   2 3608953.40
-3   3 4264608.50
-4   4 2395241.68
-5   5 1574178.38
-6   6 1091533.01
-7   7  810492.59
-8   8  647902.58
-9   9  526507.96
-10 10  425977.34
-11 11  351424.74
-12 12  314797.99
-13 13  256113.67
-14 14  213729.93
-15 15  193913.99
-16 16  163609.97
-17 17  146117.67
-18 18  122299.48
-19 19  115151.78
-20 20  104045.50
-21 21   96814.87
-22 22   93046.60
-23 23   84926.96
-24 24   75574.23
-25 25   62816.85
-26 26   55517.45
-27 27   54875.94
-28 28   52519.60
-29 29   47055.89
-30 30   44151.37
-31 31   35626.64
-32 32   35702.14
-33 33   38764.38
-34 34   33849.96
-35 35   26232.80
-36 36   23626.01
-37 37   23682.42
-38 38   19524.12
-39 39   19746.17
-40 40   15350.12
-41 41   14959.80
-42 42   10201.61
-43 43   10741.50
-44 44    9779.43
-45 45    8533.60
-46 46    6522.92
-47 47    5864.46
-48 48    5139.84
-49 49    4704.52
-50 50    5167.74
-51 51    3642.47
-52 52    3687.04
-53 53     768.61
-54 54    1150.90
-55 55    1212.72
 # ------
 
 # Subdivide intraflows by type of accompaining flows ------------------------------------------------
@@ -1696,70 +1251,6 @@ data.frame(DIA_Doses_BIG %>% select(pat_id,weight, Month_Yr) %>% group_by(Month_
         axis.ticks = element_blank())+
   xlab("\nMonth")+ylab("Number of Scripts per Patient \n")
 
-# Month_Yr script_count pat_count scripts_pat
-# 1   2016-05     17944020   9361073    1.916876
-# 2   2016-06     18174505   9401981    1.933051
-# 3   2016-07     17841865   9320902    1.914178
-# 4   2016-08     18743336   9607826    1.950841
-# 5   2016-09     18062480   9466192    1.908104
-# 6   2016-10     18624413   9587837    1.942504
-# 7   2016-11     18323511   9527209    1.923282
-# 8   2016-12     19040572   9736782    1.955530
-# 9   2017-01     19557759   9894936    1.976542
-# 10  2017-02     17717571   9452664    1.874347
-# 11  2017-03     19923804  10171158    1.958853
-# 12  2017-04     18535165   9785370    1.894171
-# 13  2017-05     20001557  10235135    1.954205
-# 14  2017-06     19735843  10179294    1.938822
-# 15  2017-07     19665578  10158083    1.935954
-# 16  2017-08     20242951  10338838    1.957952
-# 17  2017-09     19023036   9975779    1.906922
-# 18  2017-10     20124629  10330147    1.948145
-# 19  2017-11     19364447  10089370    1.919292
-# 20  2017-12     19705070  10164326    1.938650
-# 21  2018-01     20244070  10226271    1.979614
-# 22  2018-02     18196084   9711401    1.873683
-# 23  2018-03     20037998  10317395    1.942157
-# 24  2018-04     19573661  10236379    1.912166
-# 25  2018-05     20178737  10381641    1.943694
-# 26  2018-06     19479925  10216809    1.906655
-# 27  2018-07     20048998  10341693    1.938657
-# 28  2018-08     20588792  10518818    1.957329
-# 29  2018-09     18999848  10063815    1.887937
-# 30  2018-10     20941346  10667460    1.963105
-# 31  2018-11     19886531  10353901    1.920680
-# 32  2018-12     20363072  10445888    1.949386
-# 33  2019-01     20794343  10505431    1.979390
-# 34  2019-02     18684148   9922695    1.882971
-# 35  2019-03     20454964  10489552    1.950032
-# 36  2019-04     20773536  10662072    1.948358
-# 37  2019-05     20999077  10701313    1.962290
-# 38  2019-06     20121802  10459160    1.923845
-# 39  2019-07     21800520  10937514    1.993188
-# 40  2019-08     21362948  10813678    1.975549
-# 41  2019-09     20465506  10544722    1.940829
-# 42  2019-10     22267591  11125800    2.001437
-# 43  2019-11     20709335  10635196    1.947245
-# 44  2019-12     22209905  11088623    2.002945
-# 45  2020-01     22414010  10861643    2.063593
-# 46  2020-02     20061222  10200018    1.966783
-# 47  2020-03     22840660  10919557    2.091720
-# 48  2020-04     21485206  10706198    2.006801
-# 49  2020-05     21112406  10589914    1.993633
-# 50  2020-06     22340831  11087754    2.014910
-# 51  2020-07     22046541  10934370    2.016261
-# 52  2020-08     21311486  10738332    1.984618
-# 53  2020-09     21256696  10794041    1.969299
-# 54  2020-10     21616916  10861355    1.990260
-# 55  2020-11     20860668  10691894    1.951073
-# 56  2020-12     23107032  11486082    2.011742
-# 57  2021-01     22067331  11060211    1.995200
-# 58  2021-02     20940288  10684266    1.959918
-# 59  2021-03     24006170  11627979    2.064518
-# 60  2021-04     23141324  11470082    2.017538
-
-
-
 # ------
 
 # HbA1c distribution -------------------
@@ -1821,43 +1312,13 @@ length(unique(Last_read$patid)) #129502
 
 Last_read %>% group_by(Box) %>% summarise(n=sum(as.numeric(weight)))
 
-# Box          n
-# <chr>    <dbl>
-# 1 b     2900436.
-# 2 d     1311444.
-# 3 D      563023.
-# 4 g       28680.
-# 5 G      956513.
-# 6 I     1970548.
-# 7 S      459256.
-# 8 x     9962047.
+
 
 
 Last_read %>% group_by(Box) %>% summarise(n=weighted.mean(as.numeric(value), as.numeric(weight))) %>% arrange(-n)
 
-# Box       n
-# <chr> <dbl>
-# 1 I      8.14
-# 2 g      7.55
-# 3 S      7.51
-# 4 G      7.50
-# 5 D      7.34
-# 6 d      7.34
-# 7 b      6.68
-# 8 x      6.35
 
 Last_read %>% group_by(Box) %>% summarise(n=weighted.median(as.numeric(value), as.numeric(weight))) %>% arrange(-n)
-
-# Box       n
-# <chr> <dbl>
-# 1 I      7.75
-# 2 S      7.25
-# 3 g      7.15
-# 4 G      7.15
-# 5 d      7.00
-# 6 D      6.95
-# 7 b      6.35
-# 8 x      5.98
 
 
 Last_read %>% ungroup() %>% select(Box, value) %>% 
@@ -1991,42 +1452,11 @@ length(unique(Last_read$patid)) #132746
 
 Last_read %>% group_by(Box) %>% summarise(n=sum(as.numeric(weight)))
 
-# Box           n
-# <chr>     <dbl>
-# 1 b      2971146.
-# 2 d      1334739.
-# 3 D       579978.
-# 4 g        29632.
-# 5 G       994507.
-# 6 I      2050767.
-# 7 S       472189.
-# 8 x     10169215.
 
 Last_read %>% group_by(Box) %>% summarise(n=weighted.mean(as.numeric(value), as.numeric(weight))) %>% arrange(-n)
 
-# Box       n
-# <chr> <dbl>
-#   1 I      8.19
-# 2 g      7.64
-# 3 G      7.55
-# 4 S      7.54
-# 5 d      7.36
-# 6 D      7.35
-# 7 b      6.71
-# 8 x      6.36
 
 Last_read %>% group_by(Box) %>% summarise(n=weighted.median(as.numeric(value), as.numeric(weight))) %>% arrange(-n)
-
-# Box       n
-# <chr> <dbl>
-#   1 I      7.75
-# 2 g      7.25
-# 3 S      7.25
-# 4 G      7.15
-# 5 d      7.00
-# 6 D      6.95
-# 7 b      6.38
-# 8 x      5.98
 
 
 Last_read %>% ungroup() %>% select(Box, value) %>% 
@@ -2066,12 +1496,6 @@ GLP1Minus25 <- GLP1_Histories %>% select(patient, value) %>% filter(!is.na(value
 
 GLP1Minus25 %>% left_join(GLP1_Histories) %>% ungroup() %>% group_by(GLP1OralStatus) %>% summarise(n = mean(value, na.rm = T))
 
-# GLP1OralStatus     n
-# <chr>          <dbl>
-# 1 No              7.55
-# 2 Yes             7.25
-# (7.88-7.62)/7.88
-# 0.03299492
 
 
 Pats_Both_States <- GLP1Minus25 %>% left_join(GLP1_Histories) %>% ungroup() %>% filter(!is.na(value)) %>% group_by(patient, GLP1OralStatus) %>% count() %>% ungroup() %>% filter(n!=0)  %>% group_by(patient) %>% count() %>% filter(n==2) %>% select(patient)
@@ -2106,11 +1530,6 @@ Pats_Both_States <- SGLT2Minus25 %>% left_join(SGLT2_Histories) %>% ungroup() %>
 
 Pats_Both_States %>% left_join(SGLT2_Histories) %>% ungroup() %>% group_by(SGLT2Status) %>% summarise(n = weighted.median(value, weight, na.rm = T))
 
-# SGLT2Status     n
-# <chr>       <dbl>
-# 1 No           7.59
-# 2 Yes          7.35 
-
 # SGLT2_Histories %>% filter(patient == "PT335980266") %>% select(Month, value) %>%
 #   ggplot(aes(Month, value))+
 #   geom_point(size=2, alpha=0.4, color="firebrick")+
@@ -2144,11 +1563,6 @@ ComboMinus25 %>% left_join(Combo_Histories) %>% ungroup() %>% group_by(ComboStat
 Pats_Both_States <- ComboMinus25 %>% left_join(Combo_Histories) %>% ungroup() %>% filter(!is.na(value)) %>% group_by(patient, ComboStatus) %>% count() %>% ungroup() %>% filter(n!=0) %>% group_by(patient) %>% count() %>% filter(n==2) %>% select(patient)
 
 Pats_Both_States %>% left_join(Combo_Histories) %>% ungroup() %>% group_by(ComboStatus) %>% summarise(n = weighted.median(value, weight, na.rm = T))
-
-# ComboStatus     n
-# <chr>       <dbl>
-# 1 No           7.65
-# 2 Yes          7.55
 
 
 # -------
@@ -2195,39 +1609,12 @@ Dia_US_Doses %>% group_by(specialty) %>% summarise(n=n()) %>%
   left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
   ungroup() %>% group_by(PHYSICIAN) %>% summarise(n2=sum(n)) %>% arrange(-n2) %>% filter(PHYSICIAN != "FACILITY")
 
-PHYSICIAN                    n2
-<chr>                     <int>
-1 PCP                     2805303
-2 INTERNAL MEDICINE       1859980
-3 OTHER HCP               1224370
-4 UNKNOWN                 1204346
-5 ENDOCRINOLOGY           1174372
-6 OTHER PHYSICIAN          413122
-7 GERIATRIC MEDICINE        78675
-8 CARDIOLOGY                74724
-9 EMERGENCY MEDICINE        65672
-10 OBSTETRICS & GYNECOLOGY   57679
-11 NEPHROLOGY                37708
 
 
 Dia_US_Doses %>% filter(drug_group == "GLP1 Oral") %>% group_by(specialty) %>% summarise(n=n()) %>%
   left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
   ungroup() %>% group_by(PHYSICIAN) %>% summarise(n2=sum(n)) %>% arrange(-n2) %>% filter(PHYSICIAN != "FACILITY")
 
-
-PHYSICIAN                  n2
-<chr>                   <int>
-1 PCP                      2906
-2 ENDOCRINOLOGY            2566
-3 OTHER HCP                2348
-4 INTERNAL MEDICINE        1828
-5 UNKNOWN                   840
-6 OTHER PHYSICIAN           480
-7 OBSTETRICS & GYNECOLOGY   145
-8 EMERGENCY MEDICINE        129
-9 CARDIOLOGY                 65
-10 NEPHROLOGY                 39
-11 GERIATRIC MEDICINE         38
 
 
 
@@ -2236,81 +1623,21 @@ Dia_US_Doses %>% filter(drug_group == "GLP1 Injectable") %>% group_by(specialty)
   ungroup() %>% group_by(PHYSICIAN) %>% summarise(n2=sum(n)) %>% arrange(-n2) %>% filter(PHYSICIAN != "FACILITY")
 
 
-PHYSICIAN                   n2
-<chr>                    <int>
-1 PCP                     190732
-2 ENDOCRINOLOGY           155324
-3 OTHER HCP               120480
-4 INTERNAL MEDICINE       114899
-5 UNKNOWN                  68831
-6 OTHER PHYSICIAN          23293
-7 GERIATRIC MEDICINE        4510
-8 EMERGENCY MEDICINE        4227
-9 CARDIOLOGY                3641
-10 OBSTETRICS & GYNECOLOGY   2101
-11 NEPHROLOGY                1418
-
-
-
 Dia_US_Doses %>% filter(drug_group == "Insulin") %>% group_by(specialty) %>% summarise(n=n()) %>%
   left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
   ungroup() %>% group_by(PHYSICIAN) %>% summarise(n2=sum(n)) %>% arrange(-n2) %>% filter(PHYSICIAN != "FACILITY")
 
-
-PHYSICIAN                   n2
-<chr>                    <int>
-1 PCP                     593969
-2 ENDOCRINOLOGY           494668
-3 UNKNOWN                 464572
-4 INTERNAL MEDICINE       428355
-5 OTHER HCP               364022
-6 OTHER PHYSICIAN         134701
-7 EMERGENCY MEDICINE       22265
-8 GERIATRIC MEDICINE       20150
-9 OBSTETRICS & GYNECOLOGY  16034
-10 CARDIOLOGY               12435
-11 NEPHROLOGY               11421
 
 
 Dia_US_Doses %>% filter(drug_group == "SGLT2") %>% group_by(specialty) %>% summarise(n=n()) %>%
   left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
   ungroup() %>% group_by(PHYSICIAN) %>% summarise(n2=sum(n)) %>% arrange(-n2) %>% filter(PHYSICIAN != "FACILITY")
 
-
-PHYSICIAN                   n2
-<chr>                    <int>
-1 PCP                     185602
-2 ENDOCRINOLOGY           110461
-3 INTERNAL MEDICINE       107265
-4 OTHER HCP                86066
-5 UNKNOWN                  50910
-6 OTHER PHYSICIAN          17860
-7 CARDIOLOGY                7956
-8 GERIATRIC MEDICINE        3905
-9 EMERGENCY MEDICINE        3832
-10 NEPHROLOGY                1952
-11 OBSTETRICS & GYNECOLOGY    635
-
-
-
 Dia_US_Doses %>% filter(drug_group == "DPP4") %>% group_by(specialty) %>% summarise(n=n()) %>%
   left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
   ungroup() %>% group_by(PHYSICIAN) %>% summarise(n2=sum(n)) %>% arrange(-n2) %>% filter(PHYSICIAN != "FACILITY")
 
 
-PHYSICIAN                   n2
-<chr>                    <int>
-1 PCP                     226946
-2 INTERNAL MEDICINE       164388
-3 OTHER HCP                85398
-4 UNKNOWN                  81555
-5 ENDOCRINOLOGY            60978
-6 OTHER PHYSICIAN          31053
-7 CARDIOLOGY                8128
-8 GERIATRIC MEDICINE        7298
-9 EMERGENCY MEDICINE        4578
-10 NEPHROLOGY                4414
-11 OBSTETRICS & GYNECOLOGY    450
 
 Dia_US_Doses %>% filter(drug_group == "Antidiabetic") %>% group_by(specialty) %>% summarise(n=n()) %>%
   left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
@@ -2318,39 +1645,12 @@ Dia_US_Doses %>% filter(drug_group == "Antidiabetic") %>% group_by(specialty) %>
 
 
 
-PHYSICIAN                   n2
-<chr>                    <int>
-1 PCP                     464055
-2 INTERNAL MEDICINE       318719
-3 UNKNOWN                 153229
-4 OTHER HCP               145615
-5 ENDOCRINOLOGY           106987
-6 OTHER PHYSICIAN          55248
-7 GERIATRIC MEDICINE       13889
-8 CARDIOLOGY               12026
-9 EMERGENCY MEDICINE        8172
-10 NEPHROLOGY                7559
-11 OBSTETRICS & GYNECOLOGY   2663
-
 
 Dia_US_Doses %>% filter(drug_group == "Biguanide") %>% group_by(specialty) %>% summarise(n=n()) %>%
   left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
   ungroup() %>% group_by(PHYSICIAN) %>% summarise(n2=sum(n)) %>% arrange(-n2) %>% filter(PHYSICIAN != "FACILITY")
 
 
-PHYSICIAN                    n2
-<chr>                     <int>
-1 PCP                     1141093
-2 INTERNAL MEDICINE        724526
-3 OTHER HCP                420441
-4 UNKNOWN                  384409
-5 ENDOCRINOLOGY            243388
-6 OTHER PHYSICIAN          150487
-7 OBSTETRICS & GYNECOLOGY   35651
-8 CARDIOLOGY                30473
-9 GERIATRIC MEDICINE        28885
-10 EMERGENCY MEDICINE        22469
-11 NEPHROLOGY                10905
 
 
 
@@ -2360,20 +1660,8 @@ Dia_US_Doses %>% filter(drug_group == "GLP1 Oral") %>%
   group_by(specialty) %>% summarise(n=n()) %>% 
   left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty"))%>%
   ungroup() %>% group_by(PHYSICIAN) %>% summarise(n2=sum(n)) %>% arrange(-n2) %>% filter(PHYSICIAN != "FACILITY")
- 
-PHYSICIAN                  n2
-<chr>                   <int>
-1 PCP                       586
-2 ENDOCRINOLOGY             411
-3 OTHER HCP                 409
-4 INTERNAL MEDICINE         392
-5 UNKNOWN                   174
-6 OTHER PHYSICIAN           102
-7 OBSTETRICS & GYNECOLOGY    36
-8 EMERGENCY MEDICINE         18
-9 CARDIOLOGY                 15
-10 GERIATRIC MEDICINE         15
-11 NEPHROLOGY                 11
+
+                                                    
 
 # -----
 # HbA1c reductions -----------------------
@@ -4311,24 +3599,6 @@ HbA1c_Evolution_US_PAIRED %>%
 
 HbA1c_Evolution_US_PAIRED %>% group_by(Therapy, Period) %>% summarise(n=median(HbA1c))
 
-# Therapy         Period     n
-# <chr>           <chr>  <dbl>
-# 1 Antidiabetic    After    7.3
-# 2 Antidiabetic    Before   8.6
-# 3 Biguanide       After    6.6
-# 4 Biguanide       Before   7.1
-# 5 DPP4            After    7.6
-# 6 DPP4            Before   8.8
-# 7 GLP1 Injectable After    7.5
-# 8 GLP1 Injectable Before   9  
-# 9 GLP1 Oral       After    6.9
-# 10 GLP1 Oral       Before   8.7
-# 11 Insulin         After    7.1
-# 12 Insulin         Before   8  
-# 13 SGLT2           After    7.6
-# 14 SGLT2           Before   8.9
-
-
 
 HbA1c_Evolution_US_PAIRED_combos <- fread("HbA1c_Evolution_US_PAIRED_combos.csv")
 
@@ -4448,68 +3718,6 @@ DIA_Drug_Histories_2 <- DIA_Drug_Histories_2 %>% mutate(New_Month = row_number()
 
 Month_total <- data.frame(DIA_Drug_Histories_2 %>% ungroup() %>% group_by(New_Month) %>% summarise(Month_total=sum(weight)))
 
-# New_Month         n
-# 1          0 264137.40
-# 2          1 264137.40
-# 3          2 264137.40
-# 4          3 264137.40
-# 5          4 264137.40
-# 6          5 264137.40
-# 7          6 264137.40
-# 8          7 264137.40
-# 9          8 264137.40
-# 10         9 264137.40
-# 11        10 264137.40
-# 12        11 264137.40
-# 13        12 264137.40
-# 14        13 264137.40
-# 15        14 264137.40
-# 16        15 264137.40
-# 17        16 264137.40
-# 18        17 264137.40
-# 19        18 264137.40
-# 20        19 264137.40
-# 21        20 264137.40
-# 22        21 264137.40
-# 23        22 264137.40
-# 24        23 264137.40
-# 25        24 264137.40
-# 26        25 264137.40
-# 27        26 264137.40
-# 28        27 264137.40
-# 29        28 264137.40
-# 30        29 264137.40
-# 31        30 264137.40
-# 32        31 264137.40
-# 33        32 264137.40
-# 34        33 264137.40
-# 35        34 264137.40
-# 36        35 264137.40
-# 37        36 264137.40
-# 38        37 264137.40
-# 39        38 264137.40
-# 40        39 264137.40
-# 41        40 264137.40
-# 42        41 264137.40
-# 43        42 264137.40
-# 44        43 260069.34
-# 45        44 253539.39
-# 46        45 246163.81
-# 47        46 236623.15
-# 48        47 227702.29
-# 49        48 215901.93
-# 50        49 205171.72
-# 51        50 194620.59
-# 52        51 181973.63
-# 53        52 168439.95
-# 54        53 152720.03
-# 55        54 133099.78
-# 56        55 112509.62
-# 57        56  91237.84
-# 58        57  73362.87
-# 59        58  50656.12
-# 60        59  26637.68
-
 DIA_Drug_Histories_2 <- separate_rows(DIA_Drug_Histories_2, Treat, sep = ",", convert=T )
 names(DIA_Drug_Histories_2)[4] <- "molecule"
 
@@ -4555,30 +3763,11 @@ DIA_Flows_Aux._Long_2 %>% slice(1) %>% ungroup() %>% summarise(totalpats=sum(wei
 
 DIA_Flows_Aux._Long_2 %>% slice(1) %>% ungroup() %>% group_by(Total_flows) %>% summarise(totalpats=sum(weight))
 
-Total_flows totalpats
-<int>     <dbl>
-  1           0    72074.
-2           1    44045.
-3           2    44775.
-4           3    22062.
-5           4    15032.
-6           5     9603.
-7           6     4887.
-8           7     1738.
-9           8     1585.
-10           9      101.
+
 
 DIA_Flows_Aux._Long_2 %>% slice(1) %>% ungroup() %>% group_by(s2) %>% summarise(mean_totalpats=weighted.mean(Total_flows, weight))
 
-s2    meantotalpats
-<chr>         <dbl>
-  1 b              1.52
-2 d              1.87
-3 D              1.81
-4 G              2.51
-5 I              2.84
-6 S              1.72
-7 x              1.00
+
 
 
 Months_lookup <- fread("Months_lookup.txt",  integer64 = "character", stringsAsFactors = F)
@@ -4599,30 +3788,10 @@ DIA_Flows_Aux._Long_3 <- data.frame(DIA_Flows_Aux._Long_3 %>%
 
 DIA_Flows_Aux._Long_3 %>% group_by(patient) %>% slice(1) %>% ungroup() %>% group_by(Total_flows) %>% summarise(MeanHbA1c=weighted.mean(Mean_HbA1c,weight, na.rm = T))
 
-Total_flows MeanHbA1c
-<int>     <dbl>
-  1           0      7.76
-2           1      7.85
-3           2      8.00
-4           3      8.07
-5           4      8.30
-6           5      8.31
-7           6      8.14
-8           7     10.5 
-9           8      9.27
-10           9      7.4 
+
 
 DIA_Flows_Aux._Long_3  %>% group_by(patient) %>% slice(1) %>% ungroup() %>% group_by(s2) %>% summarise(MeanHbA1c=weighted.mean(Mean_HbA1c,weight, na.rm = T))
 
-s2    MeanHbA1c
-<chr>     <dbl>
-  1 b          7.69
-2 d          8.48
-3 D          8.37
-4 G          8.00
-5 I          8.82
-6 S          7.99
-7 x          7.36
 
 
 # -------
@@ -4637,66 +3806,27 @@ Naive_12m <- DIA_Flows_Aux._Long %>% filter(p1 <= 12) %>% filter(p1_RxExp==0) %>
 # Starts before m18
 Naive_12m %>% left_join(DIA_Flows_Aux._Long) %>% filter(s2!="x") %>% group_by(patient) %>% slice(1) %>% filter(p2 <=18) %>% group_by(s2) %>% summarise(pats=sum(weight))
 
-s2        pats
-<chr>    <dbl>
-1 b     1016140.
-2 d      173295.
-3 D       65347.
-4 G       66520.
-5 I      391554.
-6 S       39062.
+
 
 # Starts  m18 - m24
 Naive_12m %>% left_join(DIA_Flows_Aux._Long) %>% filter(s2!="x") %>% group_by(patient) %>% slice(1) %>% filter(p2 >18 & p2 <=24) %>% group_by(s2) %>% summarise(pats=sum(weight))
 
-s2       pats
-<chr>   <dbl>
-1 b     907646.
-2 d     133487.
-3 D      51881.
-4 G      68389.
-5 I     360853.
-6 S      35873.
+
 
 # Starts  m24 - m36
 Naive_12m %>% left_join(DIA_Flows_Aux._Long) %>% filter(s2!="x") %>% group_by(patient) %>% slice(1) %>% filter(p2 >24 & p2 <=36) %>% group_by(s2) %>% summarise(pats=sum(weight))
-
-s2        pats
-<chr>    <dbl>
-1 b     1681348.
-2 d      216703.
-3 D       88790.
-4 G      136865.
-5 I      641909.
-6 S       50614.
 
 
 # Starts  m36 - m48
 Naive_12m %>% left_join(DIA_Flows_Aux._Long) %>% filter(s2!="x") %>% group_by(patient) %>% slice(1) %>% filter(p2 >36 & p2 <=48) %>% group_by(s2) %>% summarise(pats=sum(weight))
 
-s2        pats
-<chr>    <dbl>
-1 b     1651387.
-2 d      185876.
-3 D       79986.
-4 g        3872.
-5 G      156113.
-6 I      637010.
-7 S       68672.
+
 
 
 # Starts  m48 - m60
 Naive_12m %>% left_join(DIA_Flows_Aux._Long) %>% filter(s2!="x") %>% group_by(patient) %>% slice(1) %>% filter(p2 >48 & p2 <=60) %>% group_by(s2) %>% summarise(pats=sum(weight))
 
-s2        pats
-<chr>    <dbl>
-1 b     1711254.
-2 d      224969.
-3 D       93419.
-4 g       20500.
-5 G      187904.
-6 I      648341.
-7 S      101725.
+
 # -----------
 
 # Number of months / lines until each class initiation ------------
@@ -5367,16 +4497,6 @@ DIA_Drug_Histories <- DIA_Drug_Histories %>% left_join(DANU_Demographics, by=c("
 
 DIA_Drug_Histories %>% group_by(diabetes_condition) %>% summarise(n=sum(weight))
 
-# diabetes_condition                            n
-# <chr>                                     <dbl>
-# 1 General Diabetes                        144334.
-# 2 General Diabetes With Complications      10956.
-# 3 Secondary Diabetes                       17818.
-# 4 Secondary Diabetes With Complications    13242.
-# 5 Treatment For Diabetes                 5007157.
-# 6 Treatment For Diabetes Or Obesity        24746.
-# 7 Type 2 Diabetes                        8117208.
-# 8 Type 2 Diabetes With Complications    17290230.
 
 DIA_Box_Histories <- fread("DIA Box Histories.txt",  integer64 = "character", stringsAsFactors = F)
 DIA_Box_Histories <- DIA_Box_Histories %>% select(2,3,63)
@@ -5386,62 +4506,6 @@ names(DIA_Box_Histories)[3] <- "Box_m60"
 DIA_Drug_Histories <- DIA_Drug_Histories %>% left_join(DIA_Box_Histories, by=c("patient"="patient", "weight"="weight"))
 
 data.frame(DIA_Drug_Histories %>% group_by(Box_m60, diabetes_condition) %>% summarise(n=sum(weight)))
-
-# Box_m60                    diabetes_condition          n
-# 1        b                      General Diabetes   11122.03
-# 2        b   General Diabetes With Complications    2109.52
-# 3        b                    Secondary Diabetes    1188.31
-# 4        b Secondary Diabetes With Complications    2181.73
-# 5        b                Treatment For Diabetes  850345.64
-# 6        b                       Type 2 Diabetes 2231807.51
-# 7        b    Type 2 Diabetes With Complications 2928655.68
-# 8        d                      General Diabetes    1038.47
-# 9        d   General Diabetes With Complications     235.97
-# 10       d                    Secondary Diabetes    1053.32
-# 11       d Secondary Diabetes With Complications     353.36
-# 12       d                Treatment For Diabetes   41058.15
-# 13       d                       Type 2 Diabetes  614336.01
-# 14       d    Type 2 Diabetes With Complications 1769408.13
-# 15       D                      General Diabetes     262.18
-# 16       D                    Secondary Diabetes     104.00
-# 17       D Secondary Diabetes With Complications     140.02
-# 18       D                Treatment For Diabetes   14125.28
-# 19       D                       Type 2 Diabetes  287942.41
-# 20       D    Type 2 Diabetes With Complications  871523.46
-# 21       g                Treatment For Diabetes   11520.57
-# 22       g     Treatment For Diabetes Or Obesity    1176.95
-# 23       g                       Type 2 Diabetes   43655.62
-# 24       g    Type 2 Diabetes With Complications   81270.11
-# 25       G                      General Diabetes     766.36
-# 26       G   General Diabetes With Complications     370.35
-# 27       G                    Secondary Diabetes     394.12
-# 28       G Secondary Diabetes With Complications     409.12
-# 29       G                Treatment For Diabetes  125786.51
-# 30       G     Treatment For Diabetes Or Obesity    5804.88
-# 31       G                       Type 2 Diabetes  615282.24
-# 32       G    Type 2 Diabetes With Complications 1831370.07
-# 33       I                      General Diabetes    8653.09
-# 34       I   General Diabetes With Complications     689.08
-# 35       I                    Secondary Diabetes    1533.22
-# 36       I Secondary Diabetes With Complications    3745.87
-# 37       I                Treatment For Diabetes  257702.09
-# 38       I                       Type 2 Diabetes  490537.64
-# 39       I    Type 2 Diabetes With Complications 3382791.08
-# 40       S                      General Diabetes     540.96
-# 41       S   General Diabetes With Complications     119.00
-# 42       S                Treatment For Diabetes   19547.55
-# 43       S                       Type 2 Diabetes  405475.09
-# 44       S    Type 2 Diabetes With Complications  816919.34
-# 45       x                      General Diabetes  121950.64
-# 46       x   General Diabetes With Complications    7431.70
-# 47       x                    Secondary Diabetes   13544.83
-# 48       x Secondary Diabetes With Complications    6412.02
-# 49       x                Treatment For Diabetes 3687070.96
-# 50       x     Treatment For Diabetes Or Obesity   17764.28
-# 51       x                       Type 2 Diabetes 3428171.05
-# 52       x    Type 2 Diabetes With Complications 5608292.44
-
-
 
 # ------
 
@@ -5454,68 +4518,9 @@ DIA_Disorders <- fread("DIA Disorders.txt")
 data.frame(DIA_Drug_Histories %>% left_join(DIA_Disorders %>% select(patient, charlson_index)) %>%
              group_by(charlson_index) %>% summarise(pats=sum(weight)))
 
-# charlson_index       pats
-# 1               0     119.87
-# 2               1 3079922.64
-# 3               2 3783397.88
-# 4               3 3890856.41
-# 5               4 3610150.31
-# 6               5 3196500.53
-# 7               6 2785376.56
-# 8               7 2373823.87
-# 9               8 1982467.00
-# 10              9 1623589.45
-# 11             10 1300087.15
-# 12             11  981220.79
-# 13             12  710464.91
-# 14             13  492256.87
-# 15             14  321065.83
-# 16             15  210378.07
-# 17             16  121555.02
-# 18             17   72117.35
-# 19             18   43066.83
-# 20             19   25847.91
-# 21             20   12360.77
-# 22             21    5296.08
-# 23             22    1878.14
-# 24             23    1021.01
-# 25             24     539.39
-# 26             26     187.14
-# 27             29     142.23
-
 # Charlson index distribution based on last stock
 data.frame(DIA_Drug_Histories %>% left_join(DIA_Disorders %>% select(patient, charlson_index)) %>%
              group_by(charlson_index, Box_m60) %>% summarise(pats=sum(weight)) %>% spread(key = Box_m60, value = pats))
-
-# charlson_index         b         d         D        g         G         I         S          x
-# 1               0        NA        NA        NA       NA        NA        NA        NA     119.87
-# 2               1 534027.83  70721.87  35830.53 12281.91 151347.53 310606.91  57852.70 1907253.36
-# 3               2 742997.57 166867.68  79601.04 21278.55 311014.93 413405.08 148944.54 1899288.49
-# 4               3 849144.44 241555.63 121198.08 23356.58 375863.33 409604.42 198898.35 1671235.58
-# 5               4 805145.92 266402.66 131946.51 20908.15 372322.95 398464.30 194982.48 1419977.34
-# 6               5 695567.89 284022.45 139596.82 16746.35 328693.34 389831.50 161607.52 1180434.66
-# 7               6 607173.69 271700.69 125152.23 14743.94 263884.76 375505.34 128119.02  999096.89
-# 8               7 491720.22 262087.06 120655.09 10721.00 213530.97 340786.53 108032.81  826290.19
-# 9               8 382808.51 231745.83 108527.13  4469.97 165863.07 323239.27  75956.18  689857.04
-# 10              9 300124.66 176620.69  84922.75  4515.70 131656.88 287077.89  57103.00  581567.88
-# 11             10 222107.45 146215.75  69284.44  2952.01  95662.26 242477.15  41020.73  480367.36
-# 12             11 150670.93 112181.34  52429.04  2638.54  63289.63 197257.02  26917.19  375837.10
-# 13             12 100378.63  74913.27  35612.53   865.33  39331.77 155928.53  18264.76  285170.09
-# 14             13  58691.18  50723.21  27171.87   663.61  28900.74 109605.39   8694.05  207806.82
-# 15             14  36855.58  30696.54  14114.52   639.41  16330.07  77006.38   8212.92  137210.41
-# 16             15  22651.38  18275.37  10888.76   291.07  11121.10  49807.48   4243.62   93099.29
-# 17             16  12038.71  10238.05   9247.95   145.54   5526.73  28710.82   1576.54   54070.68
-# 18             17   7220.42   5847.80   2608.20   261.36   2506.06  16067.96   1164.38   36441.17
-# 19             18   4408.26   3419.85   2332.56       NA   1627.23  10292.11    726.69   20260.13
-# 20             19   2412.41   1752.99   1207.79   144.23   1160.12   5135.56    142.23   13892.58
-# 21             20    886.45    916.00    728.91       NA    260.86   2848.63        NA    6719.92
-# 22             21    269.20    430.50    742.49       NA    289.32   1097.11    142.23    2325.23
-# 23             22        NA    148.18        NA       NA        NA    468.91        NA    1261.05
-# 24             23        NA        NA    154.74       NA        NA    140.85        NA     725.42
-# 25             24    109.09        NA    143.37       NA        NA    286.93        NA         NA
-# 26             26        NA        NA        NA       NA        NA        NA        NA     187.14
-# 27             29        NA        NA        NA       NA        NA        NA        NA     142.23
-
 
 # Charlson index distribution at the time of each stock (global)
 Treatment_exp_Vector   <-fread("Treatment_exp_Vector.txt")
@@ -5542,39 +4547,6 @@ DIA_Disorders_Histories <- DIA_Disorders_Histories %>% left_join(DIA_Box_Histori
 data.frame(DIA_Disorders_Histories %>% group_by(Charlson, Box) %>% summarise(pats=sum(weight)) %>%
              spread(key = Box, value = pats))
 
-
-# Charlson           b           d           D         g           G           I           S            x
-# 1         0          NA    47610.76          NA        NA          NA          NA    19974.02 109085657.15
-# 2         1 39475178.88  7133897.92  3792705.30 114692.96  7528900.26 24703693.81  4527854.58 170040678.47
-# 3         2 49471323.18 13937610.44  7885704.27 202701.38 13777153.50 28206394.02  9262356.08 145095459.48
-# 4         3 56404581.15 19734548.59 10636913.89 204148.80 16120280.53 28329426.69 10265118.37 118146196.76
-# 5         4 50609498.46 21423922.56 10627572.67 160618.00 14457249.44 27491917.12  8398409.03  91999987.22
-# 6         5 40217746.88 19859695.40  9513858.82 126092.18 11791803.08 25212242.70  5955347.08  70014417.22
-# 7         6 31409696.91 17768453.11  7878251.07 101504.66  9065744.72 21599339.08  4245489.46  53847988.54
-# 8         7 23227063.54 14617072.36  6671820.17  67898.24  6591893.60 18947664.75  2969415.01  40149923.08
-# 9         8 16131871.73 11090842.24  5201703.83  31419.05  4800807.10 15295374.18  1969772.93  30790242.80
-# 10        9 11271022.98  7980918.13  3784057.48  26660.65  3351808.90 12166664.69  1239276.38  22696361.14
-# 11       10  7482133.07  5783163.95  2811166.41  17504.36  2310496.57  9618520.36   835554.84  17049261.07
-# 12       11  4563663.82  3742836.08  1744219.19  11908.12  1411787.15  6782244.55   466024.01  11910342.18
-# 13       12  2813907.00  2531651.79  1174771.51   5242.14   891025.10  4784491.23   327240.39   7904031.76
-# 14       13  1561761.18  1488132.13   760378.70   3427.71   554793.29  3069505.47   149621.52   5314481.37
-# 15       14   915367.91   863904.42   459058.77   7173.39   300617.27  2042827.60   121985.27   3414361.99
-# 16       15   534633.38   478988.15   325799.39    872.83   201486.16  1122205.85    58384.96   1980826.84
-# 17       16   271427.61   248867.61   173048.41    939.84    89734.64   648758.45    45163.46   1162476.88
-# 18       17   166833.89   141163.18    85658.37   1700.86    36836.81   354078.19    12737.58    713239.88
-# 19       18    97217.21    87202.53    56343.49    288.46    30664.82   210210.77    10321.44    375258.69
-# 20       19    39629.42    35162.92    27978.68    144.23    16495.63   110235.42     1396.09    223689.02
-# 21       20     8305.67    18843.33     8205.47        NA     6561.73    57982.30          NA    100119.31
-# 22       21     3437.52     6566.74    13279.08        NA     4318.22    20768.40      711.15     37293.22
-# 23       22     1005.62      388.03      286.74        NA     1640.48     7978.80          NA     18120.77
-# 24       23     2836.34          NA     3679.65        NA          NA     2400.07          NA     20460.63
-# 25       24     1080.14          NA     4123.45        NA      573.08     5884.21      573.48      1255.45
-# 26       26          NA          NA          NA        NA      284.46          NA          NA       748.56
-# 27       27          NA          NA          NA        NA      853.38     1137.84          NA           NA
-# 28       29          NA          NA          NA        NA          NA          NA          NA      1848.99
-
-
-
 Treatment_exp_Vector   <-fread("Treatment_exp_Vector.txt")
 DIA_Disorders <- fread("DIA Disorders.txt")
 DIA_Disorders <- Treatment_exp_Vector %>% left_join(DIA_Disorders)
@@ -5583,28 +4555,6 @@ DIA_Disorders <- DIA_Disorders %>% filter(!is.na(label))
 
 DIA_Disorders %>% group_by(Disease) %>% summarise(pats=sum(weight)) %>% arrange(-pats)
 
-Disease                     pats
-<fct>                      <dbl>
-  1 diabetes               30625690.
-2 diabetes_complications 14443580.
-3 pulmonary_disease      11376478.
-4 vascular_disease        7861832.
-5 kidney_disease          7107560.
-6 liver_disease           6832232.
-7 stroke                  6703047.
-8 heart_failure           5416559.
-9 cancer                  4513385.
-10 heart_attack            3312583.
-11 rheumatic_disease       2122755.
-12 dementia                1676948.
-13 severe_kidney_disease   1477880.
-14 peptic_ulcer            1442562.
-15 paralysis                964268.
-16 metastatic_cancer        669007.
-17 severe_liver_disease     411696.
-18 hiv_infection            213514.
-
-
 DIA_Box_Histories   <- fread("DIA Box Histories.txt")
 DIA_Box_Histories <- DIA_Box_Histories %>% select(2,63)
 DIA_Box_Histories <- DIA_Box_Histories %>% mutate(month60 = str_sub(month60, 2L, 2L))
@@ -5612,27 +4562,6 @@ DIA_Box_Histories <- Treatment_exp_Vector %>% left_join(DIA_Box_Histories)
 
 data.frame(DIA_Box_Histories %>% left_join(DIA_Disorders) %>% group_by(month60, Disease) 
            %>% summarise(pats=sum(weight)) %>% spread(key=month60, value=pats))
-
-# 
-# Disease          b          d          D         g          G          I          S           x
-# 1            heart_attack  511324.78  302531.15  143706.02  10561.33  274764.93  671620.71  143418.43  1254655.25
-# 2           heart_failure  822001.15  496004.91  241573.29  16752.01  438158.81 1077315.54  202016.10  2122736.92
-# 3        vascular_disease 1346930.47  774922.07  387901.90  26383.21  632990.61 1416922.27  298251.20  2977529.93
-# 4                  stroke 1184743.56  619109.98  330084.52  17119.72  507421.19 1144713.07  246243.74  2653611.45
-# 5                dementia  263446.95  146235.85   85093.51   2497.24   81282.57  316312.68   35449.39   746630.03
-# 6       pulmonary_disease 2123810.69  871140.82  433968.20  46015.14  988321.82 1706824.35  413503.96  4792892.99
-# 7       rheumatic_disease  349313.92  156904.02   79305.51   7204.00  168057.80  333461.53   66627.63   961880.23
-# 8            peptic_ulcer  236019.93  123841.06   57572.53   4429.61  110648.74  240133.04   47333.13   622583.72
-# 9           liver_disease 1283891.96  518097.36  268744.79  36163.34  685464.00  965681.54  299534.88  2774654.33
-# 10               diabetes 6027410.42 2427483.41 1174097.35 137623.25 2580183.65 4145652.07 1242601.94 12890637.92
-# 11         kidney_disease 1017187.75  763761.57  372685.11  25864.26  606453.73 1462534.51  222455.34  2636617.90
-# 12 diabetes_complications 2309043.74 1518099.46  748268.70  66489.77 1555822.04 2981676.01  660301.19  4603878.92
-# 13              paralysis  150282.96   75332.21   41351.83   2108.30   62185.98  190594.42   25697.13   416715.10
-# 14                 cancer  874960.98  431963.83  205986.02  17502.54  332297.62  660280.65  163796.39  1826597.32
-# 15   severe_liver_disease   49463.51   27706.30   18028.90   1013.23   33056.78   87975.23   12549.67   181902.50
-# 16  severe_kidney_disease  118766.96  121278.76   70746.67   2917.39   99321.92  392840.69   25896.00   646111.15
-# 17          hiv_infection   35273.76   11416.97   10451.98    944.77   20869.68   33364.66    9330.81    91861.81
-# 18      metastatic_cancer  119438.82   59313.85   28090.43   1231.35   38682.25  106070.83   17474.55   298704.70
 
 # ------
 # Interaction between rybelsus and different glp1 injectables -------------
@@ -5655,15 +4584,6 @@ DIA_Flows_Aux._Long <- separate_rows(DIA_Flows_Aux._Long, d1, sep = ",", convert
 DIA_Flows_Aux._Long %>% left_join(DANU_Ingredients, by=c("d1"="molecule")) %>% filter(drug_group=="GLP1 Injectable") %>%
   group_by(generic_name) %>% summarise(n=sum(weight))
 
-# generic_name               n
-# <chr>                  <dbl>
-# 1 Dulaglutide            7654.
-# 2 Exenatide              1486.
-# 3 Liraglutide            5380.
-# 4 Lixisenatide            747.
-# 5 Semaglutide Injectable 5585.
-
-
 DIA_Flows_Aux._Long     <- fread("DIA_Flows_Aux._Long.txt", integer64 = "character", stringsAsFactors = F)
 DIA_Flows_Aux._Long     <- DIA_Flows_Aux._Long %>% select(-c(disease, starts, stops, re_starts))
 
@@ -5676,14 +4596,6 @@ DIA_Flows_Aux._Long <- separate_rows(DIA_Flows_Aux._Long, d2, sep = ",", convert
 
 DIA_Flows_Aux._Long %>% left_join(DANU_Ingredients, by=c("d2"="molecule")) %>% filter(drug_group=="GLP1 Injectable") %>%
   group_by(generic_name) %>% summarise(n=sum(weight))
-
-# generic_name               n
-# <chr>                  <dbl>
-# 1 Dulaglutide            6311.
-# 2 Exenatide               635.
-# 3 Liraglutide            2860.
-# 4 Lixisenatide            111.
-# 5 Semaglutide Injectable 7105.
 
 
 DIA_Drug_Histories     <- fread("DIA Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
@@ -5882,13 +4794,7 @@ Pats_SGLT2_GLP1Inj_only %>% group_by(Therapy) %>% count()
 # 
 # Pats_Biguanide_SGLT2_Injectable_only %>% ungroup() %>% group_by(Therapy) %>% summarise(n = weighted.mean(value, weight, na.rm = T))
 
-# Therapy            n
-# <chr>          <dbl>
-# 1 Biguanide       7.52
-# 2 Both            7.19
-# 3 InjectableGLP1  7.46
-# 4 none            7.53
-# 5 SGLT2           7.60
+
 # --------
 # Wegovy dosages over time ----------------------------------------------------------------------
 DIA_Medications <- fread("DANU Medications.txt")
@@ -5982,11 +4888,6 @@ Dia_US_Doses_Ozempic_summary %>% ungroup() %>%
   left_join(Dia_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% slice_head() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
 
-doses        n
-<dbl>    <dbl>
-  1  0.25    2877.
-2  1      13780.
-3  2    1682073.
 
 
 Dia_US_Doses_Ozempic_summary %>% ungroup() %>% 
@@ -5994,61 +4895,29 @@ Dia_US_Doses_Ozempic_summary %>% ungroup() %>%
   group_by(pat_id) %>% filter(time_progression <=30) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
 
 
-doses        n
-<dbl>    <dbl>
-  1  0.25    3161.
-2  1      14599.
-3  2    1680970.
-
 Dia_US_Doses_Ozempic_summary %>% ungroup() %>% 
   left_join(Dia_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=60) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
 
-doses        n
-<dbl>    <dbl>
-  1  0.25    2185.
-2  1      20103.
-3  2    1676442.
 
 Dia_US_Doses_Ozempic_summary %>% ungroup() %>% 
   left_join(Dia_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=90) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
 
-doses        n
-<dbl>    <dbl>
-  1  0.25    2010.
-2  1      29284.
-3  2    1667436.
 
 Dia_US_Doses_Ozempic_summary %>% ungroup() %>% 
   left_join(Dia_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=120) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
 
-doses        n
-<dbl>    <dbl>
-  1  0.25    1668.
-2  1      36246.
-3  2    1660816.
-
 Dia_US_Doses_Ozempic_summary %>% ungroup() %>% 
   left_join(Dia_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=150) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
-
-doses        n
-<dbl>    <dbl>
-  1  0.25    1792.
-2  1      42151.
-3  2    1654787.
 
 Dia_US_Doses_Ozempic_summary %>% ungroup() %>% 
   left_join(Dia_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=180) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
 
-doses        n
-<dbl>    <dbl>
-  1  0.25    1688.
-2  1      48715.
-3  2    1648327.
+
 # ------
 # Restarts (same stock, same drug, etc) --------------
 DIA_Flows_Aux._Long     <- fread("DIA_Flows_Aux._Long.txt", integer64 = "character", stringsAsFactors = F)
@@ -6085,36 +4954,10 @@ DIA_Flows_Aux._Long_2 <- DIA_Flows_Aux._Long_2 %>% group_by(patient) %>%
 DIA_Flows_Aux._Long_2 %>% ungroup() %>% mutate(p1=as.numeric(p1)) %>% filter(p1>=48) %>% filter(re_starts=="1") %>% 
   group_by(Stock_comp, Drugs_comp) %>% summarise(pats=sum(as.numeric(weight)))
 
-# Stock_comp Drugs_comp     pats
-# <chr>      <chr>         <dbl>
-# 1 diff       diff       1888598.
-# 2 Same       diff       1037920.
-# 3 Same       Same       3899778.
+
 
 data.frame(DIA_Flows_Aux._Long_2 %>% ungroup() %>% mutate(p1=as.numeric(p1)) %>% filter(p1>=48) %>% filter(re_starts=="1") %>% 
              group_by(s2, Stock_comp, Drugs_comp) %>% summarise(pats=sum(as.numeric(weight))))
-
-s2 Stock_comp Drugs_comp       pats
-1   b       diff       diff  436605.54
-2   b       Same       Same 2372391.17
-3   d       diff       diff  309985.34
-4   d       Same       diff   96879.10
-5   d       Same       Same  339360.62
-6   D       diff       diff  149910.36
-7   D       Same       diff   41015.32
-8   D       Same       Same  128375.43
-9   g       diff       diff   42879.49
-10  g       Same       diff    1623.93
-11  g       Same       Same    1903.86
-12  G       diff       diff  309995.40
-13  G       Same       diff   97474.15
-14  G       Same       Same  122668.01
-15  I       diff       diff  434338.99
-16  I       Same       diff  757205.56
-17  I       Same       Same  856044.90
-18  S       diff       diff  204882.60
-19  S       Same       diff   43721.87
-20  S       Same       Same   79033.51
 
 # -------
 # Total Durations on each class over 60 months------------------------------------------------------------
@@ -6175,17 +5018,6 @@ GLP1_Injectable_Periods %>%
   summarise(pats = sum(weight))
 
 
-Total_Duration_bucket     pats
-<chr>                    <dbl>
-  1 1                      599834.
-2 12 to 24              1107655.
-3 2 to 6                1220188.
-4 24 to 36               669086.
-5 36 to 48               423200.
-6 48 to 60               339827.
-7 6 to 12                889084.
-8 60                     124484.
-
 # GLP1 Oral
 DIA_Drug_Histories <- read.table("DIA Drug Histories.txt", header = T, sep="\t", colClasses = "character", stringsAsFactors = FALSE)
 DIA_Drug_Histories <- DIA_Drug_Histories %>% select(-c(disease))
@@ -6236,16 +5068,6 @@ GLP1_Oral_Periods %>%
                                                                            ifelse(Total_Duration>=48&Total_Duration<60, "48 to 60", "60")))))))) %>%
   group_by(Total_Duration_bucket) %>%
   summarise(pats = sum(weight))
-
-
-Total_Duration_bucket    pats
-<chr>                   <dbl>
-1 1                      81356.
-2 12 to 24               19732.
-3 2 to 6                107054.
-4 6 to 12                55995.
-
-
 
 
 # Insulin
@@ -6309,18 +5131,6 @@ Insulin_Periods %>%
 
 
 
-Total_Duration_bucket     pats
-<chr>                    <dbl>
-  1 1                     1913101.
-2 12 to 24              1513412.
-3 2 to 6                2255449.
-4 24 to 36              1122685.
-5 36 to 48              1136193.
-6 48 to 60              1558771.
-7 6 to 12               1321908.
-8 60                     987372.
-
-
 # SGLT2
 DIA_Drug_Histories <- read.table("DIA Drug Histories.txt", header = T, sep="\t", colClasses = "character", stringsAsFactors = FALSE)
 DIA_Drug_Histories <- DIA_Drug_Histories %>% select(-c(disease))
@@ -6376,17 +5186,6 @@ SGLT2_Periods %>%
   summarise(pats = sum(weight))
 
 
-Total_Duration_bucket     pats
-<chr>                    <dbl>
-  1 1                      502330.
-2 12 to 24               928238.
-3 2 to 6                1072371.
-4 24 to 36               532690.
-5 36 to 48               382288.
-6 48 to 60               368685.
-7 6 to 12                796889.
-8 60                     159263.
-
 
 # DPP4
 DIA_Drug_Histories <- read.table("DIA Drug Histories.txt", header = T, sep="\t", colClasses = "character", stringsAsFactors = FALSE)
@@ -6441,18 +5240,6 @@ DPP4_Periods %>%
                                                                            ifelse(Total_Duration>=48&Total_Duration<60, "48 to 60", "60")))))))) %>%
   group_by(Total_Duration_bucket) %>%
   summarise(pats = sum(weight))
-
-Total_Duration_bucket     pats
-<chr>                    <dbl>
-  1 1                      484561.
-2 12 to 24               999747.
-3 2 to 6                1026546.
-4 24 to 36               673171.
-5 36 to 48               529709.
-6 48 to 60               528377.
-7 6 to 12                798157.
-8 60                     313781.
-
 
 
 # Antidiabetic
@@ -6522,18 +5309,6 @@ Antidiabetic_Periods %>%
   summarise(pats = sum(weight))
 
 
-Total_Duration_bucket     pats
-<chr>                    <dbl>
-  1 1                      674212.
-2 12 to 24              1587598.
-3 2 to 6                1449088.
-4 24 to 36              1256011.
-5 36 to 48              1134485.
-6 48 to 60              1411321.
-7 6 to 12               1167189.
-8 60                     895389.
-
-
 # Biguanide
 DIA_Drug_Histories <- read.table("DIA Drug Histories.txt", header = T, sep="\t", colClasses = "character", stringsAsFactors = FALSE)
 DIA_Drug_Histories <- DIA_Drug_Histories %>% select(-c(disease))
@@ -6586,16 +5361,6 @@ Biguanide_Periods %>%
   summarise(pats = sum(weight))
 
 
-Total_Duration_bucket     pats
-<chr>                    <dbl>
-  1 1                     1590073.
-2 12 to 24              3678554.
-3 2 to 6                3587264.
-4 24 to 36              2906300.
-5 36 to 48              2854848.
-6 48 to 60              3717785.
-7 6 to 12               2776784.
-8 60                    2440385.
 
 # -----
 # % of patients on each stock FLow vs no flow + hbA1c -------------------------------------------
@@ -6617,25 +5382,6 @@ Patient_Stocks_m60 %>% group_by(s2) %>% summarise(n=sum(weight))
 Patient_Stocks_m60 <- Patient_Stocks_m60 %>% mutate(flows = ifelse(flows == 0, "NONE", "FLOW"))
 
 Patient_Stocks_m60 %>% group_by(s2, flows) %>% summarise(n=sum(weight))
-
-s2    flows        n
-<chr> <chr>    <dbl>
-1 b     FLOW  3064862.
-2 b     NONE  2962548.
-3 d     FLOW  1444554.
-4 d     NONE   982929.
-5 D     FLOW   735821.
-6 D     NONE   438276.
-7 g     FLOW   133107.
-8 g     NONE     4516.
-9 G     FLOW  2095318.
-10 G     NONE   484866.
-11 I     FLOW  3265787.
-12 I     NONE   879865.
-13 S     FLOW   932444.
-14 S     NONE   310157.
-15 x     FLOW  3440453.
-16 x     NONE  9450185.
 
 
 #   HbA1cs #
@@ -6695,24 +5441,7 @@ Patient_Stocks_m60 <- Patient_Stocks_m60 %>% left_join(Patient_flows_12m)
 Patient_Stocks_m60 <- Patient_Stocks_m60 %>% mutate(flows = ifelse(flows == 0, "NONE", "FLOW"))
 Patient_Stocks_m60 %>% group_by(s2, flows) %>% summarise(n=sum(weight))
 
-s2    flows        n
-<chr> <chr>    <dbl>
-  1 b     FLOW  3064862.
-2 b     NONE  2962548.
-3 d     FLOW  1444554.
-4 d     NONE   982929.
-5 D     FLOW   735821.
-6 D     NONE   438276.
-7 g     FLOW   131858.
-8 g     NONE     5765.
-9 G     FLOW  1871136.
-10 G     NONE   709048.
-11 I     FLOW  2481927.
-12 I     NONE  1663725.
-13 S     FLOW   932444.
-14 S     NONE   310157.
-15 x     FLOW  5195287.
-16 x     NONE  7695351.
+                                             
 # ------
 # HbA1c distribution Rybelsus 10k pats -------------------
 Months_lookup <- fread("Months_lookup.txt",  integer64 = "character", stringsAsFactors = F)
@@ -6758,9 +5487,8 @@ length(unique(Last_read$patid)) #129502
 
 
 mean(Last_read$value)
-# 7.793163
 median(Last_read$value)
-# 7.4
+
 
 
 # ----------
@@ -6833,21 +5561,10 @@ Pats_Biguanide_Rybelsus_only <- Pats_to_keep %>% left_join(Pats_Biguanide_Rybels
 
 Pats_Biguanide_Rybelsus_only %>% ungroup() %>% group_by(Therapy) %>% summarise(n = weighted.mean(value, weight, na.rm = T))
 
-Therapy       n
-<chr>     <dbl>
-  1 Biguanide  6.84
-2 Both       7.21
-3 none       6.66
-4 Rybelsus   6.5 
+
 
 Pats_Biguanide_Rybelsus_only %>% group_by(Therapy) %>% count()
 
-Therapy       n
-<chr>     <int>
-  1 Biguanide   663
-2 Both        274
-3 none        523
-4 Rybelsus     99
 
 
 # # Pick patients that had *ONLY* |SGLT2| AND |Rybelsus|
@@ -6909,23 +5626,10 @@ Pats_SGLT2_Rybelsus <- Pats_to_keep %>% left_join(Pats_SGLT2_Rybelsus)
 
 Pats_SGLT2_Rybelsus %>% ungroup() %>% group_by(Therapy) %>% summarise(n = weighted.mean(value, weight, na.rm = T))
 
-Therapy      n
-<chr>    <dbl>
-  1 Both      8.24
-2 none      8.00
-3 other     8.04
-4 Rybelsus  8.56
-5 SGLT2     7.95
+
 
 Pats_SGLT2_Rybelsus %>% group_by(Therapy) %>% count()
 
-Therapy      n
-<chr>    <int>
-  1 Both      1500
-2 none      3083
-3 other     3663
-4 Rybelsus   148
-5 SGLT2     6321
 
 
 # ----------
@@ -7246,14 +5950,7 @@ HbA1c_Evolution_US_Rybelsus_10k <- fread("HbA1c_Evolution_US_Rybelsus_10k.csv")
 
 HbA1c_Evolution_US_Rybelsus_10k %>% group_by(Therapy, Period) %>% summarise(n=median(HbA1c))
 
-Therapy  Period     n
-<chr>    <chr>  <dbl>
-  1 Combo    After   7.79
-2 Combo    Before  9.61
-3 Rybelsus After   7.61
-4 Rybelsus Before  9.02
-5 SGLT2    After   7.32
-6 SGLT2    Before  9.20
+
 
 
 
@@ -7600,25 +6297,8 @@ HbA1c_Evolution_US_Rybelsus_10k <- fread("HbA1c_Evolution_US_Rybelsus_10k.csv")
 
 HbA1c_Evolution_US_Rybelsus_10k %>% group_by(Therapy, Period) %>% summarise(n=mean(HbA1c))
 
-Therapy  Period     n
-<chr>    <chr>  <dbl>
-  1 Combo    After   7.52
-2 Combo    Before  9.31
-3 Rybelsus After   7.37
-4 Rybelsus Before  8.80
-5 SGLT2    After   7.51
-6 SGLT2    Before  9.00
 
 HbA1c_Evolution_US_Rybelsus_10k %>% group_by(Therapy, Period) %>% summarise(n=median(HbA1c))
-
-Therapy  Period     n
-<chr>    <chr>  <dbl>
-  1 Combo    After   7.45
-2 Combo    Before  8.9 
-3 Rybelsus After   7.1 
-4 Rybelsus Before  8.5 
-5 SGLT2    After   7.3 
-6 SGLT2    Before  8.55
 
 
 HbA1cs_GLP1Oral_BEFORE_vs_AFTER_closest_Rybelsus_10k <- fread("HbA1cs_GLP1Oral_BEFORE_vs_AFTER_closest_Rybelsus_10k.csv")
@@ -7972,25 +6652,10 @@ HbA1c_Evolution_US_All_6months <- fread("HbA1c_Evolution_US_All_6months.csv")
 
 HbA1c_Evolution_US_All_6months %>% group_by(Therapy, Period) %>% summarise(n=mean(HbA1c))
 
-Therapy         Period     n
-<chr>           <chr>  <dbl>
-  1 Combo           After   
-2 Combo           Before  9.21
-3 GLP1 Injectable After   6.94
-4 GLP1 Injectable Before  8.78
-5 SGLT2           After   7.02
-6 SGLT2           Before  8.76
+
 
 HbA1c_Evolution_US_All_6months %>% group_by(Therapy, Period) %>% summarise(n=median(HbA1c))
 
-Therapy         Period     n
-<chr>           <chr>  <dbl>
-  1 Combo           After    7  
-2 Combo           Before   8.8
-3 GLP1 Injectable After    6.8
-4 GLP1 Injectable Before   8.4
-5 SGLT2           After    6.9
-6 SGLT2           Before   8.3
 
 
 Pats_to_keep_paired <- HbA1c_Evolution_US_All_6months %>% group_by(patient, Therapy) %>% filter(Month>=-12 & Month<=12) %>% 
@@ -8389,25 +7054,8 @@ HbA1c_Evolution_US_All_6months_2_classes_only <- fread("HbA1c_Evolution_US_All_6
 
 HbA1c_Evolution_US_All_6months_2_classes_only %>% group_by(Therapy, Period) %>% summarise(n=mean(HbA1c))
 
-Therapy         Period     n
-<chr>           <chr>  <dbl>
-  1 Combo           After   6.51
-2 Combo           Before  8.26
-3 GLP1 Injectable After   5.99
-4 GLP1 Injectable Before  6.98
-5 SGLT2           After   6.56
-6 SGLT2           Before  7.50
 
 HbA1c_Evolution_US_All_6months_2_classes_only %>% group_by(Therapy, Period) %>% summarise(n=median(HbA1c))
-
-Therapy         Period     n
-<chr>           <chr>  <dbl>
-  1 Combo           After    6.4
-2 Combo           Before   7.9
-3 GLP1 Injectable After    5.9
-4 GLP1 Injectable Before   6.6
-5 SGLT2           After    6.5
-6 SGLT2           Before   7.2
 
 
 Pats_to_keep_paired <- HbA1c_Evolution_US_All_6months_2_classes_only %>% group_by(patient, Therapy) %>% filter(Month>=-12 & Month<=12) %>% 
@@ -8457,67 +7105,6 @@ DIA_Drug_Histories_2 <- DIA_Drug_Histories_2 %>% mutate(New_Month = row_number()
 
 Month_total <- data.frame(DIA_Drug_Histories_2 %>% ungroup() %>% group_by(New_Month) %>% summarise(Month_total=sum(weight)))
 
-# New_Month Month_total
-# 1          0   5373357.2
-# 2          1   4601208.8
-# 3          2   4516982.6
-# 4          3   4440255.6
-# 5          4   4365845.9
-# 6          5   4297204.8
-# 7          6   4233867.4
-# 8          7   4172803.6
-# 9          8   4113812.2
-# 10         9   4054598.7
-# 11        10   3973996.4
-# 12        11   3909305.0
-# 13        12   3844679.4
-# 14        13   3775483.6
-# 15        14   3706150.6
-# 16        15   3645181.1
-# 17        16   3586227.2
-# 18        17   3522296.7
-# 19        18   3462151.2
-# 20        19   3385114.5
-# 21        20   3316926.6
-# 22        21   3257114.2
-# 23        22   3181393.7
-# 24        23   3112694.5
-# 25        24   3040923.3
-# 26        25   2955664.8
-# 27        26   2877499.5
-# 28        27   2813029.9
-# 29        28   2732293.5
-# 30        29   2660916.9
-# 31        30   2585438.5
-# 32        31   2504992.1
-# 33        32   2433496.2
-# 34        33   2363548.1
-# 35        34   2278382.9
-# 36        35   2200564.7
-# 37        36   2112633.1
-# 38        37   2025773.7
-# 39        38   1931664.9
-# 40        39   1844599.1
-# 41        40   1744998.4
-# 42        41   1662429.4
-# 43        42   1572336.2
-# 44        43   1473158.2
-# 45        44   1392936.2
-# 46        45   1311536.4
-# 47        46   1210113.8
-# 48        47   1125636.5
-# 49        48   1053975.2
-# 50        49    990668.2
-# 51        50    926497.5
-# 52        51    850599.3
-# 53        52    763044.2
-# 54        53    687045.4
-# 55        54    607138.5
-# 56        55    531030.5
-# 57        56    429688.3
-# 58        57    328321.6
-# 59        58    230447.8
-# 60        59    126168.9
 
 DIA_Drug_Histories_2 <- separate_rows(DIA_Drug_Histories_2, Treat, sep = ",", convert=T )
 names(DIA_Drug_Histories_2)[4] <- "molecule"
@@ -8894,8 +7481,6 @@ Patients_GLP1_Oral_combos %>% group_by(drug_groupes) %>% summarise(n = sum(as.nu
 Patients_GLP1_Oral_combos %>% group_by(drug_groupes) %>% summarise(n = sum(as.numeric(weight))) %>% arrange(-n) %>%
   filter(grepl("SGLT2", drug_groupes)) %>% ungroup() %>% summarise(n = sum(as.numeric(n)))
 
-37903
-
 # --------
 # Persistency of SGLT2+GLP1 combo -----------------------------------------
 DANU_Ingredients       <- fread("DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
@@ -9023,29 +7608,6 @@ DIA_Flows_Aux._Long %>% group_by(patient) %>% filter(!is.na(prov)) %>% filter(pr
 DIA_Flows_Aux._Long  %>%  filter(!is.na(prov)) %>% ungroup() %>%  group_by(patient) %>% mutate(provstatus=ifelse(prov==lag(prov),0,1)) %>%
   ungroup() %>% group_by(flow, provstatus) %>% summarise(n=sum(weight))
 
-flow provstatus          n
-<int>      <dbl>      <dbl>
-1     0          0 182935086.
-2     0          1  14137755.
-3     0         NA  18516144.
-4     1          0  27424963.
-5     1          1   5659276.
-6     1         NA   2407226.
-
-
-flow provstatus           n
-int>      <dbl>       <dbl>
-  1     0          0 1447212890.
-2     0          1   71243938.
-3     0         NA   26612310.
-4     1          0  133312006.
-5     1          1   33231139.
-6     1         NA    2439414.
-
-
-
-
-
 
 
 # Put patients on the highest Box tried over the past 12 months -------
@@ -9074,15 +7636,7 @@ sum(as.numeric(DIA_Box_Histories$weight.x)) # 30625690
 
 DIA_Box_Histories %>% group_by(Box) %>% summarise(pats=sum(as.numeric(weight.x)))
 
-# Box      pats
-# <dbl>     <dbl>
-# 1     0 15251572.
-# 2     2  2717191.
-# 3     3  1407781.
-# 4     4  1485010.
-# 5     5  5869856.
-# 6     6   193657.
-# 7     7  3700624.
+
 
 names(DIA_Box_Histories)[2] <- "weight"
 names(DIA_Box_Histories)[3] <- "Max_stock"
@@ -9115,16 +7669,6 @@ DIA_Drug_Histories <- DIA_Drug_Histories %>% select(patient, weight.x, drug_grou
 
 DIA_Drug_Histories %>% ungroup() %>% group_by(drug_group) %>% summarise(n=sum(total*as.numeric(weight.x)))
 
-# drug_group               n
-# <chr>                <dbl>
-# 1 Antidiabetic     57075937.
-# 2 Biguanide       138566525.
-# 3 DPP4             23655853.
-# 4 GLP1 Injectable  28042698.
-# 5 GLP1 Oral         1026640.
-# 6 Insulin          75944785.
-# 7 SGLT2            24448040.
-
 
 DIA_Box_Histories <- read.table("DIA Box Histories.txt", header = T, sep="\t", colClasses = "character", stringsAsFactors = FALSE)
 DIA_Box_Histories <- Treatment_exp_Vector %>% left_join(DIA_Box_Histories, by=c("patient"="patient"))
@@ -9137,16 +7681,6 @@ DIA_Drug_Histories <- DIA_Drug_Histories %>% left_join(DIA_Box_Histories)
 DIA_Drug_Histories %>% ungroup() %>% group_by(month60, drug_group) %>% 
   summarise(n=sum(total*as.numeric(weight.x))) %>%
   spread(key=month60, value=n)
-
-# drug_group              b         d         D       g         G         I         S         x
-# <chr>               <dbl>     <dbl>     <dbl>   <dbl>     <dbl>     <dbl>     <dbl>     <dbl>
-#   1 Antidiabetic     1307019. 25755190.  5529304. 432334.  7793408.  7748101.  4718575.  3792006.
-# 2 Biguanide       56889415. 16549527   8485982. 891827. 16707007. 14835267.  9586403. 14621096.
-# 3 DPP4              423622.   539552. 11314007. 227543.  2273838.  4061437.  3267500.  1548354.
-# 4 GLP1 Injectable   534591.   341634.   104035.  92100. 23315399.  1291021.   420996.  1942922.
-# 5 GLP1 Oral          40585.    23474.     8074. 708930.    64393.    38789.    37649.   104747.
-# 6 Insulin          1064435.   707732.   351604. 292115. 13879008. 51731633.   523488.  7394770.
-# 7 SGLT2             417337.   440198.   267846. 408196.  7061440.  3630526. 10827257.  1395241.
 
 # --------
 
@@ -9167,13 +7701,7 @@ DANU_Prescriptions_Written_GLP1 <- DANU_Prescriptions_Written_GLP1 %>% arrange(p
 
 unique(DANU_Prescriptions_Written_GLP1$generic_desc)
 
-[1] "LIRAGLUTIDE"                                           
-[2] "SEMAGLUTIDE"                                           
-[3] "DULAGLUTIDE"                                           
-[4] "INSULIN DEGLUDEC/LIRAGLUTIDE"                          
-[5] "INSULIN GLARGINE;HUMAN RECOMBINANT ANALOG/LIXISENATIDE"
-[6] "EXENATIDE"                                             
-[7] "ALBIGLUTIDE" 
+
 
 DANU_Prescriptions_Written_GLP1$rxdate <- as.Date(DANU_Prescriptions_Written_GLP1$rxdate)
 
@@ -9260,407 +7788,14 @@ OBE_Drug_Specialties_Annual <- fread("OBE Drug Specialties Annual.txt")
 OBE_Drug_Specialties_Annual %>% group_by(specialty) %>% 
   summarise(n=sum(physician_sample)) %>%
   arrange(-n)
-
-# specialty                 n
-# <chr>                 <int>
-# 1 Primary Care         174998
-# 2 Other Provider       103323
-# 3 Other Physician      102983
-# 4 Internal Medicine     68480
-# 5 Unknown               15344
-# 6 Surgeon               13631
-# 7 Neurologist           12271
-# 8 Diabetes Specialist    3907
-# 9 Cardiologist           1281
-# 10 Nutrition Specialist   1231
-# 11 Facility               1203
-# 12 Gastroenterologist     1041
-# 13 Endocrinologist         910
-# 14 Nephrologist            539
-# 15 Hepatologist              6
-
-
-
 data.frame(OBE_Drug_Specialties_Annual %>% group_by(class, specialty) %>% 
   summarise(n=sum(physician_sample)) %>%
   arrange(class, -n))
 
 
-
-# class            specialty      n
-# 1              All         Primary Care 102037
-# 2              All       Other Provider  61282
-# 3              All      Other Physician  59435
-# 4              All    Internal Medicine  40648
-# 5              All              Unknown   9151
-# 6              All              Surgeon   8485
-# 7              All          Neurologist   7299
-# 8              All  Diabetes Specialist   2216
-# 9              All             Facility    786
-# 10             All         Cardiologist    775
-# 11             All   Gastroenterologist    631
-# 12             All Nutrition Specialist    603
-# 13             All      Endocrinologist    530
-# 14             All         Nephrologist    330
-# 15             All         Hepatologist      4
-# 16       Anorectic         Primary Care  68410
-# 17       Anorectic      Other Physician  39666
-# 18       Anorectic       Other Provider  36643
-# 19       Anorectic    Internal Medicine  25222
-# 20       Anorectic              Unknown   5593
-# 21       Anorectic          Neurologist   4917
-# 22       Anorectic              Surgeon   1013
-# 23       Anorectic  Diabetes Specialist    955
-# 24       Anorectic Nutrition Specialist    422
-# 25       Anorectic         Cardiologist    374
-# 26       Anorectic   Gastroenterologist    247
-# 27       Anorectic      Endocrinologist    191
-# 28       Anorectic         Nephrologist    162
-# 29       Anorectic             Facility     45
-# 30     Antiobesity         Primary Care   2932
-# 31     Antiobesity       Other Provider   2075
-# 32     Antiobesity    Internal Medicine   1525
-# 33     Antiobesity      Other Physician    512
-# 34     Antiobesity  Diabetes Specialist    329
-# 35     Antiobesity              Unknown    114
-# 36     Antiobesity Nutrition Specialist    102
-# 37     Antiobesity              Surgeon    100
-# 38     Antiobesity         Cardiologist     67
-# 39     Antiobesity      Endocrinologist     44
-# 40     Antiobesity   Gastroenterologist     32
-# 41     Antiobesity         Nephrologist     25
-# 42     Antiobesity          Neurologist     23
-# 43 GLP1 Injectable         Primary Care   1309
-# 44 GLP1 Injectable       Other Provider   1209
-# 45 GLP1 Injectable    Internal Medicine    814
-# 46 GLP1 Injectable  Diabetes Specialist    369
-# 47 GLP1 Injectable      Other Physician    178
-# 48 GLP1 Injectable      Endocrinologist    129
-# 49 GLP1 Injectable              Unknown     91
-# 50 GLP1 Injectable              Surgeon     89
-# 51 GLP1 Injectable Nutrition Specialist     72
-# 52 GLP1 Injectable   Gastroenterologist     43
-# 53 GLP1 Injectable         Cardiologist     30
-# 54 GLP1 Injectable          Neurologist      9
-# 55 GLP1 Injectable         Nephrologist      4
-# 56       GLP1 Oral       Other Provider     89
-# 57       GLP1 Oral         Primary Care     87
-# 58       GLP1 Oral    Internal Medicine     57
-# 59       GLP1 Oral  Diabetes Specialist     31
-# 60       GLP1 Oral      Other Physician     12
-# 61       GLP1 Oral      Endocrinologist      7
-# 62       GLP1 Oral Nutrition Specialist      7
-# 63       GLP1 Oral              Surgeon      5
-# 64       GLP1 Oral              Unknown      5
-# 65       GLP1 Oral         Cardiologist      2
-# 66         Surgery              Surgeon   3937
-# 67         Surgery      Other Physician   3168
-# 68         Surgery       Other Provider   1973
-# 69         Surgery              Unknown    379
-# 70         Surgery             Facility    372
-# 71         Surgery    Internal Medicine    147
-# 72         Surgery         Primary Care    114
-# 73         Surgery   Gastroenterologist     85
-# 74         Surgery         Cardiologist     33
-# 75         Surgery Nutrition Specialist     25
-# 76         Surgery          Neurologist     23
-# 77         Surgery         Nephrologist     18
-# 78         Surgery      Endocrinologist      9
-# 79         Surgery         Hepatologist      2
-# 80         Surgery  Diabetes Specialist      1
-# 81     Weight Loss         Primary Care    109
-# 82     Weight Loss    Internal Medicine     67
-# 83     Weight Loss       Other Provider     52
-# 84     Weight Loss      Other Physician     12
-# 85     Weight Loss              Unknown     11
-# 86     Weight Loss  Diabetes Specialist      6
-# 87     Weight Loss   Gastroenterologist      3
-# 88     Weight Loss              Surgeon      2
-
-
-
-
 data.frame(OBE_Drug_Specialties_Annual %>% group_by(generic, specialty) %>% 
              summarise(n=sum(physician_sample)) %>%
              arrange(generic, -n))
-
-
-# generic            specialty     n
-# 1                      All         Primary Care 50772
-# 2                      All       Other Provider 30430
-# 3                      All      Other Physician 29692
-# 4                      All    Internal Medicine 20192
-# 5                      All              Unknown  4559
-# 6                      All              Surgeon  4160
-# 7                      All          Neurologist  3647
-# 8                      All  Diabetes Specialist  1066
-# 9                      All             Facility   393
-# 10                     All         Cardiologist   385
-# 11                     All   Gastroenterologist   308
-# 12                     All Nutrition Specialist   284
-# 13                     All      Endocrinologist   257
-# 14                     All         Nephrologist   164
-# 15                     All         Hepatologist     2
-# 16         All Antiobesity         Primary Care 50200
-# 17         All Antiobesity       Other Provider 28073
-# 18         All Antiobesity      Other Physician 26517
-# 19         All Antiobesity    Internal Medicine 19718
-# 20         All Antiobesity              Unknown  4217
-# 21         All Antiobesity          Neurologist  3623
-# 22         All Antiobesity  Diabetes Specialist   879
-# 23         All Antiobesity              Surgeon   816
-# 24         All Antiobesity         Cardiologist   340
-# 25         All Antiobesity Nutrition Specialist   249
-# 26         All Antiobesity   Gastroenterologist   215
-# 27         All Antiobesity      Endocrinologist   173
-# 28         All Antiobesity         Nephrologist   148
-# 29         All Antiobesity             Facility    37
-# 30     All GLP1 Injectable         Primary Care   905
-# 31     All GLP1 Injectable       Other Provider   820
-# 32     All GLP1 Injectable    Internal Medicine   561
-# 33     All GLP1 Injectable  Diabetes Specialist   249
-# 34     All GLP1 Injectable      Other Physician   126
-# 35     All GLP1 Injectable      Endocrinologist    87
-# 36     All GLP1 Injectable              Surgeon    62
-# 37     All GLP1 Injectable              Unknown    62
-# 38     All GLP1 Injectable Nutrition Specialist    43
-# 39     All GLP1 Injectable   Gastroenterologist    26
-# 40     All GLP1 Injectable         Cardiologist    21
-# 41     All GLP1 Injectable          Neurologist     7
-# 42     All GLP1 Injectable         Nephrologist     4
-# 43           All GLP1 Oral       Other Provider    59
-# 44           All GLP1 Oral         Primary Care    56
-# 45           All GLP1 Oral    Internal Medicine    37
-# 46           All GLP1 Oral  Diabetes Specialist    21
-# 47           All GLP1 Oral      Other Physician     6
-# 48           All GLP1 Oral      Endocrinologist     5
-# 49           All GLP1 Oral Nutrition Specialist     5
-# 50           All GLP1 Oral              Surgeon     3
-# 51           All GLP1 Oral              Unknown     3
-# 52           All GLP1 Oral         Cardiologist     1
-# 53             All Surgery              Surgeon  3444
-# 54             All Surgery      Other Physician  3094
-# 55             All Surgery       Other Provider  1900
-# 56             All Surgery             Facility   356
-# 57             All Surgery              Unknown   310
-# 58             All Surgery    Internal Medicine   140
-# 59             All Surgery         Primary Care   104
-# 60             All Surgery   Gastroenterologist    82
-# 61             All Surgery         Cardiologist    28
-# 62             All Surgery          Neurologist    22
-# 63             All Surgery Nutrition Specialist    22
-# 64             All Surgery         Nephrologist    14
-# 65             All Surgery      Endocrinologist     8
-# 66             All Surgery         Hepatologist     2
-# 67             All Surgery  Diabetes Specialist     1
-# 68           Benzphetamine         Primary Care    53
-# 69           Benzphetamine       Other Provider    41
-# 70           Benzphetamine      Other Physician    35
-# 71           Benzphetamine    Internal Medicine    25
-# 72           Benzphetamine              Unknown     6
-# 73           Benzphetamine              Surgeon     5
-# 74           Benzphetamine          Neurologist     4
-# 75           Benzphetamine         Cardiologist     2
-# 76           Benzphetamine Nutrition Specialist     1
-# 77       Dextroamphetamine         Primary Care 31680
-# 78       Dextroamphetamine      Other Physician 19061
-# 79       Dextroamphetamine       Other Provider 15860
-# 80       Dextroamphetamine    Internal Medicine 12509
-# 81       Dextroamphetamine              Unknown  2702
-# 82       Dextroamphetamine          Neurologist  2535
-# 83       Dextroamphetamine              Surgeon   243
-# 84       Dextroamphetamine         Cardiologist   155
-# 85       Dextroamphetamine   Gastroenterologist    84
-# 86       Dextroamphetamine         Nephrologist    74
-# 87       Dextroamphetamine Nutrition Specialist    54
-# 88       Dextroamphetamine  Diabetes Specialist    51
-# 89       Dextroamphetamine      Endocrinologist    45
-# 90       Dextroamphetamine             Facility    37
-# 91          Diethylpropion       Other Provider   299
-# 92          Diethylpropion         Primary Care   213
-# 93          Diethylpropion    Internal Medicine   133
-# 94          Diethylpropion      Other Physician    73
-# 95          Diethylpropion              Unknown    28
-# 96          Diethylpropion Nutrition Specialist    25
-# 97          Diethylpropion              Surgeon    14
-# 98          Diethylpropion  Diabetes Specialist    10
-# 99          Diethylpropion          Neurologist     2
-# 100         Diethylpropion         Cardiologist     1
-# 101         Diethylpropion      Endocrinologist     1
-# 102         Diethylpropion         Nephrologist     1
-# 103         Gastric Bypass              Surgeon  3825
-# 104         Gastric Bypass      Other Physician  2791
-# 105         Gastric Bypass       Other Provider  1962
-# 106         Gastric Bypass              Unknown   338
-# 107         Gastric Bypass             Facility   314
-# 108         Gastric Bypass    Internal Medicine   143
-# 109         Gastric Bypass         Primary Care   106
-# 110         Gastric Bypass   Gastroenterologist    50
-# 111         Gastric Bypass         Cardiologist    29
-# 112         Gastric Bypass Nutrition Specialist    25
-# 113         Gastric Bypass         Nephrologist    15
-# 114         Gastric Bypass      Endocrinologist     7
-# 115         Gastric Bypass          Neurologist     7
-# 116         Gastric Bypass         Hepatologist     2
-# 117         Gastric Bypass  Diabetes Specialist     1
-# 118    Gastric Stimulation      Other Physician   375
-# 119    Gastric Stimulation              Surgeon   100
-# 120    Gastric Stimulation             Facility    55
-# 121    Gastric Stimulation   Gastroenterologist    35
-# 122    Gastric Stimulation              Unknown    34
-# 123    Gastric Stimulation          Neurologist    16
-# 124    Gastric Stimulation       Other Provider     9
-# 125    Gastric Stimulation         Primary Care     8
-# 126    Gastric Stimulation         Cardiologist     4
-# 127    Gastric Stimulation    Internal Medicine     4
-# 128    Gastric Stimulation      Endocrinologist     2
-# 129    Gastric Stimulation         Nephrologist     2
-# 130            Liraglutide         Primary Care  1094
-# 131            Liraglutide       Other Provider  1010
-# 132            Liraglutide    Internal Medicine   663
-# 133            Liraglutide  Diabetes Specialist   295
-# 134            Liraglutide      Other Physician   163
-# 135            Liraglutide      Endocrinologist    87
-# 136            Liraglutide              Surgeon    69
-# 137            Liraglutide              Unknown    66
-# 138            Liraglutide Nutrition Specialist    56
-# 139            Liraglutide   Gastroenterologist    29
-# 140            Liraglutide         Cardiologist    23
-# 141            Liraglutide          Neurologist     9
-# 142            Liraglutide         Nephrologist     2
-# 143       Lisdexamfetamine         Primary Care 12294
-# 144       Lisdexamfetamine      Other Physician  9492
-# 145       Lisdexamfetamine       Other Provider  5997
-# 146       Lisdexamfetamine    Internal Medicine  3445
-# 147       Lisdexamfetamine              Unknown   958
-# 148       Lisdexamfetamine          Neurologist   870
-# 149       Lisdexamfetamine              Surgeon    82
-# 150       Lisdexamfetamine Nutrition Specialist    67
-# 151       Lisdexamfetamine         Cardiologist    41
-# 152       Lisdexamfetamine   Gastroenterologist    27
-# 153       Lisdexamfetamine         Nephrologist    24
-# 154       Lisdexamfetamine  Diabetes Specialist    23
-# 155       Lisdexamfetamine      Endocrinologist    10
-# 156       Lisdexamfetamine             Facility     3
-# 157             Lorcaserin         Primary Care   721
-# 158             Lorcaserin       Other Provider   434
-# 159             Lorcaserin    Internal Medicine   411
-# 160             Lorcaserin      Other Physician   102
-# 161             Lorcaserin  Diabetes Specialist    97
-# 162             Lorcaserin Nutrition Specialist    42
-# 163             Lorcaserin              Unknown    28
-# 164             Lorcaserin              Surgeon    23
-# 165             Lorcaserin      Endocrinologist    20
-# 166             Lorcaserin         Cardiologist    19
-# 167             Lorcaserin   Gastroenterologist     7
-# 168             Lorcaserin          Neurologist     7
-# 169             Lorcaserin         Nephrologist     6
-# 170        Methylphenidate         Primary Care 10499
-# 171        Methylphenidate      Other Physician  8824
-# 172        Methylphenidate       Other Provider  4793
-# 173        Methylphenidate    Internal Medicine  3124
-# 174        Methylphenidate          Neurologist  1365
-# 175        Methylphenidate              Unknown   994
-# 176        Methylphenidate              Surgeon    62
-# 177        Methylphenidate   Gastroenterologist    41
-# 178        Methylphenidate         Cardiologist    29
-# 179        Methylphenidate         Nephrologist    27
-# 180        Methylphenidate  Diabetes Specialist    18
-# 181        Methylphenidate Nutrition Specialist    10
-# 182        Methylphenidate      Endocrinologist     7
-# 183        Methylphenidate             Facility     4
-# 184             Naltrexone         Primary Care  2211
-# 185             Naltrexone       Other Provider  1641
-# 186             Naltrexone    Internal Medicine  1114
-# 187             Naltrexone      Other Physician   410
-# 188             Naltrexone  Diabetes Specialist   232
-# 189             Naltrexone              Unknown    86
-# 190             Naltrexone              Surgeon    77
-# 191             Naltrexone Nutrition Specialist    60
-# 192             Naltrexone         Cardiologist    48
-# 193             Naltrexone   Gastroenterologist    25
-# 194             Naltrexone      Endocrinologist    24
-# 195             Naltrexone         Nephrologist    19
-# 196             Naltrexone          Neurologist    16
-# 197               Orlistat         Primary Care   109
-# 198               Orlistat    Internal Medicine    67
-# 199               Orlistat       Other Provider    52
-# 200               Orlistat      Other Physician    12
-# 201               Orlistat              Unknown    11
-# 202               Orlistat  Diabetes Specialist     6
-# 203               Orlistat   Gastroenterologist     3
-# 204               Orlistat              Surgeon     2
-# 205        Phendimetrazine         Primary Care   409
-# 206        Phendimetrazine       Other Provider   399
-# 207        Phendimetrazine    Internal Medicine   191
-# 208        Phendimetrazine      Other Physician   119
-# 209        Phendimetrazine              Unknown    63
-# 210        Phendimetrazine              Surgeon    33
-# 211        Phendimetrazine Nutrition Specialist    31
-# 212        Phendimetrazine         Cardiologist    19
-# 213        Phendimetrazine  Diabetes Specialist    13
-# 214        Phendimetrazine      Endocrinologist     6
-# 215        Phendimetrazine   Gastroenterologist     4
-# 216        Phendimetrazine          Neurologist     3
-# 217            Phentermine         Primary Care 13262
-# 218            Phentermine       Other Provider  9254
-# 219            Phentermine    Internal Medicine  5795
-# 220            Phentermine      Other Physician  2062
-# 221            Phentermine              Unknown   842
-# 222            Phentermine  Diabetes Specialist   840
-# 223            Phentermine              Surgeon   574
-# 224            Phentermine Nutrition Specialist   234
-# 225            Phentermine          Neurologist   138
-# 226            Phentermine         Cardiologist   127
-# 227            Phentermine      Endocrinologist   122
-# 228            Phentermine   Gastroenterologist    91
-# 229            Phentermine         Nephrologist    36
-# 230            Phentermine             Facility     1
-# 231 Semaglutide Injectable         Primary Care   215
-# 232 Semaglutide Injectable       Other Provider   199
-# 233 Semaglutide Injectable    Internal Medicine   151
-# 234 Semaglutide Injectable  Diabetes Specialist    74
-# 235 Semaglutide Injectable      Endocrinologist    42
-# 236 Semaglutide Injectable              Unknown    25
-# 237 Semaglutide Injectable              Surgeon    20
-# 238 Semaglutide Injectable Nutrition Specialist    16
-# 239 Semaglutide Injectable      Other Physician    15
-# 240 Semaglutide Injectable   Gastroenterologist    14
-# 241 Semaglutide Injectable         Cardiologist     7
-# 242 Semaglutide Injectable         Nephrologist     2
-# 243       Semaglutide Oral       Other Provider    89
-# 244       Semaglutide Oral         Primary Care    87
-# 245       Semaglutide Oral    Internal Medicine    57
-# 246       Semaglutide Oral  Diabetes Specialist    31
-# 247       Semaglutide Oral      Other Physician    12
-# 248       Semaglutide Oral      Endocrinologist     7
-# 249       Semaglutide Oral Nutrition Specialist     7
-# 250       Semaglutide Oral              Surgeon     5
-# 251       Semaglutide Oral              Unknown     5
-# 252       Semaglutide Oral         Cardiologist     2
-# 253      Vagal Nerve Block              Surgeon    12
-# 254      Vagal Nerve Block              Unknown     7
-# 255      Vagal Nerve Block             Facility     3
-# 256      Vagal Nerve Block      Other Physician     2
-# 257      Vagal Nerve Block       Other Provider     2
-# 258      Vagal Nerve Block         Nephrologist     1
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -9674,770 +7809,20 @@ DIA_Drug_Specialties_Annual %>% group_by(specialty) %>%
   summarise(n=sum(physician_sample)) %>%
   arrange(-n)
 
-# specialty                  n
-# <chr>                  <int>
-#   1 Primary Care         1066729
-# 2 Internal Medicine     863708
-# 3 Other Provider        580752
-# 4 Diabetes Specialist   230848
-# 5 Other Physician       108618
-# 6 Endocrinologist        93644
-# 7 Unknown                71274
-# 8 Cardiologist           41045
-# 9 Nephrologist           19697
-# 10 Surgeon                18340
-# 11 Gastroenterologist     11240
-# 12 Neurologist             7992
-# 13 Facility                5227
-# 14 Nutrition Specialist    3087
-# 15 Hepatologist             136
-
-
-
-
 data.frame(DIA_Drug_Specialties_Annual %>% group_by(class, specialty) %>% 
              summarise(n=sum(physician_sample)) %>%
              arrange(class, -n))
-
-
-# class            specialty      n
-# 1               AGI    Internal Medicine   1003
-# 2               AGI         Primary Care    923
-# 3               AGI  Diabetes Specialist    591
-# 4               AGI       Other Provider    336
-# 5               AGI      Endocrinologist    125
-# 6               AGI              Unknown     80
-# 7               AGI      Other Physician     63
-# 8               AGI         Cardiologist     45
-# 9               AGI              Surgeon     20
-# 10              AGI         Nephrologist     18
-# 11              AGI   Gastroenterologist     13
-# 12              AGI Nutrition Specialist      9
-# 13              AGI          Neurologist      8
-# 14              All         Primary Care 548552
-# 15              All    Internal Medicine 440863
-# 16              All       Other Provider 302455
-# 17              All  Diabetes Specialist  89677
-# 18              All      Other Physician  62199
-# 19              All      Endocrinologist  43035
-# 20              All              Unknown  38157
-# 21              All         Cardiologist  22788
-# 22              All         Nephrologist  10673
-# 23              All              Surgeon  10123
-# 24              All   Gastroenterologist   6257
-# 25              All          Neurologist   4538
-# 26              All             Facility   3008
-# 27              All Nutrition Specialist   1506
-# 28              All         Hepatologist     74
-# 29     Antidiabetic         Primary Care   1405
-# 30     Antidiabetic    Internal Medicine   1243
-# 31     Antidiabetic       Other Provider    740
-# 32     Antidiabetic   Gastroenterologist    516
-# 33     Antidiabetic  Diabetes Specialist    424
-# 34     Antidiabetic         Cardiologist    199
-# 35     Antidiabetic      Endocrinologist    135
-# 36     Antidiabetic              Unknown    110
-# 37     Antidiabetic      Other Physician     84
-# 38     Antidiabetic              Surgeon     38
-# 39     Antidiabetic         Nephrologist     28
-# 40     Antidiabetic          Neurologist      3
-# 41        Biguanide         Primary Care 166104
-# 42        Biguanide    Internal Medicine 125347
-# 43        Biguanide       Other Provider  83978
-# 44        Biguanide  Diabetes Specialist  18816
-# 45        Biguanide      Other Physician  17533
-# 46        Biguanide              Unknown   9930
-# 47        Biguanide      Endocrinologist   8957
-# 48        Biguanide         Cardiologist   6255
-# 49        Biguanide         Nephrologist   2117
-# 50        Biguanide              Surgeon   1942
-# 51        Biguanide   Gastroenterologist   1526
-# 52        Biguanide          Neurologist    999
-# 53        Biguanide Nutrition Specialist    507
-# 54        Biguanide             Facility    144
-# 55        Biguanide         Hepatologist     21
-# 56             DPP4         Primary Care  44297
-# 57             DPP4    Internal Medicine  38042
-# 58             DPP4       Other Provider  21221
-# 59             DPP4  Diabetes Specialist   8743
-# 60             DPP4      Endocrinologist   2754
-# 61             DPP4              Unknown   2358
-# 62             DPP4         Cardiologist   1783
-# 63             DPP4      Other Physician   1511
-# 64             DPP4         Nephrologist   1012
-# 65             DPP4   Gastroenterologist    408
-# 66             DPP4              Surgeon    404
-# 67             DPP4          Neurologist    202
-# 68             DPP4 Nutrition Specialist    122
-# 69             DPP4             Facility     23
-# 70             DPP4         Hepatologist      3
-# 71          Glinide    Internal Medicine   2776
-# 72          Glinide         Primary Care   2091
-# 73          Glinide  Diabetes Specialist   1370
-# 74          Glinide       Other Provider    933
-# 75          Glinide      Endocrinologist    447
-# 76          Glinide              Unknown    176
-# 77          Glinide         Cardiologist    149
-# 78          Glinide         Nephrologist    138
-# 79          Glinide      Other Physician    131
-# 80          Glinide   Gastroenterologist     43
-# 81          Glinide              Surgeon     23
-# 82          Glinide          Neurologist      5
-# 83        Glitazone         Primary Care  17934
-# 84        Glitazone    Internal Medicine  10892
-# 85        Glitazone       Other Provider   6027
-# 86        Glitazone  Diabetes Specialist   3191
-# 87        Glitazone      Endocrinologist   1022
-# 88        Glitazone              Unknown    588
-# 89        Glitazone         Cardiologist    376
-# 90        Glitazone      Other Physician    355
-# 91        Glitazone         Nephrologist    165
-# 92        Glitazone              Surgeon    158
-# 93        Glitazone   Gastroenterologist    135
-# 94        Glitazone          Neurologist     75
-# 95        Glitazone Nutrition Specialist     20
-# 96        Glitazone             Facility      9
-# 97        Glitazone         Hepatologist      2
-# 98  GLP1 Injectable         Primary Care  39601
-# 99  GLP1 Injectable    Internal Medicine  28724
-# 100 GLP1 Injectable       Other Provider  27322
-# 101 GLP1 Injectable  Diabetes Specialist  21272
-# 102 GLP1 Injectable      Endocrinologist   6124
-# 103 GLP1 Injectable              Unknown   2486
-# 104 GLP1 Injectable      Other Physician   1312
-# 105 GLP1 Injectable         Cardiologist    908
-# 106 GLP1 Injectable         Nephrologist    390
-# 107 GLP1 Injectable              Surgeon    388
-# 108 GLP1 Injectable Nutrition Specialist    385
-# 109 GLP1 Injectable   Gastroenterologist    258
-# 110 GLP1 Injectable          Neurologist    193
-# 111 GLP1 Injectable             Facility     31
-# 112       GLP1 Oral         Primary Care    996
-# 113       GLP1 Oral       Other Provider    799
-# 114       GLP1 Oral    Internal Medicine    789
-# 115       GLP1 Oral  Diabetes Specialist    559
-# 116       GLP1 Oral      Endocrinologist    121
-# 117       GLP1 Oral              Unknown     60
-# 118       GLP1 Oral      Other Physician     42
-# 119       GLP1 Oral         Cardiologist     25
-# 120       GLP1 Oral         Nephrologist     20
-# 121       GLP1 Oral              Surgeon     16
-# 122       GLP1 Oral   Gastroenterologist     14
-# 123       GLP1 Oral Nutrition Specialist     13
-# 124       GLP1 Oral          Neurologist      8
-# 125    Insulin Long         Primary Care  57152
-# 126    Insulin Long    Internal Medicine  50902
-# 127    Insulin Long       Other Provider  35081
-# 128    Insulin Long  Diabetes Specialist  22992
-# 129    Insulin Long      Endocrinologist   8535
-# 130    Insulin Long              Unknown   4806
-# 131    Insulin Long      Other Physician   3665
-# 132    Insulin Long         Cardiologist   1424
-# 133    Insulin Long         Nephrologist   1234
-# 134    Insulin Long              Surgeon    790
-# 135    Insulin Long   Gastroenterologist    341
-# 136    Insulin Long          Neurologist    278
-# 137    Insulin Long Nutrition Specialist    111
-# 138    Insulin Long             Facility     88
-# 139    Insulin Long         Hepatologist      9
-# 140   Insulin Short    Internal Medicine  38484
-# 141   Insulin Short         Primary Care  36516
-# 142   Insulin Short       Other Provider  26933
-# 143   Insulin Short  Diabetes Specialist  25318
-# 144   Insulin Short      Endocrinologist   9420
-# 145   Insulin Short      Other Physician   6739
-# 146   Insulin Short              Unknown   3953
-# 147   Insulin Short              Surgeon   1384
-# 148   Insulin Short         Cardiologist   1295
-# 149   Insulin Short         Nephrologist    995
-# 150   Insulin Short          Neurologist    333
-# 151   Insulin Short   Gastroenterologist    331
-# 152   Insulin Short             Facility    108
-# 153   Insulin Short Nutrition Specialist     75
-# 154   Insulin Short         Hepatologist     11
-# 155 Insulin Therapy         Primary Care  38637
-# 156 Insulin Therapy    Internal Medicine  36379
-# 157 Insulin Therapy       Other Provider  23422
-# 158 Insulin Therapy  Diabetes Specialist  11752
-# 159 Insulin Therapy      Other Physician  10686
-# 160 Insulin Therapy      Endocrinologist   5175
-# 161 Insulin Therapy              Unknown   3080
-# 162 Insulin Therapy              Surgeon   2148
-# 163 Insulin Therapy             Facility   1742
-# 164 Insulin Therapy         Cardiologist   1552
-# 165 Insulin Therapy          Neurologist    950
-# 166 Insulin Therapy         Nephrologist    854
-# 167 Insulin Therapy   Gastroenterologist    626
-# 168 Insulin Therapy Nutrition Specialist    145
-# 169 Insulin Therapy         Hepatologist      7
-# 170           SGLT2         Primary Care  37251
-# 171           SGLT2    Internal Medicine  26602
-# 172           SGLT2       Other Provider  20626
-# 173           SGLT2  Diabetes Specialist  15079
-# 174           SGLT2      Endocrinologist   4024
-# 175           SGLT2         Cardiologist   2033
-# 176           SGLT2              Unknown   1837
-# 177           SGLT2      Other Physician    866
-# 178           SGLT2         Nephrologist    562
-# 179           SGLT2              Surgeon    225
-# 180           SGLT2   Gastroenterologist    175
-# 181           SGLT2          Neurologist    154
-# 182           SGLT2 Nutrition Specialist    111
-# 183           SGLT2             Facility     22
-# 184           SGLT2         Hepatologist      4
-# 185    Sulfonylurea         Primary Care  75270
-# 186    Sulfonylurea    Internal Medicine  61662
-# 187    Sulfonylurea       Other Provider  30879
-# 188    Sulfonylurea  Diabetes Specialist  11064
-# 189    Sulfonylurea      Endocrinologist   3770
-# 190    Sulfonylurea              Unknown   3653
-# 191    Sulfonylurea      Other Physician   3432
-# 192    Sulfonylurea         Cardiologist   2213
-# 193    Sulfonylurea         Nephrologist   1491
-# 194    Sulfonylurea              Surgeon    681
-# 195    Sulfonylurea   Gastroenterologist    597
-# 196    Sulfonylurea          Neurologist    246
-# 197    Sulfonylurea Nutrition Specialist     83
-# 198    Sulfonylurea             Facility     52
-# 199    Sulfonylurea         Hepatologist      5
-
-
 
 
 data.frame(DIA_Drug_Specialties_Annual %>% group_by(generic, specialty) %>% 
              summarise(n=sum(physician_sample)) %>%
              arrange(generic, -n))
 
-# generic            specialty      n
-# 1              Acarbose    Internal Medicine    988
-# 2              Acarbose         Primary Care    885
-# 3              Acarbose  Diabetes Specialist    575
-# 4              Acarbose       Other Provider    311
-# 5              Acarbose      Endocrinologist    116
-# 6              Acarbose              Unknown     71
-# 7              Acarbose      Other Physician     56
-# 8              Acarbose         Cardiologist     45
-# 9              Acarbose              Surgeon     20
-# 10             Acarbose         Nephrologist     18
-# 11             Acarbose   Gastroenterologist     13
-# 12             Acarbose Nutrition Specialist      9
-# 13             Acarbose          Neurologist      8
-# 14          Albiglutide         Primary Care    455
-# 15          Albiglutide  Diabetes Specialist    356
-# 16          Albiglutide    Internal Medicine    330
-# 17          Albiglutide       Other Provider    249
-# 18          Albiglutide      Endocrinologist    142
-# 19          Albiglutide              Unknown     40
-# 20          Albiglutide         Cardiologist     12
-# 21          Albiglutide      Other Physician      9
-# 22          Albiglutide              Surgeon      5
-# 23          Albiglutide         Nephrologist      3
-# 24          Albiglutide Nutrition Specialist      3
-# 25          Albiglutide          Neurologist      1
-# 26                  All         Primary Care 182831
-# 27                  All    Internal Medicine 148700
-# 28                  All       Other Provider 107115
-# 29                  All      Other Physician  28187
-# 30                  All  Diabetes Specialist  22463
-# 31                  All              Unknown  14531
-# 32                  All      Endocrinologist  13777
-# 33                  All         Cardiologist   9022
-# 34                  All              Surgeon   4319
-# 35                  All         Nephrologist   4176
-# 36                  All   Gastroenterologist   2533
-# 37                  All          Neurologist   1899
-# 38                  All             Facility   1433
-# 39                  All Nutrition Specialist    501
-# 40                  All         Hepatologist     32
-# 41     All Antidiabetic         Primary Care  68811
-# 42     All Antidiabetic    Internal Medicine  54854
-# 43     All Antidiabetic       Other Provider  29805
-# 44     All Antidiabetic  Diabetes Specialist   9301
-# 45     All Antidiabetic      Endocrinologist   3566
-# 46     All Antidiabetic              Unknown   3480
-# 47     All Antidiabetic      Other Physician   3324
-# 48     All Antidiabetic         Cardiologist   2360
-# 49     All Antidiabetic         Nephrologist   1436
-# 50     All Antidiabetic   Gastroenterologist    981
-# 51     All Antidiabetic              Surgeon    707
-# 52     All Antidiabetic          Neurologist    277
-# 53     All Antidiabetic Nutrition Specialist     90
-# 54     All Antidiabetic             Facility     47
-# 55     All Antidiabetic         Hepatologist      4
-# 56        All Biguanide         Primary Care 143817
-# 57        All Biguanide    Internal Medicine 109088
-# 58        All Biguanide       Other Provider  73971
-# 59        All Biguanide  Diabetes Specialist  15419
-# 60        All Biguanide      Other Physician  14984
-# 61        All Biguanide              Unknown   8915
-# 62        All Biguanide      Endocrinologist   7701
-# 63        All Biguanide         Cardiologist   5561
-# 64        All Biguanide         Nephrologist   1893
-# 65        All Biguanide              Surgeon   1738
-# 66        All Biguanide   Gastroenterologist   1327
-# 67        All Biguanide          Neurologist    880
-# 68        All Biguanide Nutrition Specialist    382
-# 69        All Biguanide             Facility    128
-# 70        All Biguanide         Hepatologist     17
-# 71             All DPP4         Primary Care  34453
-# 72             All DPP4    Internal Medicine  29595
-# 73             All DPP4       Other Provider  16852
-# 74             All DPP4  Diabetes Specialist   5900
-# 75             All DPP4      Endocrinologist   1987
-# 76             All DPP4              Unknown   1883
-# 77             All DPP4         Cardiologist   1444
-# 78             All DPP4      Other Physician   1293
-# 79             All DPP4         Nephrologist    829
-# 80             All DPP4              Surgeon    344
-# 81             All DPP4   Gastroenterologist    319
-# 82             All DPP4          Neurologist    173
-# 83             All DPP4 Nutrition Specialist     85
-# 84             All DPP4             Facility     18
-# 85             All DPP4         Hepatologist      2
-# 86  All GLP1 Injectable         Primary Care  26492
-# 87  All GLP1 Injectable    Internal Medicine  19139
-# 88  All GLP1 Injectable       Other Provider  17543
-# 89  All GLP1 Injectable  Diabetes Specialist  10319
-# 90  All GLP1 Injectable      Endocrinologist   3657
-# 91  All GLP1 Injectable              Unknown   1700
-# 92  All GLP1 Injectable      Other Physician    939
-# 93  All GLP1 Injectable         Cardiologist    620
-# 94  All GLP1 Injectable         Nephrologist    280
-# 95  All GLP1 Injectable              Surgeon    279
-# 96  All GLP1 Injectable Nutrition Specialist    197
-# 97  All GLP1 Injectable   Gastroenterologist    169
-# 98  All GLP1 Injectable          Neurologist    146
-# 99  All GLP1 Injectable             Facility     19
-# 100       All GLP1 Oral         Primary Care    651
-# 101       All GLP1 Oral       Other Provider    534
-# 102       All GLP1 Oral    Internal Medicine    512
-# 103       All GLP1 Oral  Diabetes Specialist    363
-# 104       All GLP1 Oral      Endocrinologist     84
-# 105       All GLP1 Oral              Unknown     38
-# 106       All GLP1 Oral      Other Physician     27
-# 107       All GLP1 Oral         Cardiologist     18
-# 108       All GLP1 Oral         Nephrologist     11
-# 109       All GLP1 Oral              Surgeon     11
-# 110       All GLP1 Oral   Gastroenterologist      9
-# 111       All GLP1 Oral Nutrition Specialist      7
-# 112       All GLP1 Oral          Neurologist      6
-# 113         All Insulin         Primary Care  65772
-# 114         All Insulin    Internal Medicine  60608
-# 115         All Insulin       Other Provider  42284
-# 116         All Insulin  Diabetes Specialist  17624
-# 117         All Insulin      Other Physician  12814
-# 118         All Insulin      Endocrinologist   9650
-# 119         All Insulin              Unknown   6299
-# 120         All Insulin              Surgeon   2562
-# 121         All Insulin         Cardiologist   2374
-# 122         All Insulin         Nephrologist   1691
-# 123         All Insulin             Facility   1346
-# 124         All Insulin          Neurologist   1048
-# 125         All Insulin   Gastroenterologist    792
-# 126         All Insulin Nutrition Specialist    178
-# 127         All Insulin         Hepatologist     16
-# 128           All SGLT2         Primary Care  25725
-# 129           All SGLT2    Internal Medicine  18367
-# 130           All SGLT2       Other Provider  14351
-# 131           All SGLT2  Diabetes Specialist   8288
-# 132           All SGLT2      Endocrinologist   2613
-# 133           All SGLT2         Cardiologist   1389
-# 134           All SGLT2              Unknown   1311
-# 135           All SGLT2      Other Physician    631
-# 136           All SGLT2         Nephrologist    357
-# 137           All SGLT2              Surgeon    163
-# 138           All SGLT2   Gastroenterologist    127
-# 139           All SGLT2          Neurologist    109
-# 140           All SGLT2 Nutrition Specialist     66
-# 141           All SGLT2             Facility     17
-# 142           All SGLT2         Hepatologist      3
-# 143          Alogliptin         Primary Care   1391
-# 144          Alogliptin    Internal Medicine   1232
-# 145          Alogliptin       Other Provider    990
-# 146          Alogliptin  Diabetes Specialist    304
-# 147          Alogliptin              Unknown    150
-# 148          Alogliptin      Endocrinologist     89
-# 149          Alogliptin      Other Physician     51
-# 150          Alogliptin         Cardiologist     50
-# 151          Alogliptin              Surgeon     25
-# 152          Alogliptin         Nephrologist     17
-# 153          Alogliptin   Gastroenterologist      9
-# 154          Alogliptin          Neurologist      7
-# 155          Alogliptin Nutrition Specialist      4
-# 156          Alogliptin             Facility      1
-# 157       Bromocriptine  Diabetes Specialist    124
-# 158       Bromocriptine         Primary Care     57
-# 159       Bromocriptine      Endocrinologist     37
-# 160       Bromocriptine       Other Provider     36
-# 161       Bromocriptine    Internal Medicine     33
-# 162       Bromocriptine              Unknown     18
-# 163       Bromocriptine         Cardiologist      2
-# 164       Canagliflozin         Primary Care  10867
-# 165       Canagliflozin    Internal Medicine   7585
-# 166       Canagliflozin       Other Provider   4929
-# 167       Canagliflozin  Diabetes Specialist   3899
-# 168       Canagliflozin      Endocrinologist   1061
-# 169       Canagliflozin              Unknown    450
-# 170       Canagliflozin         Cardiologist    235
-# 171       Canagliflozin      Other Physician    227
-# 172       Canagliflozin         Nephrologist    173
-# 173       Canagliflozin              Surgeon     65
-# 174       Canagliflozin   Gastroenterologist     63
-# 175       Canagliflozin          Neurologist     41
-# 176       Canagliflozin Nutrition Specialist     34
-# 177       Canagliflozin             Facility      2
-# 178      Chlorpropamide         Primary Care      4
-# 179      Chlorpropamide      Endocrinologist      3
-# 180      Chlorpropamide    Internal Medicine      3
-# 181      Chlorpropamide              Unknown      2
-# 182      Chlorpropamide       Other Provider      1
-# 183         Colesevelam         Primary Care   1313
-# 184         Colesevelam    Internal Medicine   1176
-# 185         Colesevelam       Other Provider    651
-# 186         Colesevelam   Gastroenterologist    516
-# 187         Colesevelam         Cardiologist    197
-# 188         Colesevelam  Diabetes Specialist    180
-# 189         Colesevelam              Unknown     83
-# 190         Colesevelam      Other Physician     73
-# 191         Colesevelam      Endocrinologist     45
-# 192         Colesevelam              Surgeon     35
-# 193         Colesevelam         Nephrologist     28
-# 194         Colesevelam          Neurologist      3
-# 195       Dapagliflozin         Primary Care   8867
-# 196       Dapagliflozin    Internal Medicine   5734
-# 197       Dapagliflozin       Other Provider   5388
-# 198       Dapagliflozin  Diabetes Specialist   3300
-# 199       Dapagliflozin         Cardiologist    610
-# 200       Dapagliflozin      Endocrinologist    424
-# 201       Dapagliflozin              Unknown    358
-# 202       Dapagliflozin      Other Physician    175
-# 203       Dapagliflozin         Nephrologist    102
-# 204       Dapagliflozin          Neurologist     40
-# 205       Dapagliflozin              Surgeon     39
-# 206       Dapagliflozin   Gastroenterologist     32
-# 207       Dapagliflozin Nutrition Specialist     16
-# 208       Dapagliflozin             Facility      5
-# 209       Dapagliflozin         Hepatologist      1
-# 210         Dulaglutide         Primary Care  14563
-# 211         Dulaglutide    Internal Medicine  10475
-# 212         Dulaglutide       Other Provider   9510
-# 213         Dulaglutide  Diabetes Specialist   7570
-# 214         Dulaglutide      Endocrinologist   2112
-# 215         Dulaglutide              Unknown   1029
-# 216         Dulaglutide      Other Physician    381
-# 217         Dulaglutide         Cardiologist    310
-# 218         Dulaglutide         Nephrologist    143
-# 219         Dulaglutide              Surgeon     87
-# 220         Dulaglutide Nutrition Specialist     85
-# 221         Dulaglutide   Gastroenterologist     73
-# 222         Dulaglutide          Neurologist     68
-# 223         Dulaglutide             Facility     10
-# 224       Empagliflozin         Primary Care  16604
-# 225       Empagliflozin    Internal Medicine  12638
-# 226       Empagliflozin       Other Provider   9636
-# 227       Empagliflozin  Diabetes Specialist   7480
-# 228       Empagliflozin      Endocrinologist   2477
-# 229       Empagliflozin         Cardiologist   1157
-# 230       Empagliflozin              Unknown    989
-# 231       Empagliflozin      Other Physician    427
-# 232       Empagliflozin         Nephrologist    260
-# 233       Empagliflozin              Surgeon    109
-# 234       Empagliflozin   Gastroenterologist     78
-# 235       Empagliflozin          Neurologist     69
-# 236       Empagliflozin Nutrition Specialist     54
-# 237       Empagliflozin             Facility     15
-# 238       Empagliflozin         Hepatologist      3
-# 239       Ertugliflozin         Primary Care    913
-# 240       Ertugliflozin       Other Provider    673
-# 241       Ertugliflozin    Internal Medicine    645
-# 242       Ertugliflozin  Diabetes Specialist    400
-# 243       Ertugliflozin      Endocrinologist     62
-# 244       Ertugliflozin              Unknown     40
-# 245       Ertugliflozin      Other Physician     37
-# 246       Ertugliflozin         Cardiologist     31
-# 247       Ertugliflozin         Nephrologist     27
-# 248       Ertugliflozin              Surgeon     12
-# 249       Ertugliflozin Nutrition Specialist      7
-# 250       Ertugliflozin          Neurologist      4
-# 251       Ertugliflozin   Gastroenterologist      2
-# 252           Exenatide         Primary Care   4937
-# 253           Exenatide    Internal Medicine   3141
-# 254           Exenatide       Other Provider   2979
-# 255           Exenatide  Diabetes Specialist   2189
-# 256           Exenatide      Endocrinologist    645
-# 257           Exenatide              Unknown    259
-# 258           Exenatide      Other Physician    111
-# 259           Exenatide         Cardiologist     82
-# 260           Exenatide              Surgeon     46
-# 261           Exenatide         Nephrologist     31
-# 262           Exenatide   Gastroenterologist     22
-# 263           Exenatide          Neurologist     19
-# 264           Exenatide Nutrition Specialist     11
-# 265           Exenatide             Facility      4
-# 266       Glibenclamide         Primary Care   7319
-# 267       Glibenclamide    Internal Medicine   5125
-# 268       Glibenclamide       Other Provider   3604
-# 269       Glibenclamide      Other Physician   1189
-# 270       Glibenclamide  Diabetes Specialist    619
-# 271       Glibenclamide              Unknown    448
-# 272       Glibenclamide         Cardiologist    262
-# 273       Glibenclamide      Endocrinologist    235
-# 274       Glibenclamide         Nephrologist    106
-# 275       Glibenclamide              Surgeon     77
-# 276       Glibenclamide   Gastroenterologist     45
-# 277       Glibenclamide          Neurologist     29
-# 278       Glibenclamide             Facility      6
-# 279       Glibenclamide Nutrition Specialist      2
-# 280         Glimepiride         Primary Care  28632
-# 281         Glimepiride    Internal Medicine  25573
-# 282         Glimepiride       Other Provider  10671
-# 283         Glimepiride  Diabetes Specialist   5803
-# 284         Glimepiride      Endocrinologist   1966
-# 285         Glimepiride              Unknown   1243
-# 286         Glimepiride         Cardiologist    859
-# 287         Glimepiride      Other Physician    781
-# 288         Glimepiride         Nephrologist    500
-# 289         Glimepiride   Gastroenterologist    243
-# 290         Glimepiride              Surgeon    205
-# 291         Glimepiride          Neurologist     76
-# 292         Glimepiride Nutrition Specialist     43
-# 293         Glimepiride             Facility     16
-# 294         Glimepiride         Hepatologist      3
-# 295           Glipizide         Primary Care  39315
-# 296           Glipizide    Internal Medicine  30954
-# 297           Glipizide       Other Provider  16588
-# 298           Glipizide  Diabetes Specialist   4642
-# 299           Glipizide              Unknown   1952
-# 300           Glipizide      Endocrinologist   1566
-# 301           Glipizide      Other Physician   1462
-# 302           Glipizide         Cardiologist   1092
-# 303           Glipizide         Nephrologist    885
-# 304           Glipizide              Surgeon    399
-# 305           Glipizide   Gastroenterologist    309
-# 306           Glipizide          Neurologist    141
-# 307           Glipizide Nutrition Specialist     38
-# 308           Glipizide             Facility     30
-# 309           Glipizide         Hepatologist      2
-# 310      Insulin Animal       Other Provider      1
-# 311      Insulin Animal              Unknown      1
-# 312      Insulin Aspart         Primary Care  13089
-# 313      Insulin Aspart    Internal Medicine  12985
-# 314      Insulin Aspart       Other Provider  10603
-# 315      Insulin Aspart  Diabetes Specialist   9870
-# 316      Insulin Aspart      Endocrinologist   2067
-# 317      Insulin Aspart      Other Physician   1420
-# 318      Insulin Aspart              Unknown   1404
-# 319      Insulin Aspart         Cardiologist    437
-# 320      Insulin Aspart              Surgeon    396
-# 321      Insulin Aspart         Nephrologist    374
-# 322      Insulin Aspart   Gastroenterologist    109
-# 323      Insulin Aspart          Neurologist    100
-# 324      Insulin Aspart             Facility     45
-# 325      Insulin Aspart Nutrition Specialist     14
-# 326      Insulin Aspart         Hepatologist      4
-# 327    Insulin Degludec         Primary Care   6402
-# 328    Insulin Degludec  Diabetes Specialist   5918
-# 329    Insulin Degludec       Other Provider   5540
-# 330    Insulin Degludec    Internal Medicine   5225
-# 331    Insulin Degludec      Endocrinologist   1444
-# 332    Insulin Degludec              Unknown    524
-# 333    Insulin Degludec      Other Physician    194
-# [ reached 'max' / getOption("max.print") -- omitted 268 rows ]
-
-
-
-
 
 data.frame(DIA_Drug_Specialties_Annual %>% filter(start=="1") %>% group_by(class, specialty) %>% 
              summarise(n=sum(physician_sample)) %>%
              arrange(class, -n))
 
-
-# class            specialty     n
-# 1               AGI         Primary Care   238
-# 2               AGI    Internal Medicine   209
-# 3               AGI  Diabetes Specialist   200
-# 4               AGI       Other Provider    80
-# 5               AGI      Endocrinologist    33
-# 6               AGI              Unknown    19
-# 7               AGI      Other Physician    16
-# 8               AGI              Surgeon    11
-# 9               AGI         Cardiologist     8
-# 10              AGI   Gastroenterologist     6
-# 11              AGI         Nephrologist     4
-# 12              AGI Nutrition Specialist     4
-# 13              AGI          Neurologist     2
-# 14     Antidiabetic         Primary Care   314
-# 15     Antidiabetic    Internal Medicine   263
-# 16     Antidiabetic   Gastroenterologist   234
-# 17     Antidiabetic       Other Provider   179
-# 18     Antidiabetic  Diabetes Specialist   119
-# 19     Antidiabetic         Cardiologist    45
-# 20     Antidiabetic              Unknown    35
-# 21     Antidiabetic      Endocrinologist    31
-# 22     Antidiabetic      Other Physician    28
-# 23     Antidiabetic              Surgeon    17
-# 24     Antidiabetic         Nephrologist     6
-# 25     Antidiabetic          Neurologist     2
-# 26        Biguanide         Primary Care 26968
-# 27        Biguanide    Internal Medicine 20427
-# 28        Biguanide       Other Provider 13521
-# 29        Biguanide      Other Physician  4513
-# 30        Biguanide  Diabetes Specialist  3792
-# 31        Biguanide              Unknown  1522
-# 32        Biguanide      Endocrinologist  1518
-# 33        Biguanide         Cardiologist   951
-# 34        Biguanide              Surgeon   342
-# 35        Biguanide         Nephrologist   312
-# 36        Biguanide   Gastroenterologist   276
-# 37        Biguanide          Neurologist   187
-# 38        Biguanide Nutrition Specialist   157
-# 39        Biguanide             Facility    25
-# 40        Biguanide         Hepatologist     5
-# 41             DPP4         Primary Care  9683
-# 42             DPP4    Internal Medicine  8151
-# 43             DPP4       Other Provider  4584
-# 44             DPP4  Diabetes Specialist  2084
-# 45             DPP4      Endocrinologist   603
-# 46             DPP4              Unknown   518
-# 47             DPP4      Other Physician   335
-# 48             DPP4         Cardiologist   327
-# 49             DPP4         Nephrologist   186
-# 50             DPP4   Gastroenterologist    88
-# 51             DPP4              Surgeon    85
-# 52             DPP4          Neurologist    40
-# 53             DPP4 Nutrition Specialist    26
-# 54             DPP4             Facility     8
-# 55             DPP4         Hepatologist     1
-# 56          Glinide    Internal Medicine   579
-# 57          Glinide         Primary Care   452
-# 58          Glinide  Diabetes Specialist   414
-# 59          Glinide       Other Provider   222
-# 60          Glinide      Endocrinologist   122
-# 61          Glinide              Unknown    46
-# 62          Glinide      Other Physician    32
-# 63          Glinide         Cardiologist    30
-# 64          Glinide         Nephrologist    27
-# 65          Glinide   Gastroenterologist     9
-# 66          Glinide              Surgeon     5
-# 67          Glinide          Neurologist     2
-# 68        Glitazone         Primary Care  3707
-# 69        Glitazone    Internal Medicine  2138
-# 70        Glitazone       Other Provider  1098
-# 71        Glitazone  Diabetes Specialist   820
-# 72        Glitazone      Endocrinologist   229
-# 73        Glitazone              Unknown   114
-# 74        Glitazone         Cardiologist    64
-# 75        Glitazone      Other Physician    63
-# 76        Glitazone         Nephrologist    37
-# 77        Glitazone   Gastroenterologist    31
-# 78        Glitazone              Surgeon    27
-# 79        Glitazone          Neurologist    15
-# 80        Glitazone Nutrition Specialist     6
-# 81        Glitazone             Facility     4
-# 82        Glitazone         Hepatologist     1
-# 83  GLP1 Injectable         Primary Care 12056
-# 84  GLP1 Injectable    Internal Medicine  8654
-# 85  GLP1 Injectable       Other Provider  8268
-# 86  GLP1 Injectable  Diabetes Specialist  6980
-# 87  GLP1 Injectable      Endocrinologist  1833
-# 88  GLP1 Injectable              Unknown   681
-# 89  GLP1 Injectable      Other Physician   414
-# 90  GLP1 Injectable         Cardiologist   281
-# 91  GLP1 Injectable Nutrition Specialist   153
-# 92  GLP1 Injectable              Surgeon   131
-# 93  GLP1 Injectable         Nephrologist   116
-# 94  GLP1 Injectable   Gastroenterologist    87
-# 95  GLP1 Injectable          Neurologist    53
-# 96  GLP1 Injectable             Facility     8
-# 97        GLP1 Oral         Primary Care   539
-# 98        GLP1 Oral    Internal Medicine   439
-# 99        GLP1 Oral       Other Provider   413
-# 100       GLP1 Oral  Diabetes Specialist   292
-# 101       GLP1 Oral      Endocrinologist    63
-# 102       GLP1 Oral              Unknown    30
-# 103       GLP1 Oral      Other Physician    23
-# 104       GLP1 Oral         Cardiologist    14
-# 105       GLP1 Oral         Nephrologist    11
-# 106       GLP1 Oral              Surgeon    10
-# 107       GLP1 Oral   Gastroenterologist     7
-# 108       GLP1 Oral Nutrition Specialist     7
-# 109       GLP1 Oral          Neurologist     4
-# 110    Insulin Long    Internal Medicine  9872
-# 111    Insulin Long         Primary Care  9410
-# 112    Insulin Long       Other Provider  6411
-# 113    Insulin Long  Diabetes Specialist  5239
-# 114    Insulin Long      Endocrinologist  1634
-# 115    Insulin Long      Other Physician   975
-# 116    Insulin Long              Unknown   933
-# 117    Insulin Long         Cardiologist   303
-# 118    Insulin Long         Nephrologist   204
-# 119    Insulin Long              Surgeon   182
-# 120    Insulin Long          Neurologist    65
-# 121    Insulin Long   Gastroenterologist    55
-# 122    Insulin Long             Facility    18
-# 123    Insulin Long Nutrition Specialist    18
-# 124    Insulin Long         Hepatologist     1
-# 125   Insulin Short    Internal Medicine  9148
-# 126   Insulin Short         Primary Care  6627
-# 127   Insulin Short  Diabetes Specialist  5479
-# 128   Insulin Short       Other Provider  5160
-# 129   Insulin Short      Other Physician  2817
-# 130   Insulin Short      Endocrinologist  1488
-# 131   Insulin Short              Unknown   859
-# 132   Insulin Short              Surgeon   708
-# 133   Insulin Short         Cardiologist   440
-# 134   Insulin Short         Nephrologist   215
-# 135   Insulin Short          Neurologist   127
-# 136   Insulin Short   Gastroenterologist    96
-# 137   Insulin Short             Facility    28
-# 138   Insulin Short Nutrition Specialist    12
-# 139   Insulin Short         Hepatologist     1
-# 140 Insulin Therapy    Internal Medicine  9832
-# 141 Insulin Therapy         Primary Care  9655
-# 142 Insulin Therapy       Other Provider  6201
-# 143 Insulin Therapy      Other Physician  4161
-# 144 Insulin Therapy  Diabetes Specialist  3138
-# 145 Insulin Therapy      Endocrinologist  1458
-# 146 Insulin Therapy              Surgeon   947
-# 147 Insulin Therapy              Unknown   823
-# 148 Insulin Therapy             Facility   736
-# 149 Insulin Therapy         Cardiologist   514
-# 150 Insulin Therapy          Neurologist   392
-# 151 Insulin Therapy         Nephrologist   218
-# 152 Insulin Therapy   Gastroenterologist   209
-# 153 Insulin Therapy Nutrition Specialist    65
-# 154 Insulin Therapy         Hepatologist     2
-# 155           SGLT2         Primary Care 10548
-# 156           SGLT2    Internal Medicine  7662
-# 157           SGLT2       Other Provider  5700
-# 158           SGLT2  Diabetes Specialist  4569
-# 159           SGLT2      Endocrinologist  1128
-# 160           SGLT2         Cardiologist   739
-# 161           SGLT2              Unknown   520
-# 162           SGLT2      Other Physician   235
-# 163           SGLT2         Nephrologist   227
-# 164           SGLT2              Surgeon    65
-# 165           SGLT2   Gastroenterologist    56
-# 166           SGLT2          Neurologist    46
-# 167           SGLT2 Nutrition Specialist    35
-# 168           SGLT2             Facility     7
-# 169           SGLT2         Hepatologist     1
-# 170    Sulfonylurea         Primary Care 11872
-# 171    Sulfonylurea    Internal Medicine 10002
-# 172    Sulfonylurea       Other Provider  4952
-# 173    Sulfonylurea  Diabetes Specialist  2156
-# 174    Sulfonylurea      Other Physician   936
-# 175    Sulfonylurea      Endocrinologist   567
-# 176    Sulfonylurea              Unknown   553
-# 177    Sulfonylurea         Cardiologist   295
-# 178    Sulfonylurea         Nephrologist   246
-# 179    Sulfonylurea              Surgeon   110
-# 180    Sulfonylurea   Gastroenterologist    87
-# 181    Sulfonylurea          Neurologist    39
-# 182    Sulfonylurea             Facility    12
-# 183    Sulfonylurea Nutrition Specialist     9
-# 184    Sulfonylurea         Hepatologist     2
 
 # --------
 # --------
@@ -10477,37 +7862,6 @@ model_SGLT2 <- lm(Difference ~ HbA1c...1, data = SGLT2_temp)
 
 summary(model_SGLT2)
 
-# Call:
-#   lm(formula = Difference ~ HbA1c...1, data = SGLT2_temp)
-
-
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -4.8188 -0.4633 -0.0070  0.5579  4.9308 
-
-
-# Coefficients:
-#   Estimate Std. Error t value            Pr(>|t|)    
-# (Intercept)  4.37166    0.30447   14.36 <0.0000000000000002 ***
-#   HbA1c...1   -0.70867    0.03985  -17.79 <0.0000000000000002 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-
-
-# Residual standard error: 1.182 on 417 degrees of freedom
-# Multiple R-squared:  0.4314,	Adjusted R-squared:   0.43 
-# F-statistic: 316.3 on 1 and 417 DF,  p-value: < 0.00000000000000022
-
-# Baseline 7.5 = 4.37166 + (-0.70867*7.5) = -0.943365
-# Baseline 8 = 4.37166 + (-0.70867*8) = -1.2977
-# Baseline 8.5 = 4.37166 + (-0.70867*8.5) = -1.652035
-# Baseline 9 = 4.37166 + (-0.70867*9) = -2.00637
-# Baseline 9.5 = 4.37166 + (-0.70867*9.5) = -2.360705
-
-
-
-
-
 # GLP1 Injectable Patients
 length(unique(HbA1c_Evolution_US_All_6months_2_classes_only$patient
               [HbA1c_Evolution_US_All_6months_2_classes_only$Therapy=="GLP1 Injectable"])) # 507
@@ -10536,33 +7890,6 @@ cor(GLP1_Injectable_temp$HbA1c...1,GLP1_Injectable_temp$Difference) # -0.7740298
 model_GLP1_Injectable <- lm(Difference ~ HbA1c...1, data = GLP1_Injectable_temp)
 
 summary(model_GLP1_Injectable)
-
-# Call:
-#   lm(formula = Difference ~ HbA1c...1, data = GLP1_Injectable_temp)
-
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -4.8919 -0.4124 -0.0925  0.3476  6.5676 
-
-# Coefficients:
-#   Estimate Std. Error t value            Pr(>|t|)    
-# (Intercept)  4.59323    0.20802   22.08 <0.0000000000000002 ***
-#   HbA1c...1   -0.80012    0.02912  -27.47 <0.0000000000000002 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-
-# Residual standard error: 0.9785 on 505 degrees of freedom
-# Multiple R-squared:  0.5991,	Adjusted R-squared:  0.5983 
-# F-statistic: 754.7 on 1 and 505 DF,  p-value: < 0.00000000000000022
-
-# Baseline 7.5 = 4.59323 + (-0.80012*7.5) = -1.40767
-# Baseline 8 = 4.59323 + (-0.80012*8) = -1.80773
-# Baseline 8.5 = 4.59323 + (-0.80012*8.5) = -2.20779
-# Baseline 9 = 4.59323 + (-0.80012*9) = -2.60785
-# Baseline 9.5 = 4.59323 + (-0.80012*9.5) = -3.00791
-
-
-
 
 
 # Combo Patients
@@ -10596,31 +7923,6 @@ cor(Combo_temp$HbA1c...1,Combo_temp$Difference) # -0.7766928
 model_Combo <- lm(Difference ~ HbA1c...1, data = Combo_temp)
 
 summary(model_Combo)
-
-# Call:
-#   lm(formula = Difference ~ HbA1c...1, data = Combo_temp)
-
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -5.2642 -0.5320 -0.0590  0.4421  4.0981 
-
-# Coefficients:
-#   Estimate Std. Error t value            Pr(>|t|)    
-# (Intercept)  4.84314    0.46308   10.46 <0.0000000000000002 ***
-#   HbA1c...1   -0.79824    0.05471  -14.59 <0.0000000000000002 ***
-# ---
-# Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-
-# Residual standard error: 1.212 on 140 degrees of freedom
-# Multiple R-squared:  0.6033,	Adjusted R-squared:  0.6004 
-# F-statistic: 212.9 on 1 and 140 DF,  p-value: < 0.00000000000000022
-
-# Baseline 7.5 = 4.84314 + (-0.79824*7.5) = -1.14366
-# Baseline 8 = 4.84314 + (-0.79824*8) = -1.54278
-# Baseline 8.5 = 4.84314 + (-0.79824*8.5) = -1.9419
-# Baseline 9 = 4.84314 + (-0.79824*9) = -2.34102
-# Baseline 9.5 = 4.84314 + (-0.79824*9.5) = -2.74014
-
 
 # Predicting HbA1c reduction ~baseline : patients on any drug -------------
 
@@ -10659,34 +7961,6 @@ model_SGLT2 <- lm(Difference ~ HbA1c...1, data = SGLT2_temp)
 
 summary(model_SGLT2)
 
-# Call:
-#   lm(formula = Difference ~ HbA1c...1, data = SGLT2_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -6.0840 -0.6598 -0.0640  0.6626  6.8464 
-# 
-# Coefficients:
-#   Estimate Std. Error t value            Pr(>|t|)    
-# (Intercept)   4.8766     0.1078   45.24 <0.0000000000000002 ***
-#   HbA1c...1    -0.7552     0.0120  -62.93 <0.0000000000000002 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 1.495 on 3991 degrees of freedom
-# Multiple R-squared:  0.4981,	Adjusted R-squared:  0.498 
-# F-statistic:  3961 on 1 and 3991 DF,  p-value: < 0.00000000000000022
-
-
-# Baseline 7.5 = 4.8766 + (-0.7552*7.5) = -0.7874
-# Baseline 8 = 4.8766 + (-0.7552*8) = -1.165
-# Baseline 8.5 = 4.8766 + (-0.7552*8.5) = -1.5426
-# Baseline 9 = 4.8766 + (-0.7552*9) = -1.9202
-# Baseline 9.5 = 4.8766 + (-0.7552*9.5) = -2.2978
-
-
-
-
 
 # GLP1 Injectable Patients
 length(unique(HbA1c_Evolution_US_All_6months$patient
@@ -10716,32 +7990,6 @@ cor(GLP1_Injectable_temp$HbA1c...1,GLP1_Injectable_temp$Difference) # -0.711746
 model_GLP1_Injectable <- lm(Difference ~ HbA1c...1, data = GLP1_Injectable_temp)
 
 summary(model_GLP1_Injectable)
-
-# Call:
-#   lm(formula = Difference ~ HbA1c...1, data = GLP1_Injectable_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -7.0893 -0.7445 -0.0953  0.6995  8.2730 
-# 
-# Coefficients:
-#   Estimate Std. Error t value            Pr(>|t|)    
-# (Intercept)  4.56615    0.09386   48.65 <0.0000000000000002 ***
-#   HbA1c...1   -0.72982    0.01038  -70.30 <0.0000000000000002 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 1.565 on 4814 degrees of freedom
-# Multiple R-squared:  0.5066,	Adjusted R-squared:  0.5065 
-# F-statistic:  4942 on 1 and 4814 DF,  p-value: < 0.00000000000000022
-
-# Baseline 7.5 = 4.56615 + (-0.72982*7.5) = -0.9075
-# Baseline 8 = 4.56615 + (-0.72982*8) = -1.27241
-# Baseline 8.5 = 4.56615 + (-0.72982*8.5) = -1.63732
-# Baseline 9 = 4.56615 + (-0.72982*9) = -2.00223
-# Baseline 9.5 = 4.56615 + (-0.72982*9.5) = -2.36714
-
-
 
 
 
@@ -10776,34 +8024,6 @@ cor(Combo_temp$HbA1c...1,Combo_temp$Difference) # -0.7202394
 model_Combo <- lm(Difference ~ HbA1c...1, data = Combo_temp)
 
 summary(model_Combo)
-
-# Call:
-#   lm(formula = Difference ~ HbA1c...1, data = Combo_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -5.7566 -0.8116 -0.1040  0.6984  7.2110 
-# 
-# Coefficients:
-#   Estimate Std. Error t value            Pr(>|t|)    
-# (Intercept)  5.05640    0.17873   28.29 <0.0000000000000002 ***
-#   HbA1c...1   -0.77498    0.01897  -40.86 <0.0000000000000002 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 1.506 on 1549 degrees of freedom
-# Multiple R-squared:  0.5187,	Adjusted R-squared:  0.5184 
-# F-statistic:  1670 on 1 and 1549 DF,  p-value: < 0.00000000000000022
-
-
-# Baseline 7.5 = 5.05640 + (-0.77498*7.5) = -0.75595
-# Baseline 8 = 5.05640 + (-0.77498*8) = -1.14344
-# Baseline 8.5 = 5.05640 + (-0.77498*8.5) = -1.53093
-# Baseline 9 = 5.05640 + (-0.77498*9) = -1.91842
-# Baseline 9.5 = 5.05640 + (-0.77498*9.5) = -2.30591
-
-
-
 
 # 
 # Predicting HbA1c reduction ~baseline : patients on metformin ONLY < 0 -------------
@@ -10845,35 +8065,6 @@ model_SGLT2 <- lm(Difference ~ HbA1c...1, data = SGLT2_temp)
 
 summary(model_SGLT2)
 
-# Call:
-#   lm(formula = Difference ~ HbA1c...1, data = SGLT2_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -4.5999 -0.2725  0.1325  0.5555  3.2607 
-# 
-# Coefficients:
-#   Estimate Std. Error t value            Pr(>|t|)    
-# (Intercept)   3.5407     0.3126   11.33 <0.0000000000000002 ***
-#   HbA1c...1    -0.6358     0.0397  -16.01 <0.0000000000000002 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 1.098 on 324 degrees of freedom
-# Multiple R-squared:  0.4418,	Adjusted R-squared:  0.4401 
-# F-statistic: 256.4 on 1 and 324 DF,  p-value: < 0.00000000000000022
-
-
-
-# Baseline 7.5 = 3.5407 + (-0.6358*7.5) = -1.2278
-# Baseline 8 = 3.5407 + (-0.6358*8) = -1.5457
-# Baseline 8.5 = 3.5407 + (-0.6358*8.5) = -1.8636
-# Baseline 9 = 3.5407 + (-0.6358*9) = -2.1815
-# Baseline 9.5 = 3.5407 + (-0.6358*9.5) = -2.4994
-
-
-
-
 
 # GLP1 Injectable Patients
 length(unique(HbA1c_Evolution_US_All_6months_2_classes_only$patient
@@ -10906,33 +8097,6 @@ cor(GLP1_Injectable_temp$HbA1c...1,GLP1_Injectable_temp$Difference) # -0.8342175
 model_GLP1_Injectable <- lm(Difference ~ HbA1c...1, data = GLP1_Injectable_temp)
 
 summary(model_GLP1_Injectable)
-
-# Call:
-#   lm(formula = Difference ~ HbA1c...1, data = GLP1_Injectable_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -4.8044 -0.2936  0.0366  0.3809  2.4050 
-# 
-# Coefficients:
-#   Estimate Std. Error t value            Pr(>|t|)    
-# (Intercept)  4.25728    0.18403   23.13 <0.0000000000000002 ***
-#   HbA1c...1   -0.77851    0.02514  -30.97 <0.0000000000000002 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 0.7997 on 419 degrees of freedom
-# Multiple R-squared:  0.6959,	Adjusted R-squared:  0.6952 
-# F-statistic: 958.9 on 1 and 419 DF,  p-value: < 0.00000000000000022
-
-# Baseline 7.5 = 4.25728 + (-0.77851*7.5) = -1.581545
-# Baseline 8 = 4.25728 + (-0.77851*8) = -1.9708
-# Baseline 8.5 = 4.25728 + (-0.77851*8.5) = -2.360055
-# Baseline 9 = 4.25728 + (-0.77851*9) = -2.74931
-# Baseline 9.5 = 4.25728 + (-0.77851*9.5) = -3.138565
-
-
-
 
 
 # Combo Patients
@@ -10970,29 +8134,6 @@ model_Combo <- lm(Difference ~ HbA1c...1, data = Combo_temp)
 
 summary(model_Combo)
 
-# Call:
-#   lm(formula = Difference ~ HbA1c...1, data = Combo_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -5.1002 -0.3913  0.0267  0.5387  3.5118 
-# 
-# Coefficients:
-#   Estimate Std. Error t value            Pr(>|t|)    
-# (Intercept)  4.55596    0.43913   10.38 <0.0000000000000002 ***
-#   HbA1c...1   -0.78798    0.05094  -15.47 <0.0000000000000002 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 1.047 on 123 degrees of freedom
-# Multiple R-squared:  0.6605,	Adjusted R-squared:  0.6577 
-# F-statistic: 239.3 on 1 and 123 DF,  p-value: < 0.00000000000000022
-
-# Baseline 7.5 = 4.55596 + (-0.78798*7.5) = -1.35389
-# Baseline 8 = 4.55596 + (-0.78798*8) = -1.74788
-# Baseline 8.5 = 4.55596 + (-0.78798*8.5) = -2.14187
-# Baseline 9 = 4.55596 + (-0.78798*9) = -2.53586
-# Baseline 9.5 = 4.55596 + (-0.78798*9.5) = -2.92985
 
 # Predicting HbA1c reduction ~baseline : patients on any drug ONLY < 0  -------------
 
@@ -11033,34 +8174,6 @@ model_SGLT2 <- lm(Difference ~ HbA1c...1, data = SGLT2_temp)
 
 summary(model_SGLT2)
 
-# Call:
-#   lm(formula = Difference ~ HbA1c...1, data = SGLT2_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -5.9976 -0.4704  0.1020  0.6669  5.5855 
-# 
-# Coefficients:
-#   Estimate Std. Error t value            Pr(>|t|)    
-# (Intercept)  4.09646    0.10582   38.71 <0.0000000000000002 ***
-#   HbA1c...1   -0.70220    0.01146  -61.28 <0.0000000000000002 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 1.303 on 3337 degrees of freedom
-# Multiple R-squared:  0.5295,	Adjusted R-squared:  0.5293 
-# F-statistic:  3755 on 1 and 3337 DF,  p-value: < 0.00000000000000022
-
-
-# Baseline 7.5 = 4.09646 + (-0.70220*7.5) = -1.17004
-# Baseline 8 = 4.09646 + (-0.70220*8) = -1.52114
-# Baseline 8.5 = 4.09646 + (-0.70220*8.5) = -1.87224
-# Baseline 9 = 4.09646 + (-0.70220*9) = -2.22334
-# Baseline 9.5 = 4.09646 + (-0.70220*9.5) = -2.57444
-
-
-
-
 
 # GLP1 Injectable Patients
 length(unique(HbA1c_Evolution_US_All_6months$patient
@@ -11093,31 +8206,6 @@ cor(GLP1_Injectable_temp$HbA1c...1,GLP1_Injectable_temp$Difference) # -0.7488222
 model_GLP1_Injectable <- lm(Difference ~ HbA1c...1, data = GLP1_Injectable_temp)
 
 summary(model_GLP1_Injectable)
-
-# Call:
-#   lm(formula = Difference ~ HbA1c...1, data = GLP1_Injectable_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -7.0101 -0.5398  0.0693  0.6979  5.7069 
-# 
-# Coefficients:
-#   Estimate Std. Error t value            Pr(>|t|)    
-# (Intercept)  4.001977   0.090172   44.38 <0.0000000000000002 ***
-#   HbA1c...1   -0.701285   0.009722  -72.13 <0.0000000000000002 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 1.348 on 4076 degrees of freedom
-# Multiple R-squared:  0.5607,	Adjusted R-squared:  0.5606 
-# F-statistic:  5203 on 1 and 4076 DF,  p-value: < 0.00000000000000022
-
-# Baseline 7.5 = 4.001977 + (-0.701285*7.5) = -1.257661
-# Baseline 8 = 4.001977 + (-0.701285*8) = -1.608303
-# Baseline 8.5 = 4.001977 + (-0.701285*8.5) = -1.958946
-# Baseline 9 = 4.001977 + (-0.701285*9) = -2.309588
-# Baseline 9.5 = 4.001977 + (-0.701285*9.5) = -2.66023
-
 
 
 
@@ -11155,33 +8243,6 @@ cor(Combo_temp$HbA1c...1,Combo_temp$Difference) # -0.7400585
 model_Combo <- lm(Difference ~ HbA1c...1, data = Combo_temp)
 
 summary(model_Combo)
-
-# Call:
-#   lm(formula = Difference ~ HbA1c...1, data = Combo_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -5.6287 -0.6255  0.0678  0.7041  5.7067 
-# 
-# Coefficients:
-#   Estimate Std. Error t value            Pr(>|t|)    
-# (Intercept)  4.23031    0.17160   24.65 <0.0000000000000002 ***
-#   HbA1c...1   -0.71680    0.01779  -40.30 <0.0000000000000002 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 1.299 on 1341 degrees of freedom
-# Multiple R-squared:  0.5477,	Adjusted R-squared:  0.5473 
-# F-statistic:  1624 on 1 and 1341 DF,  p-value: < 0.00000000000000022
-
-
-# Baseline 7.5 = 4.23031 + (-0.71680*7.5) = -1.14569
-# Baseline 8 = 4.23031 + (-0.71680*8) = -1.50409
-# Baseline 8.5 = 4.23031 + (-0.71680*8.5) = -1.86249
-# Baseline 9 = 4.23031 + (-0.71680*9) = -2.22089
-# Baseline 9.5 = 4.23031 + (-0.71680*9.5) = -2.57929
-
-
 
 
 # ---------
@@ -11285,36 +8346,6 @@ model_SGLT2 <- lm(Difference ~ HbA1c...1, data = SGLT2_temp)
 
 summary(model_SGLT2)
 
-# Call:
-#   lm(formula = Difference ~ HbA1c...1, data = SGLT2_temp)
-
-
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -4.8188 -0.4633 -0.0070  0.5579  4.9308 
-
-
-# Coefficients:
-#   Estimate Std. Error t value            Pr(>|t|)    
-# (Intercept)  4.37166    0.30447   14.36 <0.0000000000000002 ***
-#   HbA1c...1   -0.70867    0.03985  -17.79 <0.0000000000000002 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-
-
-# Residual standard error: 1.182 on 417 degrees of freedom
-# Multiple R-squared:  0.4314,	Adjusted R-squared:   0.43 
-# F-statistic: 316.3 on 1 and 417 DF,  p-value: < 0.00000000000000022
-
-# Baseline 7.5 = 4.37166 + (-0.70867*7.5) = -0.943365
-# Baseline 8 = 4.37166 + (-0.70867*8) = -1.2977
-# Baseline 8.5 = 4.37166 + (-0.70867*8.5) = -1.652035
-# Baseline 9 = 4.37166 + (-0.70867*9) = -2.00637
-# Baseline 9.5 = 4.37166 + (-0.70867*9.5) = -2.360705
-
-
-
-
 
 # GLP1 Injectable Patients
 length(unique(HbA1c_Evolution_US_All_6months_2_classes_only$patient
@@ -11344,33 +8375,6 @@ cor(GLP1_Injectable_temp$HbA1c...1,GLP1_Injectable_temp$Difference) # -0.7740298
 model_GLP1_Injectable <- lm(Difference ~ HbA1c...1, data = GLP1_Injectable_temp)
 
 summary(model_GLP1_Injectable)
-
-# Call:
-#   lm(formula = Difference ~ HbA1c...1, data = GLP1_Injectable_temp)
-
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -4.8919 -0.4124 -0.0925  0.3476  6.5676 
-
-# Coefficients:
-#   Estimate Std. Error t value            Pr(>|t|)    
-# (Intercept)  4.59323    0.20802   22.08 <0.0000000000000002 ***
-#   HbA1c...1   -0.80012    0.02912  -27.47 <0.0000000000000002 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-
-# Residual standard error: 0.9785 on 505 degrees of freedom
-# Multiple R-squared:  0.5991,	Adjusted R-squared:  0.5983 
-# F-statistic: 754.7 on 1 and 505 DF,  p-value: < 0.00000000000000022
-
-# Baseline 7.5 = 4.59323 + (-0.80012*7.5) = -1.40767
-# Baseline 8 = 4.59323 + (-0.80012*8) = -1.80773
-# Baseline 8.5 = 4.59323 + (-0.80012*8.5) = -2.20779
-# Baseline 9 = 4.59323 + (-0.80012*9) = -2.60785
-# Baseline 9.5 = 4.59323 + (-0.80012*9.5) = -3.00791
-
-
-
 
 
 # Combo Patients
@@ -11406,31 +8410,6 @@ model_Combo <- lm(Difference ~ HbA1c...1, data = Combo_temp)
 
 summary(model_Combo)
 
-# Call:
-#   lm(formula = Difference ~ HbA1c...1, data = Combo_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -4.2831 -0.4732 -0.0103  0.4676  3.6430 
-# 
-# Coefficients:
-#   Estimate Std. Error t value        Pr(>|t|)    
-# (Intercept)   3.4052     0.6605   5.155 0.0000017909859 ***
-#   HbA1c...1    -0.6213     0.0805  -7.719 0.0000000000287 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 1.188 on 80 degrees of freedom
-# Multiple R-squared:  0.4268,	Adjusted R-squared:  0.4197 
-# F-statistic: 59.58 on 1 and 80 DF,  p-value: 0.00000000002872
-
-# Baseline 7.5 = 3.4052 + (-0.6213*7.5) = -1.25455
-# Baseline 8 = 3.4052 + (-0.6213*8) = -1.5652
-# Baseline 8.5 = 3.4052 + (-0.6213*8.5) = -1.87585
-# Baseline 9 = 3.4052 + (-0.6213*9) = -2.1865
-# Baseline 9.5 = 3.4052 + (-0.6213*9.5) = -2.49715  
-
-
 # --------
 
 
@@ -11455,33 +8434,7 @@ SGLT2_temp <- SGLT2_temp %>% filter(Period=="Before") %>% select(-Period, -Month
 
 MM.model <- drm(Difference~HbA1c...1, data=SGLT2_temp, fct=MM.2())
 
-# A 'drc' model.
-# 
-# Call:
-#   drm(formula = Difference ~ HbA1c...1, data = SGLT2_temp, fct = MM.2())
-# 
-# Coefficients:
-#   d:(Intercept)  e:(Intercept)  
-# -175.3         1186.2 
-
 summary(MM.model)
-
-# Model fitted: Michaelis-Menten (2 parms)
-# 
-# Parameter estimates:
-#   
-#   Estimate Std. Error t-value p-value
-# d:(Intercept)  -175.30     229.37 -0.7643  0.4451
-# e:(Intercept)  1186.20    1558.99  0.7609  0.4472
-# 
-# Residual standard error:
-#   
-#   1.44584 (417 degrees of freedom)
-
-# (8*-175.3)/(8+1186.2) = -1.174343
-
-
-
 
 
 # GLP1 Injectable Patients
@@ -11500,32 +8453,7 @@ GLP1_Injectable_temp <- GLP1_Injectable_temp %>% filter(Period=="Before") %>% se
 
 MM.model <- drm(Difference~HbA1c...1, data=GLP1_Injectable_temp, fct=MM.2())
 
-# A 'drc' model.
-# 
-# Call:
-#   drm(formula = Difference ~ HbA1c...1, data = GLP1_Injectable_temp,     fct = MM.2())
-# 
-# Coefficients:
-#   d:(Intercept)  e:(Intercept)  
-# -345.3         2011.0 
-
-# (8*-345.3)/(8+2011.0) = -1.368202
-
 summary(MM.model)
-
-# Model fitted: Michaelis-Menten (2 parms)
-# 
-# Parameter estimates:
-#   
-#   Estimate Std. Error t-value p-value
-# d:(Intercept)  -345.33     437.43 -0.7895  0.4302
-# e:(Intercept)  2011.01    2553.21  0.7876  0.4313
-# 
-# Residual standard error:
-#   
-#   1.372703 (505 degrees of freedom)
-
-
 
 # Combo Patients
 length(unique(HbA1c_Evolution_US_All_6months_2_classes_only$patient
@@ -11542,30 +8470,9 @@ Combo_temp <- Combo_temp %>% filter(Period=="Before") %>% select(-Period, -Month
 
  MM.model <- drm(Difference~HbA1c...1, data=Combo_temp, fct=MM.2())
 
-# A 'drc' model.
-# 
-# Call:
-#   drm(formula = Difference ~ HbA1c...1, data = Combo_temp, fct = MM.2())
-# 
-# Coefficients:
-#   d:(Intercept)  e:(Intercept)  
-# -1809           7529 
-
-# (8*-1809)/(8+7529) = -1.920127
 
 summary(MM.model)
 
-# Model fitted: Michaelis-Menten (2 parms)
-# 
-# Parameter estimates:
-#   
-#   Estimate Std. Error t-value p-value
-# d:(Intercept)  -1808.7     6420.9 -0.2817  0.7786
-# e:(Intercept)   7528.5    26753.3  0.2814  0.7788
-# 
-# Residual standard error:
-#   
-#   1.617677 (140 degrees of freedom)
 # -----
 # Predict using Generalized Additive Model (GAM) ---------------
 # HbA1c reductions patients only ON Metformin, SGLT2 and GLP1 Injectbale
@@ -11589,34 +8496,6 @@ SGLT2_temp <- SGLT2_temp %>% select(HbA1c...1, Difference)
 gam1<-gam(Difference~s(HbA1c...1,df=8) ,data = SGLT2_temp)
 
 summary(gam1)
-
-# Call: gam(formula = Difference ~ s(HbA1c...1, df = 8), data = SGLT2_temp)
-# Deviance Residuals:
-#   Min       1Q   Median       3Q      Max 
-# -4.76204 -0.43827 -0.02534  0.54618  4.74584 
-# 
-# (Dispersion Parameter for gaussian family taken to be 1.3744)
-# 
-# Null Deviance: 1024.376 on 418 degrees of freedom
-# Residual Deviance: 563.5049 on 410 degrees of freedom
-# AIC: 1333.222 
-# 
-# Number of Local Scoring Iterations: NA 
-# 
-# Anova for Parametric Effects
-# Df Sum Sq Mean Sq F value                Pr(>F)    
-# s(HbA1c...1, df = 8)   1 441.87  441.87   321.5 < 0.00000000000000022 ***
-#   Residuals            410 563.50    1.37                                  
-# ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Anova for Nonparametric Effects
-# Npar Df Npar F   Pr(F)  
-# (Intercept)                                  
-# s(HbA1c...1, df = 8)       7 1.9751 0.05717 .
-# ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-
 
 plot(gam1,se = TRUE) 
 
@@ -11646,35 +8525,6 @@ gam1<-gam(Difference~s(HbA1c...1,df=8) ,data = GLP1_Injectable_temp)
 
 summary(gam1)
 
-
-# Call: gam(formula = Difference ~ s(HbA1c...1, df = 8), data = GLP1_Injectable_temp)
-# Deviance Residuals:
-#   Min       1Q   Median       3Q      Max 
-# -4.51482 -0.37628 -0.02338  0.32900  6.35537 
-# 
-# (Dispersion Parameter for gaussian family taken to be 0.8901)
-# 
-# Null Deviance: 1206.197 on 506 degrees of freedom
-# Residual Deviance: 443.2687 on 498.0005 degrees of freedom
-# AIC: 1390.695 
-# 
-# Number of Local Scoring Iterations: NA 
-# 
-# Anova for Parametric Effects
-# Df Sum Sq Mean Sq F value                Pr(>F)    
-# s(HbA1c...1, df = 8)   1 722.66  722.66  811.89 < 0.00000000000000022 ***
-#   Residuals            498 443.27    0.89                                  
-# ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Anova for Nonparametric Effects
-# Npar Df Npar F        Pr(F)    
-# (Intercept)                                         
-# s(HbA1c...1, df = 8)       7 6.4634 0.0000002648 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-
-
 plot(gam1,se = TRUE) 
 
 new.HbA1c <- data.frame(HbA1c...1 = 8)
@@ -11703,35 +8553,6 @@ Combo_temp <- Combo_temp %>% select(HbA1c...1, Difference)
 gam1<-gam(Difference~s(HbA1c...1,df=8) ,data = Combo_temp)
 
 summary(gam1)
-
-
-# Call: gam(formula = Difference ~ s(HbA1c...1, df = 8), data = Combo_temp)
-# Deviance Residuals:
-#   Min       1Q   Median       3Q      Max 
-# -4.53055 -0.51776 -0.04872  0.47632  3.65692 
-# 
-# (Dispersion Parameter for gaussian family taken to be 1.3476)
-# 
-# Null Deviance: 518.1487 on 141 degrees of freedom
-# Residual Deviance: 179.2262 on 133.0002 degrees of freedom
-# AIC: 456.0388 
-# 
-# Number of Local Scoring Iterations: NA 
-# 
-# Anova for Parametric Effects
-# Df Sum Sq Mean Sq F value                Pr(>F)    
-# s(HbA1c...1, df = 8)   1 312.57 312.574  231.96 < 0.00000000000000022 ***
-#   Residuals            133 179.23   1.348                                  
-# ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Anova for Nonparametric Effects
-# Npar Df Npar F    Pr(F)   
-# (Intercept)                                    
-# s(HbA1c...1, df = 8)       7 2.7933 0.009611 **
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-
 
 
 plot(gam1,se = TRUE) 
@@ -11917,35 +8738,6 @@ model_SGLT2 <- lm(Difference ~ HbA1c...1, data = SGLT2_temp)
 
 summary(model_SGLT2)
 
-# Call:
-#   lm(formula = Difference ~ HbA1c...1, data = SGLT2_temp)
-
-
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -4.8188 -0.4633 -0.0070  0.5579  4.9308 
-
-
-# Coefficients:
-#   Estimate Std. Error t value            Pr(>|t|)    
-# (Intercept)  4.37166    0.30447   14.36 <0.0000000000000002 ***
-#   HbA1c...1   -0.70867    0.03985  -17.79 <0.0000000000000002 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-
-
-# Residual standard error: 1.182 on 417 degrees of freedom
-# Multiple R-squared:  0.4314,	Adjusted R-squared:   0.43 
-# F-statistic: 316.3 on 1 and 417 DF,  p-value: < 0.00000000000000022
-
-# Baseline 7.5 = 4.37166 + (-0.70867*7.5) = -0.943365
-# Baseline 8 = 4.37166 + (-0.70867*8) = -1.2977
-# Baseline 8.5 = 4.37166 + (-0.70867*8.5) = -1.652035
-# Baseline 9 = 4.37166 + (-0.70867*9) = -2.00637
-# Baseline 9.5 = 4.37166 + (-0.70867*9.5) = -2.360705
-
-
-
 
 
 # GLP1 Injectable Patients
@@ -11976,34 +8768,6 @@ cor(GLP1_Injectable_temp$HbA1c...1,GLP1_Injectable_temp$Difference) # -0.7740298
 model_GLP1_Injectable <- lm(Difference ~ HbA1c...1, data = GLP1_Injectable_temp)
 
 summary(model_GLP1_Injectable)
-
-# Call:
-#   lm(formula = Difference ~ HbA1c...1, data = GLP1_Injectable_temp)
-
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -4.8919 -0.4124 -0.0925  0.3476  6.5676 
-
-# Coefficients:
-#   Estimate Std. Error t value            Pr(>|t|)    
-# (Intercept)  4.59323    0.20802   22.08 <0.0000000000000002 ***
-#   HbA1c...1   -0.80012    0.02912  -27.47 <0.0000000000000002 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-
-# Residual standard error: 0.9785 on 505 degrees of freedom
-# Multiple R-squared:  0.5991,	Adjusted R-squared:  0.5983 
-# F-statistic: 754.7 on 1 and 505 DF,  p-value: < 0.00000000000000022
-
-# Baseline 7.5 = 4.59323 + (-0.80012*7.5) = -1.40767
-# Baseline 8 = 4.59323 + (-0.80012*8) = -1.80773
-# Baseline 8.5 = 4.59323 + (-0.80012*8.5) = -2.20779
-# Baseline 9 = 4.59323 + (-0.80012*9) = -2.60785
-# Baseline 9.5 = 4.59323 + (-0.80012*9.5) = -3.00791
-
-
-
-
 
 # Combo Patients
 length(unique(HbA1c_Evolution_US_All_6months_2_classes_only$patient
@@ -12037,29 +8801,6 @@ model_Combo <- lm(Difference ~ HbA1c...1, data = Combo_temp)
 
 summary(model_Combo)
 
-# Call:
-#   lm(formula = Difference ~ HbA1c...1, data = Combo_temp)
-
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -5.2642 -0.5320 -0.0590  0.4421  4.0981 
-
-# Coefficients:
-#   Estimate Std. Error t value            Pr(>|t|)    
-# (Intercept)  4.84314    0.46308   10.46 <0.0000000000000002 ***
-#   HbA1c...1   -0.79824    0.05471  -14.59 <0.0000000000000002 ***
-# ---
-# Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-
-# Residual standard error: 1.212 on 140 degrees of freedom
-# Multiple R-squared:  0.6033,	Adjusted R-squared:  0.6004 
-# F-statistic: 212.9 on 1 and 140 DF,  p-value: < 0.00000000000000022
-
-# Baseline 7.5 = 4.84314 + (-0.79824*7.5) = -1.14366
-# Baseline 8 = 4.84314 + (-0.79824*8) = -1.54278
-# Baseline 8.5 = 4.84314 + (-0.79824*8.5) = -1.9419
-# Baseline 9 = 4.84314 + (-0.79824*9) = -2.34102
-# Baseline 9.5 = 4.84314 + (-0.79824*9.5) = -2.74014
 # ---------
 # How long do patients stay therapy - PREDICTIONS CONTINUOUSLY ON THERAPY HBA1c ? --------------------------
 HbA1c_Evolution_US_All_6months_2_classes_only <- fread("HbA1c_Evolution_US_All_6months_2_classes_only.csv")
@@ -12322,21 +9063,11 @@ HbA1c_Evolution_2classes <- HbA1c_Evolution_US_All_6months_2_classes_only_Durati
 
 HbA1c_Evolution_2classes %>% group_by(Therapy) %>% count()
 
-# Therapy             n
-# <chr>           <int>
-# 1 Combo              57
-# 2 GLP1 Injectable   249
-# 3 SGLT2             231
+
 
 HbA1c_Evolution_2classes %>% 
   mutate(Difference= HbA1c_After-HbA1c_Before) %>%
   group_by(Therapy) %>% summarise(n=mean(Difference))
-
-# Therapy             n
-# <chr>           <dbl>
-# 1 Combo           -1.79
-# 2 GLP1 Injectable -1.23
-# 3 SGLT2           -1.01
 
 
 HbA1c_Evolution_2classes %>%
@@ -12391,30 +9122,6 @@ model_SGLT2 <- lm(Difference ~ HbA1c_Before+Duration, data = SGLT2_temp)
 
 summary(model_SGLT2)
 # 
-# Call:
-#   lm(formula = Difference ~ HbA1c_Before + Duration, data = SGLT2_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -4.5006 -0.3567  0.0734  0.5362  2.2779 
-# 
-# Coefficients:
-#   Estimate Std. Error t value
-# (Intercept)   4.76131    0.44843  10.618
-# HbA1c_Before -0.82600    0.05398 -15.302
-# Duration      0.03085    0.01900   1.624
-# Pr(>|t|)    
-# (Intercept)  <0.0000000000000002 ***
-#   HbA1c_Before <0.0000000000000002 ***
-#   Duration                   0.106    
-# ---
-#   Signif. codes:  
-#   0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 0.987 on 228 degrees of freedom
-# Multiple R-squared:  0.508,	Adjusted R-squared:  0.5037 
-# F-statistic: 117.7 on 2 and 228 DF,  p-value: < 0.00000000000000022
-
 SGLT2_temp %>% ggplot(aes(HbA1c_Before, Difference)) +
   geom_jitter(colour="midnightblue", size=2, alpha=0.7)+
   geom_smooth(method="loess", colour="deeppink4", fill="deeppink4")+
@@ -12434,26 +9141,6 @@ GLP1_temp <- HbA1c_Evolution_2classes %>%
 model_GLP1 <- lm(Difference ~ HbA1c_Before+Duration, data = GLP1_temp)
 
 summary(model_GLP1)
-
-# Call:
-#   lm(formula = Difference ~ HbA1c_Before + Duration, data = GLP1_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -4.5763 -0.3532 -0.0181  0.3671  3.6090 
-# 
-# Coefficients:
-#   Estimate Std. Error t value            Pr(>|t|)    
-# (Intercept)   4.673062   0.331637  14.091 <0.0000000000000002 ***
-#   HbA1c_Before -0.839167   0.040446 -20.748 <0.0000000000000002 ***
-#   Duration      0.004875   0.013851   0.352               0.725    
-# ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 0.8831 on 246 degrees of freedom
-# Multiple R-squared:  0.6364,	Adjusted R-squared:  0.6334 
-# F-statistic: 215.3 on 2 and 246 DF,  p-value: < 0.00000000000000022
-
 
 GLP1_temp %>% ggplot(aes(HbA1c_Before, Difference)) +
   geom_jitter(colour="darksalmon", size=2, alpha=0.7)+
@@ -12476,24 +9163,6 @@ model_Combo <- lm(Difference ~ HbA1c_Before+Duration, data = Combo_temp)
 
 summary(model_Combo)
 
-# Call:
-#   lm(formula = Difference ~ HbA1c_Before + Duration, data = Combo_temp)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -4.1135 -0.3423 -0.0996  0.4865  2.9598 
-# 
-# Coefficients:
-#   Estimate Std. Error t value         Pr(>|t|)    
-# (Intercept)   3.01393    0.91538   3.293          0.00175 ** 
-#   HbA1c_Before -0.66132    0.07435  -8.895 0.00000000000364 ***
-#   Duration      0.05840    0.06472   0.902          0.37093    
-# ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 1.014 on 54 degrees of freedom
-# Multiple R-squared:  0.5981,	Adjusted R-squared:  0.5832 
-# F-statistic: 40.18 on 2 and 54 DF,  p-value: 0.00000000002049
 
 
 Combo_temp %>% ggplot(aes(HbA1c_Before, Difference)) +
@@ -12504,23 +9173,6 @@ Combo_temp %>% ggplot(aes(HbA1c_Before, Difference)) +
         panel.background = element_blank())+
   ylim(-8,5)+xlim(5,15)+
   xlab("\n Baseline HbA1c")+ylab("Absolute % HbA1c Reduction \n")
-
-
-
-5.07651 +(7.5*-0.82309)
-5.07651 +(8*-0.82309)
-5.07651 +(8.5*-0.82309)
-5.07651 +(9*-0.82309)
-
-4.72791+(7.5*-0.83909)
-4.72791+(8*-0.83909)
-4.72791+(8.5*-0.83909)
-4.72791+(9*-0.83909)
-
-3.6200+(7.5*-0.6629)
-3.6200+(8*-0.6629)
-3.6200+(8.5*-0.6629)
-3.6200+(9*-0.6629)
 
 
 SGLT2_temp <- SGLT2_temp %>% filter(HbA1c_Before<=10 & Duration <=12)

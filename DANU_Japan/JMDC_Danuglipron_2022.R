@@ -424,9 +424,6 @@ OBE_Japan_Drug_Histories %>%
   group_by(SUM) %>%
   summarise(n=n())
 
-# 445070 never treated
-# 3786 treated at some point
-450355-445070
 
 # LONG is the original file, imported again because we need the weights
 
@@ -460,14 +457,7 @@ DIA_Japan_Drug_Histories %>%
   group_by(SUM) %>%
   summarise(n=n())
 
-96910-10784
 
-# 154275 never treated
-#87727 treated at some point
-
-96910-10784
-
-# LONG is the original file, improted again imported again because we need the weights
 
 DIA_Japan_Drug_Histories_LONG <- read.table("DIA Japan Drug Histories_v2.txt", 
                                             header = T, sep="\t", quote="", 
@@ -519,8 +509,6 @@ DIA_Japan_Drug_Histories_month60 <-
   select(patient, weight, month60)
 
 
-#350280-242002     
-#108278 drugs after commas
 
 DIA_Japan_Drug_Histories_month60 <- 
   separate_rows(DIA_Japan_Drug_Histories_month60, month60, sep = ",", convert=T )
@@ -757,17 +745,6 @@ OBE_Treatment_Experience_label %>%
   mutate(sum_weights_percent = (sum_weights / 441120.1)*100)
 
 
-# generic_name           drug_group      sum_weights sum_weights_percent
-# <chr>                  <chr>                 <dbl>               <dbl>
-#   1 NA                     NA                 334565.             75.8    
-# 2 Bofutsushosan          Antiobesity         78860.             17.9    
-# 3 Boiogito               Antiobesity         19082.              4.33   
-# 4 Liraglutide            GLP1 Injectable       113.              0.0257 
-# 5 Semaglutide Injectable GLP1 Injectable        22.3             0.00506
-# 6 Lisdexamfetamine       Antiobesity            27.9             0.00633
-# 7 Gastric Bypass         Surgery                51.1             0.0116 
-# 8 Mazindol               Antiobesity          1083.              0.246  
-# 9 Methylphenidate        Antiobesity          9259.              2.10  
 
 
 
@@ -1357,13 +1334,6 @@ data.frame(OBE_Japan_Drug_Stocks %>% filter(grepl("Lisdexamfetamine",generic)) %
              mutate(period = as.numeric(period)) %>%
              group_by(period) %>%
              summarise(sum_weights = sum(as.numeric(pats)), sum_n_pats = sum(as.numeric(n))))
-
-# period sum_weights sum_n_pats
-# 1     57       27.93          1
-# 2     58       27.93          1
-# 3     59       27.93          1
-# 4     60       27.93          1
-
 
 
 
@@ -2488,11 +2458,6 @@ Patients_Biguanides %>% ungroup() %>% filter(grepl(",",month60)) %>%
   summarise(n = sum(as.numeric(weight)))
 
 sum(as.numeric(Patients_Biguanides$weight))
-3532020-3113157
-#simple  418863
-#combos  3113157
-
-
 
 
 
@@ -2538,11 +2503,6 @@ Patients_Antidiabetics %>% ungroup() %>% filter(grepl(",",month60)) %>%
 
 sum(as.numeric(Patients_Antidiabetics$weight))
 
-2535586-2292855
-#simple  242731
-#combos  2292855
-
-
 
 
 # ----
@@ -2583,9 +2543,6 @@ Patients_DPP4 %>% ungroup() %>% filter(grepl(",",month60)) %>%
   summarise(n = sum(as.numeric(weight)))
 
 sum(as.numeric(Patients_DPP4$weight))
-4723980-3569039
-#simple 1154941
-# combo 3569039
 
 
 # ----
@@ -2624,10 +2581,6 @@ Patients_SGLT2 %>% ungroup() %>% filter(grepl(",",month60)) %>%
   summarise(n = sum(as.numeric(weight)))
 
 sum(as.numeric(Patients_SGLT2$weight))
-2363683-2060414
-#simple 303269
-# combo 2060414
-
 
 
 
@@ -2668,9 +2621,7 @@ Patients_GLP1 %>% ungroup() %>% filter(grepl(",",month60)) %>%
   summarise(n = sum(as.numeric(weight)))
 
 sum(as.numeric(Patients_GLP1$weight))
-274259-260986
-#simple 13273
-# combo 260986
+
 
 
 # ----
@@ -2707,12 +2658,6 @@ Patients_Insulin <- Patients_Insulin %>% left_join(DIA_Japan_Drug_Histories)
 Patients_Insulin %>% ungroup() %>% filter(grepl(",",month60)) %>%
   summarise(n = sum(as.numeric(weight)))
 
-#simple 51732.5
-# combo 656585
-708317.5-656585
-sum(as.numeric(Patients_Insulin$weight))
-53000/96910
-
 
 
 
@@ -2748,27 +2693,8 @@ DIA_Flows_Aux._Long <- DIA_Flows_Aux._Long %>% filter(month60 != "-")
 
 DIA_Flows_Aux._Long %>% group_by(s2) %>% summarise(n = sum(as.numeric(weight)))
 
-# s2           n
-# <chr>    <dbl>
-#   1 b      418863.
-# 2 d      429223.
-# 3 D     2969099.
-# 4 g       13114.
-# 5 G      134670.
-# 6 I      708318.
-# 7 S     2019656.
 
 DIA_Flows_Aux._Long %>% group_by(s2) %>% filter(grepl(",",month60)) %>% summarise(n = sum(as.numeric(weight)))
-
-# s2           n
-# <chr>    <dbl>
-#   1 d      186492.
-# 2 D     1814158 
-# 3 g       11979.
-# 4 G      122533.
-# 5 I      656585.
-# 6 S     1716386.
-
 
 
 

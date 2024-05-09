@@ -16,28 +16,10 @@ DANU_Demographics <- fread("DANU Demographics.txt")
 DANU_Demographics %>% filter(grepl("Obesity", diagnosis)) %>% group_by(diagnosis) %>%
   summarise(pop=sum(weight))
 
-# diagnosis                 pop
-# <chr>                   <dbl>
-# 1 Diabetes + Obesity  40282960.
-# 2 Obesity            106469049.
 
 DANU_Demographics %>% filter(grepl("Obesity", diagnosis)) %>% group_by(diagnosis, obesity_condition) %>%
   summarise(pop=sum(weight))
 
-# diagnosis          obesity_condition           pop
-# <chr>              <chr>                     <dbl>
-# 1 Diabetes + Obesity General Obesity          1452926.
-# 2 Diabetes + Obesity Moderate Obesity         9962752.
-# 3 Diabetes + Obesity Morbid Obesity          14005268.
-# 4 Diabetes + Obesity Overweight               9261045.
-# 5 Diabetes + Obesity Severe Obesity           5489530.
-# 6 Diabetes + Obesity Treatment For Obesity     111439.
-# 7 Obesity            General Obesity          3017804.
-# 8 Obesity            Moderate Obesity        29154848.
-# 9 Obesity            Morbid Obesity          16778999.
-# 10 Obesity           Overweight              44472651.
-# 11 Obesity           Severe Obesity          12754600.
-# 12 Obesity           Treatment For Obesity     290147.
 
 DANU_Demographics %>% filter(obesity_condition == "Moderate Obesity"|
                                obesity_condition == "Severe Obesity"|
@@ -53,12 +35,7 @@ DANU_Demographics %>% filter(obesity_condition == "Moderate Obesity"|
                                obesity_condition == "Overweight") %>%
   group_by(obesity_condition) %>% summarise(pop=sum(weight))
 
-# obesity_condition       pop
-# <chr>                 <dbl>
-# 1 Moderate Obesity  39117600.
-# 2 Morbid Obesity    30784266.
-# 3 Overweight        53733696.
-# 4 Severe Obesity    18244130.
+
 
 OBE_pats <- DANU_Demographics %>% filter(grepl("Obesity", diagnosis)) %>%select(patid, weight, diagnosis)
 
@@ -73,17 +50,9 @@ OBE_pats$code <- parse_number(OBE_pats$code)
 
 OBE_pats %>% group_by(diagnosis) %>% summarise(n=weighted.mean(code, weight_3))
 # 
-# diagnosis              n
-# <chr>              <dbl>
-#   1 Diabetes + Obesity  33.6
-# 2 Obesity             30.7
 
 OBE_pats %>% group_by(diagnosis) %>% summarise(n=weighted.median(code, weight_3))
 # 
-# diagnosis              n
-# <chr>              <dbl>
-#   1 Diabetes + Obesity  31.8
-# 2 Obesity             29.2
 
 OBE_pats %>% 
   ggplot(aes(code, colour=diagnosis, fill=diagnosis))+
@@ -105,17 +74,9 @@ OBE_pats <- OBE_pats %>% group_by(patid) %>% slice(n())
 
 OBE_pats %>% group_by(diagnosis) %>% summarise(n=weighted.mean(code, weight_3))
 
-# diagnosis              n
-# <chr>              <dbl>
-#   1 Diabetes + Obesity  33.5
-# 2 Obesity             31.0
 
 OBE_pats %>% group_by(diagnosis) %>% summarise(n=weighted.median(code, weight_3))
 
-# diagnosis              n
-# <chr>              <dbl>
-#   1 Diabetes + Obesity  31.8
-# 2 Obesity             29.2
 
 OBE_pats %>% 
   ggplot(aes(code, colour=diagnosis, fill=diagnosis))+
@@ -223,11 +184,6 @@ OBE_Demographics <- fread("OBE_Demographics_v2.txt")
 
 OBE_Demographics %>% group_by(gender) %>% summarise(n=sum(weight))
 
-gender        n
-<chr>     <dbl>
-1 F      5377152.
-2 M      3777964.
-
 
 OBE_Demographics %>% group_by(gender) %>% summarise(n=weighted.mean(age, weight))
 OBE_Demographics %>% group_by(gender) %>% summarise(n=weighted.median(age, weight))
@@ -240,18 +196,8 @@ OBE_Demographics %>% select(patient, weight, age) %>% mutate(age_group = ifelse(
                                                                                                    ifelse(age>=70 & age<80, "70_to_79", "+80"))))))) %>%
                                                                group_by(age_group) %>% summarise(n=sum(weight))
 
-age_group        n
-<chr>        <dbl>
-1 +80         41029.
-2 18_to_29  2479708.
-3 30_to_39  2283489.
-4 40_to_49  1899728.
-5 50_to_59  1467072.
-6 60_to_69   776512.
-7 70_to_79   207577.
 
-
-
+                               
 OBE_Demographics %>% select(patient, weight, gender, age) %>%
   ggplot(aes(x=age ,fill=gender))+
   geom_histogram(alpha=0.7, bins=72, show.legend = F, colour="black")+
@@ -386,11 +332,6 @@ All_OBE <- All_OBE %>% mutate(Age_group = ifelse(age>=18&age<39, "18_39",
 
 All_OBE %>% group_by(Age_group) %>% summarise(n=sum(weight))
 
-Age_group         n
-<chr>         <dbl>
-1 18_39     10433769.
-2 40_59     11442767.
-3 60+        9956539.
 
 
 Treat_exp <- Treat_exp %>% mutate(Age_group = ifelse(age>=18&age<39, "18_39",
@@ -398,11 +339,6 @@ Treat_exp <- Treat_exp %>% mutate(Age_group = ifelse(age>=18&age<39, "18_39",
 
 Treat_exp %>% group_by(Age_group) %>% summarise(n=sum(weight))
 
-Age_group        n
-<chr>        <dbl>
-1 18_39     1355481.
-2 40_59     1153193.
-3 60+        443862.
 
 # ----- 
 # Create NEW Projection Weights ----------------
@@ -413,10 +349,7 @@ DANU_Demographics <- DANU_Demographics %>% mutate(weight_2 = ifelse(diagnosis=="
 
 DANU_Demographics %>% filter(grepl("Obesity", diagnosis)) %>% group_by(diagnosis) %>% summarise(pop=sum(weight_2))
 
-diagnosis                 pop
-<chr>                   <dbl>
-1 Diabetes + Obesity  40282960.
-2 Obesity            132236677.
+
 
 OBE_pats <- DANU_Demographics %>% filter(diagnosis=="Obesity") %>% select(patid, weight, diagnosis)
 
@@ -442,18 +375,6 @@ OBE_pats <- OBE_pats %>% ungroup() %>% mutate(BMI_group = ifelse(code<25, "<25",
 
 OBE_pats %>% group_by(diagnosis, BMI_group) %>% summarise(n=sum(weight))
 
-# diagnosis          BMI_group         n
-# <chr>              <chr>         <dbl>
-# 1 Diabetes + Obesity <25         741684.
-# 2 Diabetes + Obesity >40        6034986.
-# 3 Diabetes + Obesity 25_to_27   2643361.
-# 4 Diabetes + Obesity 27_to_30   4787175.
-# 5 Diabetes + Obesity 30_to_40  12555377.
-# 6 Obesity            <25        2291855.
-# 7 Obesity            >40       10988821.
-# 8 Obesity            25_to_27  14355613.
-# 9 Obesity            27_to_30  19394054.
-# 10 Obesity            30_to_40  30487501.
 
 
 OBE_pats %>% filter(diagnosis=="Obesity") %>% summarise(n=sum(weight))
@@ -525,58 +446,39 @@ OBE_US_Doses_Saxenda_summary %>% ungroup() %>%
   left_join(OBE_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% slice_head() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
 
-# doses       n
-# <dbl>   <dbl>
-#   1     6 247958.
 
 OBE_US_Doses_Saxenda_summary %>% ungroup() %>% 
   left_join(OBE_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=30) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
 
-# doses       n
-# <dbl>   <dbl>
-#   1     6 247958
 
 OBE_US_Doses_Saxenda_summary %>% ungroup() %>% 
   left_join(OBE_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=60) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
 
-# doses       n
-# <dbl>   <dbl>
-#   1     6 247958.
 
 OBE_US_Doses_Saxenda_summary %>% ungroup() %>% 
   left_join(OBE_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=90) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
 
-# doses       n
-# <dbl>   <dbl>
-#   1     6 247958.
+
 
 OBE_US_Doses_Saxenda_summary %>% ungroup() %>% 
   left_join(OBE_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=120) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
 
-# doses       n
-# <dbl>   <dbl>
-#   1     6 247958.
+
 
 OBE_US_Doses_Saxenda_summary %>% ungroup() %>% 
   left_join(OBE_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=150) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
 
-# doses       n
-# <dbl>   <dbl>
-#   1     6 247958.
+
 
 OBE_US_Doses_Saxenda_summary %>% ungroup() %>% 
   left_join(OBE_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=180) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
 # 
-# doses       n
-# <dbl>   <dbl>
-#   1     6 247958.
-
 
 
 # Wegovy dosages over time ----------------------------------------------------------------------
@@ -670,68 +572,40 @@ length(unique(OBE_US_Doses_Ozempic_summary$pat_id)) #606
 OBE_US_Doses_Ozempic_summary %>% ungroup() %>% 
   left_join(OBE_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% slice_head() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
-# doses      n
-# <dbl>  <dbl>
-#   1  0.25   241.
-# 2  1     1491.
-# 3  2    78128.
 
+                               
 OBE_US_Doses_Ozempic_summary %>% ungroup() %>% 
   left_join(OBE_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=30) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
-# doses       n
-# <dbl>   <dbl>
-#   1  0.25    97.8
-# 2  1     2260. 
-# 3  2    77504. 
+
 
 OBE_US_Doses_Ozempic_summary %>% ungroup() %>% 
   left_join(OBE_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=60) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
 
-# doses       n
-# <dbl>   <dbl>
-#   1  0.25    97.8
-# 2  1     2467. 
-# 3  2    77297.
+
 
 OBE_US_Doses_Ozempic_summary %>% ungroup() %>% 
   left_join(OBE_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=90) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
 
-# doses       n
-# <dbl>   <dbl>
-#   1  0.25    97.8
-# 2  1     2777. 
-# 3  2    76986. 
+
 
 OBE_US_Doses_Ozempic_summary %>% ungroup() %>% 
   left_join(OBE_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=120) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
 # 
-# doses       n
-# <dbl>   <dbl>
-#   1  0.25    97.8
-# 2  1     3093. 
-# 3  2    76671. 
 
 OBE_US_Doses_Ozempic_summary %>% ungroup() %>% 
   left_join(OBE_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=150) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
-# doses       n
-# <dbl>   <dbl>
-#   1  0.25    97.8
-# 2  1     3308. 
-# 3  2    76455. 
 
+                               
 OBE_US_Doses_Ozempic_summary %>% ungroup() %>% 
   left_join(OBE_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=180) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
-# doses       n
-# <dbl>   <dbl>
-#   1  0.25    97.8
-# 2  1     3886. 
-# 3  2    75878.
+
+                               
 
 # Rybelsus dosages over time ----------------------------------------------------------------------
 OBE_Medications <- fread("DANU Medications.txt")
@@ -779,68 +653,37 @@ length(unique(OBE_US_Doses_Rybelsus_summary$pat_id)) #266
 OBE_US_Doses_Rybelsus_summary %>% ungroup() %>% 
   left_join(OBE_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% slice_head() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
-doses      n
-<dbl>  <dbl>
-  1     3 23128.
-2     7 10710.
-3    14  2368.
 
+                               
 OBE_US_Doses_Rybelsus_summary %>% ungroup() %>% 
   left_join(OBE_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=30) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
-doses      n
-<dbl>  <dbl>
-  1     3 19072.
-2     7 14626.
-3    14  2508.
+
+                               
 
 OBE_US_Doses_Rybelsus_summary %>% ungroup() %>% 
   left_join(OBE_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=60) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
 
-doses      n
-<dbl>  <dbl>
-  1     3 15564.
-2     7 15885.
-3    14  4758.
 
 OBE_US_Doses_Rybelsus_summary %>% ungroup() %>% 
   left_join(OBE_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=90) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
 
-doses      n
-<dbl>  <dbl>
-  1     3 14765.
-2     7 15026.
-3    14  6415.
 
 OBE_US_Doses_Rybelsus_summary %>% ungroup() %>% 
   left_join(OBE_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=120) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
 # 
-doses      n
-<dbl>  <dbl>
-  1     3 14456.
-2     7 14223.
-3    14  7527.
 
 OBE_US_Doses_Rybelsus_summary %>% ungroup() %>% 
   left_join(OBE_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=150) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
-doses      n
-<dbl>  <dbl>
-  1     3 14377.
-2     7 14201.
-3    14  7629.
+
 
 OBE_US_Doses_Rybelsus_summary %>% ungroup() %>% 
   left_join(OBE_US_Doses %>% select(pat_id, weight) %>% distinct()) %>%
   group_by(pat_id) %>% filter(time_progression <=180) %>% slice_tail() %>% ungroup() %>% group_by(doses) %>% summarise(n=sum(as.numeric(weight)))
-doses      n
-<dbl>  <dbl>
-  1     3 14279.
-2     7 14399.
-3    14  7528.
 
 
 # ----
@@ -942,10 +785,6 @@ OBE_pats$code <- parse_number(OBE_pats$code)
 
 OBE_pats %>% group_by(diagnosis) %>% summarise(n=weighted.mean(code, weight_3))
 
-diagnosis              n
-<chr>              <dbl>
-  1 Diabetes + Obesity  33.6
-2 Obesity             30.7
 
 # Age and gender --------
 DANU_Demographics_v2weights <- fread("DANU_Demographics_v2weights.txt")
@@ -955,10 +794,6 @@ DANU_Demographics_v2weights <- DANU_Demographics_v2weights %>% filter(diagnosis 
 
 DANU_Demographics_v2weights %>% group_by(gender) %>% summarise(n=sum(weight_2))
 
-gender        n
-<chr>     <dbl>
-  1 F      63611715
-2 M      61549146
 
 
 DANU_Demographics_v2weights %>% group_by(gender) %>% summarise(n=weighted.mean(age, weight_2))
@@ -972,15 +807,6 @@ DANU_Demographics_v2weights %>% select(patid, weight_2, age) %>% mutate(age_grou
                                                                                                                        ifelse(age>=70 & age<80, "70_to_79", "+80"))))))) %>%
   group_by(age_group) %>% summarise(n=sum(weight_2))
 
-age_group         n
-<chr>         <dbl>
-  1 +80        6181871.
-2 18_to_29  20137809.
-3 30_to_39  23125783.
-4 40_to_49  21664771.
-5 50_to_59  22003137.
-6 60_to_69  19830421.
-7 70_to_79  12217069.
 
 
 
@@ -1144,22 +970,14 @@ All_OBE <- All_OBE %>% mutate(Age_group = ifelse(age>=18&age<39, "18_39",
 
 All_OBE %>% group_by(Age_group) %>% summarise(n=sum(weight_3))
 
-Age_group         n
-<chr>         <dbl>
-  1 18_39     18707122.
-2 40_59     20516195.
-3 60+       17851477.
+
 
 Treat_exp <- Treat_exp %>% mutate(Age_group = ifelse(age>=18&age<39, "18_39",
                                                      ifelse(age>=40&age<59, "40_59", "60+")))
 
 Treat_exp %>% group_by(Age_group) %>% summarise(n=sum(weight_3))
 
-Age_group        n
-<chr>        <dbl>
-  1 18_39     2430296.
-2 40_59     2067606.
-3 60+        795817.
+                               
 # ------
 # Evolution of scripts over time --------------------------------------------
 
@@ -1216,71 +1034,6 @@ data.frame(OBE_Doses_BIG %>% select(pat_id,weight_2, Month_Yr) %>% group_by(Mont
   xlab("\nMonth")+ylab("Number of Scripts per Patient \n")
 
 
-Month_Yr script_count pat_count scripts_pat
-1   2016-01      4917425   3029289    1.623294
-2   2016-02      4735761   3017281    1.569546
-3   2016-03      5045048   3128781    1.612465
-4   2016-04      5022264   3114693    1.612443
-5   2016-05      4867581   3033926    1.604384
-6   2016-06      4805229   2944879    1.631724
-7   2016-07      4745454   2928804    1.620270
-8   2016-08      5065369   3059646    1.655541
-9   2016-09      5065746   3114662    1.626419
-10  2016-10      5063202   3137376    1.613833
-11  2016-11      5066044   3126214    1.620505
-12  2016-12      5061445   3102147    1.631595
-13  2017-01      5238979   3165095    1.655236
-14  2017-02      4902215   3064179    1.599846
-15  2017-03      5369160   3282941    1.635472
-16  2017-04      5161773   3216504    1.604778
-17  2017-05      5279074   3225757    1.636538
-18  2017-06      5269037   3188924    1.652293
-19  2017-07      5027587   3133445    1.604492
-20  2017-08      5531249   3267868    1.692617
-21  2017-09      5314941   3265337    1.627685
-22  2017-10      5395850   3301971    1.634130
-23  2017-11      5405257   3264824    1.655604
-24  2017-12      5185155   3199876    1.620423
-25  2018-01      5426683   3199827    1.695930
-26  2018-02      5008234   3068433    1.632180
-27  2018-03      5369069   3280807    1.636508
-28  2018-04      5327031   3273875    1.627133
-29  2018-05      5362078   3245302    1.652259
-30  2018-06      5213229   3171824    1.643606
-31  2018-07      5142333   3145807    1.634663
-32  2018-08      5500064   3247547    1.693605
-33  2018-09      5226886   3233923    1.616268
-34  2018-10      5472514   3299217    1.658731
-35  2018-11      5422468   3269501    1.658500
-36  2018-12      5229174   3223708    1.622099
-37  2019-01      5534975   3243254    1.706612
-38  2019-02      5139639   3108250    1.653547
-39  2019-03      5381593   3277496    1.641983
-40  2019-04      5522653   3301056    1.672996
-41  2019-05      5527269   3279400    1.685452
-42  2019-06      5219433   3212134    1.624912
-43  2019-07      5441152   3206536    1.696894
-44  2019-08      5666390   3310350    1.711720
-45  2019-09      5490376   3302388    1.662547
-46  2019-10      5699545   3368970    1.691777
-47  2019-11      5475155   3312161    1.653046
-48  2019-12      5422649   3278194    1.654157
-49  2020-01      5888830   3307664    1.780359
-50  2020-02      5266519   3183504    1.654315
-51  2020-03      5202866   3149828    1.651794
-52  2020-04      5282426   3170409    1.666166
-53  2020-05      5287526   3155801    1.675494
-54  2020-06      5481679   3234893    1.694547
-55  2020-07      5673179   3282816    1.728144
-56  2020-08      5606287   3302549    1.697563
-57  2020-09      5695400   3336690    1.706901
-58  2020-10      5723952   3362414    1.702334
-59  2020-11      5522801   3333900    1.656559
-60  2020-12      5767893   3403420    1.694735
-61  2021-01      5734628   3352330    1.710640
-62  2021-02      5535133   3343666    1.655408
-63  2021-03      6053370   3533783    1.713000
-64  2021-04      6162688   3594903    1.714285
 
 # ----
 # Stocks Over time ----------
@@ -1347,10 +1100,6 @@ DANU_Demographics <- DANU_Demographics %>% select(patid, weight_3, diagnosis) %>
 
 DANU_Demographics %>% group_by(diagnosis) %>% summarise(n=sum(weight_3, na.rm=T))
 
-diagnosis                   n
-<chr>                   <dbl>
-1 Diabetes + Obesity  47355077.
-2 Obesity            125160866.
 
 DANU_Events %>% left_join(DANU_Demographics) %>% ungroup() %>% filter(!is.na(diagnosis)) %>% 
   summarise(n=sum(weight_3, na.rm=T)) # 172515943
@@ -1417,15 +1166,6 @@ OBE_Drug_Histories %>% group_by(patient, weight_2) %>% count() %>% ungroup() %>%
   group_by(Total_lapsed_bucket) %>%
   summarise(pats = sum(as.numeric(weight_2)))
 
-Total_lapsed_bucket     pats
-<chr>                  <dbl>
-  1 1                    281533.
-2 12 to 24            1525081.
-3 2 to 6               916864.
-4 24 to 36            1288836.
-5 36 to 48            1220538.
-6 48 to 60            1087398.
-7 6 to 12              910276.
 
 
 Lapsed_summary <- OBE_Drug_Histories %>% group_by(patient, weight_2) %>% count() %>% ungroup()
@@ -1479,15 +1219,7 @@ OBE_Box_Histories <- Treatment_exp_Vector %>% inner_join(OBE_Box_Histories)
 sum(OBE_Box_Histories$weight_2) # 11370836
 OBE_Box_Histories %>% group_by(month60) %>% summarise(n=sum(weight_2))
 
-month60        n
-<chr>      <dbl>
-  1 a       3589047.
-2 g          9827.
-3 G         75724.
-4 H         23577.
-5 o         31622.
-6 w          1744.
-7 x       7639296.
+
 
 OBE_Box_Histories %>% group_by(month60) %>% summarise(lines=weighted.mean(Nr_lines, weight_2))
 
@@ -1519,36 +1251,12 @@ OBE_Drug_Histories <- OBE_Drug_Histories %>% left_join(DANU_Demographics)
 
 OBE_Drug_Histories %>% group_by(Box_m60) %>% summarise(n=sum(as.numeric(weight_2)))
 
-# Box_m60        n
-# <chr>      <dbl>
-#   1 a       3589047.
-# 2 g          9827.
-# 3 G         75724.
-# 4 H         23577.
-# 5 o         31622.
-# 6 w          1744.
-# 7 x       7639296.
-
 
 OBE_Drug_Histories <- OBE_Drug_Histories %>% mutate(combo = ifelse(grepl(",",month60), "Combo", "Mono"))
 
 OBE_Drug_Histories %>% group_by(Box_m60, combo) %>% summarise(n=sum(as.numeric(weight_2)))
 
  
-# Box_m60 combo        n
-# <chr>   <chr>    <dbl>
-#   1 a       Combo  112876.
-# 2 a       Mono  3476171.
-# 3 g       Combo     741.
-# 4 g       Mono     9086.
-# 5 G       Combo    9543.
-# 6 G       Mono    66180.
-# 7 H       Combo    1145.
-# 8 H       Mono    22433.
-# 9 o       Combo    2508.
-# 10 o       Mono    29113.
-# 11 w       Mono     1744.
-# 12 x       Mono  7639296.
 
 
 OBE_Drug_Histories <- separate_rows(OBE_Drug_Histories, month60, sep = ",", convert=T)
@@ -1564,23 +1272,7 @@ DANU_Ingredients$molecule <- as.character(DANU_Ingredients$molecule)
 data.frame(OBE_Drug_Histories %>% left_join(DANU_Ingredients) %>% select(patient, weight_2, Box_m60, drug_class) %>% distinct() %>%
              group_by(Box_m60, drug_class) %>% summarise(n=sum(as.numeric(weight_2))))
 
-# Box_m60      drug_class            n
-# 1        a       Anorectic 3589047.0448
-# 2        a     Weight Loss     134.8834
-# 3        g       Anorectic     741.0636
-# 4        g       GLP1 Oral    9826.8366
-# 5        G       Anorectic    8688.4633
-# 6        G     Antiobesity     579.9115
-# 7        G GLP1 Injectable   75723.5065
-# 8        G       GLP1 Oral     168.3806
-# 9        G     Weight Loss     129.1701
-# 10       H       Anorectic     829.9425
-# 11       H GLP1 Injectable     136.2496
-# 12       H         Surgery   23577.4501
-# 13       o       Anorectic    2508.1847
-# 14       o     Antiobesity   31621.5410
-# 15       w     Weight Loss    1743.9450
-# 16       x            <NA> 7639295.7734
+
 
 # ------
 # Flows last 12 months ------------
@@ -1834,39 +1526,15 @@ DANU_Events <- DANU_Events %>% inner_join(OBE_Box_Histories %>% select(patient, 
 
 DANU_Events %>% group_by(Box) %>% summarise(n=sum(as.numeric(weight_BMI)))
 
-# Box            n
-# <chr>      <dbl>
-# 1 a       4041063.
-# 2 g          4978.
-# 3 G         51851.
-# 4 H         69676.
-# 5 o         54283.
-# 6 w          1128.
-# 7 x     161586179.
+
 
 DANU_Events %>% group_by(Box) %>% summarise(n=weighted.mean(as.numeric(code), as.numeric(weight_BMI))) %>% arrange(-n)
 
-# Box       n
-# <chr> <dbl>
-# 1 H      38.9
-# 2 g      35.7
-# 3 w      34.9
-# 4 G      34.6
-# 5 o      34.5
-# 6 x      30.8
-# 7 a      30.5
+
 
 DANU_Events %>% group_by(Box) %>% summarise(n=weighted.median(as.numeric(code), as.numeric(weight_BMI))) %>% arrange(-n)
 
-# Box       n
-# <chr> <dbl>
-# 1 H      38.2
-# 2 g      36.5
-# 3 o      33.8
-# 4 G      33.2
-# 5 w      30.2
-# 6 x      29.2
-# 7 a      28.8
+
 
 length(unique(DANU_Events$patient))
 DANU_Events %>% ungroup() %>% select(Box, code) %>% 
@@ -2564,37 +2232,10 @@ BMI_Evolution_US_All_3months <- fread("BMI_Evolution_US_All_3months.csv")
 
 BMI_Evolution_US_All_3months %>% group_by(Therapy, Period) %>% summarise(n=mean(BMI))
 
-# Therapy          Period     n
-# <chr>            <chr>  <dbl>
-# 1 Amphetamines     After   30.7
-# 2 Amphetamines     Before  34.4
-# 3 GLP1 Injectable  After   35.3
-# 4 GLP1 Injectable  Before  38.1
-# 5 GLP1 Oral        After   35.7
-# 6 GLP1 Oral        Before  38.2
-# 7 Lipase Inhibitor After   33.9
-# 8 Lipase Inhibitor Before  36.2
-# 9 Naltrexone       After   34.0
-# 10 Naltrexone       Before  36.3
-# 11 Surgery          After   31.6
-# 12 Surgery          Before  42.7
+
 
 BMI_Evolution_US_All_3months %>% group_by(Therapy, Period) %>% summarise(n=median(BMI))
 
-# Therapy          Period     n
-# <chr>            <chr>  <dbl>
-# 1 Amphetamines     After   29.5
-# 2 Amphetamines     Before  32.5
-# 3 GLP1 Injectable  After   34  
-# 4 GLP1 Injectable  Before  36.5
-# 5 GLP1 Oral        After   36  
-# 6 GLP1 Oral        Before  38  
-# 7 Lipase Inhibitor After   31  
-# 8 Lipase Inhibitor Before  34.2
-# 9 Naltrexone       After   33  
-# 10 Naltrexone       Before  35  
-# 11 Surgery          After   30.5
-# 12 Surgery          Before  42.5
 
 
 Pats_to_keep_paired <- BMI_Evolution_US_All_3months %>% group_by(patient, Therapy) %>% filter(Month>=-12 & Month<=12) %>% 
@@ -3294,37 +2935,9 @@ BMI_Evolution_US_All_1month <- fread("BMI_Evolution_US_All_1month.csv")
 
 BMI_Evolution_US_All_1month %>% group_by(Therapy, Period) %>% summarise(n=mean(BMI))
 
-# Therapy           Period     n
-# <chr>             <chr>  <dbl>
-# 1 Amphetamines      After   30.3
-# 2 Amphetamines      Before  32.8
-# 3 GLP1 Injectable   After   34.9
-# 4 GLP1 Injectable   Before  37.9
-# 5 GLP1 Oral         After   34.5
-# 6 GLP1 Oral         Before  36.9
-# 7 Lipase Inhibitors After   33.8
-# 8 Lipase Inhibitors Before  36.4
-# 9 Naltrexone        After   33.9
-# 10 Naltrexone        Before  36.3
-# 11 Surgery           After   31.8
-# 12 Surgery           Before  42.8
 
 BMI_Evolution_US_All_1month %>% group_by(Therapy, Period) %>% summarise(n=median(BMI))
 
-# Therapy           Period     n
-# <chr>             <chr>  <dbl>
-#   1 Amphetamines      After   29  
-# 2 Amphetamines      Before  31.5
-# 3 GLP1 Injectable   After   33.5
-# 4 GLP1 Injectable   Before  36.5
-# 5 GLP1 Oral         After   34.5
-# 6 GLP1 Oral         Before  36.8
-# 7 Lipase Inhibitors After   31  
-# 8 Lipase Inhibitors Before  35  
-# 9 Naltrexone        After   32.5
-# 10 Naltrexone        Before  35  
-# 11 Surgery           After   31  
-# 12 Surgery           Before  42.5
 
 
 Pats_to_keep_paired <- BMI_Evolution_US_All_1month %>% group_by(patient, Therapy) %>% filter(Month>=-12 & Month<=12) %>% 
@@ -4035,38 +3648,10 @@ write.csv(BMI_WeightLoss_BEFORE_vs_AFTER, "BMI_WeightLoss_BEFORE_vs_AFTER_closes
 BMI_Evolution_US_All_1to12month <- fread("BMI_Evolution_US_All_1to12month.csv")
 
 BMI_Evolution_US_All_1to12month %>% group_by(Therapy, Period) %>% summarise(n=mean(BMI))
-Therapy           Period     n
-<chr>             <chr>  <dbl>
-  1 Amphetamines      After   30.8
-2 Amphetamines      Before  32.5
-3 GLP1 Injectable   After   35.1
-4 GLP1 Injectable   Before  37.2
-5 GLP1 Oral         After   35.0
-6 GLP1 Oral         Before  36.4
-7 Lipase Inhibitors After   35.4
-8 Lipase Inhibitors Before  37.0
-9 Naltrexone        After   34.5
-10 Naltrexone        Before  36.0
-11 Surgery           After   32.8
-12 Surgery           Before  42.8
+
 
 BMI_Evolution_US_All_1to12month %>% group_by(Therapy, Period) %>% summarise(n=median(BMI))
 
-Groups:   Therapy [6]
-Therapy           Period     n
-<chr>             <chr>  <dbl>
-  1 Amphetamines      After   29.5
-2 Amphetamines      Before  31  
-3 GLP1 Injectable   After   34  
-4 GLP1 Injectable   Before  36  
-5 GLP1 Oral         After   34.5
-6 GLP1 Oral         Before  36.5
-7 Lipase Inhibitors After   33.5
-8 Lipase Inhibitors Before  35  
-9 Naltrexone        After   33.5
-10 Naltrexone        Before  35  
-11 Surgery           After   32  
-12 Surgery           Before  42.5
 
 
 Pats_to_keep_paired <- BMI_Evolution_US_All_1to12month %>% group_by(patient, Therapy) %>% filter(Month>=-12 & Month<=12) %>% 
@@ -4132,184 +3717,37 @@ data.frame(OBE_US_Doses %>% group_by(specialty) %>% summarise(n=n()) %>%
   left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
   ungroup() %>% group_by(PHYSICIAN) %>% summarise(n2=sum(n)) %>% arrange(-n2) %>% filter(PHYSICIAN != "FACILITY"))
 
-# PHYSICIAN     n2
-# 1                      PCP 336873
-# 2               PSYCHIATRY 279480
-# 3                OTHER HCP 147561
-# 4        INTERNAL MEDICINE 107304
-# 5          OTHER PHYSICIAN  87138
-# 6                  SURGERY  11253
-# 7  OBSTETRICS & GYNECOLOGY   9404
-# 8       EMERGENCY MEDICINE   7466
-# 9            ENDOCRINOLOGY   6878
-# 10             PULMONOLOGY   6132
-# 11          ANESTHESIOLOGY   5098
-# 12      GERIATRIC MEDICINE   2161
-# 13              CARDIOLOGY   1624
-# 14            RHEUMATOLOGY   1502
-# 15                 UNKNOWN   1208
-# 16                ONCOLOGY   1072
-# 17            INFECTIOLOGY   1060
-# 18        GASTROENTEROLOGY   1014
-# 19              NEPHROLOGY    577
-# 20          INTENSIVE CARE    490
-# 21              IMMUNOLOGY    488
-# 22               RADIOLOGY    468
-# 23                 UROLOGY    465
-# 24              GENETICIST    166
-# 25             DERMATOLOGY    115
 
 OBE_US_Doses %>% filter(drug_class == "Weight Loss") %>% group_by(specialty) %>% summarise(n=n()) %>%
   left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
   ungroup() %>% group_by(PHYSICIAN) %>% summarise(n2=sum(n)) %>% arrange(-n2) %>% filter(PHYSICIAN != "FACILITY")
 
-PHYSICIAN                  n2
-<chr>                   <int>
-  1 PCP                       220
-2 INTERNAL MEDICINE         127
-3 OTHER HCP                  83
-4 ENDOCRINOLOGY              21
-5 OTHER PHYSICIAN            15
-6 PSYCHIATRY                 14
-7 GASTROENTEROLOGY            8
-8 OBSTETRICS & GYNECOLOGY     8
-9 DERMATOLOGY                 5
-10 EMERGENCY MEDICINE          4
-11 ANESTHESIOLOGY              2
-12 PULMONOLOGY                 2
-13 SURGERY                     2
 
 data.frame(OBE_US_Doses %>% filter(drug_class == "Anorectic") %>% group_by(specialty) %>% summarise(n=n()) %>%
   left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
   ungroup() %>% group_by(PHYSICIAN) %>% summarise(n2=sum(n)) %>% arrange(-n2) %>% filter(PHYSICIAN != "FACILITY"))
 
-PHYSICIAN     n2
-1                      PCP 323171
-2               PSYCHIATRY 278953
-3                OTHER HCP 136148
-4        INTERNAL MEDICINE 101181
-5          OTHER PHYSICIAN  86205
-6  OBSTETRICS & GYNECOLOGY   7766
-7       EMERGENCY MEDICINE   7190
-8              PULMONOLOGY   6053
-9            ENDOCRINOLOGY   4230
-10                 SURGERY   3587
-11      GERIATRIC MEDICINE   2038
-12          ANESTHESIOLOGY   1944
-13            RHEUMATOLOGY   1458
-14              CARDIOLOGY   1337
-15            INFECTIOLOGY   1027
-16                ONCOLOGY    911
-17        GASTROENTEROLOGY    752
-18              NEPHROLOGY    528
-19          INTENSIVE CARE    488
-20              IMMUNOLOGY    456
-21               RADIOLOGY    402
-22              GENETICIST    166
-23                 UROLOGY    133
-24                 UNKNOWN    129
-25             DERMATOLOGY    102
+
 
 data.frame(OBE_US_Doses %>% filter(drug_class == "Antiobesity") %>% group_by(specialty) %>% summarise(n=n()) %>%
   left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
   ungroup() %>% group_by(PHYSICIAN) %>% summarise(n2=sum(n)) %>% arrange(-n2) %>% filter(PHYSICIAN != "FACILITY"))
 
-PHYSICIAN   n2
-1                      PCP 8903
-2                OTHER HCP 5190
-3        INTERNAL MEDICINE 3489
-4            ENDOCRINOLOGY  995
-5  OBSTETRICS & GYNECOLOGY  974
-6          OTHER PHYSICIAN  493
-7               PSYCHIATRY  483
-8                  SURGERY  241
-9               CARDIOLOGY  158
-10        GASTROENTEROLOGY  138
-11      EMERGENCY MEDICINE  126
-12      GERIATRIC MEDICINE   92
-13          ANESTHESIOLOGY   86
-14             PULMONOLOGY   45
-15              NEPHROLOGY   42
-16            RHEUMATOLOGY   37
-17               RADIOLOGY   19
-18            INFECTIOLOGY   11
-19                ONCOLOGY   11
-20                 UROLOGY    7
-21             DERMATOLOGY    3
-22              IMMUNOLOGY    1
 
 OBE_US_Doses %>% filter(drug_class == "GLP1 Oral") %>% group_by(specialty) %>% summarise(n=n()) %>%
   left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
   ungroup() %>% group_by(PHYSICIAN) %>% summarise(n2=sum(n)) %>% arrange(-n2) %>% filter(PHYSICIAN != "FACILITY")
 
-PHYSICIAN                  n2
-<chr>                   <int>
-  1 PCP                       310
-2 OTHER HCP                 281
-3 INTERNAL MEDICINE         162
-4 ENDOCRINOLOGY             147
-5 OBSTETRICS & GYNECOLOGY   136
-6 SURGERY                    35
-7 EMERGENCY MEDICINE         13
-8 GERIATRIC MEDICINE         13
-9 OTHER PHYSICIAN             7
 
 data.frame(OBE_US_Doses %>% filter(drug_class == "GLP1 Injectable") %>% group_by(specialty) %>% summarise(n=n()) %>%
   left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
   ungroup() %>% group_by(PHYSICIAN) %>% summarise(n2=sum(n)) %>% arrange(-n2) %>% filter(PHYSICIAN != "FACILITY"))
 
 
-PHYSICIAN   n2
-1                      PCP 4146
-2                OTHER HCP 3594
-3        INTERNAL MEDICINE 2273
-4            ENDOCRINOLOGY 1480
-5  OBSTETRICS & GYNECOLOGY  377
-6                  SURGERY  275
-7          OTHER PHYSICIAN  267
-8               CARDIOLOGY  125
-9       EMERGENCY MEDICINE   96
-10        GASTROENTEROLOGY   86
-11             PULMONOLOGY   31
-12              IMMUNOLOGY   28
-13          ANESTHESIOLOGY   27
-14            INFECTIOLOGY   21
-15      GERIATRIC MEDICINE   18
-16              PSYCHIATRY   16
-17            RHEUMATOLOGY    7
-18             DERMATOLOGY    4
-19              NEPHROLOGY    4
-20                ONCOLOGY    4
-21               RADIOLOGY    2
 
 data.frame(OBE_US_Doses %>% filter(drug_class == "Surgery") %>% group_by(specialty) %>% summarise(n=n()) %>%
   left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
   ungroup() %>% group_by(PHYSICIAN) %>% summarise(n2=sum(n)) %>% arrange(-n2) %>% filter(PHYSICIAN != "FACILITY"))
-
-PHYSICIAN   n2
-1                  SURGERY 7113
-2           ANESTHESIOLOGY 3039
-3                OTHER HCP 2265
-4                  UNKNOWN 1079
-5                  UROLOGY  325
-6          OTHER PHYSICIAN  151
-7                 ONCOLOGY  146
-8  OBSTETRICS & GYNECOLOGY  143
-9                      PCP  123
-10       INTERNAL MEDICINE   72
-11               RADIOLOGY   45
-12      EMERGENCY MEDICINE   37
-13        GASTROENTEROLOGY   30
-14              PSYCHIATRY   14
-15           ENDOCRINOLOGY    5
-16              CARDIOLOGY    4
-17              IMMUNOLOGY    3
-18              NEPHROLOGY    3
-19          INTENSIVE CARE    2
-20             DERMATOLOGY    1
-21            INFECTIOLOGY    1
-22             PULMONOLOGY    1
-
 
 
 OBE_US_Doses %>% filter(drug_class == "GLP1 Oral") %>% 
@@ -4318,17 +3756,6 @@ OBE_US_Doses %>% filter(drug_class == "GLP1 Oral") %>%
   left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty"))%>%
   ungroup() %>% group_by(PHYSICIAN) %>% summarise(n2=sum(n)) %>% arrange(-n2) %>% filter(PHYSICIAN != "FACILITY")
 
-PHYSICIAN                  n2
-<chr>                   <int>
-  1 PCP                        53
-2 OTHER HCP                  50
-3 OBSTETRICS & GYNECOLOGY    32
-4 INTERNAL MEDICINE          30
-5 ENDOCRINOLOGY              27
-6 SURGERY                     4
-7 EMERGENCY MEDICINE          3
-8 GERIATRIC MEDICINE          3
-9 OTHER PHYSICIAN             1
 
 
 
@@ -4381,10 +3808,7 @@ OBE_Disorder_Histories$score <- parse_number(OBE_Disorder_Histories$month60)
 
 OBE_Disorder_Histories %>% group_by(Treat_exp) %>% summarise(n=weighted.mean(score, weight))
 
-# Treat_exp       n
-# <chr>       <dbl>
-# 1 Experienced  1.25
-# 2 None         2.07
+
 
 OBE_Disorder_Histories %>% ggplot(aes(score, colour=Treat_exp, fill=Treat_exp)) +
   geom_density() + 
@@ -4414,33 +3838,12 @@ OBE_Disorder_Histories_sep <- OBE_Disorder_Histories %>% select(patient, weight,
  
 OBE_Disorder_Histories %>% group_by(Treat_exp) %>% summarise(n=sum(weight))
 
-# Treat_exp           n
-# <chr>           <dbl>
-# 1 Experienced  9155116.
-# 2 None        97313933.
-
 
 OBE_Disorder_Histories_sep %>% group_by(Treat_exp, comorbs) %>% 
   summarise(n=sum(weight)) %>% spread(key=Treat_exp, value=n) %>%
   mutate(Experienced = Experienced*100/9155116.) %>%
   mutate(None = None*100/97313933.)
 
-
-# comorbs Experienced   None
-# <chr>         <dbl>  <dbl>
-# 1 a             1.40   3.27 
-# 2 c             4.31   7.35 
-# 3 d             0.334  0.257
-# 4 f             2.59   5.21 
-# 5 k             2.63   5.52 
-# 6 l            10.5    9.55 
-# 7 p            29.5   25.4  
-# 8 r             4.09   3.57 
-# 9 s             4.21   7.68 
-# 10 u             2.78   2.16 
-# 11 v             4.47   9.44 
-# 12 z             1.33   1.85 
-# 13 NA           54.7   53.5
 
 
 # -----------
@@ -4459,27 +3862,7 @@ Treatment_exp_Vector %>% filter(Treat_exp=="Experienced") %>% left_join(DANU_Eve
   left_join(Unique_Physicians_OBE) %>% select(-specialty) %>%
   group_by(SUMMARY_SPECIALTY) %>% count() %>% arrange(-n)
 
-# SUMMARY_SPECIALTY       n
-# <chr>               <int>
-#   1 NA                 513050
-# 2 GP                 131132
-# 3 INTERNAL MEDICINE   61837
-# 4 SURGERY             61367
-# 5 OTHER HCP           61316
-# 6 OTHER PHYSICIAN     55991
-# 7 FACILITY            41605
-# 8 UNKNOWN             37903
-# 9 CARDIOLOGY           9879
-# 10 EMERGENCY MEDICINE   7645
-# 11 ENDOCRINOLOGY        7396
-# 12 PATHOLOGY            7030
-# 13 GASTRO/HEPATO        5563
-# 14 HEMATO/ONCOL         4667
-# 15 RADIOLOGY            3953
-# 16 PSYCHIATRY           3650
-# 17 NEUROLOGY            2748
-# 18 NEPHROLOGIST         1039
-# 19 MEDICAL ONCOLOGIST    661
+
 
 # Physicians All Events Obe Naive
 Treatment_exp_Vector %>% filter(Treat_exp=="None") %>% left_join(DANU_Events, by=c("patient"="patid")) %>% select(prov) %>% 
@@ -4487,27 +3870,7 @@ Treatment_exp_Vector %>% filter(Treat_exp=="None") %>% left_join(DANU_Events, by
   left_join(Unique_Physicians_OBE) %>% select(-specialty) %>%
   group_by(SUMMARY_SPECIALTY) %>% count() %>% arrange(-n)
 
-# SUMMARY_SPECIALTY        n
-# <chr>                <int>
-#   1 NA                 4847073
-# 2 GP                  757010
-# 3 INTERNAL MEDICINE   454749
-# 4 OTHER PHYSICIAN     331613
-# 5 OTHER HCP           245596
-# 6 FACILITY            202425
-# 7 UNKNOWN             170304
-# 8 SURGERY             120837
-# 9 CARDIOLOGY           87766
-# 10 EMERGENCY MEDICINE   38145
-# 11 GASTRO/HEPATO        32309
-# 12 ENDOCRINOLOGY        31904
-# 13 HEMATO/ONCOL         18087
-# 14 PATHOLOGY            17680
-# 15 NEUROLOGY            15270
-# 16 PSYCHIATRY           11061
-# 17 NEPHROLOGIST          9455
-# 18 RADIOLOGY             8261
-# 19 MEDICAL ONCOLOGIST    5953
+
 
 
 # Physicians First OBE Dx Treat-exp
@@ -4519,27 +3882,6 @@ Treatment_exp_Vector %>% filter(Treat_exp=="Experienced") %>% left_join(DANU_Eve
   left_join(Unique_Physicians_OBE) %>% select(-specialty) %>%
   group_by(SUMMARY_SPECIALTY) %>% count() %>% arrange(-n)
 
-# SUMMARY_SPECIALTY      n
-# <chr>              <int>
-# 1 NA                 27995
-# 2 GP                 11186
-# 3 OTHER PHYSICIAN     4764
-# 4 INTERNAL MEDICINE   4758
-# 5 OTHER HCP           3333
-# 6 SURGERY             1704
-# 7 UNKNOWN             1465
-# 8 FACILITY            1396
-# 9 CARDIOLOGY           522
-# 10 EMERGENCY MEDICINE   503
-# 11 ENDOCRINOLOGY        472
-# 12 GASTRO/HEPATO        368
-# 13 NEUROLOGY            207
-# 14 PSYCHIATRY           205
-# 15 PATHOLOGY            171
-# 16 RADIOLOGY             98
-# 17 HEMATO/ONCOL          82
-# 18 NEPHROLOGIST          69
-# 19 MEDICAL ONCOLOGIST    40
 
 
 
@@ -4552,27 +3894,7 @@ Treatment_exp_Vector %>% filter(Treat_exp=="None") %>% left_join(DANU_Events, by
   left_join(Unique_Physicians_OBE) %>% select(-specialty) %>%
   group_by(SUMMARY_SPECIALTY) %>% count() %>% arrange(-n)
 # 
-# SUMMARY_SPECIALTY       n
-# <chr>               <int>
-# 1 NA                 389756
-# 2 GP                  97743
-# 3 INTERNAL MEDICINE   53795
-# 4 OTHER PHYSICIAN     38544
-# 5 OTHER HCP           26759
-# 6 UNKNOWN             15184
-# 7 FACILITY            12718
-# 8 SURGERY              9510
-# 9 CARDIOLOGY           8038
-# 10 EMERGENCY MEDICINE   4051
-# 11 GASTRO/HEPATO        4004
-# 12 ENDOCRINOLOGY        2674
-# 13 NEUROLOGY            1514
-# 14 PATHOLOGY            1192
-# 15 HEMATO/ONCOL         1066
-# 16 NEPHROLOGIST          896
-# 17 PSYCHIATRY            759
-# 18 RADIOLOGY             602
-# 19 MEDICAL ONCOLOGIST    443
+
 # ------------------
 
 
@@ -4644,10 +3966,6 @@ Treatment_exp_Vector <- Treatment_exp_Vector %>% left_join(DANU_Demographics, by
 
 Treatment_exp_Vector %>% group_by(Treat_exp) %>% summarise(n=weighted.mean(age, weight))
 
-Treat_exp       n
-<chr>       <dbl>
-  1 Experienced  40.4
-2 None         49.9
 
 
 
@@ -5088,21 +4406,6 @@ Risk_pred_model <- glm( Group ~ ., data = data_train, family = binomial)
 summary(Risk_pred_model)
 
 
-
-# Estimate Std. Error z value             Pr(>|z|)    
-# (Intercept)         0.094430   0.589619   0.160               0.8728    
-# age                 0.007561   0.007424   1.018               0.3085    
-# MAX_BMI             0.018053   0.009795   1.843               0.0653 .  
-# gender             -0.399757   0.201668  -1.982               0.0475 *  
-#   p1_WeightLossExp   14.138122 535.411279   0.026               0.9789    
-# p1_AnorecticExp    -1.860180   0.198968  -9.349 < 0.0000000000000002 ***
-#   p1_AntiobesityExp   0.597133   0.327695   1.822               0.0684 .  
-# ENDOCRINOLOGY       2.017318   0.412021   4.896          0.000000977 ***
-#   CARDIOLOGY          1.382351   0.774021   1.786               0.0741 .  
-# PSYCHIATRY         -0.641787   0.301747  -2.127               0.0334 * 
-
-
-
 predict <- predict(Risk_pred_model, data_test, type = 'response')
 
 table_mat <- table(data_test$Group, predict > 0.50)
@@ -5282,24 +4585,6 @@ Risk_pred_model <- glm( Group ~ ., data = data_train, family = binomial)
 summary(Risk_pred_model)
 
 
-# Estimate Std. Error z value             Pr(>|z|)    
-# (Intercept)        5.698029   0.330343  17.249 < 0.0000000000000002 ***
-#   age               -0.037728   0.003897  -9.682 < 0.0000000000000002 ***
-#   MAX_BMI           -0.090508   0.005552 -16.301 < 0.0000000000000002 ***
-#   gender             0.425462   0.106809   3.983       0.000067934606 ***
-#   p1_WeightLossExp  -1.320195   1.237492  -1.067              0.28605    
-# p1_InjExp         -2.363721   0.226653 -10.429 < 0.0000000000000002 ***
-#   p1_AntiobesityExp -2.047959   0.163438 -12.531 < 0.0000000000000002 ***
-#   ENDOCRINOLOGY      0.436187   0.292858   1.489              0.13638    
-# CARDIOLOGY         0.904418   0.581826   1.554              0.12008    
-# PSYCHIATRY         3.637451   0.370894   9.807 < 0.0000000000000002 ***
-#   a                 -0.650698   0.272186  -2.391              0.01682 *  
-#   c                 -0.577374   0.187792  -3.075              0.00211 ** 
-#   l                 -0.799099   0.123994  -6.445       0.000000000116 ***
-#   u                 -1.167125   0.246578  -4.733       0.000002209060 ***
-
-i
-
 predict <- predict(Risk_pred_model, data_test, type = 'response')
 
 table_mat <- table(data_test$Group, predict > 0.50)
@@ -5461,17 +4746,6 @@ OBE_Comorbidity_Inventories %>% mutate(diagnosis = ifelse(grepl("I1", diagnosis)
                                                                                                     ifelse(grepl("Z95", diagnosis), "Z95", NA)))))))))) %>% 
   group_by(diagnosis) %>% count() %>% mutate(percent=100*n/723778) %>% arrange(n)
 
-
-# diagnosis      n percent
-# <chr>      <int>   <dbl>
-#   1 E50        28224    3.90
-# 2 I70        32335    4.47
-# 3 Z95        33805    4.67
-# 4 I6         73992   10.2 
-# 5 I2        127580   17.6 
-# 6 I4        176473   24.4 
-# 8 E78       338230   46.7 
-# 9 I1        378260   52.3
 
 Comorbid_Pats <- OBE_Comorbidity_Inventories %>% select(patid) %>% distinct() %>% mutate(Comorbid="Comorbid")
 names(Comorbid_Pats)[1] <- "patient"
@@ -5741,20 +5015,6 @@ OBE_US_Doses <- OBE_US_Doses %>% filter(paid != "?")
 
 OBE_US_Doses %>% group_by(drug_class, paid) %>% count()
 
-# drug_class      paid        n
-# <chr>           <chr>   <int>
-# 1 Anorectic       D      211130
-# 2 Anorectic       P     1059754
-# 3 Antiobesity     D       11447
-# 4 Antiobesity     P       15679
-# 5 GLP1 Injectable D        5949
-# 6 GLP1 Injectable P       10538
-# 7 GLP1 Oral       D         616
-# 8 GLP1 Oral       P         797
-# 9 Surgery         D          88
-# 10 Surgery         P        3198
-# 11 Weight Loss     D         344
-# 12 Weight Loss     P         334
 
 
 
@@ -5889,10 +5149,6 @@ OBE_US_Doses_GLP1_Injectable <- OBE_US_Doses_GLP1_Injectable %>% filter(!(paid==
 
 OBE_US_Doses_GLP1_Injectable %>% group_by(paid) %>% count()
 
-# paid      n
-# <chr> <int>
-# 1 D      3291
-# 2 P     10538
 
 # Oral GLP1
 OBE_US_Doses_GLP1_Oral <- OBE_US_Doses %>% filter(drug_class=="GLP1 Oral")
@@ -5908,10 +5164,6 @@ OBE_US_Doses_GLP1_Oral <- OBE_US_Doses_GLP1_Oral %>% filter(!(paid=="D"&is.na(to
 
 OBE_US_Doses_GLP1_Oral %>% group_by(paid) %>% count()
 
-# paid      n
-# <chr> <int>
-# 1 D       423
-# 2 P       797
 
 # Antiobesity
 OBE_US_Doses_Antiobesity <- OBE_US_Doses %>% filter(drug_class=="Antiobesity")
@@ -5926,12 +5178,6 @@ OBE_US_Doses_Antiobesity <- OBE_US_Doses_Antiobesity %>% left_join(To_keep)
 OBE_US_Doses_Antiobesity <- OBE_US_Doses_Antiobesity %>% filter(!(paid=="D"&is.na(tokeep)))
 
 OBE_US_Doses_Antiobesity %>% group_by(paid) %>% count()
-
-# paid      n
-# <chr> <int>
-# 1 D      7926
-# 2 P     15679
-
 
 
 # Anorectic
@@ -5948,11 +5194,6 @@ OBE_US_Doses_Anorectic <- OBE_US_Doses_Anorectic %>% filter(!(paid=="D"&is.na(to
 
 OBE_US_Doses_Anorectic %>% group_by(paid) %>% count()
 
-# paid        n
-# <chr>   <int>
-#   1 D      189479
-# 2 P     1059754
-
 
 # Weight_Loss
 OBE_US_Doses_Weight_Loss <- OBE_US_Doses %>% filter(drug_class=="Weight_Loss")
@@ -5967,11 +5208,6 @@ OBE_US_Doses_Weight_Loss <- OBE_US_Doses_Weight_Loss %>% left_join(To_keep)
 OBE_US_Doses_Weight_Loss <- OBE_US_Doses_Weight_Loss %>% filter(!(paid=="D"&is.na(tokeep)))
 
 OBE_US_Doses_Weight_Loss %>% group_by(paid) %>% count()
-
-# paid      n
-# <chr> <int>
-#   1 D        53
-# 2 P      3198
 
 
 
@@ -5988,12 +5224,6 @@ OBE_US_Doses_Weight_Loss <- OBE_US_Doses_Weight_Loss %>% left_join(To_keep)
 OBE_US_Doses_Weight_Loss <- OBE_US_Doses_Weight_Loss %>% filter(!(paid=="D"&is.na(tokeep)))
 
 OBE_US_Doses_Weight_Loss %>% group_by(paid) %>% count()
-
-
-# paid      n
-# <chr> <int>
-#   1 D       112
-# 2 P       334
 
 
 
@@ -6101,16 +5331,6 @@ DANU_Demographics <- DANU_Demographics %>% select(-weight_BMI)
 
 DANU_Demographics %>% filter(!is.na(BMI_group)) %>% group_by(BMI_group) %>% summarise(n=sum(weight_2)) 
 
-#  with BMI
-
-# BMI_group         n
-# <chr>         <dbl>
-# 1 <25        2846529.
-# 2 >40       13648335.
-# 3 "25_to_27"  17829957. (20676486 with 25-)
-# 4 27_to_30  24087801.
-# 5 30_to_40  37866083.
-
 
 
 
@@ -6152,14 +5372,7 @@ Surgery_Pats <- OBE_Flows_Aux._Long %>% filter(s1=="H"|s2=="H") %>% select(patie
 Surgery_Pats %>% left_join(OBE_Flows_Aux._Long) %>% filter(p2==60) %>% left_join(DANU_Demographics) %>%
   group_by(s2) %>% summarise(n=sum(weight_2))
 
-# s2          n
-# <chr>   <dbl>
-# 1 a      42430.
-# 2 g        484.
-# 3 G       3225.
-# 4 H      23577.
-# 5 o        535.
-# 6 x     879157.
+
 
 # Stock before and stock after
 
@@ -6168,22 +5381,9 @@ Surgery_Pats %>% left_join(DANU_Demographics) %>% summarise(n=sum(weight_2))  # 
 Surgery_Pats %>% left_join(OBE_Flows_Aux._Long) %>% filter(s1!="H"&s2=="H") %>% left_join(DANU_Demographics) %>% 
   group_by(s1,s2) %>% summarise(n=sum(weight_2))
 
-# s1    s2           n
-# <chr> <chr>    <dbl>
-# 1 a     H       34866.
-# 2 G     H         975.
-# 3 o     H         980.
-# 4 x     H     1100073.
-
 Surgery_Pats %>% left_join(OBE_Flows_Aux._Long) %>% filter(s1=="H"&s2!="H") %>% left_join(DANU_Demographics) %>% 
   group_by(s1,s2) %>% summarise(n=sum(weight_2))
 
-# s1    s2           n
-# <chr> <chr>    <dbl>
-# 1 H     a       31180.
-# 2 H     G         999.
-# 3 H     o        1129.
-# 4 H     x     1107215.
 
 
 # BMI before / after surgery
@@ -6274,10 +5474,6 @@ OBE_US_Doses_GLP1_Injectable <- OBE_US_Doses_GLP1_Injectable %>% filter(!(paid==
 
 OBE_US_Doses_GLP1_Injectable %>% group_by(paid) %>% count()
 
-# paid      n
-# <chr> <int>
-#   1 D       114
-# 2 P       195
 
 # Oral GLP1
 OBE_US_Doses_GLP1_Oral <- OBE_US_Doses %>% filter(drug_class=="GLP1 Oral")
@@ -6293,10 +5489,7 @@ OBE_US_Doses_GLP1_Oral <- OBE_US_Doses_GLP1_Oral %>% filter(!(paid=="D"&is.na(to
 
 OBE_US_Doses_GLP1_Oral %>% group_by(paid) %>% count()
 
-# paid      n
-# <chr> <int>
-#   1 D         2
-# 2 P         5
+
 
 # Antiobesity
 OBE_US_Doses_Antiobesity <- OBE_US_Doses %>% filter(drug_class=="Antiobesity")
@@ -6311,11 +5504,6 @@ OBE_US_Doses_Antiobesity <- OBE_US_Doses_Antiobesity %>% left_join(To_keep)
 OBE_US_Doses_Antiobesity <- OBE_US_Doses_Antiobesity %>% filter(!(paid=="D"&is.na(tokeep)))
 
 OBE_US_Doses_Antiobesity %>% group_by(paid) %>% count()
-
-# paid      n
-# <chr> <int>
-#   1 D       292
-# 2 P       369
 
 
 
@@ -6333,10 +5521,7 @@ OBE_US_Doses_Anorectic <- OBE_US_Doses_Anorectic %>% filter(!(paid=="D"&is.na(to
 
 OBE_US_Doses_Anorectic %>% group_by(paid) %>% count()
 
-# paid      n
-# <chr> <int>
-#   1 D      9521
-# 2 P     33418
+
 
 # Weight_Loss
 OBE_US_Doses_Weight_Loss <- OBE_US_Doses %>% filter(drug_class=="Weight Loss")
@@ -6352,10 +5537,7 @@ OBE_US_Doses_Weight_Loss <- OBE_US_Doses_Weight_Loss %>% filter(!(paid=="D"&is.n
 
 OBE_US_Doses_Weight_Loss %>% group_by(paid) %>% count()
 
-# paid      n
-# <chr> <int>
-#   1 D         8
-# 2 P         7
+
 
 # Surgery
 OBE_US_Doses_Surgery <- OBE_US_Doses %>% filter(drug_class=="Surgery")
@@ -6370,11 +5552,6 @@ OBE_US_Doses_Surgery <- OBE_US_Doses_Surgery %>% left_join(To_keep)
 OBE_US_Doses_Surgery <- OBE_US_Doses_Surgery %>% filter(!(paid=="D"&is.na(tokeep)))
 
 OBE_US_Doses_Surgery %>% group_by(paid) %>% count()
-
-# paid      n
-# <chr> <int>
-#   1 P        38
-
 
 
 
@@ -6403,10 +5580,7 @@ OBE_US_Doses_GLP1_Injectable <- OBE_US_Doses_GLP1_Injectable %>% filter(!(paid==
 
 OBE_US_Doses_GLP1_Injectable %>% group_by(paid) %>% count()
 
-# paid      n
-# <chr> <int>
-#   1 D       314
-# 2 P       571
+
 
 # Oral GLP1
 OBE_US_Doses_GLP1_Oral <- OBE_US_Doses %>% filter(drug_class=="GLP1 Oral")
@@ -6422,10 +5596,6 @@ OBE_US_Doses_GLP1_Oral <- OBE_US_Doses_GLP1_Oral %>% filter(!(paid=="D"&is.na(to
 
 OBE_US_Doses_GLP1_Oral %>% group_by(paid) %>% count()
 
-# paid      n
-# <chr> <int>
-#   1 D         5
-# 2 P        18
 
 # Antiobesity
 OBE_US_Doses_Antiobesity <- OBE_US_Doses %>% filter(drug_class=="Antiobesity")
@@ -6440,11 +5610,6 @@ OBE_US_Doses_Antiobesity <- OBE_US_Doses_Antiobesity %>% left_join(To_keep)
 OBE_US_Doses_Antiobesity <- OBE_US_Doses_Antiobesity %>% filter(!(paid=="D"&is.na(tokeep)))
 
 OBE_US_Doses_Antiobesity %>% group_by(paid) %>% count()
-
-# paid      n
-# <chr> <int>
-#   1 D       408
-# 2 P       685
 
 
 
@@ -6462,10 +5627,7 @@ OBE_US_Doses_Anorectic <- OBE_US_Doses_Anorectic %>% filter(!(paid=="D"&is.na(to
 
 OBE_US_Doses_Anorectic %>% group_by(paid) %>% count()
 
-# paid       n
-# <chr>  <int>
-#   1 D      32901
-# 2 P     133402
+
 
 # Weight_Loss
 OBE_US_Doses_Weight_Loss <- OBE_US_Doses %>% filter(drug_class=="Weight Loss")
@@ -6481,11 +5643,6 @@ OBE_US_Doses_Weight_Loss <- OBE_US_Doses_Weight_Loss %>% filter(!(paid=="D"&is.n
 
 OBE_US_Doses_Weight_Loss %>% group_by(paid) %>% count()
 
-# paid      n
-# <chr> <int>
-#   1 D        31
-# 2 P        59
-#   
 
 # Surgery
 OBE_US_Doses_Surgery <- OBE_US_Doses %>% filter(drug_class=="Surgery")
@@ -6500,18 +5657,6 @@ OBE_US_Doses_Surgery <- OBE_US_Doses_Surgery %>% left_join(To_keep)
 OBE_US_Doses_Surgery <- OBE_US_Doses_Surgery %>% filter(!(paid=="D"&is.na(tokeep)))
 
 OBE_US_Doses_Surgery %>% group_by(paid) %>% count()
-
-# paid      n
-# <chr> <int>
-#   1 D        31
-# 2 P        59
-
-
-
-
-
-
-
 
 
 
@@ -6539,10 +5684,6 @@ OBE_US_Doses_GLP1_Injectable <- OBE_US_Doses_GLP1_Injectable %>% filter(!(paid==
 
 OBE_US_Doses_GLP1_Injectable %>% group_by(paid) %>% count()
 
-# paid      n
-# <chr> <int>
-#   1 D      2695
-# 2 P      9772
 
 # Oral GLP1
 OBE_US_Doses_GLP1_Oral <- OBE_US_Doses %>% filter(drug_class=="GLP1 Oral")
@@ -6558,10 +5699,7 @@ OBE_US_Doses_GLP1_Oral <- OBE_US_Doses_GLP1_Oral %>% filter(!(paid=="D"&is.na(to
 
 OBE_US_Doses_GLP1_Oral %>% group_by(paid) %>% count()
 
-# paid      n
-# <chr> <int>
-#   1 D       398
-# 2 P       774
+
 
 # Antiobesity
 OBE_US_Doses_Antiobesity <- OBE_US_Doses %>% filter(drug_class=="Antiobesity")
@@ -6577,10 +5715,6 @@ OBE_US_Doses_Antiobesity <- OBE_US_Doses_Antiobesity %>% filter(!(paid=="D"&is.n
 
 OBE_US_Doses_Antiobesity %>% group_by(paid) %>% count()
 
-paid      n
-<chr> <int>
-  1 D      7226
-2 P     14625
 
 
 # Anorectic
@@ -6596,12 +5730,8 @@ OBE_US_Doses_Anorectic <- OBE_US_Doses_Anorectic %>% left_join(To_keep)
 OBE_US_Doses_Anorectic <- OBE_US_Doses_Anorectic %>% filter(!(paid=="D"&is.na(tokeep)))
 
 OBE_US_Doses_Anorectic %>% group_by(paid) %>% count()
-# 
-paid       n
-<chr>  <int>
-  1 D     147057
-2 P     892934
 
+                
 # Weight_Loss
 OBE_US_Doses_Weight_Loss <- OBE_US_Doses %>% filter(drug_class=="Weight Loss")
 Paid_dates_Weight_Loss <- OBE_US_Doses_Weight_Loss %>% filter(paid=="P") %>% select(-paid)
@@ -6616,10 +5746,7 @@ OBE_US_Doses_Weight_Loss <- OBE_US_Doses_Weight_Loss %>% filter(!(paid=="D"&is.n
 
 OBE_US_Doses_Weight_Loss %>% group_by(paid) %>% count()
 
-paid      n
-<chr> <int>
-  1 D        73
-2 P       268
+
 
 # Surgery
 OBE_US_Doses_Surgery <- OBE_US_Doses %>% filter(drug_class=="Surgery")
@@ -6635,10 +5762,6 @@ OBE_US_Doses_Surgery <- OBE_US_Doses_Surgery %>% filter(!(paid=="D"&is.na(tokeep
 
 OBE_US_Doses_Surgery %>% group_by(paid) %>% count()
 
-paid      n
-<chr> <int>
-  1 D        29
-2 P      2554
 
 # -----------
 # Geographic location US states patients -------------------
@@ -6893,21 +6016,9 @@ OBE_Flows_Aux._Long <- Pats_1_brand %>% left_join(OBE_Flows_Aux._Long)
 OBE_Flows_Aux._Long %>% filter(Treat=="Victoza") %>% filter(flow==1) %>% filter(s1!="G"&s2=="G") %>%
   group_by(s1) %>% summarise(n=sum(weight_2))
 
-# s1         n
-# <chr>  <dbl>
-# 1 a      3173.
-# 2 H       424.
-# 3 o       357.
-# 4 x     41164.
 
 OBE_Flows_Aux._Long %>% filter(Treat=="Victoza") %>% filter(flow==1) %>% filter(s1=="G"&s2!="G") %>%
   group_by(s2) %>% summarise(n=sum(weight_2))
-
-# s2         n
-# <chr>  <dbl>
-# 1 a      4930.
-# 2 H       275.
-# 3 x     40966.
 
 
 # Saxenda
@@ -6915,23 +6026,10 @@ OBE_Flows_Aux._Long %>% filter(Treat=="Victoza") %>% filter(flow==1) %>% filter(
 OBE_Flows_Aux._Long %>% filter(Treat=="Saxenda") %>% filter(flow==1) %>% filter(s1!="G"&s2=="G") %>%
   group_by(s1) %>% summarise(n=sum(weight_2))
 
-# s1          n
-# <chr>   <dbl>
-# 1 a      29025.
-# 2 H        147.
-# 3 o       5005.
-# 4 x     249123.
+
 
 OBE_Flows_Aux._Long %>% filter(Treat=="Saxenda") %>% filter(flow==1) %>% filter(s1=="G"&s2!="G") %>%
   group_by(s2) %>% summarise(n=sum(weight_2))
-
-# s2          n
-# <chr>   <dbl>
-# 1 a      30779.
-# 2 H        419.
-# 3 o       6287.
-# 4 x     216336.
-
 
 
 # Ozempic
@@ -6939,19 +6037,10 @@ OBE_Flows_Aux._Long %>% filter(Treat=="Saxenda") %>% filter(flow==1) %>% filter(
 OBE_Flows_Aux._Long %>% filter(Treat=="Ozempic") %>% filter(flow==1) %>% filter(s1!="G"&s2=="G") %>%
   group_by(s1) %>% summarise(n=sum(weight_2))
 
-# s1         n
-# <chr>  <dbl>
-# 1 a      6526.
-# 2 o       699.
-# 3 x     52960.
+
 
 OBE_Flows_Aux._Long %>% filter(Treat=="Ozempic") %>% filter(flow==1) %>% filter(s1=="G"&s2!="G") %>%
   group_by(s2) %>% summarise(n=sum(weight_2))
-
-# s2         n
-# <chr>  <dbl>
-# 1 a      5086.
-# 2 x     28053.
 
 
 
@@ -6960,18 +6049,11 @@ OBE_Flows_Aux._Long %>% filter(Treat=="Ozempic") %>% filter(flow==1) %>% filter(
 OBE_Flows_Aux._Long %>% filter(Treat=="Rybelsus") %>% filter(flow==1) %>% filter(s1!="g"&s2=="g") %>%
   group_by(s1) %>% summarise(n=sum(weight_2))
 
-# s1         n
-# <chr>  <dbl>
-# 1 a      2246.
-# 2 x     28171.
 
 OBE_Flows_Aux._Long %>% filter(Treat=="Rybelsus") %>% filter(flow==1) %>% filter(s1=="g"&s2!="g") %>%
   group_by(s2) %>% summarise(n=sum(weight_2))
 
-# s2         n
-# <chr>  <dbl>
-# 1 a      1582.
-# 2 x     19740.
+                
 # -------
 # Nr comorbidities vs BMI  -----------
 
@@ -7003,19 +6085,8 @@ DANU_Demographics <- DANU_Demographics %>% select(-weight_BMI)
 
 DANU_Demographics %>% filter(!is.na(BMI_group)) %>% group_by(BMI_group) %>% summarise(n=sum(weight_2)) 
 
-#  with BMI
 
-# BMI_group         n
-# <chr>         <dbl>
-# 1 <25        2846529.
-# 2 >40       13648335.
-# 3 "25_to_27"  17829957. (20676486 with 25-)
-# 4 27_to_30  24087801.
-# 5 30_to_40  37866083.
-
-
-
-
+                
 OBE_Comorbidity_Inventories <- fread("OBE Comorbidity Inventories.txt")
 names(OBE_Comorbidity_Inventories)[1] <- "patient"
 
@@ -7073,10 +6144,6 @@ OBE_Comorbidity_Inventories %>% select(patid, weight_2) %>% distinct() %>% summa
 
 OBE_Comorbidity_Inventories %>% select(patid, weight_2, Treat_Exp) %>% distinct() %>% group_by(Treat_Exp) %>% summarise(n=sum(weight_2))
 
-# Treat_Exp         n
-# <chr>         <dbl>
-# 1 Naive     96456936.
-# 2 Treat_Exp  1088270.
 
 
 OBE_Comorbidity_Inventories <-OBE_Comorbidity_Inventories %>% filter(!grepl("A", diagnosis) & !grepl("B", diagnosis) & !grepl("C", diagnosis) &
@@ -7328,20 +6395,9 @@ weighted.mean(Naive_Pats$age, Naive_Pats$weight_2) #  50.01593
 
 GLP1_Exp_Pats %>% group_by(gender) %>% summarise(n=sum(weight_2))
 
-# gender       n
-# <chr>    <dbl>
-# 1 F      257678.
-# 2 M       69651.
 
 
 Naive_Pats %>% group_by(gender) %>% summarise(n=sum(weight_2))
-
-# gender         n
-# <chr>      <dbl>
-# 1 F      47278571.
-# 2 M      48016564
-
-
 
 
 # BMI
@@ -7635,54 +6691,13 @@ temp1 <- GLP1_Exp_Pats  %>% left_join(DANU_Events, by=c("patient"="patid")) %>% 
 
 sum(temp1$n)
 
-# SUMMARY_SPECIALTY      n
-# <chr>              <int>
-# 1 NA                 22154
-# 2 GP                  8091
-# 3 OTHER HCP           4662
-# 4 INTERNAL MEDICINE   4350
-# 5 OTHER PHYSICIAN     3280
-# 6 UNKNOWN             2989
-# 7 FACILITY            2809
-# 8 SURGERY             2780
-# 9 ENDOCRINOLOGY       1659
-# 10 CARDIOLOGY           819
-# 11 EMERGENCY MEDICINE   463
-# 12 GASTRO/HEPATO        432
-# 13 PATHOLOGY            282
-# 14 HEMATO/ONCOL         257
-# 15 RADIOLOGY            167
-# 16 NEUROLOGY            141
-# 17 PSYCHIATRY            95
-# 18 NEPHROLOGIST          68
-# 19 MEDICAL ONCOLOGIST    22
 
 temp2 <- Naive_Pats  %>% left_join(DANU_Events, by=c("patient"="patid")) %>% select(prov) %>% 
   left_join(DANU_Event_Claims_Providers %>% select(prov, specialty)) %>%
   left_join(Unique_Physicians_OBE) %>% select(-specialty) %>%
   group_by(SUMMARY_SPECIALTY) %>% count() %>% arrange(-n)
 
-# SUMMARY_SPECIALTY        n
-# <chr>                <int>
-# 1 NA                 4847073
-# 2 GP                  757010
-# 3 INTERNAL MEDICINE   454749
-# 4 OTHER PHYSICIAN     331613
-# 5 OTHER HCP           245596
-# 6 FACILITY            202425
-# 7 UNKNOWN             170304
-# 8 SURGERY             120837
-# 9 CARDIOLOGY           87766
-# 10 EMERGENCY MEDICINE   38145
-# 11 GASTRO/HEPATO        32309
-# 12 ENDOCRINOLOGY        31904
-# 13 HEMATO/ONCOL         18087
-# 14 PATHOLOGY            17680
-# 15 NEUROLOGY            15270
-# 16 PSYCHIATRY           11061
-# 17 NEPHROLOGIST          9455
-# 18 RADIOLOGY             8261
-# 19 MEDICAL ONCOLOGIST    5953
+
 
 sum(temp2$n)
 
@@ -7800,29 +6815,9 @@ Groups_to_compare <- Groups_to_compare %>% left_join(temp)
 
 Groups_to_compare %>% group_by(Group) %>% summarise(n=weighted.mean(age, weight_2))
 
-# Group          n
-# <chr>      <dbl>
-# 1 BMI_Dx      51.4
-# 2 BMI_record  47.8
-# 3 Obesity_Dx  51.3
-# 4 Procedures  53.6
-# 5 Treat_exp   40.7
+
 
 Groups_to_compare %>% group_by(Group, gender) %>% summarise(n=sum(weight_2))
-
-# Group      gender         n
-# <chr>      <chr>      <dbl>
-# 1 BMI_Dx     F       7798981.
-# 2 BMI_Dx     M       8379048.
-# 3 BMI_record F      17132342.
-# 4 BMI_record M      21252745.
-# 5 Obesity_Dx F      19959512.
-# 6 Obesity_Dx M      16206678.
-# 7 Procedures F       2387736.
-# 8 Procedures M       2178093.
-# 9 Treat_exp  F       5052329.
-# 10 Treat_exp  M       3491241.
-
 
 
 # BMI
@@ -7836,15 +6831,8 @@ Groups_to_compare <- Groups_to_compare %>% group_by(patient) %>% slice(n())
 
 Groups_to_compare %>% group_by(Group) %>% summarise(n=weighted.mean(code, weight_2))
 
-# Group          n
-# <chr>      <dbl>
-# 1 BMI_Dx      30.6
-# 2 BMI_record  30.5
-# 3 Obesity_Dx  34.8
-# 4 Procedures  32.3
-# 5 Treat_exp   33.6
 
-
+                
 
 Groups_to_compare$Group <- factor(Groups_to_compare$Group, levels=c('Treat_exp', 'Obesity_Dx', 'Procedures','BMI_Dx','BMI_record'))
 
@@ -7866,16 +6854,6 @@ DANU_Events <- fread("DANU Events.txt")
 names(DANU_Events)[1] <- "patient"
 Groups_to_compare <- Groups_to_compare %>% select(patient, weight_2,Group)
 Groups_to_compare %>% left_join(DANU_Events) %>% group_by(Group, patient) %>% count() %>% ungroup() %>% group_by(Group) %>% summarise(MeanEvents=mean(n))
-
-# Group      MeanEvents
-# <chr>           <dbl>
-# 1 BMI_Dx          12.8 
-# 2 BMI_record       8.61
-# 3 Obesity_Dx      18.7 
-# 4 Procedures      16.3 
-# 5 Treat_exp       20.2 
-
-
 
 
 Groups_to_compare %>% left_join(DANU_Events) %>% group_by(Group, patient) %>% count() %>% ungroup() %>% 
@@ -8166,52 +7144,13 @@ temp1 <- Obesity_Dx  %>% left_join(DANU_Events, by=c("patient"="patid")) %>% sel
 
 sum(temp1$n)
 
-# SUMMARY_SPECIALTY        n
-# <chr>                <int>
-# 1 NA                 1704622
-# 2 GP                  272082
-# 3 INTERNAL MEDICINE   177547
-# 4 OTHER PHYSICIAN     144929
-# 5 FACILITY            113798
-# 6 OTHER HCP            93152
-# 7 UNKNOWN              79180
-# 8 SURGERY              61559
-# 9 CARDIOLOGY           42148
-# 10 EMERGENCY MEDICINE   18396
-# 11 GASTRO/HEPATO        14044
-# 12 ENDOCRINOLOGY        11661
-# 13 PATHOLOGY             9381
-# 14 HEMATO/ONCOL          7244
-# 15 NEUROLOGY             6451
-# 16 PSYCHIATRY            5530
-# 17 RADIOLOGY             4257
-# 18 NEPHROLOGIST          4154
-# 19 MEDICAL ONCOLOGIST    2548
 
 temp2 <- BMI_record  %>% left_join(DANU_Events, by=c("patient"="patid")) %>% select(prov) %>% 
   left_join(DANU_Event_Claims_Providers %>% select(prov, specialty)) %>%
   left_join(Unique_Physicians_OBE) %>% select(-specialty) %>%
   group_by(SUMMARY_SPECIALTY) %>% count() %>% arrange(-n)
 
-# SUMMARY_SPECIALTY        n
-# <chr>                <int>
-# 1 NA                 1212060
-# 2 GP                     245
-# 3 ENDOCRINOLOGY          218
-# 4 FACILITY               180
-# 5 OTHER PHYSICIAN        160
-# 6 UNKNOWN                147
-# 7 OTHER HCP               99
-# 8 INTERNAL MEDICINE       63
-# 9 EMERGENCY MEDICINE      14
-# 10 NEPHROLOGIST            11
-# 11 PATHOLOGY               11
-# 12 CARDIOLOGY               9
-# 13 HEMATO/ONCOL             4
-# 14 RADIOLOGY                4
-# 15 SURGERY                  4
-# 16 NEUROLOGY                2
-# 17 GASTRO/HEPATO            1
+
 
 sum(temp2$n)
 
@@ -8287,23 +7226,8 @@ DANU_Demographics <- DANU_Demographics %>% left_join(temp)
 
 DANU_Demographics %>% group_by(BMI_group) %>% summarise(n=weighted.mean(age, weight_2))
 
-# BMI_group     n
-# <chr>     <dbl>
-# 1 >40        45.9
-# 2 27_to_30   50.2
-# 3 30_to_40   49.5
-
 
 DANU_Demographics %>% group_by(BMI_group, gender) %>% summarise(n=sum(weight_2))
-
-# BMI_group gender         n
-# <chr>     <chr>      <dbl>
-# 1 >40       F       8401533.
-# 2 >40       M       4845786.
-# 3 27_to_30  F      16138578.
-# 4 27_to_30  M      19083544.
-# 5 30_to_40  F      27790790.
-# 6 30_to_40  M      27578474.
 
 
 DANU_Demographics <- DANU_Demographics %>% select(patient, BMI_group, weight_2)
@@ -8318,12 +7242,6 @@ DANU_Demographics$code <- parse_number(DANU_Demographics$code)
 DANU_Demographics <- DANU_Demographics %>% group_by(patient) %>% filter(code==max(code)) %>% slice(1)
 
 DANU_Demographics %>% group_by(BMI_group) %>% summarise(n=weighted.mean(code, weight_2))
-
-# BMI_group     n
-# <chr>     <dbl>
-#   1 >40        46.0
-# 2 27_to_30   28.7
-# 3 30_to_40   34.0
 
 
 DANU_Demographics$BMI_group <- factor(DANU_Demographics$BMI_group, levels=c('27_to_30', '30_to_40', '>40'))
@@ -8346,13 +7264,6 @@ DANU_Events <- fread("DANU Events.txt")
 names(DANU_Events)[1] <- "patient"
 DANU_Demographics <- DANU_Demographics %>% select(patient, weight_2,BMI_group)
 DANU_Demographics %>% left_join(DANU_Events) %>% group_by(BMI_group , patient) %>% count() %>% ungroup() %>% group_by(BMI_group ) %>% summarise(MeanEvents=mean(n))
-
-# BMI_group MeanEvents
-# <fct>          <dbl>
-#   1 27_to_30        10.6
-# 2 30_to_40        14.2
-# 3 >40             23.2
-
 
 
 
@@ -8552,27 +7463,9 @@ OBE_Box_Histories <- Treatment_exp_Vector %>% inner_join(OBE_Box_Histories)
 sum(OBE_Box_Histories$weight_2) # 8543570
 OBE_Box_Histories %>% group_by(month60) %>% summarise(n=sum(weight_2))
 
-# month60        n
-# <chr>      <dbl>
-#   1 a       2561075.
-# 2 g          7128.
-# 3 G         57008.
-# 4 H         23914.
-# 5 o         24240.
-# 6 w          1806.
-# 7 x       5868398.
 
 OBE_Box_Histories %>% group_by(month60) %>% summarise(lines=weighted.mean(Nr_lines, weight_2))
 # 
-# month60 lines
-# <chr>   <dbl>
-#   1 a        1.40
-# 2 g        1.61
-# 3 G        1.86
-# 4 H        1.40
-# 5 o        1.60
-# 6 w        1.83
-# 7 x        1.22
 
 weighted.mean(OBE_Box_Histories$Nr_lines, OBE_Box_Histories$weight_2) 1.281123
 
@@ -8797,23 +7690,13 @@ GLP_lastYear$Group <- "GLP_lastYear"
 DANU_Events %>% inner_join(DANU_Demographics) %>% left_join(GLP_ever, by=c("patid"="patient")) %>%
   group_by(BMI_group, Group) %>% summarise(n=sum(weight_2))
 
-# BMI_group Group            n
-# <chr>     <chr>        <dbl>
-# 1 <27       GLP_ever    15487.
-# 2 <27       NA       25249721.
-# 3 >27       GLP_ever   223855.
-# 4 >27       NA       70789642.
 
 
 DANU_Events %>% inner_join(DANU_Demographics) %>% left_join(GLP_lastYear, by=c("patid"="patient")) %>%
   group_by(BMI_group, Group) %>% summarise(n=sum(weight_2))
 
-# BMI_group Group                n
-# <chr>     <chr>            <dbl>
-# 1 <27       GLP_lastYear     9568.
-# 2 <27       NA           25255641.
-# 3 >27       GLP_lastYear   114026.
-# 4 >27       NA           70899471.
+
+                
 
 # -----------
 # Prevalence of procedures in GLP1-experienced vs Treat-naive ---------
@@ -9168,24 +8051,6 @@ temp %>% group_by(patid) %>% count() %>% left_join(temp %>% select(patid, ORIGIN
   ungroup() %>% group_by(ORIGINALDISEASE) %>% summarise(n=mean(n)) %>% arrange(-n)
 
 
-   ORIGINALDISEASE        n
-   <chr>              <dbl>
- 1 CKD                 7.55
- 2 PAD                 7.54
- 3 HF                  7.46
- 4 NASH                6.94
- 5 RA                  6.94
- 6 CVD                 6.31
- 7 CANCER              6.21
- 8 DIABETES            6.15
- 9 OSTEOARTHRITIS      5.84
-10 StressIncontinence  5.73
-11 SLEEPAPNEA          5.61
-12 GERD                5.60
-13 HYPERTENSION        5.36
-14 DISLIPIDEMIA        5.23
-15 PREDIABETES         4.90
-16 POS                 4.48
 
 
 # 
@@ -9196,27 +8061,6 @@ temp %>% group_by(patid) %>% count() %>% left_join(temp %>% select(patid, ORIGIN
 #                                                  !grepl("Z",diagnosis)) %>% 
 #               group_by(patid) %>% count()) %>% ungroup() %>%
 #   group_by(ORIGINALDISEASE) %>% summarise(mean=mean(n, na.rm = T)) %>% arrange(-mean)
-#   
-
-# 
-   ORIGINALDISEASE     mean
-   <chr>              <dbl>
- 1 PAD                 50.2
- 2 RA                  49.1
- 3 HF                  48.9
- 4 NASH                48.7
- 5 CKD                 48.6
- 6 CANCER              42.0
- 7 StressIncontinence  41.5
- 8 CVD                 41.4
- 9 OSTEOARTHRITIS      40.0
-10 GERD                39.5
-11 DIABETES            39.5
-12 SLEEPAPNEA          38.4
-13 HYPERTENSION        34.6
-14 POS                 34.4
-15 DISLIPIDEMIA        34.0
-16 PREDIABETES         30.6
 
 
 DIABETES
@@ -9344,363 +8188,148 @@ DANU_Utilizations <- DANU_Utilizations %>% left_join(Cum_Class_Experience_EveryM
 
 names(DANU_Utilizations)
 
- [1] "patient"                       
- [2] "weight"                        
- [3] "medical_visits"                
- [4] "rx_visits"                     
- [5] "encounter_visits"              
- [6] "medical_providers"             
- [7] "rx_providers"                  
- [8] "encounter_providers"           
- [9] "hospital_days"                 
-[10] "hospital_stays"                
-[11] "hospital_day_stays"            
-[12] "hospital_short_stays"          
-[13] "hospital_medium_stays"         
-[14] "hospital_long_stays"           
-[15] "icu_visits"                    
-[16] "surgery_visits"                
-[17] "emergency_visits"              
-[18] "prescription_count"            
-[19] "public_payer_prescriptions"    
-[20] "commercial_payer_prescriptions"
-[21] "drug_supply_days"              
-[22] "drug_formulations"             
-[23] "drug_ingredients"              
-[24] "drug_ahfs_classes"             
-[25] "drug_fdb_classes"              
-[26] "p1_OralExp"                    
-[27] "p1_InjExp"
-
 
 # INJECTABLE
 DANU_Utilizations %>% group_by(p1_InjExp) %>% summarise(n = weighted.mean(medical_visits, weight))
 
-  p1_InjExp     n
-      <int> <dbl>
-1         0  115.
-2         1  123.
+
 
 DANU_Utilizations %>% group_by(p1_InjExp) %>% summarise(n = weighted.mean(rx_visits, weight))
 
-  p1_InjExp     n
-      <int> <dbl>
-1         0  114.
-2         1  157
+
 
 DANU_Utilizations %>% group_by(p1_InjExp) %>% summarise(n = weighted.mean(encounter_visits, weight))
 
-  p1_InjExp     n
-      <int> <dbl>
-1         0  203.
-2         1  246.
+
 
 DANU_Utilizations %>% group_by(p1_InjExp) %>% summarise(n = weighted.mean(medical_providers, weight))
 
-  p1_InjExp     n
-      <int> <dbl>
-1         0  31.4
-2         1  34.1
 
 DANU_Utilizations %>% group_by(p1_InjExp) %>% summarise(n = weighted.mean(rx_providers, weight))
 
-  p1_InjExp     n
-      <int> <dbl>
-1         0  12.7
-2         1  15.1
 
 DANU_Utilizations %>% group_by(p1_InjExp) %>% summarise(n = weighted.mean(encounter_providers, weight))
 
-  p1_InjExp     n
-      <int> <dbl>
-1         0  37.1
-2         1  40.7
-
 DANU_Utilizations %>% group_by(p1_InjExp) %>% summarise(n = weighted.mean(hospital_days, weight))
 
-  p1_InjExp     n
-      <int> <dbl>
-1         0  1.75
-2         1  1.23
 
 DANU_Utilizations %>% group_by(p1_InjExp) %>% summarise(n = weighted.mean(hospital_stays, weight))
 
-  p1_InjExp     n
-      <int> <dbl>
-1         0 0.233
-2         1 0.185
 
 DANU_Utilizations %>% group_by(p1_InjExp) %>% summarise(n = weighted.mean(hospital_day_stays, weight))
 
-  p1_InjExp      n
-      <int>  <dbl>
-1         0 0.0361
-2         1 0.0307
 
 DANU_Utilizations %>% group_by(p1_InjExp) %>% summarise(n = weighted.mean(hospital_short_stays, weight))
 
-  p1_InjExp      n
-      <int>  <dbl>
-1         0 0.0689
-2         1 0.0590
-
 DANU_Utilizations %>% group_by(p1_InjExp) %>% summarise(n = weighted.mean(hospital_medium_stays, weight))
 
- p1_InjExp      n
-      <int>  <dbl>
-1         0 0.0646
-2         1 0.0527
 
 DANU_Utilizations %>% group_by(p1_InjExp) %>% summarise(n = weighted.mean(hospital_long_stays, weight))
 
-  p1_InjExp      n
-      <int>  <dbl>
-1         0 0.0634
-2         1 0.0422
-
 DANU_Utilizations %>% group_by(p1_InjExp) %>% summarise(n = weighted.mean(icu_visits, weight))
 
-  p1_InjExp      n
-      <int>  <dbl>
-1         0 0.0710
-2         1 0.0558
 
 DANU_Utilizations %>% group_by(p1_InjExp) %>% summarise(n = weighted.mean(surgery_visits, weight))
 
-  p1_InjExp      n
-      <int>  <dbl>
-1         0 0.0617
-2         1 0.0510
 
 DANU_Utilizations %>% group_by(p1_InjExp) %>% summarise(n = weighted.mean(emergency_visits, weight))
 
-  p1_InjExp     n
-      <int> <dbl>
-1         0  4.94
-2         1  4.99
-
 DANU_Utilizations %>% group_by(p1_InjExp) %>% summarise(n = weighted.mean(prescription_count, weight))
 
-  p1_InjExp     n
-      <int> <dbl>
-1         0  223.
-2         1  318.
 
 DANU_Utilizations %>% group_by(p1_InjExp) %>% summarise(n = weighted.mean(public_payer_prescriptions, weight))
 
-  p1_InjExp     n
-      <int> <dbl>
-1         0  94.2
-2         1 104. 
 
 DANU_Utilizations %>% group_by(p1_InjExp) %>% summarise(n = weighted.mean(commercial_payer_prescriptions, weight))
 
-  p1_InjExp     n
-      <int> <dbl>
-1         0  77.3
-2         1 137. 
+
 
 DANU_Utilizations %>% group_by(p1_InjExp) %>% summarise(n = weighted.mean(drug_supply_days, weight))
 
-  p1_InjExp      n
-      <int>  <dbl>
-1         0  9643.
-2         1 13456.
 
 DANU_Utilizations %>% group_by(p1_InjExp) %>% summarise(n = weighted.mean(drug_formulations, weight))
 
-  p1_InjExp     n
-      <int> <dbl>
-1         0  50.9
-2         1  65.8
-
+  
 DANU_Utilizations %>% group_by(p1_InjExp) %>% summarise(n = weighted.mean(drug_ingredients, weight))
 
-  p1_InjExp     n
-      <int> <dbl>
-1         0  30.0
-2         1  37.7
+
 
 DANU_Utilizations %>% group_by(p1_InjExp) %>% summarise(n = weighted.mean(drug_ahfs_classes, weight))
 
-  p1_InjExp     n
-      <int> <dbl>
-1         0  22.3
-2         1  27.8
 
 DANU_Utilizations %>% group_by(p1_InjExp) %>% summarise(n = weighted.mean(drug_fdb_classes, weight))
-
-  p1_InjExp     n
-      <int> <dbl>
-1         0  21.9
-2         1  27.9
-
-
 
 
 # ORAL
 
 DANU_Utilizations %>% group_by(p1_OralExp) %>% summarise(n = weighted.mean(medical_visits, weight))
 
-  p1_OralExp     n
-       <int> <dbl>
-1          0 116. 
-2          1  95.6
-
 
 DANU_Utilizations %>% group_by(p1_OralExp) %>% summarise(n = weighted.mean(rx_visits, weight))
 
-  p1_OralExp     n
-       <int> <dbl>
-1          0  122.
-2          1  133.
 
 DANU_Utilizations %>% group_by(p1_OralExp) %>% summarise(n = weighted.mean(encounter_visits, weight))
 
- p1_OralExp     n
-       <int> <dbl>
-1          0  210.
-2          1  201.
 
 DANU_Utilizations %>% group_by(p1_OralExp) %>% summarise(n = weighted.mean(medical_providers, weight))
 
- p1_OralExp     n
-       <int> <dbl>
-1          0  31.9
-2          1  28.1
 
 DANU_Utilizations %>% group_by(p1_OralExp) %>% summarise(n = weighted.mean(rx_providers, weight))
 
-  p1_OralExp     n
-       <int> <dbl>
-1          0  13.1
-2          1  13.6
 
 DANU_Utilizations %>% group_by(p1_OralExp) %>% summarise(n = weighted.mean(encounter_providers, weight))
 
-  p1_OralExp     n
-       <int> <dbl>
-1          0  37.7
-2          1  34.2
-
+ 
 DANU_Utilizations %>% group_by(p1_OralExp) %>% summarise(n = weighted.mean(hospital_days, weight))
 
-  p1_OralExp     n
-       <int> <dbl>
-1          0 1.66 
-2          1 0.739
 
 DANU_Utilizations %>% group_by(p1_OralExp) %>% summarise(n = weighted.mean(hospital_stays, weight))
 
-  p1_OralExp     n
-       <int> <dbl>
-1          0 0.225
-2          1 0.139
 
 DANU_Utilizations %>% group_by(p1_OralExp) %>% summarise(n = weighted.mean(hospital_day_stays, weight))
 
-  p1_OralExp      n
-       <int>  <dbl>
-1          0 0.0353
-2          1 0.0240
-
 DANU_Utilizations %>% group_by(p1_OralExp) %>% summarise(n = weighted.mean(hospital_short_stays, weight))
 
- p1_OralExp      n
-       <int>  <dbl>
-1          0 0.0674
-2          1 0.0486
+
 
 DANU_Utilizations %>% group_by(p1_OralExp) %>% summarise(n = weighted.mean(hospital_medium_stays, weight))
 
-  p1_OralExp      n
-       <int>  <dbl>
-1          0 0.0627
-2          1 0.0418
 
 DANU_Utilizations %>% group_by(p1_OralExp) %>% summarise(n = weighted.mean(hospital_long_stays, weight))
 
-  p1_OralExp      n
-       <int>  <dbl>
-1          0 0.0600
-2          1 0.0242
 
 DANU_Utilizations %>% group_by(p1_OralExp) %>% summarise(n = weighted.mean(icu_visits, weight))
 
-  p1_OralExp      n
-       <int>  <dbl>
-1          0 0.0685
-2          1 0.0446
 
 DANU_Utilizations %>% group_by(p1_OralExp) %>% summarise(n = weighted.mean(surgery_visits, weight))
 
-  p1_OralExp      n
-       <int>  <dbl>
-1          0 0.0599
-2          1 0.0460
 
 DANU_Utilizations %>% group_by(p1_OralExp) %>% summarise(n = weighted.mean(emergency_visits, weight))
 
-  p1_OralExp     n
-       <int> <dbl>
-1          0  4.96
-2          1  3.64
-
 DANU_Utilizations %>% group_by(p1_OralExp) %>% summarise(n = weighted.mean(prescription_count, weight))
 
- p1_OralExp     n
-       <int> <dbl>
-1          0  239.
-2          1  258.
+
 
 DANU_Utilizations %>% group_by(p1_OralExp) %>% summarise(n = weighted.mean(public_payer_prescriptions, weight))
 
- p1_OralExp     n
-       <int> <dbl>
-1          0  96.3
-2          1  52.4
 
 DANU_Utilizations %>% group_by(p1_OralExp) %>% summarise(n = weighted.mean(commercial_payer_prescriptions, weight))
 
- p1_OralExp     n
-       <int> <dbl>
-1          0  87.4
-2          1 143.
+
 
 DANU_Utilizations %>% group_by(p1_OralExp) %>% summarise(n = weighted.mean(drug_supply_days, weight))
 
-  p1_OralExp      n
-       <int>  <dbl>
-1          0 10305.
-2          1 11142.
-
+ 
 DANU_Utilizations %>% group_by(p1_OralExp) %>% summarise(n = weighted.mean(drug_formulations, weight))
 
-  p1_OralExp     n
-       <int> <dbl>
-1          0  53.5
-2          1  57.8
+
 
 DANU_Utilizations %>% group_by(p1_OralExp) %>% summarise(n = weighted.mean(drug_ingredients, weight))
 
-  p1_OralExp     n
-       <int> <dbl>
-1          0  31.3
-2          1  34.5
-
+ 
 DANU_Utilizations %>% group_by(p1_OralExp) %>% summarise(n = weighted.mean(drug_ahfs_classes, weight))
 
-  p1_OralExp     n
-       <int> <dbl>
-1          0  23.3
-2          1  25.4
-
 DANU_Utilizations %>% group_by(p1_OralExp) %>% summarise(n = weighted.mean(drug_fdb_classes, weight))
-
- p1_OralExp     n
-       <int> <dbl>
-1          0  22.9
-2          1  25.5
 
 DANU_Demographics <- fread("DANU Demographics.txt")
 DANU_Demographics <- DANU_Demographics %>% select(patid, age, gender)
@@ -9778,25 +8407,7 @@ DANU_Drug_Utilizations <- DANU_Drug_Utilizations %>% inner_join(Cum_Class_Experi
 
 names(DANU_Drug_Utilizations)
 
- [1] "patid"                
- [2] "weight"               
- [3] "drug_ahfs_class"      
- [4] "prescription_count"   
- [5] "rx_visits"            
- [6] "drug_supply_days"     
- [7] "brandname_supply_days"
- [8] "generic_supply_days"  
- [9] "drug_formulations"    
-[10] "drug_ingredients"     
-[11] "p1_OralExp"           
-[12] "p1_InjExp"
-
 DANU_Drug_Utilizations %>% select(p1_InjExp, patid) %>% distinct() %>% group_by(p1_InjExp) %>% count()
-
-  p1_InjExp      n
-      <int>  <int>
-1         0 179857
-2         1  40833
 
 
 temp <- DANU_Drug_Utilizations %>% group_by(p1_InjExp, drug_ahfs_class) %>% summarise(n=sum(prescription_count)) %>%
@@ -9817,11 +8428,6 @@ data.frame(temp %>%
 
 
 DANU_Drug_Utilizations %>% select(p1_OralExp, patid) %>% distinct() %>% group_by(p1_OralExp) %>% count()
-
-  p1_OralExp      n
-       <int>  <int>
-1          0 218640
-2          1   2050
 
 
 temp <- DANU_Drug_Utilizations %>% group_by(p1_OralExp, drug_ahfs_class) %>% summarise(n=sum(prescription_count)) %>%
@@ -10368,9 +8974,6 @@ length(unique(Comorbidity_Inventories$patid))
 
 DANU_Demographics %>% group_by(Type) %>% summarise(n=sum(weight))
  
-# 1 Diabetes             7949715.
-# 2 Diabetes + Obesity  40282960.
-# 3 Obesity            106469049.
 
 
 #HF
@@ -10436,12 +9039,7 @@ DANU_Demographics <- DANU_Demographics %>% left_join(DIA_Doses) %>% mutate(drug_
 DANU_Demographics %>% group_by(disease_group, drug_group) %>% summarise(n=sum(weight)) %>% ungroup() %>%
   spread(key=disease_group, value=n)
 
-  drug_group      CKD       HF `HF+CKD`      none
-  <chr>         <dbl>    <dbl>    <dbl>     <dbl>
-1 GLP1        434495.  445768.  396607.  2373624.
-2 GLP1+SGLT2  263090.  344740.  212129.  1502558.
-3 none       4176046. 5295655. 4048295. 25909466.
-4 SGLT2       298078.  408267.  273183.  1850675.
+                
 # ---------------------------------
 
 # Add of label from Diabetes ----------------------
@@ -10592,15 +9190,6 @@ BMIs <- BMIs %>% ungroup() %>% mutate(code=ifelse(code>=30, ">30", ifelse(code>=
 
 BMIs %>% inner_join(DANU_Demographics) %>% group_by(code, Type) %>% summarise(n=sum(weight))
 
-#   code  Type                       n
-#   <chr> <chr>                  <dbl>
-# 1 >25   Diabetes            2267950.
-# 2 >25   Diabetes + Obesity  3205508.
-# 3 >25   Obesity            16638826.
-# 4 >30   Diabetes + Obesity 18878355.
-# 5 >30   Obesity            40779460.
-# 6 27-30 Diabetes + Obesity  4678719.
-# 7 27-30 Obesity            20099558.
 
 
 BMIs %>% inner_join(DANU_Demographics) %>% filter(Type=="Diabetes + Obesity") %>%

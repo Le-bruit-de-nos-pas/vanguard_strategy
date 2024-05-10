@@ -889,8 +889,6 @@ Primary_Cancer_per_Pat %>% filter(earliest>="2018-08-01"&earliest<="2019-07-31")
 Primary_Cancer_per_Pat %>% filter(earliest>="2017-08-01"&earliest<="2018-07-31") %>% summarise(n=sum(weight)) # 4399878
 Primary_Cancer_per_Pat %>% filter(earliest>="2016-08-01"&earliest<="2017-07-31") %>% summarise(n=sum(weight)) # 12903869
 
-# 12903869+4399878+3640494+2922103+2825834 = 26692178
-
 # ------------
 
 
@@ -1425,12 +1423,10 @@ PONS_Demographics <- PONS_Demographics %>% mutate(death_date = case_when(is.na(d
 
 
 # How many in total
-sum(PONS_Demographics$weight) # 21494720
+sum(PONS_Demographics$weight) # 
 
 # How many alive in total at the end
-PONS_Demographics %>% ungroup() %>% filter(died=="N") %>% summarise(n=sum(weight)) # 17784650 # 60  
-# (17802670 plus the ones that ever died 3692049 = 21494719)
-
+PONS_Demographics %>% ungroup() %>% filter(died=="N") %>% summarise(n=sum(weight)) # 
 
 # -------------
 # How many died within 1 year os last Dx ? -----------------
@@ -12182,29 +12178,6 @@ data.frame(PONS_Demographics %>% group_by(diagnosis, age) %>%
              mutate(age=as.factor(age)) %>% summarise(n=sum(weight)) %>%
              spread(key=age, value=n))
 
-                 diagnosis     X1      X2      X12      X17
-1              Bone Cancer  39.11  126.05  3950.10  7217.06
-2             Brain Cancer 606.83  760.89 19865.59 17206.39
-3            Breast Cancer  83.95   65.02  3714.70  2180.02
-4  Gastroesophageal Cancer  39.11   31.18   438.53   394.79
-5              Head Cancer  83.95   94.87  3112.40  2310.43
-6        Intestinal Cancer  39.11  191.07  3085.38  2219.71
-7            Kidney Cancer  83.95  254.76  7618.39  3347.00
-8          Leukemia Cancer 665.87  943.17 29800.06 16705.33
-9             Liver Cancer 251.85  399.86  4424.21  1600.65
-10             Lung Cancer 201.28  188.41  3812.69  1909.07
-11         Lymphoma Cancer 290.96  413.32 14030.37 14796.94
-12          Myeloma Cancer     NA   32.51   836.99   577.73
-13            Other Cancer 854.96 1650.62 25607.17 15237.72
-14       Pancreatic Cancer     NA   94.87   389.08   329.46
-15         Prostate Cancer     NA   31.18  2277.31  1553.69
-16     Reproductive Cancer 123.06  189.74  3286.77  2995.32
-17      Respiratory Cancer     NA   32.51  1116.44   703.33
-18         Salivary Cancer     NA      NA   435.46   361.78
-19             Skin Cancer  78.22   62.36  6828.17  7658.25
-20          Thyroid Cancer  39.11   31.18  1683.73  2771.90
-21      Unspecified Cancer 212.74  250.77  6009.95  4856.95
-22          Urinary Cancer  83.95   31.18  1333.05  1008.92
 
 
 sum(PONS_Demographics$weight) #261252.5
@@ -12500,103 +12473,24 @@ mcmc_dens(model_bayes, pars = c("`PD1/PDL1`"))+
 
   
 describe_posterior(model_bayes)
-
-  Parameter                 | Median |         95% CI |     pd |          ROPE | % in ROPE |  Rhat |      ESS
------------------------------------------------------------------------------------------------------------
-(Intercept)               |  10.78 | [10.51, 11.05] |   100% | [-0.10, 0.10] |        0% | 1.000 | 41044.00
-`Alkylating Agent`        |  -1.74 | [-2.26, -1.21] |   100% | [-0.10, 0.10] |        0% | 1.000 | 19558.00
-Antimetabolites           |   2.29 | [ 1.89,  2.69] |   100% | [-0.10, 0.10] |        0% | 1.000 | 43977.00
-`Antimicrotubule Agent`   |   1.18 | [ 0.76,  1.60] |   100% | [-0.10, 0.10] |        0% | 1.000 | 23299.00
-Biologic                  |   0.87 | [ 0.51,  1.23] |   100% | [-0.10, 0.10] |        0% | 1.000 | 35570.00
-`Hormonal Therapy`        |  -0.08 | [-0.34,  0.17] | 73.98% | [-0.10, 0.10] |    49.55% | 1.000 | 45557.00
-`Immuno/Targeted`         |   2.44 | [ 2.03,  2.85] |   100% | [-0.10, 0.10] |        0% | 1.000 | 44294.00
-`Other Antineoplastics`   |   0.66 | [ 0.27,  1.05] | 99.96% | [-0.10, 0.10] |        0% | 1.000 | 46738.00
-`PD1/PDL1`                |   3.56 | [ 2.59,  4.52] |   100% | [-0.10, 0.10] |        0% | 1.000 | 44549.00
-`Platinum agent`          |  -0.10 | [-0.59,  0.38] | 66.02% | [-0.10, 0.10] |    30.17% | 1.000 | 30764.00
-Radio                     |   0.11 | [-0.11,  0.32] | 83.73% | [-0.10, 0.10] |    47.29% | 1.000 | 50094.00
-`Surgery Inpatient`       |   1.17 | [ 0.78,  1.55] |   100% | [-0.10, 0.10] |        0% | 1.000 | 48474.00
-`Topoisomerase Inhibitor` |   1.44 | [ 0.94,  1.92] |   100% | [-0.10, 0.10] |        0% | 1.000 | 27967.00
-
-
 post <- get_parameters(model_bayes)
 
-print(purrr::map_dbl(post,map_estimate),digits = 3)
-
-             (Intercept)        `Alkylating Agent`           Antimetabolites   `Antimicrotubule Agent` 
-                  10.7852                   -1.7411                    2.2741                    1.1745 
-                 Biologic        `Hormonal Therapy`         `Immuno/Targeted`   `Other Antineoplastics` 
-                   0.8846                   -0.0898                    2.4303                    0.6679 
-               `PD1/PDL1`          `Platinum agent`                     Radio       `Surgery Inpatient` 
-                   3.5452                   -0.1004                    0.1228                    1.2023 
-`Topoisomerase Inhibitor` 
-                   1.4490 
                    
 hdi(model_bayes)
 
-Highest Density Interval 
-
-Parameter                 |        95% HDI
-------------------------------------------
-(Intercept)               | [10.51, 11.05]
-`Alkylating Agent`        | [-2.27, -1.21]
-Antimetabolites           | [ 1.88,  2.68]
-`Antimicrotubule Agent`   | [ 0.75,  1.59]
-Biologic                  | [ 0.51,  1.23]
-`Hormonal Therapy`        | [-0.34,  0.17]
-`Immuno/Targeted`         | [ 2.04,  2.85]
-`Other Antineoplastics`   | [ 0.27,  1.05]
-`PD1/PDL1`                | [ 2.61,  4.54]
-`Platinum agent`          | [-0.59,  0.37]
-Radio                     | [-0.10,  0.33]
-`Surgery Inpatient`       | [ 0.79,  1.56]
-`Topoisomerase Inhibitor` | [ 0.96,  1.94]
 
 eti(model_bayes)
 
 Equal-Tailed Interval
-
-Parameter                 |        95% ETI | Effects |   Component
-------------------------------------------------------------------
-(Intercept)               | [10.51, 11.05] |   fixed | conditional
-`Alkylating Agent`        | [-2.26, -1.21] |   fixed | conditional
-Antimetabolites           | [ 1.89,  2.69] |   fixed | conditional
-`Antimicrotubule Agent`   | [ 0.76,  1.60] |   fixed | conditional
-Biologic                  | [ 0.51,  1.23] |   fixed | conditional
-`Hormonal Therapy`        | [-0.34,  0.17] |   fixed | conditional
-`Immuno/Targeted`         | [ 2.03,  2.85] |   fixed | conditional
-`Other Antineoplastics`   | [ 0.27,  1.05] |   fixed | conditional
-`PD1/PDL1`                | [ 2.59,  4.52] |   fixed | conditional
-`Platinum agent`          | [-0.59,  0.38] |   fixed | conditional
-Radio                     | [-0.11,  0.32] |   fixed | conditional
-`Surgery Inpatient`       | [ 0.78,  1.55] |   fixed | conditional
-`Topoisomerase Inhibitor` | [ 0.94,  1.92] |   fixed | conditional
 
 # pd statistic in the above table, 
   # high value means that the associated effect is concentrated on the same side as the median
   
   map_dbl(post, p_direction)
 
-                (Intercept)        `Alkylating Agent`           Antimetabolites   `Antimicrotubule Agent` 
-                  1.00000                   1.00000                   1.00000                   1.00000 
-                 Biologic        `Hormonal Therapy`         `Immuno/Targeted`   `Other Antineoplastics` 
-                  1.00000                   0.73980                   1.00000                   0.99956 
-               `PD1/PDL1`          `Platinum agent`                     Radio       `Surgery Inpatient` 
-                  1.00000                   0.66020                   0.83732                   1.00000 
-`Topoisomerase Inhibitor` 
-                  1.00000 
-                  
 # p−value=1−pd
 1- purrr::map_dbl(post, p_direction)
 
-              (Intercept)        `Alkylating Agent`           Antimetabolites   `Antimicrotubule Agent` 
-                  0.00000                   0.00000                   0.00000                   0.00000 
-                 Biologic        `Hormonal Therapy`         `Immuno/Targeted`   `Other Antineoplastics` 
-                  0.00000                   0.26020                   0.00000                   0.00044 
-               `PD1/PDL1`          `Platinum agent`                     Radio       `Surgery Inpatient` 
-                  0.00000                   0.33980                   0.16268                   0.00000 
-`Topoisomerase Inhibitor` 
-                  0.00000 
-    
     
 plot <- fread("temp.txt", sep="|")
 data.frame(plot[,1:5])
@@ -12716,134 +12610,21 @@ model_bayes<-  stan_glm(Diff ~., data=temp2, seed=111, iter=5000, chains=10)
 
 print(model_bayes, digits = 3)
 
-stan_glm
- family:       gaussian [identity]
- formula:      Diff ~ .
- observations: 16899
- predictors:   13
-------
-                          Median MAD_SD
-(Intercept)               10.525  0.167
-`Alkylating Agent`         2.766  0.647
-Antimetabolites            1.044  0.345
-`Antimicrotubule Agent`    3.006  0.346
-Biologic                   1.773  0.281
-`Hormonal Therapy`         1.363  0.154
-`Immuno/Targeted`          1.314  0.338
-`Other Antineoplastics`    1.060  0.245
-`PD1/PDL1`                 0.769  0.557
-`Platinum agent`           3.999  0.492
-Radio                     -1.053  0.147
-`Surgery Inpatient`        0.067  0.191
-`Topoisomerase Inhibitor` -0.341  0.663
-
-Auxiliary parameter(s):
-      Median MAD_SD
-sigma 9.177  0.050 
-
-------
-
-
-mcmc_dens(model_bayes, pars = c("`PD1/PDL1`"))+
-  vline_at(3.558      , col="red")
-
   
 describe_posterior(model_bayes)
-
-Parameter                 | Median |         95% CI |      pd |          ROPE | % in ROPE |  Rhat |      ESS
-------------------------------------------------------------------------------------------------------------
-(Intercept)               |  10.53 | [10.19, 10.86] |    100% | [-0.10, 0.10] |        0% | 1.000 | 25513.00
-`Alkylating Agent`        |   2.77 | [ 1.47,  4.05] |    100% | [-0.10, 0.10] |        0% | 1.000 | 31143.00
-Antimetabolites           |   1.04 | [ 0.37,  1.72] |  99.87% | [-0.10, 0.10] |        0% | 1.000 | 31313.00
-`Antimicrotubule Agent`   |   3.01 | [ 2.32,  3.68] |    100% | [-0.10, 0.10] |        0% | 1.000 | 30170.00
-Biologic                  |   1.77 | [ 1.22,  2.33] |    100% | [-0.10, 0.10] |        0% | 1.000 | 31224.00
-`Hormonal Therapy`        |   1.36 | [ 1.06,  1.67] |    100% | [-0.10, 0.10] |        0% | 1.000 | 29449.00
-`Immuno/Targeted`         |   1.31 | [ 0.65,  1.97] | 100.00% | [-0.10, 0.10] |        0% | 1.000 | 31746.00
-`Other Antineoplastics`   |   1.06 | [ 0.57,  1.54] |    100% | [-0.10, 0.10] |        0% | 1.000 | 33703.00
-`PD1/PDL1`                |   0.77 | [-0.30,  1.84] |  91.98% | [-0.10, 0.10] |     5.79% | 1.000 | 32435.00
-`Platinum agent`          |   4.00 | [ 3.04,  4.97] |    100% | [-0.10, 0.10] |        0% | 1.000 | 27935.00
-Radio                     |  -1.05 | [-1.35, -0.76] |    100% | [-0.10, 0.10] |        0% | 1.000 | 31270.00
-`Surgery Inpatient`       |   0.07 | [-0.31,  0.44] |  63.61% | [-0.10, 0.10] |    39.64% | 1.000 | 29924.00
-`Topoisomerase Inhibitor` |  -0.34 | [-1.63,  0.94] |  69.85% | [-0.10, 0.10] |    11.07% | 1.000 | 31352.00
 
 post <- get_parameters(model_bayes)
 
 print(purrr::map_dbl(post,map_estimate),digits = 3)
 
-              (Intercept)        `Alkylating Agent`           Antimetabolites   `Antimicrotubule Agent` 
-                  10.5302                    2.7461                    1.0709                    3.0114 
-                 Biologic        `Hormonal Therapy`         `Immuno/Targeted`   `Other Antineoplastics` 
-                   1.7858                    1.3616                    1.3084                    1.0651 
-               `PD1/PDL1`          `Platinum agent`                     Radio       `Surgery Inpatient` 
-                   0.7603                    3.9562                   -1.0522                    0.0748 
-`Topoisomerase Inhibitor` 
-                  -0.2750 
 
 
 hdi(model_bayes)
 
-Parameter                 |        95% HDI
-------------------------------------------
-(Intercept)               | [10.19, 10.85]
-`Alkylating Agent`        | [ 1.47,  4.04]
-Antimetabolites           | [ 0.35,  1.70]
-`Antimicrotubule Agent`   | [ 2.32,  3.69]
-Biologic                  | [ 1.22,  2.33]
-`Hormonal Therapy`        | [ 1.06,  1.67]
-`Immuno/Targeted`         | [ 0.65,  1.97]
-`Other Antineoplastics`   | [ 0.58,  1.54]
-`PD1/PDL1`                | [-0.29,  1.85]
-`Platinum agent`          | [ 3.02,  4.95]
-Radio                     | [-1.34, -0.76]
-`Surgery Inpatient`       | [-0.31,  0.43]
-`Topoisomerase Inhibitor` | [-1.65,  0.91]
-
 eti(model_bayes)
 
-Equal-Tailed Interval
-
-Parameter                 |        95% ETI | Effects |   Component
-------------------------------------------------------------------
-(Intercept)               | [10.19, 10.86] |   fixed | conditional
-`Alkylating Agent`        | [ 1.47,  4.05] |   fixed | conditional
-Antimetabolites           | [ 0.37,  1.72] |   fixed | conditional
-`Antimicrotubule Agent`   | [ 2.32,  3.68] |   fixed | conditional
-Biologic                  | [ 1.22,  2.33] |   fixed | conditional
-`Hormonal Therapy`        | [ 1.06,  1.67] |   fixed | conditional
-`Immuno/Targeted`         | [ 0.65,  1.97] |   fixed | conditional
-`Other Antineoplastics`   | [ 0.57,  1.54] |   fixed | conditional
-`PD1/PDL1`                | [-0.30,  1.84] |   fixed | conditional
-`Platinum agent`          | [ 3.04,  4.97] |   fixed | conditional
-Radio                     | [-1.35, -0.76] |   fixed | conditional
-`Surgery Inpatient`       | [-0.31,  0.44] |   fixed | conditional
-`Topoisomerase Inhibitor` | [-1.63,  0.94] |   fixed | conditional
-
-# pd statistic in the above table, 
-  # high value means that the associated effect is concentrated on the same side as the median
-  
-  map_dbl(post, p_direction)
-
-              (Intercept)        `Alkylating Agent`           Antimetabolites   `Antimicrotubule Agent` 
-                  1.00000                   1.00000                   0.99868                   1.00000 
-                 Biologic        `Hormonal Therapy`         `Immuno/Targeted`   `Other Antineoplastics` 
-                  1.00000                   1.00000                   0.99996                   1.00000 
-               `PD1/PDL1`          `Platinum agent`                     Radio       `Surgery Inpatient` 
-                  0.91984                   1.00000                   1.00000                   0.63612 
-`Topoisomerase Inhibitor` 
-                  0.69848 
-                  
-# p−value=1−pd
 1- purrr::map_dbl(post, p_direction)
 
-              (Intercept)        `Alkylating Agent`           Antimetabolites   `Antimicrotubule Agent` 
-                  0.00000                   0.00000                   0.00132                   0.00000 
-                 Biologic        `Hormonal Therapy`         `Immuno/Targeted`   `Other Antineoplastics` 
-                  0.00000                   0.00000                   0.00004                   0.00000 
-               `PD1/PDL1`          `Platinum agent`                     Radio       `Surgery Inpatient` 
-                  0.08016                   0.00000                   0.00000                   0.36388 
-`Topoisomerase Inhibitor` 
-                  0.30152 
-    
     
 plot <- fread("temp.txt", sep="|")
 data.frame(plot[,1:5])
@@ -12961,150 +12742,27 @@ model_bayes<-  stan_glm(Diff ~., data=temp2, seed=111, iter=5000, chains=10)
 
 print(model_bayes, digits = 3)
 
-stan_glm
- family:       gaussian [identity]
- formula:      Diff ~ .
- observations: 8311
- predictors:   13
-------
-                          Median MAD_SD
-(Intercept)               12.967  0.260
-`Alkylating Agent`         0.232  0.993
-Antimetabolites            0.169  0.331
-`Antimicrotubule Agent`    1.702  0.708
-Biologic                   1.609  0.344
-`Hormonal Therapy`         0.272  0.427
-`Immuno/Targeted`          0.851  0.423
-`Other Antineoplastics`    0.718  0.297
-`PD1/PDL1`                 3.170  0.665
-`Platinum agent`           0.374  0.325
-Radio                      0.749  0.253
-`Surgery Inpatient`        0.834  0.244
-`Topoisomerase Inhibitor`  1.619  0.402
-
-Auxiliary parameter(s):
-      Median MAD_SD
-sigma 10.629  0.081
-
-------
-
-
 mcmc_dens(model_bayes, pars = c("`PD1/PDL1`"))+
   vline_at(3.558      , col="red")
 
   
 describe_posterior(model_bayes)
 
-Parameter                 | Median |         95% CI |     pd |          ROPE | % in ROPE |  Rhat |      ESS
------------------------------------------------------------------------------------------------------------
-(Intercept)               |  12.97 | [12.45, 13.48] |   100% | [-0.10, 0.10] |        0% | 1.000 | 33671.00
-`Alkylating Agent`        |   0.23 | [-1.74,  2.18] | 59.29% | [-0.10, 0.10] |     8.35% | 1.000 | 37840.00
-Antimetabolites           |   0.17 | [-0.48,  0.81] | 69.36% | [-0.10, 0.10] |    21.52% | 1.000 | 30513.00
-`Antimicrotubule Agent`   |   1.70 | [ 0.34,  3.08] | 99.21% | [-0.10, 0.10] |        0% | 1.000 | 36287.00
-Biologic                  |   1.61 | [ 0.93,  2.28] |   100% | [-0.10, 0.10] |        0% | 1.000 | 32638.00
-`Hormonal Therapy`        |   0.27 | [-0.57,  1.12] | 74.02% | [-0.10, 0.10] |    15.85% | 1.000 | 41312.00
-`Immuno/Targeted`         |   0.85 | [ 0.00,  1.69] | 97.56% | [-0.10, 0.10] |     1.56% | 1.000 | 39421.00
-`Other Antineoplastics`   |   0.72 | [ 0.13,  1.31] | 99.12% | [-0.10, 0.10] |        0% | 1.000 | 36281.00
-`PD1/PDL1`                |   3.17 | [ 1.90,  4.46] |   100% | [-0.10, 0.10] |        0% | 1.000 | 40852.00
-`Platinum agent`          |   0.37 | [-0.26,  1.01] | 87.34% | [-0.10, 0.10] |    13.50% | 1.000 | 31030.00
-Radio                     |   0.75 | [ 0.25,  1.25] | 99.82% | [-0.10, 0.10] |        0% | 1.000 | 38421.00
-`Surgery Inpatient`       |   0.83 | [ 0.36,  1.31] | 99.95% | [-0.10, 0.10] |        0% | 1.000 | 37643.00
-`Topoisomerase Inhibitor` |   1.62 | [ 0.82,  2.43] |   100% | [-0.10, 0.10] |        0% | 1.000 | 31570.00
 post <- get_parameters(model_bayes)
 
-print(purrr::map_dbl(post,map_estimate),digits = 3)
-
-              (Intercept)        `Alkylating Agent` 
-                  10.5302                    2.7461 
-          Antimetabolites   `Antimicrotubule Agent` 
-                   1.0709                    3.0114 
-                 Biologic        `Hormonal Therapy` 
-                   1.7858                    1.3616 
-        `Immuno/Targeted`   `Other Antineoplastics` 
-                   1.3084                    1.0651 
-               `PD1/PDL1`          `Platinum agent` 
-                   0.7603                    3.9562 
-                    Radio       `Surgery Inpatient` 
-                  -1.0522                    0.0748 
-`Topoisomerase Inhibitor` 
-                  -0.2750 
-
-
+print(purrr::map_dbl(post,map_estimate),digits = 
 hdi(model_bayes)
 
-Parameter                 |        95% HDI
-------------------------------------------
-(Intercept)               | [12.45, 13.47]
-`Alkylating Agent`        | [-1.72,  2.20]
-Antimetabolites           | [-0.46,  0.82]
-`Antimicrotubule Agent`   | [ 0.34,  3.08]
-Biologic                  | [ 0.95,  2.30]
-`Hormonal Therapy`        | [-0.57,  1.12]
-`Immuno/Targeted`         | [-0.01,  1.67]
-`Other Antineoplastics`   | [ 0.12,  1.30]
-`PD1/PDL1`                | [ 1.86,  4.42]
-`Platinum agent`          | [-0.27,  1.00]
-Radio                     | [ 0.25,  1.24]
-`Surgery Inpatient`       | [ 0.35,  1.30]
-`Topoisomerase Inhibitor` | [ 0.82,  2.42]
-
 eti(model_bayes)
-
-Equal-Tailed Interval
-
-Parameter                 |        95% ETI | Effects |   Component
-------------------------------------------------------------------
-(Intercept)               | [12.45, 13.48] |   fixed | conditional
-`Alkylating Agent`        | [-1.74,  2.18] |   fixed | conditional
-Antimetabolites           | [-0.48,  0.81] |   fixed | conditional
-`Antimicrotubule Agent`   | [ 0.34,  3.08] |   fixed | conditional
-Biologic                  | [ 0.93,  2.28] |   fixed | conditional
-`Hormonal Therapy`        | [-0.57,  1.12] |   fixed | conditional
-`Immuno/Targeted`         | [ 0.00,  1.69] |   fixed | conditional
-`Other Antineoplastics`   | [ 0.13,  1.31] |   fixed | conditional
-`PD1/PDL1`                | [ 1.90,  4.46] |   fixed | conditional
-`Platinum agent`          | [-0.26,  1.01] |   fixed | conditional
-Radio                     | [ 0.25,  1.25] |   fixed | conditional
-`Surgery Inpatient`       | [ 0.36,  1.31] |   fixed | conditional
-`Topoisomerase Inhibitor` | [ 0.82,  2.43] |   fixed | conditional
 
 # pd statistic in the above table, 
   # high value means that the associated effect is concentrated on the same side as the median
   
   map_dbl(post, p_direction)
 
-              (Intercept)        `Alkylating Agent` 
-                  1.00000                   1.00000 
-          Antimetabolites   `Antimicrotubule Agent` 
-                  0.99868                   1.00000 
-                 Biologic        `Hormonal Therapy` 
-                  1.00000                   1.00000 
-        `Immuno/Targeted`   `Other Antineoplastics` 
-                  0.99996                   1.00000 
-               `PD1/PDL1`          `Platinum agent` 
-                  0.91984                   1.00000 
-                    Radio       `Surgery Inpatient` 
-                  1.00000                   0.63612 
-`Topoisomerase Inhibitor` 
-                  0.69848 
-                  
-# p−value=1−pd
 1- purrr::map_dbl(post, p_direction)
 
-                  0.00000                   0.00000 
-          Antimetabolites   `Antimicrotubule Agent` 
-                  0.00132                   0.00000 
-                 Biologic        `Hormonal Therapy` 
-                  0.00000                   0.00000 
-        `Immuno/Targeted`   `Other Antineoplastics` 
-                  0.00004                   0.00000 
-               `PD1/PDL1`          `Platinum agent` 
-                  0.08016                   0.00000 
-                    Radio       `Surgery Inpatient` 
-                  0.00000                   0.36388 
-`Topoisomerase Inhibitor` 
-                  0.30152 
-    
+
     
 plot <- fread("temp.txt", sep="|")
 data.frame(plot[,1:5])
@@ -13224,137 +12882,25 @@ model_bayes<-  stan_glm(Diff ~., data=temp2, seed=111, iter=5000, chains=10)
 
 print(model_bayes, digits = 3)
 
-stan_glm
- family:       gaussian [identity]
- formula:      Diff ~ .
- observations: 10780
- predictors:   13
-------
-                          Median MAD_SD
-(Intercept)               13.982  0.222
-`Alkylating Agent`         0.054  0.801
-Antimetabolites            1.081  0.293
-`Antimicrotubule Agent`    1.382  0.319
-Biologic                   1.018  0.325
-`Hormonal Therapy`         0.195  0.485
-`Immuno/Targeted`         -0.039  0.335
-`Other Antineoplastics`    0.573  0.290
-`PD1/PDL1`                 1.315  0.244
-`Platinum agent`          -0.540  0.333
-Radio                      1.367  0.220
-`Surgery Inpatient`       -0.507  0.230
-`Topoisomerase Inhibitor`  1.663  0.380
-
-Auxiliary parameter(s):
-      Median MAD_SD
-sigma 10.531  0.071
-
-------
 
 
 mcmc_dens(model_bayes, pars = c("`PD1/PDL1`"))+
   vline_at(3.558      , col="red")
 
   
-describe_posterior(model_bayes)
-
-Parameter                 | Median |         95% CI |     pd |          ROPE | % in ROPE |  Rhat |      ESS
------------------------------------------------------------------------------------------------------------
-(Intercept)               |  13.98 | [13.55, 14.41] |   100% | [-0.10, 0.10] |        0% | 1.000 | 33632.00
-`Alkylating Agent`        |   0.05 | [-1.50,  1.62] | 52.74% | [-0.10, 0.10] |    10.78% | 1.000 | 33133.00
-Antimetabolites           |   1.08 | [ 0.50,  1.64] | 99.99% | [-0.10, 0.10] |        0% | 1.000 | 24986.00
-`Antimicrotubule Agent`   |   1.38 | [ 0.76,  2.00] |   100% | [-0.10, 0.10] |        0% | 1.000 | 24257.00
-Biologic                  |   1.02 | [ 0.38,  1.65] | 99.90% | [-0.10, 0.10] |        0% | 1.000 | 32919.00
-`Hormonal Therapy`        |   0.19 | [-0.77,  1.15] | 65.68% | [-0.10, 0.10] |    16.05% | 1.000 | 36933.00
-`Immuno/Targeted`         |  -0.04 | [-0.70,  0.61] | 54.67% | [-0.10, 0.10] |    24.45% | 1.000 | 34709.00
-`Other Antineoplastics`   |   0.57 | [ 0.00,  1.15] | 97.51% | [-0.10, 0.10] |     2.88% | 1.000 | 35741.00
-`PD1/PDL1`                |   1.32 | [ 0.84,  1.79] |   100% | [-0.10, 0.10] |        0% | 1.000 | 34697.00
-`Platinum agent`          |  -0.54 | [-1.18,  0.11] | 94.80% | [-0.10, 0.10] |     7.17% | 1.000 | 20741.00
-Radio                     |   1.37 | [ 0.94,  1.79] |   100% | [-0.10, 0.10] |        0% | 1.000 | 36879.00
-`Surgery Inpatient`       |  -0.51 | [-0.96, -0.05] | 98.53% | [-0.10, 0.10] |     1.52% | 1.000 | 34991.00
-`Topoisomerase Inhibitor` |   1.66 | [ 0.91,  2.41] |   100% | [-0.10, 0.10] |        0% | 1.000 | 23437.00
-
-
-
 post <- get_parameters(model_bayes)
 
 print(purrr::map_dbl(post,map_estimate),digits = 3)
 
-             (Intercept)        `Alkylating Agent`           Antimetabolites   `Antimicrotubule Agent` 
-                13.981954                  0.000168                  1.109741                  1.385826 
-                 Biologic        `Hormonal Therapy`         `Immuno/Targeted`   `Other Antineoplastics` 
-                 1.013318                  0.217666                 -0.039431                  0.573444 
-               `PD1/PDL1`          `Platinum agent`                     Radio       `Surgery Inpatient` 
-                 1.327205                 -0.543127                  1.342806                 -0.528538 
-`Topoisomerase Inhibitor` 
-                 1.684264 
-
 hdi(model_bayes)
-
-Parameter                 |        95% HDI
-------------------------------------------
-(Intercept)               | [13.55, 14.41]
-`Alkylating Agent`        | [-1.49,  1.63]
-Antimetabolites           | [ 0.51,  1.64]
-`Antimicrotubule Agent`   | [ 0.76,  2.00]
-Biologic                  | [ 0.38,  1.65]
-`Hormonal Therapy`        | [-0.75,  1.17]
-`Immuno/Targeted`         | [-0.71,  0.59]
-`Other Antineoplastics`   | [ 0.00,  1.15]
-`PD1/PDL1`                | [ 0.84,  1.79]
-`Platinum agent`          | [-1.17,  0.12]
-Radio                     | [ 0.94,  1.79]
-`Surgery Inpatient`       | [-0.95, -0.04]
-`Topoisomerase Inhibitor` | [ 0.92,  2.41]
-
 
 eti(model_bayes)
 
-Equal-Tailed Interval
-
-Parameter                 |        95% ETI | Effects |   Component
-------------------------------------------------------------------
-(Intercept)               | [13.55, 14.41] |   fixed | conditional
-`Alkylating Agent`        | [-1.50,  1.62] |   fixed | conditional
-Antimetabolites           | [ 0.50,  1.64] |   fixed | conditional
-`Antimicrotubule Agent`   | [ 0.76,  2.00] |   fixed | conditional
-Biologic                  | [ 0.38,  1.65] |   fixed | conditional
-`Hormonal Therapy`        | [-0.77,  1.15] |   fixed | conditional
-`Immuno/Targeted`         | [-0.70,  0.61] |   fixed | conditional
-`Other Antineoplastics`   | [ 0.00,  1.15] |   fixed | conditional
-`PD1/PDL1`                | [ 0.84,  1.79] |   fixed | conditional
-`Platinum agent`          | [-1.18,  0.11] |   fixed | conditional
-Radio                     | [ 0.94,  1.79] |   fixed | conditional
-`Surgery Inpatient`       | [-0.96, -0.05] |   fixed | conditional
-`Topoisomerase Inhibitor` | [ 0.91,  2.41] |   fixed | conditional
-
-# pd statistic in the above table, 
-  # high value means that the associated effect is concentrated on the same side as the median
-  
   map_dbl(post, p_direction)
 
-              (Intercept)        `Alkylating Agent`           Antimetabolites   `Antimicrotubule Agent` 
-                  1.00000                   0.52736                   0.99992                   1.00000 
-                 Biologic        `Hormonal Therapy`         `Immuno/Targeted`   `Other Antineoplastics` 
-                  0.99904                   0.65680                   0.54672                   0.97512 
-               `PD1/PDL1`          `Platinum agent`                     Radio       `Surgery Inpatient` 
-                  1.00000                   0.94800                   1.00000                   0.98532 
-`Topoisomerase Inhibitor` 
-                  1.00000 
-                  
-# p−value=1−pd
 
  1- purrr::map_dbl(post, p_direction)
-              (Intercept)        `Alkylating Agent`           Antimetabolites   `Antimicrotubule Agent` 
-                  0.00000                   0.47264                   0.00008                   0.00000 
-                 Biologic        `Hormonal Therapy`         `Immuno/Targeted`   `Other Antineoplastics` 
-                  0.00096                   0.34320                   0.45328                   0.02488 
-               `PD1/PDL1`          `Platinum agent`                     Radio       `Surgery Inpatient` 
-                  0.00000                   0.05200                   0.00000                   0.01468 
-`Topoisomerase Inhibitor` 
-                  0.00000
-    
-    
+       
 plot <- fread("temp.txt", sep="|")
 data.frame(plot[,1:5])
 
@@ -13466,24 +13012,6 @@ PONS_Events %>% drop_na() %>% filter(prov!="") %>% group_by(patid) %>%
   filter(specialty_classification != "Facility") %>%
   ungroup() %>% group_by(specialty_classification) %>% summarise(n=sum(weight)/479957)
 
-
- 1 Anesthesiologist         0.00775 
- 2 Anesthetist Assistant    0.00205 
- 3 Hematologist             0.00448 
- 4 Institutional Care       0.00879 
- 5 Internal Medicine        0.389   
- 6 Nutrition Specialist     0.00128 
- 7 Oncologist               0.0857  
- 8 Other Physician          0.134   
- 9 Other Provider           0.0741  
-10 Pain Specialist          0.0154  
-11 Palliative Medicine      0.00612 
-12 Pharmacist               0.0115  
-13 Primary Care             0.118   
-14 Radiologist              0.0141  
-15 Surgeon                  0.0353  
-16 Surgical Assistant       0.000586
-17 Unknown                  0.0917
 
 # -------------------------------------
 # BMI evolution before/after start ----------------------------------------
@@ -14422,25 +13950,6 @@ PONS_Demographics <- PONS_Demographics %>% filter(Exact_Month==60) %>% select(pa
 Megestrol_Pats %>% full_join(Cachexia_Dx) %>% left_join(PONS_Demographics) %>%
   group_by(Group, Status) %>% summarise(n=sum(weight))
 
-# 1 Megestrol    Death       35476.
-# 2 Megestrol    Earliest     2136.
-# 3 Megestrol    Metastasis   7453.
-# 4 Megestrol    Remission    1772.
-# 5 NO_Megestrol Death      213536.
-# 6 NO_Megestrol Earliest    17130.
-# 7 NO_Megestrol Metastasis  58892.
-# 8 NO_Megestrol Remission   13966.
-# 
-# > 213536/(213536+17130+58892+13966)
-# [1] 0.7035226
-# > 35476/(35476+2136+7453+1772)
-# [1] 0.7574354
-# > 1772/(35476+2136+7453+1772)
-# [1] 0.03783334
-# > 13966/(213536+17130+58892+13966)
-# [1] 0.04601284
-
-
 
 
 temp_max <- fread("MAX_Cachexia_BMI_Wide.txt", sep="\t", header = T)
@@ -14474,10 +13983,6 @@ Megestrol_Pats %>% full_join(Cachexia_Dx) %>% left_join(temp) %>% ungroup() %>% 
   inner_join(ProstatePats) %>%
   group_by(Group) %>% summarise(n=mean(BiggestDrop))
 
-  Group             n
-  <chr>         <dbl>
-1 Megestrol    -0.228
-2 NO_Megestrol -0.211
 
 Megestrol_Pats %>% full_join(Cachexia_Dx) %>% left_join(temp) %>% ungroup() %>% filter(Month_Min>Month_Max) %>% 
   mutate(Diff=(Min-Max)/Max) %>% group_by(patid) %>% filter(Diff==min(Diff)) %>% slice(1) %>% ungroup() %>% rename("BiggestDrop"="Diff") %>% select(patid, BiggestDrop, Group) %>%
@@ -14486,10 +13991,7 @@ Megestrol_Pats %>% full_join(Cachexia_Dx) %>% left_join(temp) %>% ungroup() %>% 
     inner_join(ProstatePats) %>%
   group_by(Group) %>% summarise(n=mean(BiggestRecover))
 
-  Group            n
-  <chr>        <dbl>
-1 Megestrol    0.173
-2 NO_Megestrol 0.183
+
 
 temp %>% group_by(patid) %>% filter(Max==max(Max)) %>% slice(1) %>% select(patid, Max) %>% rename("GlobalMax"="Max") %>% ungroup() %>%
   left_join(temp %>% group_by(patid) %>% filter(Min==max(Max)) %>% slice(1) %>% select(patid, Max) %>% rename("GlobalMax"="Max") %>% ungroup())
@@ -14785,16 +14287,6 @@ names(temp)[16] <- "NoLines"
 temp %>% ungroup() %>% summarise(n=weighted.mean(NoLines, weight))
 temp %>% ungroup() %>% group_by(AppetiteStimulantGroup)  %>% summarise(n=weighted.mean(NoLines, weight))
 
-1 Cyproheptadine          2.87
-2 Dronabinol              4.09
-3 Medroxyprogesterone     2.70
-4 Megestrol               3.59
-5 Nutrition Therapy       2.88
-6 Oxandrolone             8.25
-7 Testosterone            2.48
-
-
-
 PONS_Demographics <- fread("PONS Demographics.txt")
 PONS_Demographics <- PONS_Demographics %>% select(patid, cancer_metastasis)
 names(PONS_Demographics)[1] <- "patient"
@@ -15046,21 +14538,6 @@ PONS_Demographics <- PONS_Demographics %>% filter(Exact_Month==60) %>% select(pa
 
 Megestrol_Pats %>% left_join(PONS_Demographics) %>% group_by(MegestroLBefore, Status) %>% summarise(n=sum(weight))
 
-#   MegestroLBefore Status          n
-#   <chr>           <chr>       <dbl>
-# 1 NO              Death      16940.
-# 2 NO              Earliest    1231.
-# 3 NO              Metastasis  3769.
-# 4 NO              Remission    976.
-# 5 YES             Death      18536.
-# 6 YES             Earliest     904.
-# 7 YES             Metastasis  3683.
-# 8 YES             Remission    797.
-# 
-# > 797/(797+3683+904+18536)
-# [1] 0.0333194
-# > 976/(976+3769+1231+16940)
-# [1] 0.04259033
 
 Megestrol_Pats %>% left_join(PONS_Demographics) %>% filter(died=="N") %>% summarise(n=weighted.mean(TotalNoMegestrol, weight))
 
@@ -15139,30 +14616,7 @@ data.frame(PONS_Demographics %>% group_by(diagnosis, age) %>%
              mutate(age=as.factor(age)) %>% summarise(n=sum(weight)) %>%
              spread(key=age, value=n))
 
-                 diagnosis     X1      X2      X12      X17
-1              Bone Cancer  39.11  126.05  3950.10  7217.06
-2             Brain Cancer 606.83  760.89 19865.59 17206.39
-3            Breast Cancer  83.95   65.02  3714.70  2180.02
-4  Gastroesophageal Cancer  39.11   31.18   438.53   394.79
-5              Head Cancer  83.95   94.87  3112.40  2310.43
-6        Intestinal Cancer  39.11  191.07  3085.38  2219.71
-7            Kidney Cancer  83.95  254.76  7618.39  3347.00
-8          Leukemia Cancer 665.87  943.17 29800.06 16705.33
-9             Liver Cancer 251.85  399.86  4424.21  1600.65
-10             Lung Cancer 201.28  188.41  3812.69  1909.07
-11         Lymphoma Cancer 290.96  413.32 14030.37 14796.94
-12          Myeloma Cancer     NA   32.51   836.99   577.73
-13            Other Cancer 854.96 1650.62 25607.17 15237.72
-14       Pancreatic Cancer     NA   94.87   389.08   329.46
-15         Prostate Cancer     NA   31.18  2277.31  1553.69
-16     Reproductive Cancer 123.06  189.74  3286.77  2995.32
-17      Respiratory Cancer     NA   32.51  1116.44   703.33
-18         Salivary Cancer     NA      NA   435.46   361.78
-19             Skin Cancer  78.22   62.36  6828.17  7658.25
-20          Thyroid Cancer  39.11   31.18  1683.73  2771.90
-21      Unspecified Cancer 212.74  250.77  6009.95  4856.95
-22          Urinary Cancer  83.95   31.18  1333.05  1008.92
-
+   
 
 sum(PONS_Demographics$weight) #261252.5
 sum(PONS_Demographics$weight[PONS_Demographics$cachexia_onset==1]) #1736.99 (0.006648702 cachexia)
@@ -15305,9 +14759,6 @@ CAN_Drug_Histories_2  %>% select(patient, weight, cancer_metastasis) %>% distinc
   CAN_Drug_Histories_2 %>% select(patient, cancer_metastasis) %>% group_by(patient, cancer_metastasis) %>% count()
 )  %>% ungroup() %>% group_by(cancer_metastasis) %>% summarise(n=weighted.mean(n, weight)) 
 
-# Chemoprotective Mets -> 5.59    Chemoprotective non-Mets ->  # 6.29
-# Appetite -> 3.40     Appetite non-Mets ->   2.90
-# Antiemetic -> 6.60     Antiemetic non-Mets ->  4.63
 
 # ---------
 # Time from Cancer Dx to Cachexia Pred to Cachexia Dx to Death ------------
@@ -16245,33 +15696,15 @@ CAN_Drug_Histories <- CAN_Drug_Histories %>%   mutate(NutritioneRx=ifelse(grepl(
 
 CAN_Drug_Histories %>% group_by(CancerRx, MegestrolRx) %>% summarise(n=sum(weight))
 
-#   CancerRx MegestrolRx         n
-# 1        0           0 14555334.
-# 2        0           1    91439.
-# 3        1           0  1291013.
-# 4        1           1    48713.
+
 
 CAN_Drug_Histories %>% group_by(CancerRx, DronabinolRx) %>% summarise(n=sum(weight))
 
-#   CancerRx DronabinolRx         n
-# 1        0            0 14598307.
-# 2        0            1    48466.
-# 3        1            0  1294931.
-# 4        1            1    44795.
 
 CAN_Drug_Histories %>% group_by(CancerRx, NabiloneRx) %>% summarise(n=sum(weight))
 
-#   CancerRx NabiloneRx         n
-# 1        0          0 14646773.
-# 2        1          0  1339726.
 
 CAN_Drug_Histories %>% group_by(CancerRx, NutritioneRx) %>% summarise(n=sum(weight))
-
-#   CancerRx NutritioneRx         n
-# 1        0            0 14437924.
-# 2        0            1   208849.
-# 3        1            0  1222807.
-# 4        1            1   116919.
 
 
 CAN_Drug_Histories %>% group_by(patid) %>% filter(Month==min(Month)+1) %>% ungroup() %>%
@@ -16530,16 +15963,7 @@ Lengths <- Lengths %>% mutate(SupportPerc_wCan=ifelse(is.na(SupportPerc_wCan), 0
 
 Lengths %>% group_by(cancer_metastasis) %>% summarise(mean=mean(CancerPerc))
 
-#   cancer_metastasis  mean
-# 1                 0 0.352
-# 2                 1 0.347
 
-#   cancer_metastasis  mean
-# 1                 0 0.359
-# 2                 1 0.373
-
-# 1                 0 0.359
-# 2                 1 0.373
 
 
 Lengths %>% ggplot(aes(CancerPerc, 
@@ -16556,17 +15980,6 @@ Lengths %>% ggplot(aes(CancerPerc,
 
 Lengths %>% group_by(cancer_metastasis) %>% summarise(mean=mean(SupportPerc))
 
-#   cancer_metastasis  mean
-# 1                 0 0.183
-# 2                 1 0.253
-
-#   cancer_metastasis  mean
-# 1                 0 0.192
-# 2                 1 0.283
-
-# 1                 0 0.151
-# 2                 1 0.222
-
 Lengths %>% ggplot(aes(SupportPerc, 
                       colour=as.factor(cancer_metastasis), 
                       fill=as.factor(cancer_metastasis))) + 
@@ -16580,17 +15993,6 @@ Lengths %>% ggplot(aes(SupportPerc,
  
  
 Lengths %>% group_by(cancer_metastasis) %>% summarise(mean=mean(SupportPerc_wCan))
-
-#   cancer_metastasis  mean
-# 1                 0 0.240
-# 2                 1 0.382
-
-#   cancer_metastasis  mean
-# 1                 0 0.240
-# 2                 1 0.382
-
-# 1                 0 0.184
-# 2                 1 0.308
 
 
   
@@ -16609,16 +16011,6 @@ Lengths %>% ggplot(aes(SupportPerc_wCan,
  
 Lengths %>% group_by(cancer_metastasis) %>% summarise(mean=mean(Support_only_Perc))
 
-#   cancer_metastasis  mean
-# 1                 0 0.155
-# 2                 1 0.173
-
-#   cancer_metastasis  mean
-# 1                 0 0.163
-# 2                 1 0.200
-
-# 1                 0 0.125
-# 2                 1 0.144
 
 Lengths %>% ggplot(aes(Support_only_Perc, 
                       colour=as.factor(cancer_metastasis), 
@@ -17000,53 +16392,13 @@ unique(persistency$group)
 data.frame(persistency %>% group_by(Primary_Cancer, group) %>% summarise(mean=mean(n)) %>%
              spread(key=group, value=mean))
 
-#             Primary_Cancer       Exp     Naive
-# 1             Brain Cancer 11.702128 36.000000
-# 2            Breast Cancer 20.653100 25.350000
-# 3  Gastroesophageal Cancer  9.139535 19.000000
-# 4              Head Cancer 10.688525  2.666667
-# 5        Intestinal Cancer 11.860104 14.000000
-# 6            Kidney Cancer 14.905263 10.500000
-# 7          Leukemia Cancer 13.788889 18.444444
-# 8             Liver Cancer 13.201493 20.500000
-# 9              Lung Cancer 12.603654 17.051282
-# 10         Lymphoma Cancer 12.782609 24.411765
-# 11          Myeloma Cancer 15.221870 17.750000
-# 12            Other Cancer 14.247863 23.600000
-# 13       Pancreatic Cancer 11.541667 19.500000
-# 14         Prostate Cancer 18.511948 17.812500
-# 15     Reproductive Cancer 12.882353 20.750000
-# 16      Respiratory Cancer 11.210526 14.000000
-# 17         Salivary Cancer  7.285714        NA
-# 18             Skin Cancer 11.257732  8.666667
-# 19          Thyroid Cancer 18.803571 20.400000
-# 20          Urinary Cancer 10.146853 31.200000
+
 
 
 data.frame(persistency %>% group_by(Primary_Cancer, group) %>% summarise(median=median(n)) %>%
              spread(key=group, value=median))
 
-#             Primary_Cancer Exp Naive
-# 1             Brain Cancer   9  36.0
-# 2            Breast Cancer  17  22.5
-# 3  Gastroesophageal Cancer   6  19.0
-# 4              Head Cancer   9   1.0
-# 5        Intestinal Cancer   7   6.0
-# 6            Kidney Cancer  11   6.5
-# 7          Leukemia Cancer  10  13.0
-# 8             Liver Cancer   9  20.5
-# 9              Lung Cancer   9  12.0
-# 10         Lymphoma Cancer  11  21.0
-# 11          Myeloma Cancer  12  11.0
-# 12            Other Cancer  11  24.0
-# 13       Pancreatic Cancer   7  18.0
-# 14         Prostate Cancer  15   9.5
-# 15     Reproductive Cancer   9  17.5
-# 16      Respiratory Cancer  12  14.0
-# 17         Salivary Cancer   7    NA
-# 18             Skin Cancer   8   6.0
-# 19          Thyroid Cancer  17  14.0
-# 20          Urinary Cancer   8  24.0
+
 
 library(survival)
 
@@ -17112,25 +16464,9 @@ for (type in cancer_types) {
 data.frame(persistency %>% group_by(Primary_Cancer_v2, group) %>% summarise(mean=mean(n, na.rm=T)) %>%
              spread(key=group, value=mean))
 
-#             Primary_Cancer       Exp     Naive
-# 1     Breast Cancer 20.65310 25.35000
-# 2 Intestinal Cancer 11.86010 14.00000
-# 3       Lung Cancer 12.60365 17.05128
-# 4             Other 13.61739 19.16667
-# 5 Pancreatic Cancer 11.54167 19.50000
-# 6   Prostate Cancer 18.51195 17.81250
-
 
 data.frame(persistency %>% group_by(Primary_Cancer_v2, group) %>% summarise(median=median(n, na.rm=T)) %>%
              spread(key=group, value=median))
-# 
-# 1     Breast Cancer  17  22.5
-# 2 Intestinal Cancer   7   6.0
-# 3       Lung Cancer   9  12.0
-# 4             Other  10  14.0
-# 5 Pancreatic Cancer   7  18.0
-# 6   Prostate Cancer  15   9.5
-
 
 
 # Epo
@@ -17216,25 +16552,10 @@ for (type in cancer_types) {
 data.frame(persistency %>% group_by(Primary_Cancer_v2, group) %>% summarise(mean=mean(n_epo, na.rm=T)) %>%
              spread(key=group, value=mean))
 
-#   Primary_Cancer_v2      Exp    Naive
-# 1     Breast Cancer 6.028316 9.325893
-# 2 Intestinal Cancer 5.852201 7.242424
-# 3       Lung Cancer 4.740806 7.202020
-# 4             Other 7.271214 8.681548
-# 5 Pancreatic Cancer 4.703947 5.977273
-# 6   Prostate Cancer 7.096220 7.110048
 
 data.frame(persistency %>% group_by(Primary_Cancer_v2, group) %>% summarise(median=median(n_epo, na.rm=T)) %>%
              spread(key=group, value=median))
 
-# 
-#   Primary_Cancer_v2 Exp Naive
-# 1     Breast Cancer   3     4
-# 2 Intestinal Cancer   2     3
-# 3       Lung Cancer   3     3
-# 4             Other   3     4
-# 5 Pancreatic Cancer   3     2
-# 6   Prostate Cancer   3     3
 
 # --------------------
 

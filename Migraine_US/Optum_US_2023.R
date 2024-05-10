@@ -54,12 +54,6 @@ RIMUS23_Doses %>% ungroup() %>% select(patid, weight, generic, pills_per_month) 
   spread(key=generic, value=pats)
 
 
-#   frequency    Atogepant Rimegepant Ubrogepant
-# 1 Acute           10343.    117895.    112887.
-# 3 Intermediate    21667.    157384.    156247.
-# 2 Chronic         17994.     89439.    109160.
-
-
 
 RIMUS23_Doses %>% ungroup() %>% select(patid, weight, generic, pills_per_active_month) %>% 
   distinct() %>% mutate(frequency = ifelse(pills_per_active_month>=15, "Chronic",
@@ -67,23 +61,10 @@ RIMUS23_Doses %>% ungroup() %>% select(patid, weight, generic, pills_per_active_
   group_by(generic, frequency) %>% summarise(pats = sum(as.numeric(weight))) %>%
   spread(key=generic, value=pats)
 
-#   frequency    Atogepant Rimegepant Ubrogepant
-# 1 Acute            8867.     87132.     74957.
-# 3 Intermediate    22301.    152880.    165494.
-# 2 Chronic         18837.    124706.    137843.
-
-
-
-
 
 
 RIMUS23_Doses %>% ungroup() %>% select(patid, weight, generic, pills_per_active_month) %>% 
   distinct() %>% group_by(generic) %>% summarise(mean = weighted.mean(pills_per_active_month, as.numeric(weight))) 
-
-#   generic     mean
-# 1 Atogepant   13.2
-# 2 Rimegepant  11.8
-# 3 Ubrogepant  12.5
 
 
 
@@ -100,11 +81,6 @@ RIMUS23_Doses %>% ungroup() %>% select(patid, weight, generic, qty_per_month) %>
   spread(key=generic, value=pats)
 
 
-#   frequency    Atogepant Rimegepant Ubrogepant
-# 1 Acute           10429.    236968.    223778.
-# 3 Intermediate    21581.    123266.    150459.
-# 2 Chronic         17994.      4485.      4058.
-
 
 RIMUS23_Doses %>% ungroup() %>% select(patid, weight, generic, qty_per_active_month) %>% 
   distinct() %>% mutate(frequency = ifelse(qty_per_active_month>=15, "Chronic",
@@ -112,22 +88,11 @@ RIMUS23_Doses %>% ungroup() %>% select(patid, weight, generic, qty_per_active_mo
   group_by(generic, frequency) %>% summarise(pats = sum(as.numeric(weight))) %>%
   spread(key=generic, value=pats)
 
-#   frequency    Atogepant Rimegepant Ubrogepant
-# 1 Acute            8867.    200575.    186576.
-# 3 Intermediate    22301.    155444.    184875
-# 2 Chronic         18837.      8698.      6843.
-
 
 
 
 RIMUS23_Doses %>% ungroup() %>% select(patid, weight, generic, pills_per_month) %>% 
   distinct() %>% group_by(generic) %>% summarise(mean = weighted.mean(pills_per_month, as.numeric(weight))) 
-
-#   generic     mean
-# 1 Atogepant  12.0 
-# 2 Rimegepant  9.60
-# 3 Ubrogepant 10.3
-
 
 
 RIMUS23_Doses %>% ungroup() %>% select(patid, weight, generic, pills_per_month) %>% 
@@ -198,14 +163,6 @@ RIMUS23_Doses %>% mutate(rate=ifelse(elapsed==0, 0, rate)) %>%
   group_by(patid, weight, generic) %>% summarise(mean=mean(rate)) %>%
   mutate(mean=ifelse(mean>=13, "Prev", "Acute")) %>%
   ungroup() %>% group_by(generic, mean) %>% summarise(n=sum(as.numeric(weight)))
-
-
-# 1 Atogepant  Acute    115.
-# 2 Atogepant  Prev   36842.
-# 3 Rimegepant Acute 179467.
-# 4 Rimegepant Prev   63466.
-# 5 Ubrogepant Acute 214472.
-# 6 Ubrogepant Prev   40813.
 
 
 
@@ -293,67 +250,6 @@ data.frame(RIMUS23_Doses %>%   filter(Month_Yr>="2018-06"&Month_Yr!="2023-07"&Mo
   xlab("\nMonth")+ylab("Number of Scripts per Patient \n")
 
 
-#    Month_Yr script_count pat_count scripts_pat
-# 1   2018-06     25823194   8544341    3.022257
-# 2   2018-07     26089039   8571953    3.043535
-# 3   2018-08     27209792   8733418    3.115595
-# 4   2018-09     26061489   8617060    3.024406
-# 5   2018-10     28208272   8900421    3.169319
-# 6   2018-11     27686410   8851440    3.127899
-# 7   2018-12     27825820   8882807    3.132548
-# 8   2019-01     28008716   8928414    3.137031
-# 9   2019-02     25413869   8619316    2.948479
-# 10  2019-03     27279791   8902584    3.064255
-# 11  2019-04     27343505   8908320    3.069435
-# 12  2019-05     27873328   8908977    3.128679
-# 13  2019-06     26579595   8757721    3.034990
-# 14  2019-07     28064602   8919541    3.146418
-# 15  2019-08     28200675   8966508    3.145112
-# 16  2019-09     27448765   8946084    3.068244
-# 17  2019-10     28958100   9126489    3.172973
-# 18  2019-11     27516161   8987515    3.061598
-# 19  2019-12     28146358   9012930    3.122887
-# 20  2020-01     28803061   9167372    3.141910
-# 21  2020-02     26741719   8946516    2.989065
-# 22  2020-03     28504071   9233786    3.086932
-# 23  2020-04     25401272   8587222    2.958031
-# 24  2020-05     26150464   8629587    3.030326
-# 25  2020-06     27539439   8930687    3.083686
-# 26  2020-07     27830560   8942295    3.112239
-# 27  2020-08     27687292   8948077    3.094217
-# 28  2020-09     27778557   8992003    3.089251
-# 29  2020-10     28658479   9111530    3.145298
-# 30  2020-11     27697389   9065208    3.055351
-# 31  2020-12     29266126   9236947    3.168376
-# 32  2021-01     27609072   9094446    3.035817
-# 33  2021-02     25699917   8845516    2.905417
-# 34  2021-03     28870126   9244064    3.123099
-# 35  2021-04     28207805   9211756    3.062153
-# 36  2021-05     27685761   9139138    3.029362
-# 37  2021-06     28569583   9265677    3.083378
-# 38  2021-07     28745592   9248896    3.108002
-# 39  2021-08     28654199   9274613    3.089530
-# 40  2021-09     28166890   9242427    3.047564
-# 41  2021-10     28506582   9291947    3.067880
-# 42  2021-11     28571960   9284395    3.077417
-# 43  2021-12     29333706   9392504    3.123097
-# 44  2022-01     28210022   9275069    3.041489
-# 45  2022-02     25966415   8874214    2.926052
-# 46  2022-03     29265062   9386297    3.117849
-# 47  2022-04     27821545   9215897    3.018864
-# 48  2022-05     28523074   9246059    3.084890
-# 49  2022-06     28819672   9334067    3.087579
-# 50  2022-07     28155473   9160472    3.073583
-# 51  2022-08     29573422   9365640    3.157651
-# 52  2022-09     28567669   9287783    3.075833
-# 53  2022-10     29012089   9324120    3.111510
-# 54  2022-11     28969984   9354273    3.096979
-# 55  2022-12     29599875   9432186    3.138177
-# 56  2023-01     28889350   9293613    3.108516
-# 57  2023-02     26520101   8979145    2.953522
-# 58  2023-03     29536756   9393391    3.144419
-# 59  2023-04     27658371   9121377    3.032258
-# 60  2023-05     28969114   9258986    3.128757
 
 df <-  data.frame(RIMUS23_Doses %>%   filter(Month_Yr>="2018-06"&Month_Yr!="2023-06"&Month_Yr!="2023-07") %>%
              select(patid,weight, Month_Yr) %>% group_by(Month_Yr) %>% mutate(script_count = sum(as.numeric(weight))) %>% ungroup() %>%
@@ -582,9 +478,6 @@ sum(as.numeric(All_pats$weight))
 
 All_pats <- All_pats %>% left_join(Mild_pats %>% mutate(group="Mild"))
 All_pats %>% group_by(group) %>% summarise(n=sum(as.numeric(weight)))
-
-# 1 Mild    9322738.
-# 2 ModSev 11856517.
 
 All_pats <- All_pats %>% mutate(group=ifelse(is.na(group), "ModSev", group))
 
@@ -835,17 +728,6 @@ ModSev_vector <- fread("ModSev_vector.txt", colClasses = "character", stringsAsF
 ModSev_vector %>% group_by(group) %>% summarise(n=sum(as.numeric(weight)))
 sum(as.numeric(ModSev_vector$weight))
 
-# box_code,hierarchy,box_name,drug_group,treatment_segment
-# N,0,Naive,Naive,Naive
-# X,1,Lapsed,Lapsed,Lapsed
-# S,2,Symptomatic,Symptomatic,Acute
-# T,3,Triptans,Triptans,Acute
-# P,4,Preventive,Preventive,Preventive
-# Y,5,Preventive + Symptomatic,Preventive,Preventive
-# K,6,Preventive + Triptans,Preventive,Preventive
-# I,7,CGRP Injectable,CGRP Injectable,Preventive
-# O,8,CGRP Oral,CGRP Oral,Preventive
-
 
 RIMUS23_Box_Histories <- read.table("RIMUS23 Box Histories.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
 RIMUS23_Box_Histories <- RIMUS23_Box_Histories %>% select(patient, weight, month49:month60)
@@ -866,17 +748,6 @@ RIMUS23_Box_Histories %>% left_join(ModSev_vector) %>%
   group_by(group, Box) %>%
   summarise(n=sum(as.numeric(weight)))
 
-#  1 Mild   P     1309900.
-#  2 Mild   S     2268956.
-#  3 Mild   X     4336399.
-#  4 Mild   Y     1407482.
-#  5 ModSev I      500441.
-#  6 ModSev K     2217318.
-#  7 ModSev O      741256.
-#  8 ModSev P     1852412.
-#  9 ModSev S      897033.
-# 10 ModSev T     1085363.
-# 11 ModSev Y     4562693.
 
 Drugs_lookup <- fread("Drugs_lookup.csv")
 
@@ -932,14 +803,6 @@ All_provs <- All_provs %>% mutate(Physician_Profile=ifelse(Dx==1&`CGRP Injectabl
                                               ifelse(`CGRP Injectable`==1|`CGRP Oral`==1, "Rx_CGRP",
                                                      ifelse(Preventive==1, "Rx_Preventive", 
                                                             ifelse(Symptomatic==1|Triptans==1, "Rx_Acute", "none")))))
-
-# 2 INTERNAL MEDICINE  117034
-# 3 NEUROLOGY          41923
-# 4 OBG                23371
-# 5 OTHER HCP         125288
-# 6 OTHER PHYSICIAN   316307
-# 7 PRIMARY CARE      198038
-# 8 PSYCHIATRY         21151
 
 All_provs %>% group_by(Physician_Profile) %>% count() %>% mutate(n=n/321254)
 
@@ -1310,13 +1173,6 @@ RIMUS23_Doses %>% filter(from_dt<="2022-06-01") %>% mutate(rate=ifelse(elapsed==
   ungroup() %>% group_by(generic, mean) %>% summarise(n=sum(as.numeric(weight)))
 
 
-# 1 Atogepant  Acute    115.
-# 2 Atogepant  Prev   36842.
-# 3 Rimegepant Acute 179467.
-# 4 Rimegepant Prev   63466.
-# 5 Ubrogepant Acute 214472.
-# 6 Ubrogepant Prev   40813.
-
 
 
 RIMUS23_Doses %>% filter(from_dt<="2022-06-01") %>% mutate(rate=ifelse(elapsed==0, 0, rate)) %>%
@@ -1332,18 +1188,7 @@ RIMUS23_Doses %>% filter(from_dt<="2022-06-01") %>% mutate(rate=ifelse(elapsed==
   group_by(generic, mean, mean_2) %>%
   summarise(n=sum(as.numeric(weight)))
 # 
-#    generic    mean  mean_2       n
-#    <chr>      <chr> <chr>    <dbl>
-#  1 Atogepant  Acute Prev      43.1
-#  2 Atogepant  Prev  Prev    3591. 
-#  3 Rimegepant Acute Acute  21852. 
-#  4 Rimegepant Acute Prev    3090. 
-#  5 Rimegepant Prev  Acute   1733. 
-#  6 Rimegepant Prev  Prev    4863. 
-#  7 Ubrogepant Acute Acute  40351. 
-#  8 Ubrogepant Acute Prev    4184. 
-#  9 Ubrogepant Prev  Acute   3235. 
-# 10 Ubrogepant Prev  Prev    3389.
+
 
 
 # ---------------------------
@@ -1471,13 +1316,6 @@ All_provs <- All_provs %>% mutate(Physician_Profile=ifelse(Dx==1&`CGRP Injectabl
                                                      ifelse(Preventive==1, "Rx_Preventive", 
                                                             ifelse(Symptomatic==1|Triptans==1, "Rx_Acute", "none")))))
 
-# 2 INTERNAL MEDICINE  117034
-# 3 NEUROLOGY          41923
-# 4 OBG                23371
-# 5 OTHER HCP         125288
-# 6 OTHER PHYSICIAN   316307
-# 7 PRIMARY CARE      198038
-# 8 PSYCHIATRY         21151
 
 All_provs %>% group_by(Physician_Profile) %>% count() %>% mutate(n=n/321254)
 
@@ -2093,12 +1931,6 @@ RIMUS23_Doses %>% filter(TYPE == "NEUROLOGY") %>% select(provider) %>% distinct(
 
 RIMUS23_Doses %>% filter(TYPE == "NEUROLOGY") %>%  group_by(drug_group) %>% count() 
 
-#   drug_group           n
-# 1 CGRP Injectable  25896
-# 2 CGRP Oral        16266
-# 3 Preventive      134051
-# 4 Symptomatic      33158
-# 5 Triptans         33070
 
  RIMUS23_Doses %>% filter(drug_group == "CGRP Injectable") %>% 
   filter(TYPE == "NEUROLOGY") %>% 
@@ -2136,12 +1968,7 @@ RIMUS23_Doses %>% filter(TYPE == "PRIMARY CARE"|TYPE == "INTERNAL MEDICINE"|TYPE
 
 RIMUS23_Doses %>% filter(TYPE == "PRIMARY CARE"|TYPE == "INTERNAL MEDICINE"|TYPE=="INTERAL MEDICINE") %>%  group_by(drug_group) %>% count() 
 
-#   drug_group           n
-# 1 CGRP Injectable   7672
-# 2 CGRP Oral         6056
-# 3 Preventive      749088
-# 4 Symptomatic     389050
-# 5 Triptans         88906
+
 
  RIMUS23_Doses %>% filter(grepl("CGRP",drug_group)) %>% 
   filter(TYPE == "PRIMARY CARE"|TYPE == "INTERNAL MEDICINE"|TYPE=="INTERAL MEDICINE") %>% 
@@ -2255,11 +2082,6 @@ Summary_Year4to5 %>% filter(year4!=0) %>% select(provider, Physician_type) %>% l
 Summary_Year4to5 %>% filter(year4!=0) %>% select(provider, Physician_type) %>% left_join(RIMUS23_Doses_Year4) %>%
   select(Physician_type, provider, patid) %>% distinct() %>% group_by(Physician_type, provider) %>% summarise(n=n()) %>% summarise(n2=mean(n))
 
-#   Physician_type    n2
-# 1 DECREASE        2.04
-# 2 INCREASE        2.05
-# 3 MAINTAIN        1.26
-# 4 STOP            1.13
 
 Summary_Year4to5 %>% filter(year5!=0) %>% select(provider, Physician_type) %>% left_join(RIMUS23_Doses_Year5) %>%
   select(provider, patid) %>% distinct() %>% group_by(provider) %>% summarise(n=n()) %>% summarise(n2=mean(n)) #1.77
@@ -2268,11 +2090,6 @@ Summary_Year4to5 %>% filter(year5!=0) %>% select(provider, Physician_type) %>% l
 Summary_Year4to5 %>% filter(year5!=0) %>% select(provider, Physician_type) %>% left_join(RIMUS23_Doses_Year5) %>%
   select(Physician_type, provider, patid) %>% distinct() %>% group_by(Physician_type, provider) %>% summarise(n=n()) %>% summarise(n2=mean(n)) 
 
-# Physician_type    n2
-# 1 DECREASE        1.79
-# 2 INCREASE        2.74
-# 3 MAINTAIN        1.30
-# 4 NEW             1.15
 
 # ----------------------------------
 # Persistency --------------------
@@ -2541,12 +2358,6 @@ RIMUS23_Doses %>% group_by(provider) %>% mutate(total_vol=sum(vol)) %>% select(p
                                                                          ifelse(share>0,0.25,0))))) %>% group_by(share) %>% 
   summarise(sum=sum(total_vol))
 
-#   share       sum
-# 1  0    284459
-# 2  0.25  76755
-# 3  0.5  277166
-# 4  0.75  57027
-# 5  1    210481
 
 RIMUS23_Doses %>% select(provider, patid) %>% distinct() %>% group_by(provider) %>% count() %>%
   filter(n!="369" ) %>%
@@ -2562,13 +2373,6 @@ RIMUS23_Doses %>% group_by(provider) %>% mutate(total_vol=sum(vol)) %>% select(p
                                                                   ifelse(share>=0.25, 0.5,
                                                                          ifelse(share>0,0.25,0))))) %>% group_by(share) %>% 
   count()
-
-#   share     n
-# 1  0     2296
-# 2  0.25   209
-# 3  0.5    505
-# 4  0.75   178
-# 5  1     1984
 
 
 # ---------------
@@ -3008,11 +2812,6 @@ RIMUS23_Drug_Histories %>%  filter(First_Rimegepant>=25 & First_Rimegepant<=36  
   group_by(Lapsed) %>%
   summarise(n=sum(as.numeric(weight)))
 
-#   Lapsed       n
-# 1      0 137550. 50018
-# 2      1  25345. 5525
-
-
 Prev_exp <- RIMUS23_Drug_Histories %>% filter(First_Rimegepant>=37 & First_Rimegepant<=48  & Month==(First_Rimegepant-1) & CumPrev==1) %>% anti_join(CGRP_exp) %>%
   select(patient, weight) %>% distinct()
 
@@ -3021,9 +2820,6 @@ RIMUS23_Drug_Histories %>% anti_join(Prev_exp) %>% filter(First_Rimegepant>=37 &
   group_by(Lapsed) %>%
   summarise(n=sum(as.numeric(weight)))
 
-#   Lapsed      n
-# 1      0 5052 1022
-# 2      1 12253 3877
 
 # ---------------------
 
@@ -3200,8 +2996,7 @@ sum(as.numeric(All_pats$weight))
 All_pats <- All_pats %>% left_join(Mild_pats %>% mutate(group="Mild"))
 All_pats %>% group_by(group) %>% summarise(n=sum(as.numeric(weight)))
 
-# 1 Mild    12517543
-# 2 ModSev 8661712
+
 
 All_pats <- All_pats %>% mutate(group=ifelse(is.na(group), "ModSev", group))
 
@@ -3418,8 +3213,6 @@ sum(as.numeric(All_pats$weight))
 All_pats <- All_pats %>% left_join(Mild_pats %>% mutate(group="Mild"))
 All_pats %>% group_by(group) %>% summarise(n=sum(as.numeric(weight)))
 
-# 1 Mild   9688786.
-# 2 NA    11490469.
 
 All_pats <- All_pats %>% mutate(group=ifelse(is.na(group), "ModSev", group))
 
@@ -3911,17 +3704,6 @@ data.frame(Experience %>%
    # group_by(Type) %>%
   summarise(n=sum(as.numeric(weight))))
 
-#         Type Rimegepant CGRP.Oral CGRP.Injectable          n
-# 1 Acute_only          0         0               0 3397963.09
-# 2 Acute_only          0         1               0   75271.19
-# 3 Acute_only          1         1               0   74263.61
-# 4       Prev          0         0               0 6850808.99
-# 5       Prev          0         0               1  500441.42
-# 6       Prev          0         1               0  186336.83
-# 7       Prev          0         1               1  108888.70
-# 8       Prev          1         1               0  199347.54
-# 9       Prev          1         1               1   97148.03
-
 
 Experience <- Experience %>%
   mutate(Type=ifelse(`CGRP Injectable`==0&Preventive==0&OralPrev!="1", "Acute_only", "Prev")) %>%
@@ -3987,17 +3769,6 @@ Experience %>% mutate(class=ifelse(class=="Rimegepant"&OralAcute==1, "Rimegepant
   ungroup() %>%
   group_by(group, class) %>%  summarise(total=sum(as.numeric(Volume)))
 
-#    group class                  total
-#  1 Acute CGRP Oral           3254414.
-#  2 Acute CGRP Oral Acute    27448671.
-#  3 Acute Rimegepant          2294859.
-#  4 Acute Rimegepant_Acute   21391983.
-#  5 Acute Symptomatic      1285526300.
-#  6 Acute Triptans          209345683.
-#  7 Prev  CGRP Injectable   168409426.
-#  8 Prev  CGRP Oral Prev     15361963.
-#  9 Prev  Preventive       2137073055.
-# 10 Prev  Rimegepant_Prev    11761327.
 
 # --------------------------------------------
 
@@ -4098,16 +3869,6 @@ data.frame(Experience %>%
    # group_by(Type) %>%
   summarise(n=sum(as.numeric(weight))))
 
-#         Type Rimegepant CGRP.Oral CGRP.Injectable          n
-# 1 Acute_only          0         0               0 3397963.09
-# 2 Acute_only          0         1               0   75271.19
-# 3 Acute_only          1         1               0   74263.61
-# 4       Prev          0         0               0 6850808.99
-# 5       Prev          0         0               1  500441.42
-# 6       Prev          0         1               0  186336.83
-# 7       Prev          0         1               1  108888.70
-# 8       Prev          1         1               0  199347.54
-# 9       Prev          1         1               1   97148.03
 
 
 Experience <- Experience %>%
@@ -4196,50 +3957,6 @@ data.frame(Experience %>% mutate(class=ifelse(class=="Rimegepant"&OralAcute==1, 
   )
 
 
-
-#          Type      TYPE group            class       total
-# 1  Acute_only NEUROLOGY Acute        CGRP Oral    336404.5
-# 2  Acute_only NEUROLOGY Acute  CGRP Oral Acute   2902304.5
-# 3  Acute_only NEUROLOGY Acute Rimegepant_Acute   2835648.2
-# 4  Acute_only NEUROLOGY Acute      Symptomatic   6538371.2
-# 5  Acute_only NEUROLOGY Acute         Triptans  13164670.2
-# 6  Acute_only     OTHER Acute        CGRP Oral    180359.1
-# 7  Acute_only     OTHER Acute  CGRP Oral Acute   1607549.4
-# 8  Acute_only     OTHER Acute Rimegepant_Acute   1440638.2
-# 9  Acute_only     OTHER Acute      Symptomatic  89267041.7
-# 10 Acute_only     OTHER Acute         Triptans  25109258.1
-# 11 Acute_only       PCP Acute        CGRP Oral    331189.6
-# 12 Acute_only       PCP Acute  CGRP Oral Acute   2164611.1
-# 13 Acute_only       PCP Acute Rimegepant_Acute   1797125.2
-# 14 Acute_only       PCP Acute      Symptomatic  80316365.9
-# 15 Acute_only       PCP Acute         Triptans  77523393.9
-# 16       Prev NEUROLOGY Acute        CGRP Oral   1819755.3
-# 17       Prev NEUROLOGY Acute  CGRP Oral Acute  15350249.0
-# 18       Prev NEUROLOGY Acute Rimegepant_Acute  13160548.2
-# 19       Prev NEUROLOGY Acute      Symptomatic  47333456.0
-# 20       Prev NEUROLOGY Acute         Triptans  59679102.6
-# 21       Prev NEUROLOGY  Prev  CGRP Injectable  94139502.0
-# 22       Prev NEUROLOGY  Prev   CGRP Oral Prev   8523647.1
-# 23       Prev NEUROLOGY  Prev       Preventive 330593564.5
-# 24       Prev NEUROLOGY  Prev  Rimegepant_Prev   6225419.0
-# 25       Prev     OTHER Acute        CGRP Oral    689212.0
-# 26       Prev     OTHER Acute  CGRP Oral Acute   6078913.3
-# 27       Prev     OTHER Acute Rimegepant_Acute   5530451.2
-# 28       Prev     OTHER Acute      Symptomatic 621016156.6
-# 29       Prev     OTHER Acute         Triptans  42317053.0
-# 30       Prev     OTHER  Prev  CGRP Injectable  35692901.8
-# 31       Prev     OTHER  Prev   CGRP Oral Prev   3535349.1
-# 32       Prev     OTHER  Prev       Preventive 798959082.5
-# 33       Prev     OTHER  Prev  Rimegepant_Prev   2468426.0
-# 34       Prev       PCP Acute        CGRP Oral    553331.6
-# 35       Prev       PCP Acute  CGRP Oral Acute   4502137.2
-# 36       Prev       PCP Acute Rimegepant_Acute   3538617.1
-# 37       Prev       PCP Acute      Symptomatic 425377803.8
-# 38       Prev       PCP Acute         Triptans  98891622.0
-# 39       Prev       PCP  Prev  CGRP Injectable  28183616.4
-# 40       Prev       PCP  Prev   CGRP Oral Prev   2554106.9
-# 41       Prev       PCP  Prev       Preventive 777762711.7
-# 42       Prev       PCP  Prev  Rimegepant_Prev   2511107.5
 
 
 # --------------------------------------------------
@@ -4528,10 +4245,6 @@ RIMUS23_Drug_Histories %>%  filter(First_Rimegepant>=49 & First_Rimegepant<=60  
   group_by(Lapsed) %>%
   summarise(n=sum(as.numeric(weight)))
 
-#   Lapsed       n
-# 1      0 137550. 50018
-# 2      1  25345. 5525
-
 
 Prev_exp <- RIMUS23_Drug_Histories %>% filter(First_Rimegepant>=49 & First_Rimegepant<=60  & Month==(First_Rimegepant-1) & CumPrev==1) %>% anti_join(CGRP_exp) %>%
   select(patient, weight) %>% distinct()
@@ -4541,9 +4254,6 @@ RIMUS23_Drug_Histories %>% anti_join(Prev_exp) %>% filter(First_Rimegepant>=49 &
   group_by(Lapsed) %>%
   summarise(n=sum(as.numeric(weight)))
 
-#   Lapsed      n
-# 1      0 5052 1022
-# 2      1 12253 3877
 
 # --------------------
 
@@ -4590,27 +4300,8 @@ RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% mutate(Stock=ifelse(Rimeg==
 
 RIMUS23_Drug_Histories %>% filter(Month==60) %>% group_by(Stock) %>% summarise(n=sum(as.numeric(weight))) 
 
-#   Stock          n
-# 1 Acutes  2081682.
-# 2 InjExp   329844.
-# 3 Injs     422687.
-# 4 Lapsed  3924046.
-# 5 OralExp  358118.
-# 6 Orals    223610.
-# 7 Prevs   3946513.
-# 8 Rime     203969.
-
 RIMUS23_Drug_Histories %>% filter(Month==48) %>% group_by(Stock) %>% summarise(n=sum(as.numeric(weight))) 
 
-#   Stock          n
-# 1 Acutes  2095818.
-# 2 InjExp   288864.
-# 3 Injs     405467.
-# 4 Lapsed  4351935.
-# 5 OralExp  164881.
-# 6 Orals    145317.
-# 7 Prevs   3959744.
-# 8 Rime      78443.
 
 
 Stocks <- RIMUS23_Drug_Histories %>% select(patient, weight, Treat, Month, Stock)
@@ -4683,14 +4374,6 @@ All_provs <- All_provs %>% mutate(Physician_Profile=ifelse(Dx==1&`CGRP Injectabl
                                                             ifelse(Triptans==1, "Rx_Triptan",
                                                                    ifelse(Symptomatic==1, "Rx_Sympt","none"))))))
 
-# 1 INTERAL MEDICINE  36496
-# 2 INTERNAL MEDICINE  3507
-# 3 NEUROLOGY         17142
-# 4 OBG                5653
-# 5 OTHER HCP         46735
-# 6 OTHER PHYSICIAN   91860
-# 7 PRIMARY CARE      70993
-# 8 PSYCHIATRY         5811
 
 All_provs %>% group_by(Physician_Profile) %>% count() %>% mutate(n=n/278197)
 
@@ -4780,50 +4463,29 @@ All_provs_2 <- All_provs_2 %>% mutate(CGRP=ifelse(`CGRP Injectable`==1|`CGRP Ora
 
 All_provs_2 %>% group_by(Rimegepant, CGRP) %>% count()
 
-#   Rimegepant  CGRP      n
-# 1          0     0 266509
-# 2          0     1   7522
-# 3          1     1   4166
 
 All_provs_2 %>% group_by(Rimegepant, CGRP) %>% summarise(pats=mean(N_pats))
 
-#   Rimegepant  CGRP  pats
-# 1          0     0  1.54
-# 2          0     1  4.24
-# 3          1     1  6.48
+
 
 All_provs_2 %>% group_by(Rimegepant, CGRP) %>% summarise(pats=mean(N_Scripts))
 
-#   Rimegepant  CGRP  pats
-# 1          0     0  6.27
-# 2          0     1 31.9 
-# 3          1     1 51.0 
 
 
 
 All_provs_2 %>% group_by(Rimegepant, CGRP) %>% summarise(pats=mean(N_Scripts/N_pats, na.rm=T))
 
 
-#  Rimegepant  CGRP  pats
-# 1          0     0  3.61
-# 2          0     1  7.97
-# 3          1     1  7.82
 
 
 
 All_provs_2 %>% group_by(Rimegepant, CGRP) %>% summarise(pats=mean(N_Prev))
 
-#   Rimegepant  CGRP  pats
-# 1          0     0  2.06
-# 2          0     1 10.3 
-# 3          1     1 17.2 
+
 
 All_provs_2 %>% group_by(Rimegepant, CGRP) %>% summarise(pats=mean(N_Triptan))
 
-#   Rimegepant  CGRP  pats
-# 1          0     0 0.565
-# 2          0     1 4.55 
-# 3          1     1 8.48 
+
 
 All_provs_2 %>% mutate(group=ifelse(Rimegepant==1, "Rimegepant",
                                     ifelse(CGRP==1, "Other CGRP", "Other Rx"))) %>%
@@ -5615,14 +5277,6 @@ All_provs <- All_provs %>% mutate(Physician_Profile=ifelse(Dx==1&`CGRP Injectabl
                                                             ifelse(Triptans==1, "Rx_Triptan",
                                                                    ifelse(Symptomatic==1, "Rx_Sympt","none"))))))
 
-# 1 INTERAL MEDICINE  36496
-# 2 INTERNAL MEDICINE  3507
-# 3 NEUROLOGY         17142
-# 4 OBG                5653
-# 5 OTHER HCP         46735
-# 6 OTHER PHYSICIAN   91860
-# 7 PRIMARY CARE      70993
-# 8 PSYCHIATRY         5811
 
 All_provs %>% group_by(Physician_Profile) %>% count() %>% mutate(n=n/278197)
 
@@ -5715,50 +5369,21 @@ All_provs_2 <- All_provs_2 %>% mutate(CGRP=ifelse(`CGRP Injectable`==1|`CGRP Ora
 
 All_provs_2 %>% group_by(Rimegepant, CGRP) %>% count()
 
-#   Rimegepant  CGRP      n
-# 1          0     0 266509
-# 2          0     1   7522
-# 3          1     1   4166
-
 All_provs_2 %>% group_by(Rimegepant, CGRP) %>% summarise(pats=mean(N_pats))
 
-#   Rimegepant  CGRP  pats
-# 1          0     0  1.54
-# 2          0     1  4.24
-# 3          1     1  6.48
-
 All_provs_2 %>% group_by(Rimegepant, CGRP) %>% summarise(pats=mean(N_Scripts))
-
-#   Rimegepant  CGRP  pats
-# 1          0     0  6.27
-# 2          0     1 31.9 
-# 3          1     1 51.0 
 
 
 
 All_provs_2 %>% group_by(Rimegepant, CGRP) %>% summarise(pats=mean(N_Scripts/N_pats, na.rm=T))
 
 
-#  Rimegepant  CGRP  pats
-# 1          0     0  3.61
-# 2          0     1  7.97
-# 3          1     1  7.82
-
-
 
 All_provs_2 %>% group_by(Rimegepant, CGRP) %>% summarise(pats=mean(N_Prev))
 
-#   Rimegepant  CGRP  pats
-# 1          0     0  2.06
-# 2          0     1 10.3 
-# 3          1     1 17.2 
 
 All_provs_2 %>% group_by(Rimegepant, CGRP) %>% summarise(pats=mean(N_Triptan))
 
-#   Rimegepant  CGRP  pats
-# 1          0     0 0.565
-# 2          0     1 4.55 
-# 3          1     1 8.48 
 
 All_provs_2 %>% mutate(group=ifelse(Rimegepant==1, "Rimegepant",
                                     ifelse(CGRP==1, "Other CGRP", "Other Rx"))) %>%
@@ -6466,32 +6091,11 @@ All_provs <- All_provs %>% mutate(Physician_Profile=ifelse(`CGRP Oral`==1, "Rx_C
 
 All_provs %>% group_by(Physician_Profile) %>% count() %>% mutate(n=n/dim(All_provs)[1])
 
-#   Physician_Profile       n
-# 1 Rx_CGRP_Injectable 0.0830
-# 2 Rx_CGRP_Oral       0.141 
-# 3 Rx_Triptan         0.776 
-
 All_provs %>% group_by(TYPE) %>% count() %>% mutate(n=n/dim(All_provs)[1])
 
-# 1 INTERAL MEDICINE  0.189  
-# 2 INTERNAL MEDICINE 0.0132 
-# 3 NEUROLOGY         0.139  
-# 4 OBG               0.0187 
-# 5 OTHER HCP         0.145  
-# 6 OTHER PHYSICIAN   0.0884 
-# 7 PRIMARY CARE      0.399  
-# 8 PSYCHIATRY        0.00738
 
 All_provs %>% group_by(TYPE) %>% count() 
 
-# 1 INTERAL MEDICINE   6614
-# 2 INTERNAL MEDICINE   462
-# 3 NEUROLOGY          4858
-# 4 OBG                 654
-# 5 OTHER HCP          5064
-# 6 OTHER PHYSICIAN    3088
-# 7 PRIMARY CARE      13953
-# 8 PSYCHIATRY          258
 
 All_provs %>% mutate(TYPE=ifelse(TYPE=="INTERAL MEDICINE", "INTERNAL MEDICINE", TYPE)) %>%
   group_by( TYPE, Physician_Profile) %>% count() %>% 
@@ -6504,11 +6108,6 @@ All_provs %>% mutate(TYPE=ifelse(TYPE=="INTERAL MEDICINE", "INTERNAL MEDICINE", 
                                                      ifelse(TYPE=="PSYCHIATRY",n/258,NA)))))))) %>%
   spread(key=TYPE, value=n)
 
-
-#   Physician_Profile  `INTERNAL MEDICINE` NEUROLOGY    OBG `OTHER HCP` `OTHER PHYSICIAN` `PRIMARY CARE` PSYCHIATRY
-# 1 Rx_CGRP_Injectable              0.0404     0.241 0.0168      0.0916            0.0949         0.0474     0.0543
-# 2 Rx_CGRP_Oral                    0.0701     0.450 0.0352      0.161             0.132          0.0687     0.159 
-# 3 Rx_Triptan                      0.889      0.309 0.948       0.747             0.773          0.884      0.787
 
 All_provs <- All_provs %>% mutate(TYPE=ifelse(TYPE=="INTERAL MEDICINE", "INTERNAL MEDICINE", TYPE)) 
 
@@ -6561,29 +6160,12 @@ All_provs_2 <- All_provs_2 %>% left_join(RIMUS23_Doses) %>% mutate(Rimegepant=if
 All_provs_2 <- All_provs_2 %>% mutate(CGRP=ifelse(`CGRP Injectable`==1|`CGRP Oral`==1, 1,0))
 
 All_provs_2 %>% group_by(Rimegepant, CGRP) %>% count()
-#   Rimegepant  CGRP      n
-# 1          0     0 27121
-# 2          0     1  5105
-# 3          1     1  2725
 
 All_provs_2 %>% group_by(Rimegepant, CGRP) %>% summarise(pats=mean(N_pats))
-#   Rimegepant  CGRP  pats
-# 1          0     0  1.23
-# 2          0     1  1.92
-# 3          1     1  3.42
 
 All_provs_2 %>% group_by(Rimegepant, CGRP) %>% summarise(pats=mean(N_Scripts))
-#   Rimegepant  CGRP  pats
-# 1          0     0  3.76
-# 2          0     1 10.2 
-# 3          1     1 19.6
 
 All_provs_2 %>% group_by(Rimegepant, CGRP) %>% summarise(pats=mean(N_Scripts/N_pats, na.rm=T))
-#  Rimegepant  CGRP  pats
-# 1          0     0  3.01
-# 2          0     1  5.44
-# 3          1     1  5.23
-
 
 
 All_provs_2 %>% filter(TYPE=="NEUROLOGY") %>% group_by(`CGRP Oral`) %>% count()
@@ -6723,17 +6305,6 @@ data.frame(Experience %>%
    # group_by(Type) %>%
   summarise(n=sum(as.numeric(weight))))
 
-#         Type Rimegepant CGRP.Oral CGRP.Injectable          n
-# 1 Acute_only          0         0               0 3399765.21
-# 2 Acute_only          0         1               0   76320.58
-# 3 Acute_only          1         1               0   75326.20
-# 4       Prev          0         0               0 6849006.87
-# 5       Prev          0         0               1  500441.42
-# 6       Prev          0         1               0  185287.44
-# 7       Prev          0         1               1  108888.70
-# 8       Prev          1         1               0  198284.95
-# 9       Prev          1         1               1   97148.03
-
 Experience <- Experience %>%
   mutate(Type=ifelse(`CGRP Injectable`==0&Preventive==0&OralPrev!="1", "Acute_only", "Prev")) %>%
   select(patient, weight, Type)
@@ -6859,18 +6430,6 @@ flMIG <- flMIG %>% mutate(patient=as.character(patient)) %>%
 Naive_pats <- flMIG %>% group_by(patient, weight) %>% count() 
 
 Naive_pats %>% ungroup() %>% group_by(n) %>% summarise(pats=sum(as.numeric(weight)))
-
-#  1     1 840895.
-#  2     2 623142.
-#  3     3 542036.
-#  4     4 450790.
-#  5     5 365108.
-#  6     6 315724.
-#  7     7 249620.
-#  8     8 242344.
-#  9     9 194852.
-# 10    10 172968.
-# 11    11 148281.
 
 Naive_pats %>% ungroup() %>%
   ggplot(aes(x=n)) + 
@@ -7407,17 +6966,6 @@ data.frame(Experience %>%
    # group_by(Type) %>%
   summarise(n=sum(as.numeric(weight))))
 
-#         Type Rimegepant CGRP.Oral CGRP.Injectable          n
-# 1 Acute_only          0         0               0 3399765.21
-# 2 Acute_only          0         1               0   76320.58
-# 3 Acute_only          1         1               0   75326.20
-# 4       Prev          0         0               0 6849006.87
-# 5       Prev          0         0               1  500441.42
-# 6       Prev          0         1               0  185287.44
-# 7       Prev          0         1               1  108888.70
-# 8       Prev          1         1               0  198284.95
-# 9       Prev          1         1               1   97148.03
-
 Experience <- Experience %>%
   mutate(Type=ifelse(`CGRP Injectable`==0&Preventive==0&OralPrev!="1", "Acute_only", "Prev")) %>%
   select(patient, weight, Type)
@@ -7627,10 +7175,6 @@ RIMUS23_Doses <- RIMUS23_Doses %>% mutate(from_dt = as.Date(from_dt))  %>% filte
 RIMUS23_Doses <- RIMUS23_Doses %>% group_by(patid) %>% summarise(qty=sum(as.numeric(qty)))
 
 Means %>% inner_join(RIMUS23_Doses) %>% group_by(mean) %>% summarise(qty=mean(qty))
-
-#   mean    qty
-# 1 Acute  45.6
-# 2 Prev   91.7
 
 
 Means %>% inner_join(RIMUS23_Doses) %>% mutate(qty=as.numeric(qty)) %>%
@@ -7853,8 +7397,6 @@ RIMUS23_Demographics <- RIMUS23_Demographics %>% select(patid, weight, GENDER, A
 
 RIMUS23_Demographics %>% group_by(GENDER) %>% count()
 
-# 1 F      200992   # 0.7617719
-# 2 M       62856
 
 mean(as.numeric(RIMUS23_Demographics$AGE)) # 60
 
@@ -7863,16 +7405,6 @@ All_pats <- fread("ModSev_Pats_V3.txt", colClasses = "character", stringsAsFacto
 All_pats <- All_pats %>% filter(group=="ModSev") %>% select(patient)
 RIMUS23_Box_Histories %>% inner_join(All_pats) %>% select(patient, month60) %>% group_by(month60) %>% count() %>% mutate(n=n/135660)
 
-# 1 I       0.0299
-# 2 K       0.0743
-# 3 O       0.0286
-# 4 P       0.297 
-# 5 S       0.0620
-# 6 T       0.0377
-# 7 X       0.211 
-# 8 Y       0.260 
-
-
 
 
 RIMUS23_NOTCNT_Demographics <- read.table("RIMUS23 NOTCNT Demographics.txt", header = T, sep=",", colClasses = "character", stringsAsFactors = FALSE)
@@ -7880,8 +7412,6 @@ RIMUS23_NOTCNT_Demographics <- RIMUS23_NOTCNT_Demographics %>% select(patid, GEN
 
 RIMUS23_NOTCNT_Demographics %>% group_by(GENDER) %>% count()
 
-# 1 F      708552 # 0.8000244
-# 2 M      177111
 
 mean(as.numeric(RIMUS23_NOTCNT_Demographics$AGE)) # 53
 
@@ -7889,15 +7419,6 @@ RIMUS23_NOTCNT_Histories <- read.table("RIMUS23 NOTCNT Box Histories.txt", heade
 migpts_mild_modsev_classif <- fread("migpts_mild_modsev_classif.txt", colClasses = "character", stringsAsFactors = FALSE)
 migpts_mild_modsev_classif <- migpts_mild_modsev_classif %>% filter(modsev_pat==1) %>% select(patient)
 RIMUS23_NOTCNT_Histories %>% inner_join(migpts_mild_modsev_classif) %>% select(patient, month24) %>% group_by(month24) %>% count() %>% mutate(n=n/668649)
-
-# 1 I       0.0295
-# 2 K       0.0768
-# 3 O       0.0292
-# 4 P       0.206 
-# 5 S       0.0468
-# 6 T       0.0368
-# 7 X       0.337 
-# 8 Y       0.157 
 
 
 
@@ -8271,10 +7792,6 @@ Fst_Mig_Dx_date_MigPts <- Fst_Mig_Dx_date_MigPts %>% left_join(Fst_Mig_Dx_date_P
 
 Fst_Mig_Dx_date_MigPts %>% group_by(group) %>% summarise(median=median(FST_MIG_DX_DT))
 
-#   group median    
-# 1 RIME  2017-05-16
-# 2 NA    2018-10-11
-
 
 min(Fst_Mig_Dx_date_PatVector$FST_MIG_DX_DT) # "2015-08-06"
 median(Fst_Mig_Dx_date_PatVector$FST_MIG_DX_DT) # "2017-05-16"
@@ -8396,14 +7913,6 @@ length(unique(RIMUS23_Drug_Histories$patient[RIMUS23_Drug_Histories$drug_group==
 
 RIMUS23_Drug_Histories %>% ungroup() %>% group_by(drug_group) %>% summarise(mean=mean(n))
 
-
-
-#   drug_group       mean
-# 1 CGRP Injectable 15.7 
-# 2 CGRP Oral        6.41
-# 3 Preventive      25.0 
-# 4 Symptomatic     20.7 
-# 5 Triptans        17.3 
 
 RIMUS23_Drug_Histories %>% ungroup() %>%
   mutate(drug_group=factor(drug_group, levels=c("Preventive", "Symptomatic", "Triptans", "CGRP Injectable", "CGRP Oral" ))) %>%
@@ -8962,28 +8471,8 @@ RIMUS23_Drug_Histories <- RIMUS23_Drug_Histories %>% mutate(Stock=ifelse(Rimeg==
 
 RIMUS23_Drug_Histories %>% filter(Month==60) %>% group_by(Stock) %>% summarise(n=sum(as.numeric(weight))) 
 
-#   Stock          n
-# 1 Acutes  2081682.
-# 2 InjExp   329844.
-# 3 Injs     422687.
-# 4 Lapsed  3924046.
-# 5 OralExp  358118.
-# 6 Orals    223610.
-# 7 Prevs   3946513.
-# 8 Rime     203969.
 
 RIMUS23_Drug_Histories %>% filter(Month==48) %>% group_by(Stock) %>% summarise(n=sum(as.numeric(weight))) 
-
-#   Stock          n
-# 1 Acutes  2095818.
-# 2 InjExp   288864.
-# 3 Injs     405467.
-# 4 Lapsed  4351935.
-# 5 OralExp  164881.
-# 6 Orals    145317.
-# 7 Prevs   3959744.
-# 8 Rime      78443.
-
 
 Stocks <- RIMUS23_Drug_Histories %>% select(patient, weight, Treat, Month, Stock)
 
@@ -9361,51 +8850,10 @@ Year5 %>% inner_join(ClassesVolume %>% select(provider, drug_class,n)) %>% ungro
   select(drug_class, perc)
 
 
-# 1 Analgesic        0.901 
-#  2 Antiemetic       7.62  
-#  3 Antiepileptic   10.3   
-#  4 Antipsychotic    1.12  
-#  5 Beta Blocker     6.29  
-#  6 Calcium Blocker  2.58  
-#  7 Cardiovascular   4.65  
-#  8 Ditan            0.0368
-#  9 Ergot            0.156 
-# 10 Muscle Relaxant  8.15  
-# 11 NSAID            8.29  
-# 12 Neural           1.00  
-# 13 SNRI             5.45  
-# 14 SSRI             6.41  
-# 15 Sedative         5.22  
-# 16 Steroid          6.53  
-# 17 Strong Opioid    4.07  
-# 18 Tricyclic        5.79  
-# 19 Triptan          8.77  
-# 20 Weak Opioid      6.62  
-
 NO_CGRP %>% inner_join(ClassesVolume %>% select(provider, drug_class,n)) %>% ungroup() %>%
   group_by(drug_class) %>% count() %>% ungroup() %>% mutate(total=sum(n)) %>% mutate(perc=100*n/total) %>%
   select(drug_class, perc)
 
-#  1 Analgesic        1.40   
-#  2 Antiemetic      10.0    
-#  3 Antiepileptic    7.94   
-#  4 Antipsychotic    1.68   
-#  5 Beta Blocker     5.32   
-#  6 Calcium Blocker  2.12   
-#  7 Cardiovascular   4.42   
-#  8 Ditan            0.00165
-#  9 Ergot            0.0819 
-# 10 Muscle Relaxant  7.87   
-# 11 NSAID           10.9    
-# 12 Neural           0.472  
-# 13 SNRI             4.11   
-# 14 SSRI             5.38   
-# 15 Sedative         4.59   
-# 16 Steroid          9.10   
-# 17 Strong Opioid    6.98   
-# 18 Tricyclic        3.07   
-# 19 Triptan          4.91   
-# 20 Weak Opioid      9.61  
 
 Pats_seen <- RIMUS23_Doses %>% filter(from_dt<="2022-05-31") %>%  select(provider, patid) %>% distinct()
 
@@ -10249,14 +9697,6 @@ RIMUS23_Demographics %>% mutate(ANY=ifelse(CAD=="CAD"|STROKE=="STROKE"|MI=="MI",
   group_by(ANY,TRIPTAN) %>% summarise(n=sum(as.numeric(weight))) # 0.1904962 
 
 RIMUS23_Demographics %>% group_by(AGE, TRIPTAN) %>% summarise(n=sum(as.numeric(weight))) 
-# > 1635579/(1635579+2335598)
-# [1] 0.4118625
-# > 3512177/(3512177+4606653)
-# [1] 0.4325964
-# > 2503746/(2503746+3648119)
-# [1] 0.4069898
-# > 1067772/(1067772+2985935)
-# [1] 0.2634063
 
 RIMUS23_Demographics %>% group_by(AGE, HTN) %>% summarise(n=sum(as.numeric(weight))) %>%
   spread(key=HTN, value=n) %>% mutate(perc=HTN/(HTN+`<NA>`)) %>%

@@ -1147,33 +1147,6 @@ data.frame(
   select(Month, class, n2) %>% spread(key=class, value=n2)
 )  
 
-#    Month Hormonal none Other OtherTarget Radio
-# 1      0     30.9 51.3   5.7         9.5   2.6
-# 2      1     30.7 24.8  15.8        11.5  17.2
-# 3      2     28.8 14.7  12.1        27.2  17.3
-# 4      3     38.9 13.4  11.5        27.8   8.4
-# 5      4     35.7 13.9  14.7        28.8   6.8
-# 6      5     35.5  7.4  16.7        37.0   3.4
-# 7      6     29.7  6.0  20.8        34.6   8.9
-# 8      7     34.7 12.3   6.0        39.8   7.2
-# 9      8     27.1 19.0  10.4        39.6   3.8
-# 10     9     35.3 13.0   2.5        39.5   9.7
-# 11    10     23.1 17.5  18.5        32.8   8.1
-# 12    11     28.7 20.0  17.0        28.5   5.9
-# 13    12     58.6  7.6   7.3        26.6    NA
-# 14    13     37.1 16.7   6.5        35.8   3.9
-# 15    14     29.0 14.7  11.4        37.9   6.9
-# 16    15     38.6 24.2   7.1        26.4   3.7
-# 17    16     44.1 10.6   8.6        35.3   1.5
-# 18    17     37.2 11.4   9.1        34.2   8.2
-# 19    18     30.6 14.3  12.7        31.1  11.3
-# 20    19     37.1 21.4   2.5        36.2   2.8
-# 21    20     57.1  6.6   1.4        26.3   8.7
-# 22    21     37.8 13.0   9.0        37.5   2.7
-# 23    22     34.2 19.3   2.5        40.3   3.8
-# 24    23     30.1 22.0  18.4        27.6   1.9
-
-
 data.frame(
   temp_df %>% ungroup() %>% filter(Month<25) %>% group_by(patient) %>%
   filter( Palbociclib==0 & lead(Palbociclib)==1 ) %>% ungroup() %>%
@@ -1202,33 +1175,6 @@ data.frame(
   group_by(Month) %>% mutate(total=sum(n)) %>% mutate(n2=round(100*n/total, 1)) %>%
   select(Month, class, n2) %>% spread(key=class, value=n2)
 )   
-
-
-#    Month Hormonal none Other OtherTarget Radio
-# 1      1     27.1 15.3   9.6        42.1   5.9
-# 2      2     22.1 15.7  21.9        33.0   7.2
-# 3      3     41.1  8.5  18.8        25.6   5.9
-# 4      4     26.0 19.2  15.4        35.1   4.3
-# 5      5     32.9 16.0  12.3        34.9   3.8
-# 6      6     26.8 13.5  15.3        41.8   2.6
-# 7      7     22.5 10.9  14.4        48.2   4.0
-# 8      8     22.0 14.2  15.4        43.6   4.8
-# 9      9     17.2  7.2  19.1        51.2   5.3
-# 10    10     22.2 14.2  14.5        44.0   5.1
-# 11    11     26.8 12.8  15.2        43.7   1.6
-# 12    12     25.1  8.6  16.3        47.4   2.6
-# 13    13     15.5 10.2  24.8        45.7   3.8
-# 14    14     38.4  9.4   8.5        43.7    NA
-# 15    15     29.1 13.5  16.6        34.4   6.4
-# 16    16     24.1  9.3  12.4        52.0   2.1
-# 17    17     25.6 15.9  13.5        40.3   4.7
-# 18    18     23.9 16.7  13.5        42.2   3.7
-# 19    19     34.4 11.9   4.8        41.2   7.8
-# 20    20     26.9  8.1  14.2        48.4   2.4
-# 21    21     21.6 17.6  15.6        40.6   4.6
-# 22    22     22.8 20.9  14.2        42.2    NA
-# 23    23     31.3 14.6  15.7        36.5   1.8
-# 24    24     22.6 17.0  20.8        35.5   4.1
 
 
 data.frame(
@@ -1455,23 +1401,9 @@ N_months_AnyTarget <- CAN_Drug_Histories %>% inner_join(ImmunoTarget_pats) %>%  
 
 N_months_Palbociclib %>% bind_rows(N_months_AnyTarget) %>% group_by(group) %>% summarise(mean=mean(n), sd=sd(n))
 
-#   group              mean    sd
-# 1 Any Immuno/Target  12.0  13.2
-# 2 Palbociclib        12.9  13.3
 
 N_months_Palbociclib %>% bind_rows(N_months_AnyTarget) %>% group_by(group) %>% summarise(median=median(n), quantiles=quantile(n))
 
-#    group             median quantiles
-#  1 Any Immuno/Target      7         1
-#  2 Any Immuno/Target      7         2
-#  3 Any Immuno/Target      7         7
-#  4 Any Immuno/Target      7        17
-#  5 Any Immuno/Target      7        60
-#  6 Palbociclib            8         1
-#  7 Palbociclib            8         3
-#  8 Palbociclib            8         8
-#  9 Palbociclib            8        19
-# 10 Palbociclib            8        60
 
 
 N_months_Palbociclib %>% bind_rows(N_months_AnyTarget) %>%
@@ -2078,10 +2010,6 @@ Months_XY %>%
   left_join(PONS_Demographics, by=c("patient"="patid"))  %>%
   group_by(group) %>% summarise(n=mean(age))
 
-# 1     1  63.9
-# 2     2  63.1
-# 3     3  63.8
-# 4     4  63.2
 
 Months_XY %>% group_by(group) %>% count()
 
@@ -2148,41 +2076,6 @@ data.frame(
  Months_XY %>% left_join(PONS_Demographics, by=c("patient"="patid")) %>%
    group_by(group, patient) %>% count() %>% rename("n2"="n") %>% ungroup() %>%
    group_by(group) %>% summarise(mean=mean(n2))
- 
-# 1     1  4.94
-# 2     2  4.78
-# 3     3  4.61
-# 4     4  4.72
-
-#           diagnosis          X1         X2          X3         X4
-# 1              Bone 0.869463869 0.89156627 0.896414343 0.89230769
-# 2             Brain 0.326340326 0.25301205 0.219123506 0.27692308
-# 3            Breast 1.000000000 1.00000000 1.000000000 1.00000000
-# 4  Gastroesophageal 0.023310023 0.04819277 0.027888446 0.01538462
-# 5              Head 0.030303030 0.01204819 0.023904382 0.00000000
-# 6        Intestinal 0.090909091 0.13253012 0.083665339 0.16923077
-# 7            Kidney 0.027972028 0.06024096 0.019920319 0.03076923
-# 8          Leukemia 0.041958042 0.01204819 0.039840637 0.03076923
-# 9             Liver 0.673659674 0.53012048 0.533864542 0.56923077
-# 10             Lung 0.561771562 0.44578313 0.517928287 0.52307692
-# 11         Lymphoma 0.585081585 0.62650602 0.533864542 0.55384615
-# 12          Myeloma 0.011655012 0.04819277 0.011952191 0.03076923
-# 13            Other 0.396270396 0.34939759 0.366533865 0.30769231
-# 14       Pancreatic 0.013986014 0.00000000 0.007968127 0.01538462
-# 15         Prostate 0.004662005 0.02409639 0.007968127 0.03076923
-# 16     Reproductive 0.069930070 0.08433735 0.075697211 0.13846154
-# 17      Respiratory 0.009324009 0.00000000 0.015936255 0.01538462
-# 18         Salivary 0.004662005 0.00000000 0.000000000 0.00000000
-# 19             Skin 0.158508159 0.16867470 0.187250996 0.09230769
-# 20          Thyroid 0.016317016 0.04819277 0.015936255 0.00000000
-# 21          Urinary 0.020979021 0.04819277 0.019920319 0.03076923
-
-
-
-# per group, Rxs around flow palbociclib to -> other 
-# per group, Dxs around flow palbociclib to -> other 
- 
- 
  
 
 # --------------
@@ -2421,15 +2314,6 @@ PONS_Comorbidity_Inventories <- CancerDrug_Experienced %>% select(patid) %>% inn
 
 PONS_Comorbidity_Inventories %>% group_by(diagnosis) %>% summarise(n=sum(weight))
 
-# 1 D50       2390178.
-# 2 D51        660865.
-# 3 D52        109255.
-# 4 D53        507207.
-# 5 D60         17001.
-# 6 D61        973313.
-# 7 D63       1753304.
-# 8 D64       4687671 
-# 9 D70       1535403.
 
 data.frame(PONS_Comorbidity_Inventories %>%   inner_join(New_Primary_Cancer_Box) %>%
  group_by(Primary_Cancer, diagnosis) %>% summarise(n=sum(weight)) %>%
@@ -4101,13 +3985,6 @@ labs_NLPMeas_Breast_Cancer_pts <- fread("Source/labs_NLPMeas_Breast_Cancer_pts.t
 
 unique(labs_NLPMeas_Breast_Cancer_pts$measurement_type)
 
-#  [1] "ABSOLUTE LYMPHOCYTE COUNT" "ABSOLUTE MONOCYTE COUNT"   "ABSOLUTE NEUTROPHIL COUNT" "ALKALINE PHOSPHATASE"     
-#  [5] "ALP"                       "ALT"                       "ANION GAP"                 "AST"                      
-#  [9] "BICARBONATE"               "BILIRUBIN"                 "BUN"                       "CALCIUM"                  
-# [13] "CREATININE"                "EGFR"                      "FREE T4"                   "GFR"                      
-# [17] "INR"                       "K"                         "K+"                        "LYMPHOCYTE"               
-# [21] "MAGNESIUM"                 "MONOCYTES"                 "NEUTROPHILS"               "PLATELETS"                
-# [25] "POTASSIUM"                 "POTASSIUM LEVEL"           "TOTAL BILIRUBIN"  
 
 labs_NLPMeas_Breast_Cancer_pts <- labs_NLPMeas_Breast_Cancer_pts %>% filter(measurement_value!=0)
 
@@ -5000,9 +4877,6 @@ data.frame(
   ) %>% 
     summarise(n=sum(weight, na.rm=T))  #715311
 
-
-# 2 Dxs bone mets  SRE
-# % Zol or Radio
 
 
 
@@ -6339,9 +6213,6 @@ New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% inner_join(PONS_Demographic
 
 New_Primary_Cancer_Box %>% group_by(cancer_metastasis) %>% summarise(n=sum(weight))
 
-#   cancer_metastasis        n
-# 1                 0 1456230.
-# 2                 1 1053323.
 
 New_Primary_Cancer_Box <- New_Primary_Cancer_Box %>% filter(cancer_metastasis==1)
 
@@ -7162,22 +7033,11 @@ PONS_Demographics <- PONS_Demographics %>% mutate(Survived = as.numeric(death_da
 
 Exp_vs_naive %>% inner_join(PONS_Demographics, by=c("patient"="patid")) %>% group_by(Drug_Exp) %>% summarise(mean=mean(Survived))
 
-#   Drug_Exp  mean
-# 1        0 1689.
-# 2        1 1702.
-
 groups_to_compare <- groups_to_compare %>% inner_join(PONS_Demographics, by=c("patient"="patid"))
 
 Exp_vs_naive %>% inner_join(PONS_Demographics, by=c("patient"="patid")) %>%
   mutate(status=ifelse(died=="Y",1,0)) %>%  
   group_by(Drug_Exp, died) %>% count()
-
-#   Drug_Exp died      n
-# 1        0 N     15031
-# 2        0 Y      2118
-# 3        1 N     13897
-# 4        1 Y      2248
-
 
 
 CAN_Drug_Histories <- fread("Source/CAN Drug Histories.txt")
@@ -7520,30 +7380,6 @@ full_join(
   group_by(category_dtl_code_desc) %>% count() %>% arrange(-n) %>% mutate(perc=round(n/49333,2)) %>% rename("perc_all"="perc") %>% select(-n))
 )
 
-
-#           category_dtl_code_desc perc_palbo perc_all
-# 1                   CT SCAN CHEST       0.90     0.57
-# 2                 CT SCAN ABDOMEN       0.88     0.60
-# 3     OTHER DIAGNOSTIC ULTRASOUND       0.83     0.83
-# 4      MAGNETIC RESONANCE IMAGING       0.78     0.68
-# 5   NUCLEAR MEDICINE IMAGING BONE       0.63     0.25
-# 6  DIAGNOSTIC ULTRASOUND OF HEART       0.61     0.60
-# 7                     MAMMOGRAPHY       0.61     0.79
-# 8                    NOT ASSIGNED       0.59     0.57
-# 9                   OTHER CT SCAN       0.57     0.35
-# 10          CT SCAN HEAD AND NECK       0.45     0.36
-# 11     DIAG ULTRASOUND OF ABDOMEN       0.39     0.36
-# 12 BREAST BIOPSY AND OTHER DIAGNO       0.33     0.45
-# 13         COLONOSCOPY AND BIOPSY       0.28     0.44
-# 14   DIAG ULTRASOUND OF HEAD/NECK       0.25     0.32
-# 15                BIOPSY OF LIVER       0.15     0.04
-# 16             BONE MARROW BIOPSY       0.05     0.03
-# 17  NUCLEAR MED IMAGING PULMONARY       0.04     0.02
-# 18          LAPAROSCOPY (GI ONLY)       0.01     0.01
-# 19 OTHER NUCLEAR MEDICINE IMAGING       0.01     0.01
-# 20    DIAG ULTRASOUND OF GI TRACT       0.00     0.00
-# 21  DIAG ULTRASOUND URINARY TRACT       0.00     0.00
-# 22         EXPLORATORY LAPAROTOMY       0.00     0.00
 
 
 
@@ -8536,34 +8372,10 @@ PONS_Demographics <- PONS_Demographics %>% mutate(Group=ifelse(Liver==1|Lung==1|
 
 PONS_Demographics %>% group_by(Group) %>% summarise(n=sum(weight))
 
-# 1 LLB      368414.
-# 2 Lymphoma 362198.
-# 3 Other    322711.
-
 
 CAN_Drug_Histories %>% group_by(patient, Stock) %>% summarise(Months_ON_Class=sum(weight)) %>%
   inner_join(PONS_Demographics %>% select(-weight)) %>% ungroup() %>%
   group_by(Group, Stock) %>% summarise(Months_ON_Class=sum(Months_ON_Class))
-
-#    Group    Stock    Months_ON_Class
-#  1 LLB      Biologic        2390700.
-#  2 LLB      Chemo           1366168.
-#  3 LLB      Hormone         2602414.
-#  4 LLB      Lapsed          4010651.
-#  5 LLB      Palbo           1005430.
-#  6 LLB      Target           493739.
-#  7 Lymphoma Biologic        1211605.
-#  8 Lymphoma Chemo           1195309.
-#  9 Lymphoma Hormone         5168649.
-# 10 Lymphoma Lapsed          4692553.
-# 11 Lymphoma Palbo             45103.
-# 12 Lymphoma Target            72358.
-# 13 Other    Biologic         761497.
-# 14 Other    Chemo            432174.
-# 15 Other    Hormone         3694792.
-# 16 Other    Lapsed          5547355.
-# 17 Other    Palbo             16403.
-# 18 Other    Target           100728
 
 # ---------
 
@@ -8659,11 +8471,6 @@ CAN_Drug_Histories %>% mutate(Month=Month-metastasis_onset) %>%
   inner_join(PONS_Demographics) %>%
   group_by(Group) %>% summarise(tot=sum(weight))
 
-#   Group       tot
-# 1 LLB      73202.
-# 2 Lymphoma  3089.
-# 3 Other     1018.
-#   
 
 
 CAN_Drug_Histories %>% mutate(Month=Month-metastasis_onset) %>%

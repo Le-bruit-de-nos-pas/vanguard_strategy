@@ -192,16 +192,6 @@ data.frame(ZAVUS24_Doses %>% filter(grepl("CGRP", drug_class)) %>%
              group_by(patid) %>% count() %>% ungroup() %>% rename("classes"="n") %>%
   group_by(classes) %>% count() %>% mutate(n=round(n/191,2)))
 
-#   classes    n
-# 1       1 0.13
-# 2       2 0.23
-# 3       3 0.27
-# 4       4 0.17
-# 5       5 0.10
-# 6       6 0.07
-# 7       7 0.02
-# 8       8 0.01
-
 
 ZAVUS24_Doses %>% filter(grepl("CGRP", drug_class)) %>% 
   group_by(patid) %>% count() %>% ungroup() %>% rename("classes"="n") %>% summarise(mean=mean(classes)) # 3.2
@@ -219,12 +209,7 @@ ZAVUS24_Doses %>% select(patid) %>% distinct() %>% left_join(
 )  %>% mutate(classes=ifelse(is.na(classes),0,classes)) %>%
   group_by(classes) %>% count() %>% mutate(n=round(n/191,2)))
 
-#   classes    n
-# 1       0 0.32
-# 2       1 0.37
-# 3       2 0.20
-# 4       3 0.07
-# 5       4 0.03
+
 
 ZAVUS24_Doses %>% select(patid) %>% distinct() %>% left_join(
   ZAVUS24_Doses %>% filter(grepl("Triptan", drug_class)) %>%
@@ -246,14 +231,6 @@ ZAVUS24_Doses %>% select(patid) %>% distinct() %>% left_join(
 )  %>% mutate(classes=ifelse(is.na(classes),0,classes)) %>%
   group_by(classes) %>% count() %>% mutate(n=round(n/191,2)))
 
-# 1       0 0.19
-# 2       1 0.28
-# 3       2 0.21
-# 4       3 0.18
-# 5       4 0.08
-# 6       5 0.04
-# 7       6 0.01
-# 8       8 0.01
 
 ZAVUS24_Doses %>% select(patid) %>% distinct() %>% left_join(
   ZAVUS24_Doses %>% filter(grepl("NSAID", drug_class)) %>%
@@ -275,16 +252,6 @@ ZAVUS24_Doses %>% select(patid) %>% distinct() %>% left_join(
 )  %>% mutate(classes=ifelse(is.na(classes),0,classes)) %>%
   group_by(classes) %>% count() %>% mutate(n=round(n/191,2)))
 
-# 1        0 0.26
-# 2        1 0.16
-# 3        2 0.18
-# 4        3 0.12
-# 5        4 0.10
-# 6        5 0.08
-# 7        6 0.03
-# 8        7 0.04
-# 9        8 0.03
-# 10       9 0.01
 
 ZAVUS24_Doses %>% select(patid) %>% distinct() %>% left_join(
   ZAVUS24_Doses %>% filter(grepl("Opioid", drug_class)) %>%
@@ -721,12 +688,6 @@ ZAVUS24_Drug_Histories <- ZAVUS24_Drug_Histories %>% group_by(patient, drug_grou
 ZAVUS24_Drug_Histories %>% ungroup() %>% group_by(drug_group) %>% summarise(mean=mean(n))
 
 
-#   drug_group       mean
-# 1 CGRP Injectable  19.8
-# 2 CGRP Oral        10.0
-# 3 Preventive       27.4
-# 4 Symptomatic      19.1
-# 5 Triptans         14.7
 
 ZAVUS24_Drug_Histories %>% ungroup() %>%
   mutate(drug_group=factor(drug_group, levels=c( "CGRP Oral", "Triptans",  "Symptomatic",  "CGRP Injectable","Preventive" ))) %>%
@@ -1258,8 +1219,7 @@ fwrite(MIGUS24_Drug_Histories, "Source/MIGUS24_Drug_Histories_Extended.txt")
 
 All_pats <- MIGUS24_Drug_Histories %>%  select(patid, version, weight) %>% distinct()
 All_pats %>% group_by(version) %>% summarise(n=sum(weight))
-# 1 NEW_ZAV 21292150.
-# 2 OLD_ZAV      218 
+
 
 MIGUS24_Drug_Histories <- gather(MIGUS24_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
 MIGUS24_Drug_Histories <- MIGUS24_Drug_Histories %>% filter(Treat!="-")
@@ -2011,8 +1971,6 @@ MIGUS24_Doses_version_NS %>% mutate(from_dt=as.Date(from_dt)) %>%
   select(patid, days_sup, qty) %>% distinct() %>%
   summarise(days_sup=mean(days_sup), qty=mean(qty))
 
-#   days_sup   qty
-# 1     105.  30.8
 
 
 MIGUS24_Doses_version_NS %>% mutate(from_dt=as.Date(from_dt)) %>%
@@ -4149,16 +4107,6 @@ unique(df$group)
 df %>% select(patient, weight, First_SUMA, group) %>% distinct() %>%
   group_by(group) %>% summarise(n=sum(weight))
 
-# 1     1 2087974.
-# 2     2 2342256.
-# 3     3 1224009.
-# 4     4  365483.
-# 5     5  129890.
-# 6     6   22096.
-# 7     7    3498.
-# 8     8     517.
-# 9    10     185.
-
 
 
 unique(df$group)
@@ -4715,17 +4663,6 @@ temp %>%
   filter(!grepl("Z",s1) & grepl("Z",s2)) %>% 
   distinct() %>% group_by(Box) %>% count() %>% mutate(n=n/192) # 10% missing
 
-# 1 Acute      0.0625
-# 2 CGRP_Inj   0.219 
-# 3 CGRP_Oral  0.417 
-# 4 Prev       0.0521
-# 5 Prev_Acute 0.0469
-# 6 Prev_Sympt 0.0417
-# 7 Sympt      0.0625
-# 8 Lapsed missing
-
-
-
 
 
 
@@ -4782,13 +4719,6 @@ temp %>% select(patient, p2, s1, s2, Box) %>%
   distinct() %>% group_by(Box) %>% count() %>% mutate(n=n/54) # 11% missing
 
 
-# 1 Acute      0.0370
-# 2 CGRP_Inj   0.204 
-# 3 CGRP_Oral  0.426 
-# 4 Prev       0.0185
-# 5 Prev_Acute 0.0556
-# 6 Prev_Sympt 0.111 
-# 7 Sympt      0.0370
 # -------------
 # Zavegepant  patients waterfall ON January 2024 W/O Comorbidity --------------
 

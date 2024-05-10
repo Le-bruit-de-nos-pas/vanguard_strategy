@@ -13,8 +13,6 @@ RIME_Demographics <-
 length(unique(RIME_Demographics$patid)) #314065
 sum(as.numeric(RIME_Demographics$weight)) #27510192
 
-#205974
-#19043067
 RIME_Demographics %>% filter(diagnosis != "-") %>% select(patid, weight) %>% 
   distinct() %>% summarise(n = sum(as.numeric(weight))) 
 
@@ -50,15 +48,6 @@ RIME_Demographics %>%
                                                 ifelse(lag_months>48&lag_months<=60, "48 to 60 months","> 60 months")))))) %>%
   group_by(lag_bins) %>% summarise(pats_sum = sum(as.numeric(weight)))
 
-# lag_bins        pats_sum
-# <chr>              <dbl>
-# 1 < 12 months      2125658
-# 2 > 60 months     6054861
-# 3 12 to 24 months 2058852
-# 4 24 to 36 months 2584025
-# 5 36 to 48 months 2736097
-# 6 48 to 60 months 3483575
-
 RIME_Demographics <- RIME_Demographics %>% filter(diagnosis != "-") %>% select(patid, weight,migraine_latest) %>%
   mutate(migraine_latest = as.Date(migraine_latest))
 
@@ -71,16 +60,6 @@ RIME_Demographics %>%
                                                 ifelse(lag_months>48&lag_months<=60, "48 to 60 months","> 60 months")))))) %>%
   group_by(lag_bins) %>% summarise(pats_sum = sum(as.numeric(weight)))
 
-# lag_bins        pats_sum
-# <chr>              <dbl>
-#   1 < 12 months     8571848.
-# 2 > 60 months     1246036.
-# 3 12 to 24 months 2870420.
-# 4 24 to 36 months 2477261.
-# 5 36 to 48 months 2041700.
-# 6 48 to 60 months 1835802.
-
-
 
 
 
@@ -91,28 +70,28 @@ RIME_Demographics <- read.table("RIME Demographics.txt", header = T, sep="\t",co
 RIME_Demographics <- RIME_Demographics %>% filter(diagnosis != "-") %>% select(patid, weight, diagnosis)
 
 RIME_Demographics %>% filter(grepl("Intractable",diagnosis)) %>% 
-  summarise(pop = sum(as.numeric(weight))) #3713117
+  summarise(pop = sum(as.numeric(weight))) #
 
 RIME_Demographics %>% filter(grepl("Aura",diagnosis)) %>% 
-  summarise(pop = sum(as.numeric(weight))) #4949797
+  summarise(pop = sum(as.numeric(weight))) #
 
 RIME_Demographics %>% filter(grepl("Severe",diagnosis)) %>% 
-  summarise(pop = sum(as.numeric(weight))) #2210271
+  summarise(pop = sum(as.numeric(weight))) #
 
 RIME_Demographics %>% filter(grepl("Chronic",diagnosis)) %>% 
-  summarise(pop = sum(as.numeric(weight))) #2900046
+  summarise(pop = sum(as.numeric(weight))) #
 
 RIME_Demographics %>% filter(grepl("Targeted Therapy",diagnosis)) %>% 
-  summarise(pop = sum(as.numeric(weight))) #7465768
+  summarise(pop = sum(as.numeric(weight))) #
 
 RIME_Demographics %>% filter(grepl("CGRP Oral",diagnosis)) %>% 
-  summarise(pop = sum(as.numeric(weight))) #129664.2
+  summarise(pop = sum(as.numeric(weight))) #
 
 RIME_Demographics %>% filter(grepl("CGRP Injectable",diagnosis)) %>% 
-  summarise(pop = sum(as.numeric(weight))) #617393.5
+  summarise(pop = sum(as.numeric(weight))) #
 
 RIME_Demographics %>% filter(grepl("CGRP Combined",diagnosis)) %>% 
-  summarise(pop = sum(as.numeric(weight))) #107981.9
+  summarise(pop = sum(as.numeric(weight))) #
 
 107981.9+617393.5+129664.2
 
@@ -164,107 +143,6 @@ RIME_Events_number <- RIME_Events %>% select(patid, weight, code) %>% group_by(p
 
 data.frame(RIME_Events_number %>% ungroup() %>% group_by(n) %>% summarise(count = n()) %>% filter(n <=100))
 
-# n count
-# 1     1 74459
-# 2     2 32744
-# 3     3 19308
-# 4     4 13277
-# 5     5  9663
-# 6     6  7519
-# 7     7  5722
-# 8     8  4555
-# 9     9  3897
-# 10   10  3201
-# 11   11  2664
-# 12   12  2325
-# 13   13  1965
-# 14   14  1660
-# 15   15  1391
-# 16   16  1232
-# 17   17  1050
-# 18   18   981
-# 19   19   834
-# 20   20   716
-# 21   21   721
-# 22   22   658
-# 23   23   532
-# 24   24   526
-# 25   25   454
-# 26   26   482
-# 27   27   420
-# 28   28   366
-# 29   29   299
-# 30   30   320
-# 31   31   294
-# 32   32   261
-# 33   33   239
-# 34   34   197
-# 35   35   198
-# 36   36   208
-# 37   37   189
-# 38   38   167
-# 39   39   160
-# 40   40   156
-# 41   41   149
-# 42   42   139
-# 43   43   143
-# 44   44   123
-# 45   45   139
-# 46   46   111
-# 47   47   111
-# 48   48   102
-# 49   49    96
-# 50   50    87
-# 51   51    95
-# 52   52    76
-# 53   53    80
-# 54   54    67
-# 55   55    76
-# 56   56    64
-# 57   57    76
-# 58   58    50
-# 59   59    59
-# 60   60    61
-# 61   61    54
-# 62   62    56
-# 63   63    47
-# 64   64    43
-# 65   65    36
-# 66   66    40
-# 67   67    35
-# 68   68    45
-# 69   69    35
-# 70   70    26
-# 71   71    27
-# 72   72    25
-# 73   73    22
-# 74   74    19
-# 75   75    18
-# 76   76    26
-# 77   77    27
-# 78   78    19
-# 79   79    21
-# 80   80    15
-# 81   81    13
-# 82   82    23
-# 83   83     9
-# 84   84    14
-# 85   85    15
-# 86   86    21
-# 87   87     6
-# 88   88    10
-# 89   89    13
-# 90   90     9
-# 91   91     9
-# 92   92    15
-# 93   93    11
-# 94   94     8
-# 95   95     6
-# 96   96     3
-# 97   97     8
-# 98   98     8
-# 99   99     9
-# 100 100     9
 
 RIME_Events <- RIME_Events %>% mutate(claimed = as.Date(claimed))
 RIME_Events <- RIME_Events %>% select(patid, claimed) %>% group_by(patid) 
@@ -299,16 +177,6 @@ RIME_Events %>% mutate(lags = as.numeric(lags)) %>% filter(!is.na(lags)) %>% ung
         panel.background = element_blank(),
         axis.text.x = element_text(angle = 45, vjust = 0.9, hjust=1))
 
-# bins               n
-# <chr>          <int>
-# 1 <1 Month      413636
-# 2 >4 years        3122
-# 3 1 - 2 years    64012
-# 4 1 - 3 Months  182905
-# 5 2 - 3 years    16946
-# 6 3 - 4 years     6461
-# 7 3 - 6 Months  120294
-# 8 6 - 12 Months  93277
 
 # The complete distribution:
 RIME_Events <- read.table("RIME Events.txt", header = T, sep="\t",colClasses = "character", stringsAsFactors = FALSE)
@@ -382,140 +250,6 @@ plots <- data.frame(MIG_Drug_Histories %>%
 plots[[2]]
 
 
-# molecule       pats   percentage          generic_name      drug_class
-# 1         27  183992.16 1.0037539269        Oxygen Therapy       Analgesic
-# 2         28   39013.46 0.2128346864               Timolol       Analgesic
-# 3         25   20765.23 0.1132829853     Magnesium Sulfate       Analgesic
-# 4         26   10825.86 0.0590595789 Occipital Nerve Block       Analgesic
-# 5         24    9567.65 0.0521955189              Ketamine       Analgesic
-# 6         29     418.07 0.0022807461       Pain Management       Analgesic
-# 7         54  622220.13 3.3944701713           Ondansetron      Antiemetic
-# 8         52  286586.52 1.5634489254           Hydroxyzine      Antiemetic
-# 9         55  186509.36 1.0174863021          Promethazine      Antiemetic
-# 10        53   96296.04 0.5253350376        Metoclopramide      Antiemetic
-# 11        51    3735.64 0.0203794733            Dronabinol      Antiemetic
-# 12        57     425.51 0.0023213344    Antiemetic Therapy      Antiemetic
-# 13        56     405.53 0.0022123352     Trimethobenzamide      Antiemetic
-# 14        86 1150670.45 6.2773869426            Gabapentin   Antiepileptic
-# 15        92  848685.21 4.6299315809            Topiramate   Antiepileptic
-# 16        85  408054.82 2.2261091340            Clonazepam   Antiepileptic
-# 17        87  362635.42 1.9783273747           Lamotrigine   Antiepileptic
-# 18        91  256265.11 1.3980329949            Pregabalin   Antiepileptic
-# 19        88  150734.49 0.8223194741         Levetiracetam   Antiepileptic
-# 20        93  116785.96 0.6371160921             Valproate   Antiepileptic
-# 21        90   63654.17 0.3472600305         Oxcarbazepine   Antiepileptic
-# 22        94   56897.83 0.3104013796            Zonisamide   Antiepileptic
-# 23        89   53450.20 0.2915931208             Memantine   Antiepileptic
-# 24        84   52075.76 0.2840949777         Carbamazepine   Antiepileptic
-# 25        83   29158.59 0.1590722627         Acetazolamide   Antiepileptic
-# 26        66   57841.05 0.3155470378      Prochlorperazine   Antipsychotic
-# 27        65   55428.07 0.3023832261            Olanzapine   Antipsychotic
-# 28        64   18258.23 0.0996062553           Haloperidol   Antipsychotic
-# 29        63    5822.15 0.0317622551            Droperidol   Antipsychotic
-# 30        62    4349.03 0.0237257715        Chlorpromazine   Antipsychotic
-# 31       102 1086956.31 5.9297997507            Metoprolol    Beta Blocker
-# 32       106  488211.98 2.6633998540           Propranolol    Beta Blocker
-# 33       100  250237.32 1.3651488879              Atenolol    Beta Blocker
-# 34       101   52850.95 0.2883239623            Bisoprolol    Beta Blocker
-# 35       104   44805.68 0.2444336609             Nebivolol    Beta Blocker
-# 36       103   33968.91 0.1853145634               Nadolol    Beta Blocker
-# 37       105    1617.52 0.0088242458              Pindolol    Beta Blocker
-# 38       111  171097.55 0.9334084544             Verapamil Calcium Blocker
-# 39       107  144885.79 0.7904123777             Diltiazem Calcium Blocker
-# 40       109   78611.70 0.4288595915            Nifedipine Calcium Blocker
-# 41       110     289.35 0.0015785249            Nimodipine Calcium Blocker
-# 42       108     170.39 0.0009295485           Nicardipine Calcium Blocker
-# 43        97 1158464.51 6.3199067887            Lisinopril  Cardiovascular
-# 44        99   50913.78 0.2777558925           Telmisartan  Cardiovascular
-# 45        95   25795.35 0.1407243866           Candesartan  Cardiovascular
-# 46        96   14389.22 0.0784991930            Guanfacine  Cardiovascular
-# 47        98    2074.40 0.0113167167      Methylergonovine  Cardiovascular
-# 48       138  196592.34 1.0724931610              Erenumab CGRP Injectable
-# 49       140  178241.76 0.9723830979          Galcanezumab CGRP Injectable
-# 50       139   16132.78 0.0880110396          Fremanezumab CGRP Injectable
-# 51       137    6668.79 0.0363810292           Eptinezumab CGRP Injectable
-# 52       136   90385.76 0.4930919966            Ubrogepant       CGRP Oral
-# 53       135   24085.66 0.1313973150            Rimegepant       CGRP Oral
-# 54        77    4167.69 0.0227364862            Lasmiditan           Ditan
-# 55        68    3423.52 0.0186767286     Dihydroergotamine           Ergot
-# 56        69    2070.02 0.0112928220            Ergotamine           Ergot
-# 57        67    3862.93 0.0210738933       Hospitalization Hospitalization
-# 58        80  447827.40 2.4430851364       Cyclobenzaprine Muscle Relaxant
-# 59        82  413756.80 2.2572158117            Tizanidine Muscle Relaxant
-# 60        78  211767.66 1.1552808571              Baclofen Muscle Relaxant
-# 61        79  121222.37 0.6613185579             Clonidine Muscle Relaxant
-# 62        81   15607.72 0.0851466184        Cyproheptadine Muscle Relaxant
-# 63       132  297669.87 1.6239132196       Botulinum Toxin          Neural
-# 64       134    7992.08 0.0436001278      Neurostimulation          Neural
-# 65       133     289.77 0.0015808161   Nerve Decompression          Neural
-# 66        13  410885.13 2.2415496548             Meloxicam           NSAID
-# 67         7  313135.40 1.7082841323             Ibuprofen           NSAID
-# 68        10  283585.22 1.5470755829             Ketorolac           NSAID
-# 69         2  204721.36 1.1168403535            Diclofenac           NSAID
-# 70         1  176062.86 0.9604962902             Celecoxib           NSAID
-# 71        15  137426.26 0.7497175322              Naproxen           NSAID
-# 72         8   25880.32 0.1411879334          Indomethacin           NSAID
-# 73        14   22929.06 0.1250875799            Nabumetone           NSAID
-# 74         4   16862.91 0.0919942031              Etodolac           NSAID
-# 75        20    5387.66 0.0293919311              Sulindac           NSAID
-# 76        18    3261.11 0.0177907144             Piroxicam           NSAID
-# 77        16    1018.35 0.0055555237             Oxaprozin           NSAID
-# 78        12    1000.01 0.0054554714        Mefenamic Acid           NSAID
-# 79         6     833.74 0.0045483992          Flurbiprofen           NSAID
-# 80         9     727.35 0.0039679974            Ketoprofen           NSAID
-# 81         3     712.03 0.0038844204            Diflunisal           NSAID
-# 82        19     634.46 0.0034612438             Salsalate           NSAID
-# 83         5     188.38 0.0010276914            Fenoprofen           NSAID
-# 84        11     109.46 0.0005971499         Meclofenamate           NSAID
-# 85        60  248040.23 1.3531628461            Butalbital        Sedative
-# 86        61  170695.31 0.9312140676              Diazepam        Sedative
-# 87       128  665069.10 3.6282291635            Duloxetine            SNRI
-# 88       131  463022.53 2.5259809044           Venlafaxine            SNRI
-# 89       127   92523.03 0.5047516953        Desvenlafaxine            SNRI
-# 90       130   15530.73 0.0847266059           Milnacipran            SNRI
-# 91       129    6689.24 0.0364925925       Levomilnacipran            SNRI
-# 92       122 1219001.05 6.6501588481            Citalopram            SSRI
-# 93       126  882156.38 4.8125307651            Sertraline            SSRI
-# 94       123  565595.33 3.0855582842            Fluoxetine            SSRI
-# 95       125  170688.51 0.9311769707            Paroxetine            SSRI
-# 96       124   18764.92 0.1023704604          Fluvoxamine             SSRI
-# 97        59  443274.82 2.4182489148            Prednisone         Steroid
-# 98        58  293844.49 1.6030441771         Dexamethasone         Steroid
-# 99        44  571929.22 3.1201122943             Oxycodone   Strong Opioid
-# 100       36  211761.20 1.1552456151              Fentanyl   Strong Opioid
-# 101       41  186370.73 1.0167300177              Morphine   Strong Opioid
-# 102       37  120190.57 0.6556896588         Hydromorphone   Strong Opioid
-# 103       34   44012.57 0.2401069153         Buprenorphine   Strong Opioid
-# 104       40   22025.64 0.1201590472             Methadone   Strong Opioid
-# 105       48   18275.97 0.0997030344            Tapentadol   Strong Opioid
-# 106       39    9077.07 0.0495192005            Meperidine   Strong Opioid
-# 107       35    6732.37 0.0367278846           Butorphanol   Strong Opioid
-# 108       46    5101.97 0.0278333730           Pentazocine   Strong Opioid
-# 109       45    4052.33 0.0221071493           Oxymorphone   Strong Opioid
-# 110       43    1896.18 0.0103444523                 Opium   Strong Opioid
-# 111       42    1077.07 0.0058758658            Nalbuphine   Strong Opioid
-# 112       38     677.50 0.0036960449           Levorphanol   Strong Opioid
-# 113       47     340.04 0.0018550599            Sufentanil   Strong Opioid
-# 114      112  464046.63 2.5315677968         Amitriptyline       Tricyclic
-# 115      119  189953.23 1.0362740485         Nortriptyline       Tricyclic
-# 116      116   56326.83 0.3072863366               Doxepin       Tricyclic
-# 117      117   12630.39 0.0689040422            Imipramine       Tricyclic
-# 118      115    4197.16 0.0228972573           Desipramine       Tricyclic
-# 119      114    3330.00 0.0181665381          Clomipramine       Tricyclic
-# 120      120    1210.55 0.0066040548         Protriptyline       Tricyclic
-# 121      113     193.97 0.0010581872             Amoxapine       Tricyclic
-# 122       75  809630.19 4.4168701674           Sumatriptan         Triptan
-# 123       74  369663.01 2.0166658074           Rizatriptan         Triptan
-# 124       71   93730.96 0.5113414570            Eletriptan         Triptan
-# 125       73   51739.92 0.2822628305           Naratriptan         Triptan
-# 126       76   49753.60 0.2714266270          Zolmitriptan         Triptan
-# 127       72   11633.75 0.0634669556          Frovatriptan         Triptan
-# 128       70    5270.81 0.0287544656           Almotriptan         Triptan
-# 129       32  633294.56 3.4548858031           Hydrocodone     Weak Opioid
-# 130       33  359164.72 1.9593932595              Tramadol     Weak Opioid
-# 131       30  127077.01 0.6932580595               Codeine     Weak Opioid
-# 132       31     419.07 0.0022862015        Dihydrocodeine     Weak Opioid
-
 # ----
 # Class Pentrance Month 60 --------------------------------------------------------
 RIME_Ingredients <- read.table("RIME Ingredients.txt", header = T, sep="\t", quote="", colClasses = "character", stringsAsFactors = FALSE)
@@ -532,31 +266,6 @@ MIG_Drug_Histories <- MIG_Drug_Histories %>% distinct()
 
 data.frame(MIG_Drug_Histories %>% group_by(drug_class) %>% summarise(sum_weights = sum(as.numeric(weight))) %>%
   mutate(sum_weights_percent = (sum_weights / 18330405)*100))
-
-# drug_class sum_weights sum_weights_percent
-# 1        Analgesic   261529.27          1.42675118
-# 2       Antiemetic  1066586.70          5.81867504
-# 3    Antiepileptic  2909669.45         15.87345970
-# 4    Antipsychotic   135166.96          0.73739211
-# 5     Beta Blocker  1949715.57         10.63651114
-# 6  Calcium Blocker   394018.54          2.14953538
-# 7   Cardiovascular  1250172.18          6.82021036
-# 8  CGRP Injectable   396907.85          2.16529777
-# 9        CGRP Oral   113762.19          0.62062017
-# 10           Ditan     4167.69          0.02273649
-# 11           Ergot     5493.54          0.02996955
-# 12 Hospitalization     3862.93          0.02107389
-# 13 Muscle Relaxant  1148149.07          6.26363176
-# 14          Neural   305631.59          1.66734772
-# 15           NSAID  1483922.36          8.09541502
-# 16        Sedative   407906.63          2.22530070
-# 17            SNRI  1233776.71          6.73076623
-# 18            SSRI  2840079.70         15.49381860
-# 19         Steroid   709709.76          3.87176257
-# 20   Strong Opioid   946072.81          5.16122153
-# 21       Tricyclic   727807.32          3.97049230
-# 22         Triptan  1350879.24          7.36960935
-# 23     Weak Opioid  1071808.60          5.84716268
 
 
 # ----
@@ -596,27 +305,6 @@ MIG_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=su
 data.frame(MIG_Drug_Histories %>% group_by(drug_class) %>% summarise(sum_weights = sum(as.numeric(weight))) %>%
              mutate(sum_weights_percent = (sum_weights / 24086)*100))
 
-drug_class sum_weights sum_weights_percent
-1        Analgesic     1196.10            4.965955
-2       Antiemetic     5209.08           21.627003
-3    Antiepileptic    14136.62           58.692269
-4    Antipsychotic     1265.66            5.254754
-5     Beta Blocker     5062.03           21.016483
-6  Calcium Blocker      674.49            2.800340
-7   Cardiovascular     1714.03            7.116292
-8  CGRP Injectable     8772.09           36.419870
-9        CGRP Oral    24794.89          102.943162
-10 Muscle Relaxant     5739.57           23.829486
-11          Neural     6299.89           26.155817
-12           NSAID     5742.80           23.842896
-13        Sedative     1807.00            7.502283
-14            SNRI     3908.40           16.226854
-15            SSRI     4831.34           20.058706
-16         Steroid     2211.94            9.183509
-17   Strong Opioid     5210.93           21.634684
-18       Tricyclic     3226.81           13.397036
-19         Triptan     5661.15           23.503903
-20     Weak Opioid     3739.33           15.524911
 
 
 RIME_Ingredients <- read.table("RIME Ingredients.txt", header = T, sep="\t", quote="", colClasses = "character", stringsAsFactors = FALSE)
@@ -634,32 +322,6 @@ MIG_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=su
 
 data.frame(MIG_Drug_Histories %>% group_by(drug_class) %>% summarise(sum_weights = sum(as.numeric(weight))) %>%
              mutate(sum_weights_percent = (sum_weights / 90386)*100))
-
-drug_class sum_weights sum_weights_percent
-1        Analgesic     2544.12           2.8147279
-2       Antiemetic    15075.13          16.6786117
-3    Antiepileptic    45189.41          49.9960281
-4    Antipsychotic     1476.34           1.6333724
-5     Beta Blocker    14913.23          16.4994911
-6  Calcium Blocker     3495.44           3.8672361
-7   Cardiovascular     4613.18           5.1038656
-8  CGRP Injectable    25781.39          28.5236541
-9        CGRP Oral    91094.99         100.7844025
-10           Ditan      452.18           0.5002766
-11           Ergot      134.23           0.1485075
-12 Muscle Relaxant    16703.14          18.4797867
-13          Neural    18743.78          20.7374815
-14           NSAID    16463.39          18.2145354
-15        Sedative     7457.12           8.2503043
-16            SNRI    14610.13          16.1641515
-17            SSRI    19362.84          21.4223884
-18         Steroid     7226.51           7.9951652
-19   Strong Opioid    10339.33          11.4390835
-20       Tricyclic    10951.80          12.1166995
-21         Triptan    19805.39          21.9120107
-22     Weak Opioid     9129.22          10.1002589
-
-
 
 # ----
 # Ever Treated pats # 18330405 ----------------------------------------------------------------
@@ -702,31 +364,6 @@ MIG_Drug_Histories <- MIG_Drug_Histories %>% distinct()
 data.frame(MIG_Drug_Histories %>% group_by(drug_class) %>% summarise(sum_weights = sum(as.numeric(weight))) %>%
   mutate(sum_weights_percent = (sum_weights / 18330405)*100)) %>% arrange(-sum_weights_percent)
 
-# drug_class sum_weights sum_weights_percent
-# 1            NSAID 13065245.04         71.27635772
-# 2       Antiemetic 11502394.35         62.75035576
-# 3          Steroid 10853746.95         59.21171382
-# 4      Weak Opioid 10358393.50         56.50935427
-# 5    Strong Opioid  8732478.90         47.63931239
-# 6    Antiepileptic  7713237.11         42.07892357
-# 7          Triptan  7529135.68         41.07457353
-# 8  Muscle Relaxant  7119433.88         38.83947943
-# 9             SSRI  6578027.17         35.88588015
-# 10    Beta Blocker  4325126.06         23.59536551
-# 11        Sedative  4211832.11         22.97729979
-# 12            SNRI  3072405.04         16.76125017
-# 13       Tricyclic  3030335.58         16.53174373
-# 14  Cardiovascular  2647254.62         14.44187742
-# 15   Antipsychotic  1829906.24          9.98290131
-# 16       Analgesic  1562837.38          8.52592935
-# 17 Calcium Blocker  1142443.18          6.23250376
-# 18          Neural  1008213.67          5.50022583
-# 19 CGRP Injectable   717432.00          3.91389061
-# 20 Hospitalization   268471.17          1.46462214
-# 21       CGRP Oral   226163.12          1.23381409
-# 22           Ergot   110151.57          0.60092273
-# 23           Ditan    12544.25          0.06843411
-
 MIG_Drug_Histories <- MIG_Drug_Histories %>% group_by(patient) %>%
   mutate(grp = rle(drug_class)$lengths %>% {rep(seq(length(.)), .)})
 
@@ -734,30 +371,6 @@ MIG_Drug_Histories <- MIG_Drug_Histories %>% select(patient, weight, grp)
 MIG_Drug_Histories <- MIG_Drug_Histories %>% group_by(patient, weight) %>% summarize(across(everything(), max))
 data.frame(MIG_Drug_Histories %>% ungroup() %>% group_by(grp) %>% summarise(total=sum(as.numeric(weight))))
 MIG_Drug_Histories %>% ungroup() %>% summarise(weighted.mean(as.numeric(grp), as.numeric(weight)))
-
-# grp      total
-# 1    1 1242316.86
-# 2    2 1666792.55
-# 3    3 1884842.98
-# 4    4 2059681.17
-# 5    5 2147959.29
-# 6    6 2047724.58
-# 7    7 1862808.07
-# 8    8 1613379.58
-# 9    9 1282336.08
-# 10  10  949617.44
-# 11  11  674147.21
-# 12  12  423364.48
-# 13  13  233256.78
-# 14  14  125232.10
-# 15  15   61388.59
-# 16  16   28826.04
-# 17  17   14944.20
-# 18  18    7289.04
-# 19  19    2134.17
-# 20  20    1126.49
-# 21  21    1152.48
-# 22  22      84.34
 
 # ----
 # How many patients have tried x # of triptans/opioids/NSAID in the last 5 years? --------------
@@ -796,17 +409,6 @@ MIG_Drug_Histories_Triptans <- MIG_Drug_Histories_Triptans %>% group_by(patient,
 MIG_Drug_Histories_Triptans %>% ungroup() %>% group_by(grp) %>% summarise(total=sum(as.numeric(weight)))
 MIG_Drug_Histories_Triptans %>% ungroup() %>% summarise(weighted.mean(as.numeric(grp), as.numeric(weight)))
 
-# grp    total
-# <int>    <dbl>
-# 1     1 6304912.
-# 2     2 1022071.
-# 3     3  162700.
-# 4     4   32614.
-# 5     5    4929.
-# 6     6    1745.
-# 7     7     165.
-# 
-# w mean =  1.20
 
 
 MIG_Drug_Histories_NSAID <- MIG_Drug_Histories_NSAID %>% select(patient, weight, grp)
@@ -814,42 +416,11 @@ MIG_Drug_Histories_NSAID <- MIG_Drug_Histories_NSAID %>% group_by(patient, weigh
 MIG_Drug_Histories_NSAID %>% ungroup() %>% group_by(grp) %>% summarise(total=sum(as.numeric(weight)))
 MIG_Drug_Histories_NSAID %>% ungroup() %>% summarise(weighted.mean(as.numeric(grp), as.numeric(weight)))
 
-# grp    total
-# <int>    <dbl>
-# 1     1 5857049.
-# 2     2 3943918.
-# 3     3 2032276.
-# 4     4  848635.
-# 5     5  289647.
-# 6     6   72745.
-# 7     7   17503.
-# 8     8    2572.
-# 9     9     599.
-# 10    10     300.
-# 
-# w mean = 1.93
-
 
 MIG_Drug_Histories_Opioid <- MIG_Drug_Histories_Opioid %>% select(patient, weight, grp)
 MIG_Drug_Histories_Opioid <- MIG_Drug_Histories_Opioid %>% group_by(patient, weight) %>% summarize(across(everything(), max))
 MIG_Drug_Histories_Opioid %>% ungroup() %>% group_by(grp) %>% summarise(total=sum(as.numeric(weight)))
 MIG_Drug_Histories_Opioid %>% ungroup() %>% summarise(weighted.mean(as.numeric(grp), as.numeric(weight)))
-
-# grp    total
-# <int>    <dbl>
-# 1     1 4703469.
-# 2     2 3133733.
-# 3     3 2187334.
-# 4     4 1436276.
-# 5     5  848648.
-# 6     6  434177.
-# 7     7  163892.
-# 8     8   41597.
-# 9     9   10599.
-# 10    10    1615.
-# 11    11     632.
-# 
-# w mean = 2.45
 
 # ----
 # Number of lines per stock on month 60 ----------------------------------------------
@@ -877,30 +448,10 @@ data.frame(MIG_Box_Stocks %>% filter(period == "60") %>%
 MIG_Box_Stocks %>% filter(period == "60") %>% mutate(line_of_therapy = as.numeric(line_of_therapy)) %>% mutate(pats = as.numeric(pats)) %>% group_by(box) %>%
   summarise(wa = weighted.mean(line_of_therapy, pats))
 
-# box                           wa
-# <chr>                      <dbl>
-# 1 Acute                       6.94
-# 2 CGRP Injectable            15.5 
-# 3 CGRP Oral                  15.3 
-# 4 Lapsed                      6.05
-# 5 Preventative                8.90
-# 6 Preventative + Acute       12.1 
-# 7 Preventative + Symptomatic 13.8 
-# 8 Symptomatic                 9.58
+
 
 MIG_Box_Stocks %>% filter(period == "60") %>% mutate(line_of_therapy = as.numeric(line_of_therapy)) %>% mutate(pats = as.numeric(pats)) %>% group_by(box) %>%
   summarise(wa = weighted.median(line_of_therapy, pats))
-
-# box                           wa
-# <chr>                      <dbl>
-# 1 Acute                        5.5
-# 2 CGRP Injectable             14.5
-# 3 CGRP Oral                   14.5
-# 4 Lapsed                       4.5
-# 5 Preventative                 7.5
-# 6 Preventative + Acute        10.5
-# 7 Preventative + Symptomatic  12.5
-# 8 Symptomatic                  8.5
 
 
 Marimekko_StocksByLineOfTherapy <-  MIG_Box_Stocks %>% filter(period == "60") %>% 
@@ -928,10 +479,6 @@ data.frame(MIG_Box_Stocks %>% filter(period == "60") %>%
   mutate(total_pats_line = sum(as.numeric(pats)))%>%
   mutate(line_of_therapy_percent=((pats/total_pats_line))))
 
-#18330405
-1135087+1393426+1450104+1479007+ 1447739+11425039
-
-11425039/18330405
 
 
   #
@@ -943,8 +490,6 @@ MIG_Doses_BIG <- MIG_Doses_BIG %>% group_by(pat_id) %>% summarise(n=n())
 MIG_Doses_BIG <- MIG_Doses_BIG %>% mutate(n = as.numeric(n))
 
 data.frame(MIG_Doses_BIG %>% group_by(n) %>% summarise(n2 = n()))
-156865/197601
-
 
 
 # ----
@@ -998,14 +543,6 @@ MIG_Doses_m12 %>% ungroup() %>% select(pat_id, weight, pills_per_month) %>%
                                            ifelse(pills_per_month>=4, "Intermediate", "Acute"))) %>%
   group_by(frequency) %>% summarise(pats = sum(as.numeric(weight)))
 # 
-# frequency        pats
-# <chr>           <dbl>
-# 1 Acute        5268655.
-# 2 Chronic      3035866.
-# 3 Intermediate 3304581.
-
-3035866./(3035866.+5268655.+3304581.)
-
 library(spatstat)
 
 MIG_Doses_m12 %>% ungroup() %>% select(pat_id, weight, pills_per_month) %>% 
@@ -1028,44 +565,14 @@ MIG_Doses_m12 %>% ungroup() %>% select(pat_id, weight, pills_per_month_class) %>
                                            ifelse(pills_per_month_class>=4, "Episodic", "Acute"))) %>%
   group_by(frequency) %>% summarise(pats = sum(as.numeric(weight)))
 
-# frequency        pats
-# <chr>           <dbl>
-# 1 Acute        6111581
-# 2 Chronic      2499562
-# 3 Episodic     2997959
-
 length(unique(MIG_Doses_m12$pat_id))
 
 MIG_Doses_m12 %>% ungroup() %>% select(pat_id, weight, drug_class, pills_per_month_class) %>% distinct() %>%
   group_by(drug_class) %>% summarise(mean_month = weighted.mean(pills_per_month_class, as.numeric(weight)))
 
-# drug_class    mean_month
-# <chr>              <dbl>
-# 1 Antiemetic          4.01
-# 2 CGRP Oral           6.92
-# 3 Ditan               5.26
-# 4 Ergot               5.26
-# 5 NSAID               6.24
-# 6 Steroid             2.20
-# 7 Strong Opioid      10.1 
-# 8 Triptan             7.10
-# 9 Weak Opioid         5.78
-
 
 MIG_Doses_m12 %>% ungroup() %>% select(pat_id, weight, drug_class, pills_per_month_class) %>% distinct() %>%
   group_by(drug_class) %>% summarise(mean_month = weighted.median(pills_per_month_class, as.numeric(weight)))
-
-# drug_class    mean_month
-# <chr>              <dbl>
-# 1 Antiemetic         1.29 
-# 2 CGRP Oral          4.96 
-# 3 Ditan              2.42 
-# 4 Ergot              2.42 
-# 5 NSAID              2.46 
-# 6 Steroid            0.708
-# 7 Strong Opioid      3.21 
-# 8 Triptan            3.12 
-# 9 Weak Opioid        0.542
 
 
 MIG_Doses_dayssup_m12_perMonth_perclass <- MIG_Doses_m12 %>% ungroup() %>% 
@@ -1088,14 +595,6 @@ MIG_Doses_dayssup_m12_perMonth_perclass <- MIG_Doses_m12 %>% ungroup() %>%
 #                                            ifelse(pills_per_month>=4, "Episodic", "Acute"))) %>%
 #   group_by(frequency) %>% summarise(pats = sum(as.numeric(weight)))
 
-# frequency         pats
-# <chr>            <dbl>
-# 1 Acute        11223750.
-# 2 Chronic       2697317.
-# 3 Episodic  3464971.
-
-# 2697317/(2697317+11223750+3464971) #15.51%
-
 
 # MIG_Doses %>% filter(dayssup != "") %>% group_by(pat_id) %>% mutate(total_n_pills = sum(as.numeric(dayssup))) %>% ungroup() %>%
 #   group_by(pat_id, drug_class) %>%  mutate(total_n_pills_class = sum(as.numeric(dayssup))) %>% ungroup() %>% 
@@ -1104,18 +603,6 @@ MIG_Doses_dayssup_m12_perMonth_perclass <- MIG_Doses_m12 %>% ungroup() %>%
 #   select(pat_id, weight, drug_class, pills_per_month_class) %>% distinct() %>%
 #   group_by(drug_class) %>% summarise(mean_month = weighted.mean(pills_per_month_class, as.numeric(weight)))
 
-# drug_class    mean_month
-# <chr>              <dbl>
-# 1 CGRP Oral           1.45
-# 2 Ditan               1.03
-# 3 Ergot               1.49
-# 4 NSAID               2.94
-# 5 Strong Opioid       4.38
-# 6 Triptan             3.61
-# 7 Weak Opioid         2.58
-
-
-  
 
 
 
@@ -1141,31 +628,6 @@ data.frame(MIG_Drug_Histories %>%
              mutate(sum_weights_percent = (sum_weights / 18330405)*100) %>%
              filter(!is.na(drug_class)))
 
-# drug_class sum_weights sum_weights_percent
-# 1        Analgesic   261529.27          1.42675118
-# 2       Antiemetic  1066586.70          5.81867504
-# 3    Antiepileptic  2909669.45         15.87345970
-# 4    Antipsychotic   135166.96          0.73739211
-# 5     Beta Blocker  1949715.57         10.63651114
-# 6  Calcium Blocker   394018.54          2.14953538
-# 7   Cardiovascular  1250172.18          6.82021036
-# 8  CGRP Injectable   396907.85          2.16529777
-# 9        CGRP Oral   113762.19          0.62062017
-# 10           Ditan     4167.69          0.02273649
-# 11           Ergot     5493.54          0.02996955
-# 12 Hospitalization     3862.93          0.02107389
-# 13 Muscle Relaxant  1148149.07          6.26363176
-# 14          Neural   305631.59          1.66734772
-# 15           NSAID  1483922.36          8.09541502
-# 16        Sedative   407906.63          2.22530070
-# 17            SNRI  1233776.71          6.73076623
-# 18            SSRI  2840079.70         15.49381860
-# 19         Steroid   709709.76          3.87176257
-# 20   Strong Opioid   946072.81          5.16122153
-# 21       Tricyclic   727807.32          3.97049230
-# 22         Triptan  1350879.24          7.36960935
-# 23     Weak Opioid  1071808.60          5.84716268
-
 RIME_Demographics <- read.table("RIME Demographics.txt", header = T, sep="\t", quote="", colClasses = "character", stringsAsFactors = FALSE)
 RIME_Demographics <- RIME_Demographics %>% select(patid, weight, age)
 names(RIME_Demographics)[1] <- "patient"
@@ -1183,168 +645,6 @@ MIG_Drug_Histories <- MIG_Drug_Histories %>% mutate(age_group = ifelse(age>=18 &
 data.frame(MIG_Drug_Histories %>% group_by(drug_class, age_group) %>% 
              summarise(sum_weights = sum(as.numeric(weight.x))) %>% filter(!is.na(drug_class)) %>%
              ungroup() %>% group_by(drug_class) %>% mutate(total_weight=sum(sum_weights)))
-
-
-# drug_class age_group sum_weights total_weight
-# 1         Analgesic       +80    21887.10    261529.27
-# 2         Analgesic  18_to_29    10333.65    261529.27
-# 3         Analgesic  30_to_39    10454.24    261529.27
-# 4         Analgesic  40_to_49    24777.35    261529.27
-# 5         Analgesic  50_to_59    49328.56    261529.27
-# 6         Analgesic  60_to_69    95756.45    261529.27
-# 7         Analgesic  70_to_79    48991.92    261529.27
-# 8        Antiemetic       +80    16325.88   1066586.70
-# 9        Antiemetic  18_to_29   167798.41   1066586.70
-# 10       Antiemetic  30_to_39   160297.57   1066586.70
-# 11       Antiemetic  40_to_49   184767.55   1066586.70
-# 12       Antiemetic  50_to_59   234872.62   1066586.70
-# 13       Antiemetic  60_to_69   231998.54   1066586.70
-# 14       Antiemetic  70_to_79    70526.13   1066586.70
-# 15    Antiepileptic       +80    83574.99   2909669.45
-# 16    Antiepileptic  18_to_29   263745.12   2909669.45
-# 17    Antiepileptic  30_to_39   316983.43   2909669.45
-# 18    Antiepileptic  40_to_49   502858.70   2909669.45
-# 19    Antiepileptic  50_to_59   686964.94   2909669.45
-# 20    Antiepileptic  60_to_69   762623.10   2909669.45
-# 21    Antiepileptic  70_to_79   292919.17   2909669.45
-# 22    Antipsychotic       +80     2536.41    135166.96
-# 23    Antipsychotic  18_to_29    21311.28    135166.96
-# 24    Antipsychotic  30_to_39    19804.11    135166.96
-# 25    Antipsychotic  40_to_49    20800.03    135166.96
-# 26    Antipsychotic  50_to_59    30331.94    135166.96
-# 27    Antipsychotic  60_to_69    29594.34    135166.96
-# 28    Antipsychotic  70_to_79    10788.85    135166.96
-# 29     Beta Blocker       +80   131129.99   1949715.57
-# 30     Beta Blocker  18_to_29    92682.24   1949715.57
-# 31     Beta Blocker  30_to_39   150136.25   1949715.57
-# 32     Beta Blocker  40_to_49   265187.22   1949715.57
-# 33     Beta Blocker  50_to_59   425657.21   1949715.57
-# 34     Beta Blocker  60_to_69   561972.89   1949715.57
-# 35     Beta Blocker  70_to_79   322949.77   1949715.57
-# 36  Calcium Blocker       +80    27765.21    394018.54
-# 37  Calcium Blocker  18_to_29    17030.37    394018.54
-# 38  Calcium Blocker  30_to_39    30509.93    394018.54
-# 39  Calcium Blocker  40_to_49    53911.55    394018.54
-# 40  Calcium Blocker  50_to_59    78598.67    394018.54
-# 41  Calcium Blocker  60_to_69   117799.93    394018.54
-# 42  Calcium Blocker  70_to_79    68402.88    394018.54
-# 43   Cardiovascular       +80    63091.57   1250172.18
-# 44   Cardiovascular  18_to_29    25271.60   1250172.18
-# 45   Cardiovascular  30_to_39    64120.03   1250172.18
-# 46   Cardiovascular  40_to_49   184811.74   1250172.18
-# 47   Cardiovascular  50_to_59   325464.47   1250172.18
-# 48   Cardiovascular  60_to_69   385108.44   1250172.18
-# 49   Cardiovascular  70_to_79   202304.33   1250172.18
-# 50  CGRP Injectable       +80     1478.34    396907.85
-# 51  CGRP Injectable  18_to_29    51287.13    396907.85
-# 52  CGRP Injectable  30_to_39    63860.54    396907.85
-# 53  CGRP Injectable  40_to_49   101484.62    396907.85
-# 54  CGRP Injectable  50_to_59   102854.56    396907.85
-# 55  CGRP Injectable  60_to_69    62101.27    396907.85
-# 56  CGRP Injectable  70_to_79    13841.39    396907.85
-# 57        CGRP Oral       +80      477.18    113762.19
-# 58        CGRP Oral  18_to_29    10807.04    113762.19
-# 59        CGRP Oral  30_to_39    23032.34    113762.19
-# 60        CGRP Oral  40_to_49    30217.53    113762.19
-# 61        CGRP Oral  50_to_59    27128.77    113762.19
-# 62        CGRP Oral  60_to_69    18077.76    113762.19
-# 63        CGRP Oral  70_to_79     4021.57    113762.19
-# 64            Ditan  18_to_29      238.03      4167.69
-# 65            Ditan  30_to_39      826.87      4167.69
-# 66            Ditan  40_to_49     1328.52      4167.69
-# 67            Ditan  50_to_59     1319.49      4167.69
-# 68            Ditan  60_to_69      454.78      4167.69
-# 69            Ergot       +80      199.07      5493.54
-# 70            Ergot  18_to_29      134.23      5493.54
-# 71            Ergot  30_to_39      769.20      5493.54
-# 72            Ergot  40_to_49     1791.50      5493.54
-# 73            Ergot  50_to_59     1017.63      5493.54
-# 74            Ergot  60_to_69     1363.90      5493.54
-# 75            Ergot  70_to_79      218.01      5493.54
-# 76  Hospitalization       +80      132.77      3862.93
-# 77  Hospitalization  18_to_29      979.25      3862.93
-# 78  Hospitalization  30_to_39      573.60      3862.93
-# 79  Hospitalization  40_to_49      449.80      3862.93
-# 80  Hospitalization  50_to_59      453.61      3862.93
-# 81  Hospitalization  60_to_69     1131.18      3862.93
-# 82  Hospitalization  70_to_79      142.72      3862.93
-# 83  Muscle Relaxant       +80    17291.75   1148149.07
-# 84  Muscle Relaxant  18_to_29    56220.58   1148149.07
-# 85  Muscle Relaxant  30_to_39   109020.41   1148149.07
-# 86  Muscle Relaxant  40_to_49   220535.52   1148149.07
-# 87  Muscle Relaxant  50_to_59   302981.59   1148149.07
-# 88  Muscle Relaxant  60_to_69   342427.04   1148149.07
-# 89  Muscle Relaxant  70_to_79    99672.18   1148149.07
-# 90           Neural       +80     3138.58    305631.59
-# 91           Neural  18_to_29    28467.98    305631.59
-# 92           Neural  30_to_39    45493.56    305631.59
-# 93           Neural  40_to_49    75967.01    305631.59
-# 94           Neural  50_to_59    76726.90    305631.59
-# 95           Neural  60_to_69    60236.60    305631.59
-# 96           Neural  70_to_79    15600.96    305631.59
-# 97            NSAID       +80    30764.04   1483922.36
-# 98            NSAID  18_to_29   129232.86   1483922.36
-# 99            NSAID  30_to_39   169962.13   1483922.36
-# 100           NSAID  40_to_49   266802.59   1483922.36
-# 101           NSAID  50_to_59   377222.37   1483922.36
-# 102           NSAID  60_to_69   373474.42   1483922.36
-# 103           NSAID  70_to_79   136463.95   1483922.36
-# 104        Sedative       +80     7923.26    407906.63
-# 105        Sedative  18_to_29    23275.97    407906.63
-# 106        Sedative  30_to_39    44688.59    407906.63
-# 107        Sedative  40_to_49    72347.37    407906.63
-# 108        Sedative  50_to_59   103956.40    407906.63
-# 109        Sedative  60_to_69   120708.85    407906.63
-# 110        Sedative  70_to_79    35006.19    407906.63
-# 111            SNRI       +80    22672.92   1233776.71
-# 112            SNRI  18_to_29   112318.81   1233776.71
-# 113            SNRI  30_to_39   120062.48   1233776.71
-# 114            SNRI  40_to_49   220847.37   1233776.71
-# 115            SNRI  50_to_59   308115.19   1233776.71
-# 116            SNRI  60_to_69   327500.83   1233776.71
-# 117            SNRI  70_to_79   122259.11   1233776.71
-# 118            SSRI       +80    67891.53   2840079.70
-# 119            SSRI  18_to_29   449373.89   2840079.70
-# 120            SSRI  30_to_39   482244.53   2840079.70
-# 121            SSRI  40_to_49   519229.96   2840079.70
-# 122            SSRI  50_to_59   548592.22   2840079.70
-# 123            SSRI  60_to_69   536366.86   2840079.70
-# 124            SSRI  70_to_79   236380.71   2840079.70
-# 125         Steroid       +80    19870.47    709709.76
-# 126         Steroid  18_to_29    79217.68    709709.76
-# 127         Steroid  30_to_39    89700.63    709709.76
-# 128         Steroid  40_to_49   129126.45    709709.76
-# 129         Steroid  50_to_59   164690.30    709709.76
-# 130         Steroid  60_to_69   162690.49    709709.76
-# 131         Steroid  70_to_79    64413.74    709709.76
-# 132   Strong Opioid       +80    16723.94    946072.81
-# 133   Strong Opioid  18_to_29    55158.43    946072.81
-# 134   Strong Opioid  30_to_39    81963.86    946072.81
-# 135   Strong Opioid  40_to_49   136665.44    946072.81
-# 136   Strong Opioid  50_to_59   237224.82    946072.81
-# 137   Strong Opioid  60_to_69   319678.92    946072.81
-# 138   Strong Opioid  70_to_79    98657.40    946072.81
-# 139       Tricyclic       +80    14795.40    727807.32
-# 140       Tricyclic  18_to_29    80524.59    727807.32
-# 141       Tricyclic  30_to_39    89249.62    727807.32
-# 142       Tricyclic  40_to_49   132625.65    727807.32
-# 143       Tricyclic  50_to_59   169304.32    727807.32
-# 144       Tricyclic  60_to_69   179841.82    727807.32
-# 145       Tricyclic  70_to_79    61465.92    727807.32
-# 146         Triptan       +80     8160.57   1350879.24
-# 147         Triptan  18_to_29   128766.46   1350879.24
-# 148         Triptan  30_to_39   203002.21   1350879.24
-# 149         Triptan  40_to_49   332626.99   1350879.24
-# 150         Triptan  50_to_59   346586.48   1350879.24
-# 151         Triptan  60_to_69   256412.53   1350879.24
-# 152         Triptan  70_to_79    75324.00   1350879.24
-# 153     Weak Opioid       +80    39330.37   1071808.60
-# 154     Weak Opioid  18_to_29    45419.97   1071808.60
-# 155     Weak Opioid  30_to_39    85075.92   1071808.60
-# 156     Weak Opioid  40_to_49   164418.62   1071808.60
-# 157     Weak Opioid  50_to_59   255757.24   1071808.60
-# 158     Weak Opioid  60_to_69   344528.99   1071808.60
-# 159     Weak Opioid  70_to_79   137277.49   1071808.60
 
 
 ### per group rather than class
@@ -1368,13 +668,6 @@ data.frame(MIG_Drug_Histories %>%
              mutate(sum_weights_percent = (sum_weights / 18330405)*100) %>%
              filter(!is.na(drug_group)))
 # 
-# drug_group sum_weights sum_weights_percent
-# 1           Acute   1357880.8           7.4078057
-# 2 CGRP Injectable    396907.8           2.1652978
-# 3       CGRP Oral    113762.2           0.6206202
-# 4    Preventative   7898440.6          43.0892857
-# 5     Symptomatic   3973630.8          21.6778124
-
 
 RIME_Demographics <- read.table("RIME Demographics.txt", header = T, sep="\t", quote="", colClasses = "character", stringsAsFactors = FALSE)
 RIME_Demographics <- RIME_Demographics %>% select(patid, weight, age)
@@ -1393,43 +686,6 @@ MIG_Drug_Histories <- MIG_Drug_Histories %>% mutate(age_group = ifelse(age>=18 &
 data.frame(MIG_Drug_Histories %>% group_by(drug_group, age_group) %>% 
              summarise(sum_weights = sum(as.numeric(weight.x))) %>% filter(!is.na(drug_group)) %>%
              ungroup() %>% group_by(drug_group) %>% mutate(total_weight=sum(sum_weights)))
-
-# drug_group age_group sum_weights total_weight
-# 1            Acute       +80     8338.57    1357880.8
-# 2            Acute  18_to_29   129138.72    1357880.8
-# 3            Acute  30_to_39   204250.42    1357880.8
-# 4            Acute  40_to_49   334829.43    1357880.8
-# 5            Acute  50_to_59   347893.59    1357880.8
-# 6            Acute  60_to_69   257888.05    1357880.8
-# 7            Acute  70_to_79    75542.01    1357880.8
-# 8  CGRP Injectable       +80     1478.34     396907.8
-# 9  CGRP Injectable  18_to_29    51287.13     396907.8
-# 10 CGRP Injectable  30_to_39    63860.54     396907.8
-# 11 CGRP Injectable  40_to_49   101484.62     396907.8
-# 12 CGRP Injectable  50_to_59   102854.56     396907.8
-# 13 CGRP Injectable  60_to_69    62101.27     396907.8
-# 14 CGRP Injectable  70_to_79    13841.39     396907.8
-# 15       CGRP Oral       +80      477.18     113762.2
-# 16       CGRP Oral  18_to_29    10807.04     113762.2
-# 17       CGRP Oral  30_to_39    23032.34     113762.2
-# 18       CGRP Oral  40_to_49    30217.53     113762.2
-# 19       CGRP Oral  50_to_59    27128.77     113762.2
-# 20       CGRP Oral  60_to_69    18077.76     113762.2
-# 21       CGRP Oral  70_to_79     4021.57     113762.2
-# 22    Preventative       +80   271362.43    7898440.6
-# 23    Preventative  18_to_29   847950.38    7898440.6
-# 24    Preventative  30_to_39  1009873.90    7898440.6
-# 25    Preventative  40_to_49  1397792.07    7898440.6
-# 26    Preventative  50_to_59  1745203.47    7898440.6
-# 27    Preventative  60_to_69  1798501.88    7898440.6
-# 28    Preventative  70_to_79   827756.45    7898440.6
-# 29     Symptomatic       +80   116835.12    3973630.8
-# 30     Symptomatic  18_to_29   360822.05    3973630.8
-# 31     Symptomatic  30_to_39   439166.95    3973630.8
-# 32     Symptomatic  40_to_49   653844.21    3973630.8
-# 33     Symptomatic  50_to_59   922121.42    3973630.8
-# 34     Symptomatic  60_to_69  1070088.96    3973630.8
-# 35     Symptomatic  70_to_79   410752.09    3973630.8
 
 
 # ----
@@ -1562,44 +818,6 @@ weighted.median(CGRP_Injectable_Periods$Total_Duration, CGRP_Injectable_Periods$
 
 data.frame(CGRP_Injectable_Periods %>% distinct() %>% group_by(Total_Duration) %>% summarise(pats = sum(weight)))
 
-# Total_Duration     pats
-# 1               1 67869.31
-# 2               2 45084.04
-# 3               3 47885.20
-# 4               4 36242.73
-# 5               5 34966.26
-# 6               6 36158.27
-# 7               7 30817.64
-# 8               8 20986.79
-# 9               9 22238.01
-# 10             10 22889.60
-# 11             11 20093.75
-# 12             12 21592.15
-# 13             13 17674.75
-# 14             14 19290.69
-# 15             15 22589.52
-# 16             16 22292.34
-# 17             17 21016.10
-# 18             18 26263.99
-# 19             19 19253.00
-# 20             20 19192.04
-# 21             21 18900.09
-# 22             22 18034.66
-# 23             23 13598.68
-# 24             24 15802.77
-# 25             25 13013.35
-# 26             26 11114.85
-# 27             27 12450.50
-# 28             28  9342.08
-# 29             29  8548.31
-# 30             30 10560.17
-# 31             31  3722.26
-# 32             32  2781.01
-# 33             33  2318.56
-# 34             34  1688.23
-# 35             35   496.02
-# 36             36   664.28
-
 CGRP_Injectable_Periods %>% 
   mutate(Total_Duration_bucket = ifelse(Total_Duration == 1, "1", 
                                         ifelse(Total_Duration >1 & Total_Duration < 6, "2 to 6",
@@ -1610,16 +828,6 @@ CGRP_Injectable_Periods %>%
                                                                            ifelse(Total_Duration>=48&Total_Duration<60, "48 to 60", "60")))))))) %>%
   group_by(Total_Duration_bucket) %>%
   summarise(pats = sum(weight))
-
-# Total_Duration_bucket    pats
-# <chr>                   <dbl>
-#   1 1                      67869.
-# 2 12 to 24              239698.
-# 3 2 to 6                164178.
-# 4 24 to 36               91838. <- max
-# 5 36 to 48                 664.
-# 6 6 to 12               153184.
-
 
 
 #CGRP Oral
@@ -1665,25 +873,6 @@ weighted.median(CGRP_Oral_Periods$Total_Duration, CGRP_Oral_Periods$weight)  #2.
 
 data.frame(CGRP_Oral_Periods %>% distinct() %>% group_by(Total_Duration) %>% summarise(pats = sum(weight)))
 # 
-# Total_Duration     pats
-# 1               1 75483.55
-# 2               2 37255.09
-# 3               3 25067.06
-# 4               4 21803.34
-# 5               5 13287.46
-# 6               6 12885.76
-# 7               7  9327.41
-# 8               8  7657.61
-# 9               9  7354.26
-# 10             10  7006.22
-# 11             11  2554.83
-# 12             12  1216.89
-# 13             13  1059.54
-# 14             14  2239.63
-# 15             15  1089.52
-# 16             16   376.01
-# 17             17   217.28
-# 18             18   281.66
 
 
 
@@ -1697,14 +886,6 @@ CGRP_Oral_Periods %>%
                                                                            ifelse(Total_Duration>=48&Total_Duration<60, "48 to 60", "60")))))))) %>%
   group_by(Total_Duration_bucket) %>%
   summarise(pats = sum(weight))
-
-# Total_Duration_bucket   pats
-# <chr>                  <dbl>
-# 1 1                     75484.
-# 2 12 to 24               6481.
-# 3 2 to 6                97413.
-# 4 6 to 12               46786.
-
 
 
 #Ditan
@@ -1749,18 +930,7 @@ weighted.median(Ditan_Periods$Total_Duration, Ditan_Periods$weight)  #1.5
 
 data.frame(Ditan_Periods %>% distinct() %>% group_by(Total_Duration) %>% summarise(pats = sum(weight)))
 # 
-# Total_Duration    pats
-# 1               1 5258.48
-# 2               2 2102.06
-# 3               3 1762.46
-# 4               4  635.54
-# 5               5  566.02
-# 6               6  700.15
-# 7               7  607.19
-# 8               9  441.48
-# 9              10  270.67
-# 10             11   95.26
-# 11             16  104.94
+
 
 Ditan_Periods %>% 
   mutate(Total_Duration_bucket = ifelse(Total_Duration == 1, "1", 
@@ -1772,14 +942,6 @@ Ditan_Periods %>%
                                                                            ifelse(Total_Duration>=48&Total_Duration<60, "48 to 60", "60")))))))) %>%
   group_by(Total_Duration_bucket) %>%
   summarise(pats = sum(weight))
-
-# Total_Duration_bucket  pats
-# <chr>                 <dbl>
-#   1 1                     5258.
-# 2 12 to 24               105.
-# 3 2 to 6                5066.
-# 4 6 to 12               2115.
-
 
 
 #Triptans
@@ -1830,69 +992,6 @@ weighted.median(Triptan_Periods$Total_Duration, Triptan_Periods$weight)   #2.5
 
 data.frame(Triptan_Periods %>% distinct() %>% group_by(Total_Duration) %>% summarise(pats = sum(weight)))
 # 
-# Total_Duration       pats
-# 1               1 2368720.96
-# 2               2  886117.13
-# 3               3  549548.25
-# 4               4  387293.29
-# 5               5  291350.31
-# 6               6  242773.66
-# 7               7  186921.28
-# 8               8  162950.91
-# 9               9  145796.16
-# 10             10  123343.79
-# 11             11  103460.40
-# 12             12  100929.23
-# 13             13   91234.28
-# 14             14   80352.34
-# 15             15   77064.21
-# 16             16   68638.54
-# 17             17   70402.27
-# 18             18   58112.48
-# 19             19   55712.12
-# 20             20   58886.21
-# 21             21   55033.80
-# 22             22   54280.23
-# 23             23   48459.18
-# 24             24   51218.10
-# 25             25   51290.46
-# 26             26   41380.42
-# 27             27   44709.71
-# 28             28   36650.16
-# 29             29   41015.73
-# 30             30   40259.47
-# 31             31   35838.95
-# 32             32   38686.61
-# 33             33   35022.82
-# 34             34   37425.35
-# 35             35   33556.07
-# 36             36   32243.11
-# 37             37   30594.68
-# 38             38   27626.78
-# 39             39   31251.98
-# 40             40   28259.88
-# 41             41   29956.96
-# 42             42   30340.10
-# 43             43   27790.30
-# 44             44   26700.85
-# 45             45   25459.61
-# 46             46   27257.34
-# 47             47   25810.06
-# 48             48   29006.15
-# 49             49   26578.19
-# 50             50   24901.28
-# 51             51   24724.09
-# 52             52   24877.56
-# 53             53   29428.24
-# 54             54   24530.62
-# 55             55   27734.03
-# 56             56   25442.21
-# 57             57   29285.22
-# 58             58   34737.30
-# 59             59   16226.10
-# 60             60  113938.16
-
-
 Triptan_Periods %>% 
   mutate(Total_Duration_bucket = ifelse(Total_Duration == 1, "1", 
                                         ifelse(Total_Duration >1 & Total_Duration < 6, "2 to 6",
@@ -1903,18 +1002,6 @@ Triptan_Periods %>%
                                                                            ifelse(Total_Duration>=48&Total_Duration<60, "48 to 60", "60")))))))) %>%
   group_by(Total_Duration_bucket) %>%
   summarise(pats = sum(weight))
-
-# Total_Duration_bucket     pats
-# <chr>                    <dbl>
-#   1 1                     2368721.
-# 2 12 to 24               819105.
-# 3 2 to 6                2114309.
-# 4 24 to 36               487054.
-# 5 36 to 48               343292.
-# 6 48 to 60               317471.
-# 7 6 to 12                965246.
-# 8 60                     113938.
-
 
 
 
@@ -1963,54 +1050,6 @@ weighted.median(Ergot_Periods$Total_Duration, Ergot_Periods$weight) #1
 
 data.frame(Ergot_Periods %>% distinct() %>% group_by(Total_Duration) %>% summarise(pats = sum(weight)))
 
-# Total_Duration     pats
-# 1               1 65044.23
-# 2               2 12151.62
-# 3               3  7446.90
-# 4               4  5246.63
-# 5               5  2927.73
-# 6               6  2737.57
-# 7               7  2287.28
-# 8               8   967.25
-# 9               9  1534.73
-# 10             10   805.59
-# 11             11  1233.48
-# 12             12   725.93
-# 13             13   506.31
-# 14             14   375.51
-# 15             15   310.92
-# 16             16   479.71
-# 17             17   562.80
-# 18             18   226.05
-# 19             19   240.13
-# 20             20   375.90
-# 21             21   108.84
-# 22             22   431.41
-# 23             23    94.00
-# 24             24   211.15
-# 25             26   271.16
-# 26             28   233.72
-# 27             30   279.34
-# 28             31    84.99
-# 29             32    93.40
-# 30             33   237.90
-# 31             34   167.90
-# 32             35    21.55
-# 33             36   109.46
-# 34             37    94.00
-# 35             38   107.82
-# 36             39   257.40
-# 37             44    26.88
-# 38             47    22.28
-# 39             48   271.90
-# 40             50   110.55
-# 41             51   164.85
-# 42             53   115.40
-# 43             54   194.21
-# 44             56    95.26
-# 45             57    22.63
-# 46             60   137.30
-
 Ergot_Periods %>% 
   mutate(Total_Duration_bucket = ifelse(Total_Duration == 1, "1", 
                                         ifelse(Total_Duration >1 & Total_Duration < 6, "2 to 6",
@@ -2022,16 +1061,6 @@ Ergot_Periods %>%
   group_by(Total_Duration_bucket) %>%
   summarise(pats = sum(weight))
 
-# Total_Duration_bucket   pats
-# <chr>                  <dbl>
-#   1 1                     65044.
-# 2 12 to 24               4438.
-# 3 2 to 6                27773.
-# 4 24 to 36               1601.
-# 5 36 to 48                618.
-# 6 48 to 60                975.
-# 7 6 to 12                9566.
-# 8 60                      137.
 
 
 #Weak Opioid
@@ -2078,67 +1107,6 @@ weighted.mean(Weak_Opioid_Periods$Total_Duration, Weak_Opioid_Periods$weight) #1
 weighted.median(Weak_Opioid_Periods$Total_Duration, Weak_Opioid_Periods$weight) #1.5
 
 data.frame(Weak_Opioid_Periods %>% distinct() %>% group_by(Total_Duration) %>% summarise(pats = sum(weight)))
-Total_Duration       pats
-1               1 3824052.82
-2               2 1777089.19
-3               3  979424.17
-4               4  574388.58
-5               5  393015.14
-6               6  280008.38
-7               7  216034.99
-8               8  174302.67
-9               9  145548.66
-10             10  112831.75
-11             11  106765.82
-12             12   94317.88
-13             13   81494.74
-14             14   75918.24
-15             15   76640.67
-16             16   62829.19
-17             17   59038.65
-18             18   62392.20
-19             19   59288.62
-20             20   50531.93
-21             21   54428.31
-22             22   51628.96
-23             23   45934.80
-24             24   42678.22
-25             25   41240.43
-26             26   37875.09
-27             27   36981.73
-28             28   35778.97
-29             29   38458.74
-30             30   36213.76
-31             31   36212.75
-32             32   33619.30
-33             33   28800.23
-34             34   35981.58
-35             35   27660.55
-36             36   30514.32
-37             37   29773.88
-38             38   30633.36
-39             39   32488.39
-40             40   28467.72
-41             41   26544.26
-42             42   29678.58
-43             43   28133.80
-44             44   28632.38
-45             45   26337.59
-46             46   23426.74
-47             47   27469.39
-48             48   28386.46
-49             49   26690.98
-50             50   30147.20
-51             51   26673.27
-52             52   29288.55
-53             53   37516.30
-54             54   42079.48
-55             55   38112.26
-56             56   39055.35
-57             57   57007.43
-58             58   52096.34
-59             59   23434.06
-60             60  410103.75
 
 Weak_Opioid_Periods %>% 
   mutate(Total_Duration_bucket = ifelse(Total_Duration == 1, "1", 
@@ -2151,18 +1119,6 @@ Weak_Opioid_Periods %>%
   group_by(Total_Duration_bucket) %>%
   summarise(pats = sum(weight))
 
-
-
-Total_Duration_bucket     pats
-<chr>                    <dbl>
-  1 1                     3824053.
-2 12 to 24               774444.
-3 2 to 6                3723917.
-4 24 to 36               431501.
-5 36 to 48               342100.
-6 48 to 60               430488.
-7 6 to 12               1035492.
-8 60                     410104.
 
 
 #Strong Opioid
@@ -2223,67 +1179,6 @@ weighted.median(Strong_Opioid_Periods$Total_Duration, Strong_Opioid_Periods$weig
 
 data.frame(Strong_Opioid_Periods %>% distinct() %>% group_by(Total_Duration) %>% summarise(pats = sum(weight)))
 
-Total_Duration       pats
-1               1 3798825.69
-2               2 1649304.71
-3               3  816826.87
-4               4  470010.34
-5               5  300203.56
-6               6  216758.46
-7               7  148374.85
-8               8  115826.59
-9               9   84596.44
-10             10   75950.04
-11             11   63236.06
-12             12   56557.11
-13             13   50949.22
-14             14   45070.06
-15             15   48328.22
-16             16   43817.29
-17             17   39229.37
-18             18   48512.56
-19             19   42692.99
-20             20   37662.70
-21             21   33348.92
-22             22   34392.23
-23             23   31458.04
-24             24   29067.87
-25             25   26974.49
-26             26   26387.37
-27             27   24889.28
-28             28   24363.49
-29             29   24033.47
-30             30   25954.18
-31             31   16853.79
-32             32   14290.69
-33             33   12772.49
-34             34   16344.62
-35             35   14008.90
-36             36   14626.95
-37             37   10573.68
-38             38   11014.40
-39             39   12707.38
-40             40   12178.25
-41             41   15144.33
-42             42   12994.95
-43             43   10677.33
-44             44   10085.48
-45             45   10772.32
-46             46    9863.07
-47             47   10571.38
-48             48   10847.32
-49             49   12356.59
-50             50   11240.09
-51             51   12260.07
-52             52   12848.23
-53             53   13804.07
-54             54   15115.69
-55             55   12876.60
-56             56   16714.17
-57             57   21264.13
-58             58   22166.19
-59             59   14628.47
-60             60  309573.92
 
 Strong_Opioid_Periods %>% 
   mutate(Total_Duration_bucket = ifelse(Total_Duration == 1, "1", 
@@ -2295,17 +1190,6 @@ Strong_Opioid_Periods %>%
                                                                            ifelse(Total_Duration>=48&Total_Duration<60, "48 to 60", "60")))))))) %>%
   group_by(Total_Duration_bucket) %>%
   summarise(pats = sum(weight))
-
-Total_Duration_bucket     pats
-<chr>                    <dbl>
-  1 1                     3798826.
-2 12 to 24               512019.
-3 2 to 6                3236345.
-4 24 to 36               255941.
-5 36 to 48               141210.
-6 48 to 60               176122.
-7 6 to 12                704742.
-8 60                     309574.
 
 
 
@@ -2373,68 +1257,6 @@ weighted.median(NSAID_Periods$Total_Duration, NSAID_Periods$weight) #2.5
 
 data.frame(NSAID_Periods %>% distinct() %>% group_by(Total_Duration) %>% summarise(pats = sum(weight)))
 # 
-Total_Duration       pats
-1               1 3835096.58
-2               2 2308340.31
-3               3 1442017.23
-4               4  971827.50
-5               5  671769.32
-6               6  494933.09
-7               7  379632.02
-8               8  296956.16
-9               9  248311.59
-10             10  200881.20
-11             11  172332.42
-12             12  153962.73
-13             13  129127.02
-14             14  119583.65
-15             15  102332.78
-16             16   94799.53
-17             17   85600.55
-18             18   82650.33
-19             19   69990.15
-20             20   63268.30
-21             21   56484.80
-22             22   55718.31
-23             23   53693.66
-24             24   47264.63
-25             25   44340.56
-26             26   44461.21
-27             27   42311.30
-28             28   36924.89
-29             29   34869.47
-30             30   33756.53
-31             31   32581.37
-32             32   29509.00
-33             33   29998.94
-34             34   28519.29
-35             35   24758.18
-36             36   25214.93
-37             37   24876.75
-38             38   23750.57
-39             39   24433.29
-40             40   20030.83
-41             41   20494.12
-42             42   22437.99
-43             43   19374.19
-44             44   16783.49
-45             45   18128.88
-46             46   17416.35
-47             47   17518.14
-48             48   19239.77
-49             49   16674.65
-50             50   18316.30
-51             51   16922.40
-52             52   19265.21
-53             53   18493.98
-54             54   19075.07
-55             55   18898.23
-56             56   20586.17
-57             57   21623.90
-58             58   20717.40
-59             59    7048.11
-60             60   79319.72
-
 NSAID_Periods %>% 
   mutate(Total_Duration_bucket = ifelse(Total_Duration == 1, "1", 
                                         ifelse(Total_Duration >1 & Total_Duration < 6, "2 to 6",
@@ -2445,18 +1267,6 @@ NSAID_Periods %>%
                                                                            ifelse(Total_Duration>=48&Total_Duration<60, "48 to 60", "60")))))))) %>%
   group_by(Total_Duration_bucket) %>%
   summarise(pats = sum(weight))
-
-Total_Duration_bucket     pats
-<chr>                    <dbl>
-  1 1                     3835097.
-2 12 to 24              1067212.
-3 2 to 6                5393954.
-4 24 to 36               429295.
-5 36 to 48               250460.
-6 48 to 60               216861.
-7 6 to 12               1793046.
-8 60                      79320.
-
 
 sum(NSAID_Periods$weight)
 
@@ -2541,21 +1351,7 @@ MIG_Drug_Histories %>% ungroup() %>% select(patient, weight, grp) %>% group_by(p
   filter(grp == max(grp)) %>% distinct() %>% mutate(switches = grp-1) %>% ungroup() %>%
   group_by(switches) %>% summarise(pats_switch = sum(as.numeric(weight)))
 
-# switches pats_switch
-<dbl>       <dbl>
-1        0    5382563.
-2        1    1334837.
-3        2    3245551.
-4        3    1795438.
-5        4    1991881.
-6        5    1476043.
-7        6    1245304.
-8        7     922639.
-9        8     679424.
-10        9     469005.
-11       10     286563.
-12       11     161227.
-13       12      52592.
+
 
 library(spatstat)
 MIG_Drug_Histories %>% ungroup() %>% select(patient, weight, grp) %>% group_by(patient) %>% 
@@ -2576,144 +1372,17 @@ MIG_Drug_Histories %>% ungroup() %>% select(patient, weight, grp) %>% group_by(p
   left_join(MIG_Box_Histories) %>% group_by(month60) %>%
   summarise(weighted.mean(switches, as.numeric(weight)))
 
-# month60 `weighted.mean(switches, as.numeric(weight))`
-# <chr>                                           <dbl>
-# 1 a                                                4.18
-# 2 A                                                3.64
-# 3 d                                                5.51
-# 4 D                                                5.26
-# 5 I                                                5.88
-# 6 O                                                6.11
-# 7 p                                                3.32
-# 8 x                                                1.77
 
 MIG_Drug_Histories %>% ungroup() %>% select(patient, weight, grp) %>% group_by(patient) %>%
   filter(grp == max(grp)) %>% distinct() %>% mutate(switches = grp-1) %>% ungroup() %>% 
   left_join(MIG_Box_Histories) %>% group_by(month60) %>%
   summarise(weighted.median(switches, as.numeric(weight)))
-# 
-# month60 `weighted.median(switches, as.numeric(weight))`
-# <chr>                                             <dbl>
-#   1 a                                                   3.5
-# 2 A                                                   2.5
-# 3 d                                                   4.5
-# 4 D                                                   4.5
-# 5 I                                                   5.5
-# 6 O                                                   5.5
-# 7 p                                                   2.5
-# 8 x                                                   0.5
+
 
 data.frame(MIG_Drug_Histories %>% ungroup() %>% select(patient, weight, grp) %>% group_by(patient) %>% 
              filter(grp == max(grp)) %>% distinct() %>% mutate(switches = grp-1) %>% ungroup() %>% 
              left_join(MIG_Box_Histories) %>% group_by(month60, switches) %>% 
              summarise(pats_switch = sum(as.numeric(weight))))
-
-# month60 switches pats_switch
-# 1         a        0    43306.21
-# 2         a        1   181944.09
-# 3         a        2    98366.35
-# 4         a        3   177213.57
-# 5         a        4   120621.94
-# 6         a        5   126278.19
-# 7         a        6   101875.68
-# 8         a        7    74372.22
-# 9         a        8    64761.37
-# 10        a        9    39398.55
-# 11        a       10    25988.73
-# 12        a       11    11418.90
-# 13        a       12     4881.48
-# 14        A        0    50932.86
-# 15        A        1    60072.39
-# 16        A        2    63614.28
-# 17        A        3    77528.32
-# 18        A        4    63312.61
-# 19        A        5    64254.84
-# 20        A        6    41399.17
-# 21        A        7    31115.76
-# 22        A        8    17740.13
-# 23        A        9    11074.99
-# 24        A       10     4989.38
-# 25        A       11     2042.79
-# 26        A       12      448.82
-# 27        d        0    77967.12
-# 28        d        1   136969.03
-# 29        d        2   184025.66
-# 30        d        3   235033.10
-# 31        d        4   260245.72
-# 32        d        5   275488.95
-# 33        d        6   276567.73
-# 34        d        7   253945.99
-# 35        d        8   214989.32
-# 36        d        9   176045.27
-# 37        d       10   121571.39
-# 38        d       11    79565.77
-# 39        d       12    25045.02
-# 40        D        0    26511.74
-# 41        D        1    42483.05
-# 42        D        2    62889.52
-# 43        D        3    83225.73
-# 44        D        4    86644.38
-# 45        D        5    96940.06
-# 46        D        6    88797.01
-# 47        D        7    81847.59
-# 48        D        8    66250.13
-# 49        D        9    43637.17
-# 50        D       10    27597.96
-# 51        D       11    19814.40
-# 52        D       12     7699.69
-# 53        I        0    14428.03
-# 54        I        1    16333.37
-# 55        I        2    26448.34
-# 56        I        3    34002.69
-# 57        I        4    42265.54
-# 58        I        5    48020.59
-# 59        I        6    46526.95
-# 60        I        7    46193.16
-# 61        I        8    36497.97
-# 62        I        9    36205.65
-# 63        I       10    26411.27
-# 64        I       11    15764.92
-# 65        I       12     7809.37
-# 66        O        1     4332.60
-# 67        O        2     4911.74
-# 68        O        3     7765.32
-# 69        O        4     9091.55
-# 70        O        5    10279.18
-# 71        O        6     7335.05
-# 72        O        7     8523.56
-# 73        O        8     8698.87
-# 74        O        9     7939.28
-# 75        O       10     5778.47
-# 76        O       11     4039.33
-# 77        O       12     1423.75
-# 78        p        0   769886.10
-# 79        p        1   440361.84
-# 80        p        2   800765.51
-# 81        p        3   557303.45
-# 82        p        4   564077.22
-# 83        p        5   430799.62
-# 84        p        6   364827.48
-# 85        p        7   236885.50
-# 86        p        8   163013.79
-# 87        p        9    99844.76
-# 88        p       10    50967.89
-# 89        p       11    20266.67
-# 90        p       12     4140.16
-# 91        x        0  4399531.40
-# 92        x        1   452340.68
-# 93        x        2  2004529.26
-# 94        x        3   623365.44
-# 95        x        4   845621.90
-# 96        x        5   423981.69
-# 97        x        6   317975.05
-# 98        x        7   189755.16
-# 99        x        8   107472.53
-# 100       x        9    54859.56
-# 101       x       10    23257.42
-# 102       x       11     8314.36
-# 103       x       12     1144.05
-
-#
 
 #
 
@@ -2809,31 +1478,10 @@ MIG_Flows_Aux._Long <- MIG_Flows_Aux._Long %>% mutate(p1 = as.numeric(p1)) %>% m
 MIG_Flows_Aux._Long %>% filter(p1 >=48) %>% filter(!grepl("135",d1)) %>% 
   filter(grepl("135",d2)) %>% group_by(s1) %>% summarise(pats=sum(as.numeric(weight)))
 # #Inflows
-s1      pats
-<chr>  <dbl>
-1 a      1933.
-2 A      1098.
-3 d     11663.
-4 D      7264.
-5 I     17184.
-6 O      1858.
-7 p      8652.
-8 x      4332.
 
 MIG_Flows_Aux._Long %>% filter(p1 >=48) %>% filter(grepl("135",d1)) %>% 
   filter(!grepl("135",d2)) %>%  group_by(s2) %>% summarise(pats=sum(as.numeric(weight)))
-# #Outflows
-# s2      pats
-s2      pats
-<chr>  <dbl>
-  1 a       868.
-2 A       302.
-3 d      6986.
-4 D      3468.
-5 I     10821.
-6 O      1219.
-7 p      6798.
-8 x      3099.
+
 
 data.frame(MIG_Flows_Aux._Long %>% filter(!grepl("135",d1)) %>% 
              filter(grepl("135",d2)) %>% group_by(p1, s1) %>% summarise(pats=sum(as.numeric(weight))))
@@ -2873,68 +1521,6 @@ data.frame(MIG_Flows_Aux._Long %>% filter(!grepl("135",d1)) %>%
              group_by(p1, s1) %>% summarise(pats=sum(as.numeric(weight))) %>% ungroup()%>% group_by(p1) %>% 
              mutate(n=sum(pats)) %>% ungroup() %>% mutate(percent=pats/n))
 
-p1 s1    pats        n     percent
-1  44  A   90.79  1304.67 0.069588478
-2  44  d   94.00  1304.67 0.072048871
-3  44  D   94.79  1304.67 0.072654388
-4  44  I  669.90  1304.67 0.513463175
-5  44  p  234.45  1304.67 0.179700614
-6  44  x  120.74  1304.67 0.092544475
-7  46  a   52.87  4364.07 0.012114838
-8  46  A  193.26  4364.07 0.044284349
-9  46  d  832.30  4364.07 0.190716464
-10 46  D  830.21  4364.07 0.190237553
-11 46  I 1332.00  4364.07 0.305219669
-12 46  O  120.36  4364.07 0.027579759
-13 46  p  753.05  4364.07 0.172556811
-14 46  x  250.02  4364.07 0.057290557
-15 48  a  282.94  4823.77 0.058655367
-16 48  A  217.28  4823.77 0.045043607
-17 48  d 1249.61  4823.77 0.259052567
-18 48  D  358.15  4823.77 0.074246906
-19 48  I 1492.78  4823.77 0.309463345
-20 48  O   94.79  4823.77 0.019650605
-21 48  p  751.68  4823.77 0.155828325
-22 48  x  376.54  4823.77 0.078059277
-23 50  a  325.68  7998.08 0.040719773
-24 50  d 2413.24  7998.08 0.301727415
-25 50  D 1099.24  7998.08 0.137437985
-26 50  I 2249.19  7998.08 0.281216242
-27 50  O  188.66  7998.08 0.023588161
-28 50  p 1073.06  7998.08 0.134164700
-29 50  x  649.01  7998.08 0.081145725
-30 52  A  216.63  8454.10 0.025624253
-31 52  d 1960.00  8454.10 0.231840172
-32 52  D 1580.73  8454.10 0.186977916
-33 52  I 2441.13  8454.10 0.288751020
-34 52  O  275.99  8454.10 0.032645699
-35 52  p 1492.72  8454.10 0.176567583
-36 52  x  486.90  8454.10 0.057593357
-37 54  a  350.24  7911.40 0.044270294
-38 54  A   23.10  7911.40 0.002919837
-39 54  d 1354.61  7911.40 0.171222540
-40 54  D 1421.85  7911.40 0.179721667
-41 54  I 2422.65  7911.40 0.306222666
-42 54  O  383.49  7911.40 0.048473089
-43 54  p 1461.15  7911.40 0.184689183
-44 54  x  494.31  7911.40 0.062480724
-45 56  a  321.33 11548.97 0.027823260
-46 56  A  492.69 11548.97 0.042660947
-47 56  d 2967.66 11548.97 0.256963175
-48 56  D  716.39 11548.97 0.062030640
-49 56  I 4174.39 11548.97 0.361451281
-50 56  O  433.22 11548.97 0.037511570
-51 56  p 1454.59 11548.97 0.125949760
-52 56  x  988.70 11548.97 0.085609366
-53 58  a  653.27 13247.16 0.049313966
-54 58  A  147.94 13247.16 0.011167677
-55 58  d 1717.49 13247.16 0.129649676
-56 58  D 2087.35 13247.16 0.157569622
-57 58  I 4404.17 13247.16 0.332461448
-58 58  O  481.95 13247.16 0.036381383
-59 58  p 2418.73 13247.16 0.182584796
-60 58  x 1336.26 13247.16 0.100871432
-
 # ----
 # Flows to / from Injectable CGRPs --------------------------------
 MIG_Flows_Aux._Long <- read.table("MIG_Flows_Aux._Long_v2.txt", header = T, sep=",", 
@@ -2947,29 +1533,10 @@ MIG_Flows_Aux._Long <- MIG_Flows_Aux._Long %>% mutate(p1 = as.numeric(p1)) %>% m
 MIG_Flows_Aux._Long %>% filter(p1 >=48) %>% filter(!grepl("I",s1)) %>% 
   filter(grepl("I",s2)) %>% group_by(s1) %>% summarise(pats=sum(as.numeric(weight)))
 #Inflow
-s1      pats
-<chr>  <dbl>
-1 a     15498 
-2 A     23843.
-3 d     67349.
-4 D     73513.
-5 O     12022.
-6 p     78564.
-7 x     45398.
 
 
 MIG_Flows_Aux._Long %>% filter(p1 >=48) %>% filter(grepl("I",s1)) %>% 
   filter(!grepl("I",s2)) %>% group_by(s2) %>% summarise(pats=sum(as.numeric(weight)))
-#OUTFLOw
-s2      pats
-<chr>  <dbl>
-  1 a     14724.
-2 A     14699.
-3 d     60152.
-4 D     50031.
-5 O     11474.
-6 p     71369.
-7 x     47144.
 
 # ----
 # Flows to / from Oral CGRPs --------------------------------
@@ -2982,28 +1549,11 @@ MIG_Flows_Aux._Long <- MIG_Flows_Aux._Long %>% mutate(p1 = as.numeric(p1)) %>% m
 MIG_Flows_Aux._Long %>% filter(p1 >=48) %>% filter(!grepl("135",d1)&!grepl("136",d1)) %>% 
   filter(grepl("135",d2)|grepl("136",d2)) %>% filter(s2=="O") %>% group_by(s1) %>% summarise(pats=sum(as.numeric(weight)))
 
-s1      pats
-<chr>  <dbl>
-1 a      9105.
-2 A      6494.
-3 d     44593.
-4 D     30507.
-5 I      4043.
-6 p     52995.
-7 x     33480.
 
 MIG_Flows_Aux._Long %>% filter(p1 >=48) %>% filter(!grepl("135",d1)&!grepl("136",d1)) %>% 
   filter(grepl("135",d2)|grepl("136",d2)) %>% filter(s2=="I") %>% group_by(s1) %>% summarise(pats=sum(as.numeric(weight)))
 
-s1      pats
-<chr>  <dbl>
-  1 a       687.
-2 A       185.
-3 d      3433.
-4 D      1967.
-5 I     58593.
-6 p      2817.
-7 x      1170.
+
 
 # Sankey
 # Injectable CGRP [1.8] Lapsed
@@ -3018,22 +1568,7 @@ MIG_Flows_Aux._Long %>% filter(p1 >=48) %>% filter(grepl("135",d1)|grepl("136",d
   filter(!grepl("135",d2)&!grepl("136",d2)) %>% group_by(s1, s2) %>% summarise(pats=sum(as.numeric(weight)))
 
 
-#outflow
-s1    s2      pats
-<chr> <chr>  <dbl>
-  1 I     a       376.
-2 I     d      1592.
-3 I     D       861.
-4 I     I     39486.
-5 I     p      1287.
-6 I     x       641.
-7 O     a      5313.
-8 O     A      1669.
-9 O     d     28396.
-10 O     D     11687.
-11 O     I      2475.
-12 O     p     36468.
-13 O     x     22971.
+
 
 # ----
 # Number of lines per patient on each stock -----------------------------------
@@ -3083,14 +1618,6 @@ MIG_Flows_Aux._Long %>% filter(grp != 0) %>% mutate(grp=ifelse(grp>=6, 6, grp)) 
 MIG_Flows_Aux._Long %>% filter(grp != 0) %>% summarise(n=weighted.mean(grp,as.numeric(weight.x))) #9.021561
 MIG_Flows_Aux._Long %>% filter(grp != 0) %>% summarise(n=weighted.median(grp,as.numeric(weight.x))) #5.5
 
-# grp        n
-# <dbl>    <dbl>
-# 1     1 1481030
-# 2     2 1756572
-# 3     3 1784269
-# 4     4 1653015
-# 5     5 1449509
-# 6     6 10206010
 
 
 MIG_Flows_Aux._Long %>% filter(grp != 0) %>% mutate(grp=ifelse(grp>=1 & grp<=3, "1-3", 
@@ -3098,117 +1625,55 @@ MIG_Flows_Aux._Long %>% filter(grp != 0) %>% mutate(grp=ifelse(grp>=1 & grp<=3, 
                                                                       ifelse(grp>=7&grp<=10,"7-10","10+"))))%>% 
   group_by(grp) %>% summarise(n=sum(as.numeric(weight.x)))
 
-# grp          n
-# <chr>    <dbl>
-# 1 1-3   5021870.
-# 2 10+   5398640.
-# 3 4-6   4369191.
-# 4 7-10  3540703.
 
 MIG_Flows_Aux._Long %>% filter(s2 == "A") %>% mutate(grp=ifelse(grp>=6, 6, grp)) %>% group_by(grp) %>% 
   summarise(n=sum(as.numeric(weight.x)))
 MIG_Flows_Aux._Long %>% filter(s2 == "A") %>%  summarise(n=weighted.median(grp,as.numeric(weight.x))) #7.1521
 MIG_Flows_Aux._Long %>% filter(s2 == "A") %>% summarise(n=weighted.median(grp,as.numeric(weight.x))) #5.5
 #on ACUTE treat
-# grp       n
-# <dbl>   <dbl>
-# 1     1  34578
-# 2     2  48751
-# 3     3  56558
-# 4     4  55398
-# 5     5  47955
-# 6     6 245286
+
 
 MIG_Flows_Aux._Long %>% filter(s2 == "A") %>% mutate(grp=ifelse(grp>=1 & grp<=3, "1-3", 
                                                                                                        ifelse(grp>=4 & grp<=6, "4-6",
                                                                                                               ifelse(grp>=7&grp<=10,"7-10","10+"))))%>%
   group_by(grp) %>% summarise(n=sum(as.numeric(weight.x)))
 
-
-<chr>   <dbl>
-  1 1-3   139886.
-2 10+    94643.
-3 4-6   149835.
-4 7-10  104163.
-
 MIG_Flows_Aux._Long %>% filter(s2 == "O") %>% mutate(grp=ifelse(grp>=6, 6, grp)) %>% group_by(grp) %>% 
   summarise(n=sum(as.numeric(weight.x)))
 MIG_Flows_Aux._Long %>% filter(s2 == "O") %>% summarise(n=weighted.mean(grp,as.numeric(weight.x))) #18.62301
 MIG_Flows_Aux._Long %>% filter(s2 == "O") %>% summarise(n=weighted.median(grp,as.numeric(weight.x))) #15.5
 # #on ORAL CGRP
-# grp      n
-# <dbl>  <dbl>
-# 1     1   354.
-# 2     2   866.
-# 3     3  1865.
-# 4     4  2784.
-# 5     5  4689.
-# 6     6 69561.
+
 
 MIG_Flows_Aux._Long %>% filter(s2 == "O") %>% mutate(grp=ifelse(grp>=1 & grp<=3, "1-3", 
                                                                 ifelse(grp>=4 & grp<=6, "4-6",
                                                                        ifelse(grp>=7&grp<=10,"7-10","10+")))) %>% 
   group_by(grp) %>% summarise(n=sum(as.numeric(weight.x)))
 
-grp        n
-<chr>  <dbl>
-  1 1-3    1789.
-2 10+   58430.
-3 4-6    8086.
-4 7-10  11813.
 
 MIG_Flows_Aux._Long %>% filter(s2 == "I") %>% mutate(grp=ifelse(grp>=6, 6, grp)) %>% group_by(grp) %>% 
   summarise(n=sum(as.numeric(weight.x)))
 MIG_Flows_Aux._Long %>% filter(s2 == "I") %>% summarise(n=weighted.mean(grp,as.numeric(weight.x))) #19.85705
 MIG_Flows_Aux._Long %>% filter(s2 == "I") %>% summarise(n=weighted.median(grp,as.numeric(weight.x))) #16.5
 #on CGRP INJECT
-# grp       n
-# <dbl>   <dbl>
-# 1     1   472
-# 2     2   1112
-# 3     3   3313
-# 4     4   5030
-# 5     5  8000
-# 6     6 378980
+
 
 MIG_Flows_Aux._Long %>% filter(s2 == "I")%>% group_by(grp) %>%  mutate(grp=ifelse(grp>=1 & grp<=3, "1-3", 
                                                                                   ifelse(grp>=4 & grp<=6, "4-6",
                                                                                          ifelse(grp>=7&grp<=10,"7-10","10+")))) %>% 
   summarise(n=sum(as.numeric(weight.x)))
 
-grp         n
-<chr>   <dbl>
-  1 1-3     4897.
-2 10+   308469.
-3 4-6    23956.
-4 7-10   59586.
 
 MIG_Flows_Aux._Long %>% filter(grepl("135",d2)) %>% mutate(grp=ifelse(grp>=6, 6, grp)) %>% group_by(grp) %>% 
   summarise(n=sum(as.numeric(weight.x)))
 MIG_Flows_Aux._Long %>% filter(grepl("135",d2)) %>% summarise(n=weighted.mean(grp,as.numeric(weight.x))) #21.7244
 MIG_Flows_Aux._Long %>% filter(grepl("135",d2)) %>% summarise(n=weighted.median(grp,as.numeric(weight.x))) #18.5
 # #ON RIMEGEPANT
-# grp      n
-# <dbl>  <dbl>
-# 1     1    222
-# 2     2   115
-# 3     3   217
-# 4     4  475
-# 5     5   87.3
-# 6     6 22969
 
 MIG_Flows_Aux._Long %>% filter(grepl("135",d2)) %>% mutate(grp=ifelse(grp>=1 & grp<=3, "1-3", 
                                                                       ifelse(grp>=4 & grp<=6, "4-6",
                                                                              ifelse(grp>=7&grp<=10,"7-10","10+")))) %>% group_by(grp) %>% 
   summarise(n=sum(as.numeric(weight.x)))
-
-
-grp        n
-<chr>  <dbl>
-  1 1-3     554.
-2 10+   19179.
-3 4-6     996.
-4 7-10   3357.
 
 # #Pedro s pipeline
 # MIG_Flows_Aux._Long <- read.table("MIG_Flows_Aux._Long_v2.txt", header = T, sep=",", 
@@ -3286,72 +1751,30 @@ MIG_Flows_Aux._Long_Triptans %>% filter(p1_RxExp != 0) %>% mutate(grp=ifelse(grp
   summarise(n=sum(as.numeric(weight.x)))
 MIG_Flows_Aux._Long_Triptans %>% filter(p1_RxExp != 0) %>% summarise(n=weighted.mean(grp,as.numeric(weight.x))) #0.4915907
 MIG_Flows_Aux._Long_Triptans %>% filter(p1_RxExp != 0) %>% summarise(n=weighted.median(grp,as.numeric(weight.x))) #0
-# grp         n
-# <dbl>     <dbl>
-# 1     0 10782414
-# 2     1  6300801
-# 3     2  1022071
-# 4     3   162700
-# 5     4    32614
-# 6     5     4929
-# 7     6     1909
 
 MIG_Flows_Aux._Long_Triptans %>% filter(s2 == "A") %>% mutate(grp=ifelse(grp>=6, 6, grp)) %>% group_by(grp) %>% 
   summarise(n=sum(as.numeric(weight.x)))
 MIG_Flows_Aux._Long_Triptans %>% filter(s2 == "A") %>% summarise(n=weighted.mean(grp,as.numeric(weight.x))) #1.22655
 MIG_Flows_Aux._Long_Triptans %>% filter(s2 == "A") %>% summarise(n=weighted.median(grp,as.numeric(weight.x))) #0.5
-#on ACUTE treat
-# grp       n
-# <dbl>   <dbl>
-# 1     0    371
-# 2     1 392665
-# 3     2  81467
-# 4     3  12489
-# 5     4   1534.
 
 
 MIG_Flows_Aux._Long_Triptans %>% filter(s2 == "O") %>% mutate(grp=ifelse(grp>=6, 6, grp)) %>% group_by(grp) %>% 
   summarise(n=sum(as.numeric(weight.x)))
 MIG_Flows_Aux._Long_Triptans %>% filter(s2 == "O") %>% summarise(n=weighted.mean(grp,as.numeric(weight.x))) #1.319469
 MIG_Flows_Aux._Long_Triptans %>% filter(s2 == "O") %>% summarise(n=weighted.median(grp,as.numeric(weight.x))) #0.5
-# #on ORAL CGRP
-# grp      n
-# <dbl>  <dbl>
-# 1     0 19166.
-# 2     1 29914.
-# 3     2 19680.
-# 4     3  8267.
-# 5     4  2402.
-# 6     5   689.
+
 
 MIG_Flows_Aux._Long_Triptans %>% filter(s2 == "I") %>% mutate(grp=ifelse(grp>=6, 6, grp)) %>% group_by(grp) %>% 
   summarise(n=sum(as.numeric(weight.x)))
 MIG_Flows_Aux._Long_Triptans %>% filter(s2 == "I") %>% summarise(n=weighted.mean(grp,as.numeric(weight.x))) #1.343518
 MIG_Flows_Aux._Long_Triptans %>% filter(s2 == "I") %>% summarise(n=weighted.median(grp,as.numeric(weight.x))) #0.5
-#on CGRP INJECT
-# grp       n
-# <dbl>   <dbl>
-# 1     0  70942.
-# 2     1 177492.
-# 3     2 103912.
-# 4     3  32660.
-# 5     4   9658.
-# 6     5   2135.
-# 7     6    108.
+
 
 MIG_Flows_Aux._Long_Triptans %>% filter(grepl("135",d2)) %>% mutate(grp=ifelse(grp>=6, 6, grp)) %>% group_by(grp) %>% 
   summarise(n=sum(as.numeric(weight.x)))
 MIG_Flows_Aux._Long_Triptans %>% filter(grepl("135",d2)) %>% summarise(n=weighted.mean(grp,as.numeric(weight.x))) #1.319469
 MIG_Flows_Aux._Long_Triptans %>% filter(grepl("135",d2)) %>% summarise(n=weighted.median(grp,as.numeric(weight.x))) #0.5
-# #ON RIMEGEPANT
-# grp     n
-# <dbl> <dbl>
-# 1     0 7222.
-# 2     1 6920.
-# 3     2 6546.
-# 4     3 2229.
-# 5     4  762.
-# 6     5  406.
+
 
 
 
@@ -3362,66 +1785,29 @@ MIG_Flows_Aux._Long_CGRPs %>% filter(p1_RxExp != 0) %>% mutate(grp=ifelse(grp>=6
   summarise(n=sum(as.numeric(weight.x)))
 MIG_Flows_Aux._Long_CGRPs %>% filter(p1_RxExp != 0) %>% summarise(n=weighted.mean(grp,as.numeric(weight.x))) #0.0576589
 MIG_Flows_Aux._Long_CGRPs %>% filter(p1_RxExp != 0) %>% summarise(n=weighted.median(grp,as.numeric(weight.x))) #0
-# grp         n
-# <dbl>     <dbl>
-# 1     0 17466835
-# 2     1   670427.
-# 3     2   133982.
-# 4     3    29324.
-# 5     4     5128.
-# 6     5     1743.
 
 MIG_Flows_Aux._Long_CGRPs %>% filter(s2 == "A") %>% mutate(grp=ifelse(grp>=6, 6, grp)) %>% group_by(grp) %>% 
   summarise(n=sum(as.numeric(weight.x)))
 MIG_Flows_Aux._Long_CGRPs %>% filter(s2 == "A") %>% summarise(n=weighted.mean(grp,as.numeric(weight.x))) #0.03884738
 MIG_Flows_Aux._Long_CGRPs %>% filter(s2 == "A") %>% summarise(n=weighted.median(grp,as.numeric(weight.x))) #0
-#on ACUTE treat
-# grp        n
-# <dbl>    <dbl>
-# 1     0 471672 
-# 2     1  15107 
-# 3     2   1540 
-# 4     3    122. 
-# 5     5     85.0
+
 
 MIG_Flows_Aux._Long_CGRPs %>% filter(s2 == "O") %>% mutate(grp=ifelse(grp>=6, 6, grp)) %>% group_by(grp) %>% 
   summarise(n=sum(as.numeric(weight.x)))
 MIG_Flows_Aux._Long_CGRPs %>% filter(s2 == "O") %>% summarise(n=weighted.mean(grp,as.numeric(weight.x))) #1.339196
 MIG_Flows_Aux._Long_CGRPs %>% filter(s2 == "O") %>% summarise(n=weighted.median(grp,as.numeric(weight.x))) #1
-# #on ORAL CGRP
-# grp      n
-# <dbl>  <dbl>
-# 1     1 59553.
-# 2     2 15525.
-# 3     3  4031.
-# 4     4   450.
-# 5     5   560.
+
 
 MIG_Flows_Aux._Long_CGRPs %>% filter(s2 == "I") %>% mutate(grp=ifelse(grp>=6, 6, grp)) %>% group_by(grp) %>% 
   summarise(n=sum(as.numeric(weight.x)))
 MIG_Flows_Aux._Long_CGRPs %>% filter(s2 == "I") %>% summarise(n=weighted.mean(grp,as.numeric(weight.x))) #1.318918
 MIG_Flows_Aux._Long_CGRPs %>% filter(s2 == "I") %>% summarise(n=weighted.median(grp,as.numeric(weight.x))) #1
-#on CGRP INJECT
-# grp       n
-# <dbl>   <dbl>
-# 1     1 298572.
-# 2     2  75403.
-# 3     3  18390.
-# 4     4   3773.
-# 5     5    770.
 
 MIG_Flows_Aux._Long_CGRPs %>% filter(grepl("135",d2)) %>% mutate(grp=ifelse(grp>=6, 6, grp)) %>% group_by(grp) %>% 
   summarise(n=sum(as.numeric(weight.x)))
 MIG_Flows_Aux._Long_CGRPs %>% filter(grepl("135",d2)) %>% summarise(n=weighted.mean(grp,as.numeric(weight.x))) #1.932127
 MIG_Flows_Aux._Long_CGRPs %>% filter(grepl("135",d2)) %>% summarise(n=weighted.median(grp,as.numeric(weight.x))) #1.5
 # #ON RIMEGEPANT
-# grp      n
-# <dbl>  <dbl>
-# 1     1 10388.
-# 2     2  7677.
-# 3     3  4072.
-# 4     4  1166.
-# 5     5   783.
 #
 # ----
 # Share of Rimegepant of flows to Oral CGRs or All CGRPs --------------------------------------- 
@@ -3432,56 +1818,18 @@ MIG_Flows_Aux._Long <- read.table("MIG_Flows_Aux._Long_v2.txt", header = T, sep=
 MIG_Flows_Aux._Long <- MIG_Flows_Aux._Long %>% filter(p1 >= "48") %>% select(patient, weight, d1, d2, s1, s2, flow)
 
 MIG_Flows_Aux._Long %>% filter(flow =="1") %>% filter(s2=="O") %>% group_by(s1) %>% summarise(n=sum(as.numeric(weight)))
-# flows to Oral CGRP
-# s1          n
-# <chr>   <dbl>
-# 1 a       9105
-# 2 A       6494
-# 3 d      44593
-# 4 D      30507
-# 5 I      11474
-# 6 O     152798
-# 7 p      52995
-# 8 x      33480
 
 MIG_Flows_Aux._Long %>% filter(flow =="1") %>% filter(s2=="O") %>% filter(grepl("135",d2)) %>% filter(!grepl("135",d1)) %>% group_by(s1) %>% summarise(n=sum(as.numeric(weight)))
-# flows to Oral CGRP, due to Rimegepant
-# s1         n
-# <chr>  <dbl>
-# 1 a      1836
-# 2 A      1098
-# 3 d      10822
-# 4 D      7103
-# 5 I      1486
-# 6 O      1770.
-# 7 p     8235
-# 8 x      3969
+
 
 
 # For all CGRPs
 MIG_Flows_Aux._Long %>% filter(flow =="1") %>% filter(s2=="O" | s2=="I") %>% group_by(s1) %>% summarise(n=sum(as.numeric(weight)))
-# s1           n
-# <chr>    <dbl>
-# 1 a       24603
-# 2 A       30337
-# 3 d       111942
-# 4 D      104020
-# 5 I     1900513
-# 6 O      164821
-# 7 p      131559
-# 8 x       78879
+
 
 MIG_Flows_Aux._Long %>% filter(flow =="1") %>%  filter(s2=="O" | s2=="I") %>% filter(grepl("135",d2)) %>% filter(!grepl("114",d1)) %>% group_by(s1) %>% summarise(n=sum(as.numeric(weight)))
-# s1         n
-# <chr>  <dbl>
-# 1 a      1933
-# 2 A      1098
-# 3 d      11663
-# 4 D      7264
-# 5 I     41593
-# 6 O      33041
-# 7 p     8652
-# 8 x      4332
+
+                                           
 # ----
 # Persistency / visibility NSAID Opioid  -------------------------------------------
 MIG_Drug_Histories <- read.table("MIG Drug Histories.txt", header = T, sep="\t", colClasses = "character", stringsAsFactors = FALSE)
@@ -5431,23 +3779,6 @@ MIG_Drug_Histories %>% ungroup() %>% group_by(Duration, lines) %>% summarise(n= 
         axis.ticks = element_blank())
 
 
-Duration lines        n
-<dbl> <dbl>    <dbl>
-  1        1     1 2586892.
-2        1     2 1073490.
-3        1     3  315395.
-4        4     1  510634.
-5        4     2  567584.
-6        4     3  990226.
-7        4     5  353006.
-8        9     1  234350.
-9        9     2  269743.
-10        9     3  451617.
-11        9     5  439394.
-12       12     1 1086732.
-13       12     2 1355058.
-14       12     3 1968269.
-15       12     5 2234637.
 # ----
 # Number of drugs per stock m60 ---------------------------------------------------
 #Import stock at month60
@@ -5470,59 +3801,9 @@ MIG_Box_Histories <- MIG_Box_Histories %>% mutate(drugs_n = ifelse(drugs_n>=6,6,
 
 MIG_Box_Histories %>% ungroup() %>% group_by(Box_m60) %>% summarise(n= weighted.mean(drugs_n, as.numeric(weight)))
 
-Box_m60     n
-<chr>   <dbl>
-  1 a        1.52
-2 A        1.30
-3 d        3.60
-4 D        3.51
-5 I        3.37
-6 O        3.31
-7 p        1.48
 
 data.frame(MIG_Box_Histories %>% ungroup() %>% group_by(Box_m60, drugs_n) %>% summarise(n=sum(as.numeric(weight))))
 
-# Box_m60 drugs_n          n
-# 1        a       1  748929.60
-# 2        a       2  197392.29
-# 3        a       3   62114.47
-# 4        a       4   28476.16
-# 5        a       5   19088.58
-# 6        a       6   14426.18
-# 7        A       1  386866.74
-# 8        A       2   71645.07
-# 9        A       3   18519.33
-# 10       A       4    7530.46
-# 11       A       5    2423.64
-# 12       A       6    1541.10
-# 13       d       2  643607.53
-# 14       d       3  617524.65
-# 15       d       4  424937.70
-# 16       d       5  277414.15
-# 17       d       6  353976.04
-# 18       D       2  244373.46
-# 19       D       3  183976.45
-# 20       D       4  113505.38
-# 21       D       5   74565.67
-# 22       D       6  117917.47
-# 23       I       1   61255.31
-# 24       I       2   89065.84
-# 25       I       3   79888.36
-# 26       I       4   50669.76
-# 27       I       5   39979.92
-# 28       I       6   76048.66
-# 29       O       1   14224.45
-# 30       O       2   16502.96
-# 31       O       3   15635.58
-# 32       O       4   11954.98
-# 33       O       5    7821.72
-# 34       O       6   13979.01
-# 35       p       1 2988346.47
-# 36       p       2 1046648.18
-# 37       p       3  341222.63
-# 38       p       4   98580.23
-# 39       p       5   22621.09
-# 40       p       6    5721.39
 # ----
 # Switch matrix -----------------------------------------------------------------
 MIG_Flows_Aux._Long <- read.table("MIG_Flows_Aux._Long_v2.txt", header = T, sep=",", 
@@ -5587,38 +3868,11 @@ Ever_treated <- Ever_treated %>% left_join(MIG_Box_Histories)
 
 Ever_treated %>% group_by(Box_m60) %>% summarise(n=sum(as.numeric(weight))) %>% mutate(percent = n/18330405)
 
-# EVER_TREATED 18330405
-# Box_m60        n percent
-# <chr>      <dbl>   <dbl>
-# 1 a       1070427. 0.0584 
-# 2 A        488526. 0.0267 
-# 3 d       2317460. 0.126  
-# 4 D        734338. 0.0401 
-# 5 I        396908. 0.0217 
-# 6 O         80119. 0.00437
-# 7 p       4503140. 0.246  
-# 8 x       8739486. 0.477
 
 
 Ever_treated <- Ever_treated %>% mutate(combo = ifelse(grepl(",",month60), "Combo", "Mono"))
 
 Ever_treated %>% group_by(Box_m60, combo) %>% summarise(n=sum(as.numeric(weight)))
-
-# Box_m60 combo        n
-# <chr>   <chr>    <dbl>
-#   1 a       Combo  321498.
-# 2 a       Mono   748930.
-# 3 A       Combo  101660.
-# 4 A       Mono   386867.
-# 5 d       Combo 2317460.
-# 6 D       Combo  734338.
-# 7 I       Combo  335653.
-# 8 I       Mono    61255.
-# 9 O       Combo   65894.
-# 10 O       Mono    14224.
-# 11 p       Combo 1514794.
-# 12 p       Mono  2988346.
-# 13 x       Mono  8739486.
 
 Ever_treated <- separate_rows(Ever_treated, month60, sep = ",", convert=T)
 names(Ever_treated)[4] <- "molecule"
@@ -5630,28 +3884,7 @@ Ever_treated %>% left_join(RIME_Ingredients %>% select(molecule, drug_group)) %>
   select(patient, weight, Box_m60, drug_group) %>% distinct() %>%
   group_by(Box_m60, drug_group) %>% summarise(n=sum(as.numeric(weight)))
 
-
-Box_m60 drug_group             n
-<chr>   <chr>              <dbl>
-  1 a       Symptomatic     1070427.
-2 A       Acute            488526.
-3 A       Symptomatic       95045.
-4 d       Preventative    2317460.
-5 d       Symptomatic     2317460.
-6 D       Acute            734338.
-7 D       Preventative     734338.
-8 D       Symptomatic      307961.
-9 I       Acute            119924.
-10 I       CGRP Injectable  396908.
-11 I       CGRP Oral         33643.
-12 I       Preventative     284449.
-13 I       Symptomatic      150526.
-14 O       Acute             15092.
-15 O       CGRP Oral         80119.
-16 O       Preventative      59053.
-17 O       Symptomatic       32211.
-18 p       Preventative    4503140.
-19 x       NA              8739486.
+.
 # ----
 # For lapsed on m60, how long have they been lapsed? -------------------------------------------------------------------
 
@@ -5764,19 +3997,6 @@ Ever_treated %>% group_by(patient, weight) %>% count() %>% ungroup() %>%
   summarise(pats = sum(as.numeric(weight)))
 
 
-Total_lapsed_bucket     pats
-<chr>                  <dbl>
-  1 1                    833708.
-2 12 to 24            1907020 
-3 2 to 6              2253992.
-4 24 to 36            1026538.
-5 36 to 48             582008.
-6 48 to 60             377811.
-7 6 to 12             1758408.
-
-
-
-
 
 Ever_treated_summary <- Ever_treated %>% group_by(patient, weight) %>% count() %>% ungroup()
 
@@ -5837,30 +4057,6 @@ MIG_Drug_Histories <- MIG_Drug_Histories %>% distinct()
 data.frame(MIG_Drug_Histories %>% group_by(drug_class) %>% summarise(sum_weights = sum(as.numeric(weight))) %>%
              mutate(sum_weights_percent = (sum_weights / 18330405)*100)) %>% arrange(-sum_weights_percent)
 
-# drug_class sum_weights sum_weights_percent
-# 1            NSAID  5791307.03         31.59399386
-# 2       Antiemetic  4757012.44         25.95148574
-# 3    Antiepileptic  4571703.44         24.94054790
-# 4             SSRI  4075151.92         22.23165238
-# 5          Steroid  4035900.96         22.01752204
-# 6          Triptan  3705942.37         20.21746039
-# 7      Weak Opioid  3676988.24         20.05950354
-# 8    Strong Opioid  3268842.62         17.83289905
-# 9  Muscle Relaxant  3078249.30         16.79313305
-# 10    Beta Blocker  2732848.35         14.90882689
-# 11            SNRI  1759144.20          9.59686488
-# 12  Cardiovascular  1663819.77          9.07683038
-# 13        Sedative  1453436.06          7.92909955
-# 14       Tricyclic  1275561.25          6.95871832
-# 15       Analgesic   658583.66          3.59284838
-# 16 Calcium Blocker   600164.78          3.27414904
-# 17   Antipsychotic   589793.17          3.21756759
-# 18 CGRP Injectable   572330.30          3.12230035
-# 19          Neural   478874.75          2.61246137
-# 20       CGRP Oral   219207.82          1.19587003
-# 21 Hospitalization    47052.29          0.25668985
-# 22           Ergot    26329.75          0.14363976
-# 23           Ditan    11952.06          0.06520347
 
 
 # Durations 12 months
@@ -7018,77 +5214,6 @@ data.frame(MIG_Doses_BIG %>% select(pat_id,weight, Month_Yr) %>% group_by(Month_
   xlab("\nMonth")+ylab("Number of Scripts per Patient \n")
 
 
-
-Month_Yr script_count pat_count scripts_pat
-1   2015-12     22437068   7279946    3.082038
-2   2016-01     21616565   7197798    3.003219
-3   2016-02     21057280   7181374    2.932208
-4   2016-03     22204116   7356674    3.018227
-5   2016-04     21320043   7225798    2.950545
-6   2016-05     21642832   7257923    2.981960
-7   2016-06     21775606   7251394    3.002955
-8   2016-07     21329827   7223169    2.952973
-9   2016-08     22667185   7415590    3.056694
-10  2016-09     22011884   7356028    2.992360
-11  2016-10     22180978   7411129    2.992928
-12  2016-11     22356877   7486213    2.986407
-13  2016-12     22995569   7587661    3.030653
-14  2017-01     22626123   7563404    2.991527
-15  2017-02     20879570   7365314    2.834851
-16  2017-03     23013408   7689762    2.992733
-17  2017-04     21859024   7517411    2.907786
-18  2017-05     22909773   7648182    2.995454
-19  2017-06     22659725   7610338    2.977493
-20  2017-07     22258517   7554696    2.946316
-21  2017-08     23558913   7729551    3.047902
-22  2017-09     22649875   7675324    2.950999
-23  2017-10     23391623   7814925    2.993199
-24  2017-11     23226318   7810983    2.973546
-25  2017-12     23389173   7876206    2.969599
-26  2018-01     23325050   7860392    2.967416
-27  2018-02     21165289   7568887    2.796354
-28  2018-03     22865352   7822481    2.923031
-29  2018-04     22272395   7753130    2.872697
-30  2018-05     22816889   7744473    2.946216
-31  2018-06     22089871   7662567    2.882829
-32  2018-07     22303363   7696556    2.897837
-33  2018-08     23234264   7816767    2.972362
-34  2018-09     22109219   7748042    2.853523
-35  2018-10     23876102   8033772    2.971966
-36  2018-11     23526501   8004215    2.939264
-37  2018-12     23622644   8052329    2.933641
-38  2019-01     23714925   8064705    2.940582
-39  2019-02     21603972   7773341    2.779239
-40  2019-03     23075787   8034990    2.871912
-41  2019-04     23235428   8029701    2.893685
-42  2019-05     23548021   8039044    2.929207
-43  2019-06     22602153   7920664    2.853568
-44  2019-07     23776110   8033325    2.959685
-45  2019-08     23791681   8070820    2.947864
-46  2019-09     23138071   8030268    2.881357
-47  2019-10     24313947   8237514    2.951612
-48  2019-11     23304680   8108255    2.874192
-49  2019-12     23641252   8118779    2.911922
-50  2020-01     24200601   8243140    2.935847
-51  2020-02     22543331   8028642    2.807863
-52  2020-03     24078365   8280018    2.908009
-53  2020-04     21798941   7702991    2.829932
-54  2020-05     22065661   7711927    2.861238
-55  2020-06     23320986   8006849    2.912630
-56  2020-07     23362808   8009337    2.916946
-57  2020-08     23418314   8004493    2.925646
-58  2020-09     23375961   8036240    2.908818
-59  2020-10     23850109   8148543    2.926917
-60  2020-11     23194394   8064309    2.876179
-61  2020-12     24444633   8218495    2.974344
-62  2021-01     23198862   8061800    2.877628
-63  2021-02     21327108   7784479    2.739696
-64  2021-03     23792165   8166226    2.913484
-65  2021-04     23290048   8120252    2.868143
-66  2021-05     22731996   8047666    2.824669
-67  2021-06     23625551   8167889    2.892492
-68  2021-07     23404206   8109790    2.885920
-
 # ----
 # Elapsed time since last seen OR last script ---------------------------------------------------------
 library(zoo)
@@ -7124,16 +5249,7 @@ JOINED %>% ungroup() %>%
                                                 ifelse(lag_months>48&lag_months<=60, "48 to 60 months","> 60 months")))))) %>%
   group_by(lag_bins) %>% summarise(pats_sum = sum(as.numeric(weight)))
 
-# with scripts until Jul 31st 2021
-lag_bins         pats_sum
-<chr>               <dbl>
-  1 < 12 months     15255662
-3 12 to 24 months  1669233
-4 24 to 36 months  806770
-5 36 to 48 months   410327
-6 48 to 60 months   188472
 
-#15255662+1669233+806770+410327+188472   #18330464
 
 # ----
 # Concomitant drugs before and after Injectable CGRP Start -------
@@ -7576,16 +5692,6 @@ MIG_Flows_Aux._Long <- MIG_Flows_Aux._Long %>% mutate(s2 = ifelse(s2 == 0 , "x",
                                                                                                             ifelse(s2==7,"I",s2)))))))))
 
 MIG_Flows_Aux._Long %>% ungroup() %>% group_by(s2) %>% summarise(n=sum(as.numeric(weight)))
-s2           n
-<chr>    <dbl>
-  1 a     2554012.
-2 A     1044599.
-3 d     4954857.
-4 D     2061801.
-5 I      572330.
-6 O      136562.
-7 p     3112866.
-8 x     3893378.
 
 MIG_Flows_Aux._Long_MAX <- MIG_Flows_Aux._Long %>% select(patient, weight, s2) 
 names(MIG_Flows_Aux._Long_MAX)[3] <- "MAX_stock"
@@ -7675,16 +5781,7 @@ MIG_Flows_Aux._Long <- MIG_Flows_Aux._Long %>% mutate(s2 = ifelse(s2 == 0 , "x",
                                                                                                             ifelse(s2==7,"I",s2)))))))))
 
 MIG_Flows_Aux._Long %>% ungroup() %>% group_by(s2) %>% summarise(n=sum(as.numeric(weight)))
-# s2           n
-# <chr>    <dbl>
-# 1 a     2554012.
-# 2 A     1044599.
-# 3 d     4954857.
-# 4 D     2061801.
-# 5 I      572330.
-# 6 O      136562.
-# 7 p     3112866.
-# 8 x     3893378.
+
 
 # Save max stock within the last 12m
 MIG_Flows_Aux._Long_MAX <- MIG_Flows_Aux._Long %>% select(patient, weight, s2) 
@@ -7698,23 +5795,17 @@ MIG_Flows_Aux._Long <- MIG_Flows_Aux._Long %>% mutate(p2=as.numeric(p2))
 MIG_Flows_Aux._Long <- MIG_Flows_Aux._Long %>% filter(p2 >=49)
 MIG_Flows_Aux._Long <- MIG_Drug_Histories_LONG %>% left_join(MIG_Flows_Aux._Long)
 
-#48198.34 ever rimegepant + as a function of the MAX_stock (last 12m)
-MIG_Flows_Aux._Long %>% filter(grepl("135",d2)) %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))
+
+                                                         MIG_Flows_Aux._Long %>% filter(grepl("135",d2)) %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))
 Pats_ever_Rimegepant_last_12m <- MIG_Flows_Aux._Long %>% filter(grepl("135",d2)) %>% select(patient, weight) %>% distinct()
-# MAX_stock      n
-# <chr>      <dbl>
-# 1 I         20696.
-# 2 O         27502.
+
 Pats_ever_Rimegepant_last_12m %>% left_join(MIG_Flows_Aux._Long_MAX) %>% group_by(MAX_stock) %>% summarise(n=sum(as.numeric(weight)))
 
 
-#219207.8 ever Oral CGRP  + as a function of the MAX_stock (last 12m)
 MIG_Flows_Aux._Long %>% filter(grepl("135",d2)|grepl("136",d2)) %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(as.numeric(weight)))
 Pats_ever_oral_CGRP_last_12m <- MIG_Flows_Aux._Long %>% filter(grepl("135",d2)|grepl("136",d2)) %>% select(patient, weight) %>% distinct()
-# MAX_stock       n
-# <chr>       <dbl>
-# 1 I          82646.
-# 2 O         136562.
+
+                                                         
 Pats_ever_oral_CGRP_last_12m %>% left_join(MIG_Flows_Aux._Long_MAX) %>% group_by(MAX_stock) %>% summarise(n=sum(as.numeric(weight)))
 
 # ----
@@ -7747,31 +5838,6 @@ MIG_Drug_Histories <- MIG_Drug_Histories %>% distinct()
 data.frame(MIG_Drug_Histories %>% group_by(drug_class) %>% summarise(sum_weights = sum(as.numeric(weight))) %>%
              mutate(sum_weights_percent = (sum_weights / 4503140)*100)) %>% arrange(-sum_weights_percent)
 
-
-drug_class sum_weights sum_weights_percent
-1            NSAID  3073261.15         68.24707093
-2       Antiemetic  2795868.41         62.08708612
-3          Steroid  2675146.05         59.40623765
-4      Weak Opioid  2572406.36         57.12472541
-5             SSRI  2441490.27         54.21750756
-6    Antiepileptic  2345148.21         52.07806575
-7    Strong Opioid  2171378.03         48.21919883
-8  Muscle Relaxant  1826316.65         40.55651501
-9     Beta Blocker  1632910.87         36.26160568
-10         Triptan  1621175.51         36.00100175
-11  Cardiovascular  1093178.90         24.27592524
-12            SNRI  1003623.32         22.28718894
-13        Sedative   956771.46         21.24676248
-14       Tricyclic   863841.51         19.18309246
-15   Antipsychotic   400960.37          8.90401742
-16 Calcium Blocker   396137.36          8.79691415
-17       Analgesic   326557.69          7.25177743
-18          Neural   257086.35          5.70904635
-19 CGRP Injectable    76521.65          1.69929538
-20 Hospitalization    63815.79          1.41713982
-21       CGRP Oral    27237.80          0.60486238
-22           Ergot    21816.06          0.48446329
-23           Ditan      940.15          0.02087765
 # ----
 # Primary vs Secondary INTRAFLOWS --------------------------------------------
 #Import Libs
@@ -7881,54 +5947,25 @@ intrFlw <- intrFlw[, year := ifelse(p2 <= 12, 1, ifelse(p2 <= 24, 2, ifelse(p2 <
 
 intrFlw %>% filter(year == "5") %>% filter(Injectable_CGRP_flow_type == "-") %>% filter(s2 == "I") %>% summarise(n=sum(as.numeric(weight))) #1864815
 intrFlw %>% filter(year == "5") %>% filter(Injectable_CGRP_flow_type != "-")  %>% group_by(Injectable_CGRP_flow_type) %>% summarise(n=sum(as.numeric(weight))) #24223.78
-# Injectable_CGRP_flow_t~      n
-# <chr>                    <dbl>
-# 1 A                        5156.
-# 2 D                        4593.
-# 3 S                       14475.
-
 
 intrFlw %>% filter(year == "5") %>% filter(Oral_CGRP_flow_type == "-") %>% filter(s2 == "O") %>% summarise(n=sum(as.numeric(weight))) #148344
 intrFlw %>% filter(year == "5") %>% filter(Oral_CGRP_flow_type != "-") %>% filter(s2 == "O") %>% group_by(Oral_CGRP_flow_type) %>% summarise(n=sum(as.numeric(weight))) #4454.38
-# Oral_CGRP_flow_type     n
-# <chr>               <dbl>
-# 1 A                   1387.
-# 2 D                   1622.
-# 3 S                   1445.
 
 
 intrFlw %>% filter(year == "5") %>% filter(Acute_flow_type == "-") %>% filter(s2 == "A") %>% summarise(n=sum(as.numeric(weight))) #526267.8
 intrFlw %>% filter(year == "5") %>% filter(Acute_flow_type != "-") %>% filter(s2 == "A") %>% group_by(Acute_flow_type) %>% summarise(n=sum(as.numeric(weight))) 
-# Acute_flow_type      n
-# <chr>            <dbl>
-# 1 A               22477.
-# 2 D               23457.
-# 3 D+S               117.
-# 4 S               14544.
 
 
 
 intrFlw %>% filter(year == "5") %>% filter(Symptomatic_flow_type == "-") %>% filter(s2 == "a") %>% summarise(n=sum(as.numeric(weight))) #0
 intrFlw %>% filter(year == "5") %>% filter(Symptomatic_flow_type != "-") %>% filter(s2 == "a") %>% group_by(Symptomatic_flow_type) %>% summarise(n=sum(as.numeric(weight))) 
-# Symptomatic_flow_type       n
-# <chr>                   <dbl>
-# 1 A                     672682.
-# 2 A+S                   155929.
-# 3 D                     733456.
-# 4 D+S                   139982.
-# 5 S                     346445.
+
 
 
 
 intrFlw %>% filter(year == "5") %>% filter(Preventative_flow_type == "-") %>% filter(s2 == "p") %>% summarise(n=sum(as.numeric(weight))) #0
 intrFlw %>% filter(year == "5") %>% filter(Preventative_flow_type != "-") %>% filter(s2 == "p") %>% group_by(Preventative_flow_type) %>% summarise(n=sum(as.numeric(weight))) 
-# Preventative_flow_type        n
-# <chr>                     <dbl>
-# 1 A                      1717502.
-# 2 A+S                      22839.
-# 3 D                      1828561.
-# 4 D+S                      21810.
-# 5 S                       291881.
+
 # ----
 
 # DECISON RESOURCING BUSINESS RULES _ PAT BOXES -------------------------------------
@@ -8049,12 +6086,6 @@ MIG_Drug_Histories_4A <- as.data.frame(MIG_Drug_Histories_4A)
 
 
 
-# 4B. # MODERATE SEVERITY -	All other patients not accounted in any of the other groups ----
-# e.g.: no history of CGRP, but history of preventive, however currently not on Preventive + Acute nor Preventive + Symptomatic
-
-# remaining NAs ????
-
-
 
 # ---------
 
@@ -8092,15 +6123,7 @@ temp2 <- temp %>% group_by(patient) %>% summarise(across(everything(),max))
 
 temp2 %>% group_by(month60) %>% summarise(n=n())
 
-month60     n
-<chr>   <int>
-1 0       99408
-2 1       34624
-3 2       23457
-4 3        1061
-5 4        6444
-6 5       33444
-7 6        7536
+
 
 fwrite(temp2,"Decision_resourcing_boxes.txt")
 
@@ -8209,15 +6232,7 @@ MIG_Rimegepant_After_48 <- MIG_Rimegepant_After_48 %>% left_join(MIG_Flows_Aux._
 
 MIG_Rimegepant_After_48 %>% group_by(Segmentation) %>% summarise(n=sum(as.numeric(weight)))
 
-Segmentation      n
-<chr>         <dbl>
-  1 0             8761.
-2 1            12270.
-3 2             1025.
-4 3             1323.
-5 4            17672.
-6 5             3061.
-7 6              374.
+
 
 # Classification before and after CGRP Start
 MIG_Flows_Aux._Long <- read.table("MIG_Flows_Aux._Long_v2.txt", header = T, sep=",", 
@@ -8251,12 +6266,6 @@ MIG_CGRP_After_48 <- MIG_CGRP_After_48 %>% left_join(MIG_Flows_Aux._Long %>% sel
 
 MIG_CGRP_After_48 %>% group_by(Segmentation) %>% summarise(n=sum(as.numeric(weight)))
 
-<chr>          <dbl>
-  1 0            135042.
-2 1            126269.
-3 2             10968.
-4 5             29675.
-5 6              1904.
 
 # ----
 
@@ -8311,63 +6320,12 @@ data.frame(MIG_Flows_Aux._Long_Triptans %>% filter(p1_RxExp != 0) %>% mutate(grp
                                        ifelse(s2=="I", "Injectable", "Other")))) %>% group_by(grp, s2) %>% 
              summarise(n=sum(as.numeric(weight.x))))
 
-grp         s2           n
-1    0 Injectable    68799.48
-2    0      Other 10692572.73
-3    0 Rimegepant     7087.99
-4    0 Ubrogepant    13953.71
-5    1 Injectable   175438.55
-6    1      Other  6093395.39
-7    1 Rimegepant     6919.61
-8    1 Ubrogepant    25047.44
-9    2 Injectable   100919.21
-10   2      Other   898477.84
-11   2 Rimegepant     6545.89
-12   2 Ubrogepant    16127.58
-13   3 Injectable    31713.43
-14   3      Other   121772.14
-15   3 Rimegepant     2229.34
-16   3 Ubrogepant     6984.63
-17   4 Injectable     9449.35
-18   4      Other    20554.33
-19   4 Rimegepant      762.12
-20   4 Ubrogepant     1848.60
-21   5 Injectable     1909.74
-22   5      Other     2104.90
-23   5 Rimegepant      406.48
-24   5 Ubrogepant      508.19
-25   6 Injectable      107.82
-26   6      Other     1801.66
-
 data.frame(MIG_Flows_Aux._Long_CGRPs %>% filter(p1_RxExp != 0) %>% mutate(grp=ifelse(grp>=6, 6, grp)) %>% 
              mutate(s2 = ifelse(grepl("135",d2),"Rimegepant",
                                 ifelse(s2=="O" & !grepl("135",d2), "Ubrogepant",
                                        ifelse(s2=="I", "Injectable", "Other")))) %>% group_by(grp, s2) %>% 
              summarise(n=sum(as.numeric(weight.x))))
 
-
-grp         s2           n
-1    0      Other 17466835.32
-2    1 Injectable   298572.46
-3    1      Other   312434.96
-4    1 Rimegepant    10387.86
-5    1 Ubrogepant    49031.76
-6    2 Injectable    71041.31
-7    2      Other    43187.85
-8    2 Rimegepant     7542.68
-9    2 Ubrogepant    12209.69
-10   3 Injectable    15639.52
-11   3      Other     6902.61
-12   3 Rimegepant     4071.79
-13   3 Ubrogepant     2709.61
-14   4 Injectable     2809.46
-15   4      Other      905.13
-16   4 Rimegepant     1165.99
-17   4 Ubrogepant      247.05
-18   5 Injectable      274.83
-19   5      Other      413.12
-20   5 Rimegepant      783.11
-21   5 Ubrogepant      272.04
 
 # ------
 # Number of dep lines m30, DURATION TO LINE10TH ----------------------
@@ -8498,122 +6456,25 @@ MIG_Doses_BIG <- MIG_Doses_BIG %>%filter(from_dt >= "2020-08-01" & from_dt <= "2
 MIG_Doses_BIG %>% group_by(specialty) %>% summarise(n=n()) %>% left_join(Physicians_Vanguard_Lookup) %>% 
   ungroup() %>% group_by(Physician) %>% summarise(n2=sum(n))
 
-Physician              n2
-<chr>               <int>
-  1 ANEST/PAIN         115569
-2 CARDIOLOGIST        55590
-3 FACILITY           220827
-4 INTERNAL MEDICINE  380404
-5 NEURO-SURGEON        6194
-6 NEUROLOGIST        202286
-7 ORTHOPEDIC SURGEON  34507
-8 OTHER HCP          278369
-9 OTHER PHYSICIAN    235612
-10 PCP                618485
-11 PSYCHIATRY         108905
-12 PSYCHOLOGIST           64
-13 RHEUMATOLOGIST      33386
-14 SPINAL SURGEON       1360
-15 NA                  48587
 
 MIG_Doses_BIG %>% filter(drug_group == "CGRP Oral") %>% group_by(specialty) %>% 
   summarise(n=n()) %>% left_join(Physicians_Vanguard_Lookup) %>% ungroup() %>% group_by(Physician) %>% summarise(n2=sum(n))
 
-Physician             n2
-<chr>              <int>
-  1 ANEST/PAIN           171
-2 CARDIOLOGIST           5
-3 FACILITY              36
-4 INTERNAL MEDICINE    389
-5 NEURO-SURGEON         54
-6 NEUROLOGIST         4162
-7 ORTHOPEDIC SURGEON    14
-8 OTHER HCP           1022
-9 OTHER PHYSICIAN      289
-10 PCP                  649
-11 PSYCHIATRY            49
-12 RHEUMATOLOGIST         5
-13 NA                   179
 
 MIG_Doses_BIG %>% filter(drug_group == "CGRP Injectable") %>% group_by(specialty) %>% 
   summarise(n=n()) %>% left_join(Physicians_Vanguard_Lookup) %>% ungroup() %>% group_by(Physician) %>% summarise(n2=sum(n))
 
-Physician             n2
-<chr>              <int>
-  1 ANEST/PAIN          1040
-2 CARDIOLOGIST          54
-3 FACILITY             421
-4 INTERNAL MEDICINE   1946
-5 NEURO-SURGEON        204
-6 NEUROLOGIST        21856
-7 ORTHOPEDIC SURGEON   103
-8 OTHER HCP           4555
-9 OTHER PHYSICIAN     1517
-10 PCP                 4097
-11 PSYCHIATRY           275
-12 RHEUMATOLOGIST        13
-13 NA                   711
 
 MIG_Doses_BIG %>% filter(drug_class == "Triptan") %>% group_by(specialty) %>% 
   summarise(n=n()) %>% left_join(Physicians_Vanguard_Lookup) %>% ungroup() %>% group_by(Physician) %>% summarise(n2=sum(n))
 
-Physician             n2
-<chr>              <int>
-  1 ANEST/PAIN          2534
-2 CARDIOLOGIST         287
-3 FACILITY            2312
-4 INTERNAL MEDICINE  29710
-5 NEURO-SURGEON        342
-6 NEUROLOGIST        32596
-7 ORTHOPEDIC SURGEON   254
-8 OTHER HCP          15221
-9 OTHER PHYSICIAN    10451
-10 PCP                55532
-11 PSYCHIATRY           979
-12 RHEUMATOLOGIST       296
-13 SPINAL SURGEON        23
-14 NA                  2994
 
 MIG_Doses_BIG %>% filter(generic_name == "Rimegepant") %>% group_by(specialty) %>% 
   summarise(n=n()) %>% left_join(Physicians_Vanguard_Lookup) %>% ungroup() %>% group_by(Physician) %>% summarise(n2=sum(n))
 
-Physician            n2
-<chr>             <int>
-  1 ANEST/PAIN           45
-2 FACILITY             10
-3 INTERNAL MEDICINE    67
-4 NEURO-SURGEON         9
-5 NEUROLOGIST         897
-6 OTHER HCP           218
-7 OTHER PHYSICIAN      84
-8 PCP                 139
-9 PSYCHIATRY           14
-10 RHEUMATOLOGIST        3
-11 NA                   46
-
 
 MIG_Doses_BIG %>% filter(drug_group == "Preventative") %>% group_by(specialty) %>% 
   summarise(n=n()) %>% left_join(Physicians_Vanguard_Lookup) %>% ungroup() %>% group_by(Physician) %>% summarise(n2=sum(n))
-
-
-Physician              n2
-<chr>               <int>
-1 ANEST/PAIN          36530
-2 CARDIOLOGIST        52618
-3 FACILITY            26174
-4 INTERNAL MEDICINE  234947
-5 NEURO-SURGEON        2808
-6 NEUROLOGIST        115304
-7 ORTHOPEDIC SURGEON   5814
-8 OTHER HCP          152262
-9 OTHER PHYSICIAN     91457
-10 PCP                370828
-11 PSYCHIATRY          94575
-12 PSYCHOLOGIST           64
-13 RHEUMATOLOGIST      12898
-14 SPINAL SURGEON        404
-15 NA                  23461
-
 
 
 #2271 unique neurologists
@@ -8640,22 +6501,6 @@ MIG_Doses_BIG %>% filter(drug_group == "CGRP Injectable"| drug_group == "CGRP Or
   arrange(pat_id, from_dt) %>% group_by(pat_id) %>% slice(1) %>% ungroup()%>%
   group_by(specialty) %>% summarise(n=n()) %>% left_join(Physicians_Vanguard_Lookup) %>%
   ungroup() %>% group_by(Physician) %>% summarise(n2=sum(n))
-
-Physician             n2
-<chr>              <int>
-  1 ANEST/PAIN           185
-2 CARDIOLOGIST           8
-3 FACILITY              79
-4 INTERNAL MEDICINE    394
-5 NEURO-SURGEON         37
-6 NEUROLOGIST         3882
-7 ORTHOPEDIC SURGEON    17
-8 OTHER HCP            826
-9 OTHER PHYSICIAN      278
-10 PCP                  779
-11 PSYCHIATRY            51
-12 RHEUMATOLOGIST         8
-13 NA                   124
 
 
 MIG_Doses_BIG %>% left_join(Physicians_Vanguard_Lookup) %>% filter(Physician == "NEUROLOGIST") %>%
@@ -8971,9 +6816,6 @@ Rimegepant_Periods_MIG %>% left_join(MIG_Drug_Histories %>%
                                        select(patient, weight, visibility), by=c("patient"="patient")) %>% 
   distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
   select(patient, weight, visibility, Total_duration) %>% distinct() %>% summarise(n=weighted.median(Total_duration, weight))
-# 2.90 mean
-# 1.5 median
-
 
 
 # ----
@@ -9307,58 +7149,6 @@ data.frame(MIG_nrLines_Histories_SUMMARY %>% filter(Month_new == 48) %>%group_by
 
 data.frame(MIG_nrLines_Histories_SUMMARY %>% filter(stock == "O") %>% 
              mutate(total=sum(sum)) %>% group_by(Treat) %>% mutate(n_line = sum(sum)) %>% mutate(percent=n_line/total) %>% select(percent) %>% distinct())
-
-
-Treat stock     total   global     percent
-1      1     a    914.39 176657.2  0.51760686
-2      1     A   2265.56 176657.2  1.28246088
-3      1     p   4786.34 176657.2  2.70939363
-4      1     x 168690.95 176657.2 95.49053863
-5      2     a   6048.84 286194.0  2.11354499
-6      2     A   4673.88 286194.0  1.63311571
-7      2     d   1119.52 286194.0  0.39117515
-8      2     D    245.95 286194.0  0.08593819
-9      2     p  21940.01 286194.0  7.66613072
-10     2     x 252165.85 286194.0 88.11009523
-11     3     a  10882.96 306286.5  3.55319553
-12     3     A   6189.05 306286.5  2.02067312
-13     3     d   3679.05 306286.5  1.20117909
-14     3     D   2443.68 306286.5  0.79784111
-15     3     I    216.58 306286.5  0.07071156
-16     3     p  37081.30 306286.5 12.10673469
-17     3     x 245793.93 306286.5 80.24966490
-18     4     a  13705.81 286840.0  4.77820753
-19     4     A   7370.79 286840.0  2.56965216
-20     4     d   3594.26 286840.0  1.25305401
-21     4     D   2621.39 286840.0  0.91388582
-22     4     I    754.32 286840.0  0.26297588
-23     4     O    989.87 286840.0  0.34509484
-24     4     p  49399.81 286840.0 17.22207911
-25     4     x 208403.74 286840.0 72.65505064
-26     5     a  12899.97 242919.0  5.31040064
-27     5     A   6189.43 242919.0  2.54794027
-28     5     d   7140.99 242919.0  2.93965938
-29     5     D   3268.36 242919.0  1.34545282
-30     5     I    740.01 242919.0  0.30463246
-31     5     p  46558.56 242919.0 19.16629315
-32     5     x 166121.64 242919.0 68.38562128
-33     6     a  14218.63 190550.2  7.46188026
-34     6     A   4362.10 190550.2  2.28921267
-35     6     d   6942.38 190550.2  3.64333331
-36     6     D   3221.72 190550.2  1.69074579
-37     6     I   1049.24 190550.2  0.55063696
-38     6     O    365.55 190550.2  0.19183918
-39     6     p  44112.68 190550.2 23.15015836
-40     6     x 116277.93 190550.2 61.02219347
-41    7+     a  59241.59 651493.2  9.09320145
-42    7+     A  14962.88 651493.2  2.29670544
-43    7+     d  70549.32 651493.2 10.82886497
-44    7+     D  25159.60 651493.2  3.86183610
-45    7+     I  15195.37 651493.2  2.33239115
-46    7+     O   3357.13 651493.2  0.51529777
-47    7+     p 175922.03 651493.2 27.00289539
-48    7+     x 287105.29 651493.2 44.06880772
-
 
 # ----
 # How many patients in each stock across lines of therapy over time? 24 to 36 FILTERED ----------
@@ -9752,36 +7542,14 @@ RIME_Demographics <- RIME_Demographics %>% select(patid, weight, gender, age)
 Rimegepant_Periods_MIG_2 <- Rimegepant_Periods_MIG_2 %>% left_join(RIME_Demographics, by=c("patient"="patid"))
 
 Rimegepant_Periods_MIG_2 %>% ungroup() %>% group_by(Duration_bucket) %>% summarise(mean_age = weighted.mean(as.numeric(age), as.numeric(weight)))
-# Duration_bucket mean_age
-# <chr>              <dbl>
-# 1 +3months            51.7
-# 2 1month              51.5
-# 3 2months             50.6
+
+                                                         
 Rimegepant_Periods_MIG_2 %>% ungroup() %>% group_by(Duration_bucket) %>% summarise(median_age = weighted.median(as.numeric(age), as.numeric(weight)))
-# Duration_bucket median_age
-# <chr>                <dbl>
-# 1 +3months              50.5
-# 2 1month                52.5
-# 3 2months               50.5
 
 Rimegepant_Periods_MIG_2 %>% ungroup() %>% group_by(Duration_bucket, gender) %>% summarise(pats = sum(as.numeric(weight)))
 
-# Duration_bucket gender   pats
-# <chr>           <chr>   <dbl>
-# 1 +3months        F      16926.
-# 2 +3months        M       2141.
-# 3 1month          F      20808.
-# 4 1month          M       3071.
-# 5 2months         F       6394.
-# 6 2months         M        816.
 
-# > 3071/20808
-# [1] 0.1475875
-# > 816/6394
-# [1] 0.1276196
-# > 2141/16926
-# [1] 0.1264918
-
+                                                         
 # nr of lines
 MIG_Drug_Histories <- read.table("MIG Drug Histories.txt", header = T, sep="\t", colClasses = "character", stringsAsFactors = FALSE)
 
@@ -9947,18 +7715,11 @@ Rimegepant_Periods_MIG_3 <- Rimegepant_Periods_MIG %>% left_join(MIG_nrLines_His
 Rimegepant_Periods_MIG_3$Treat <- as.numeric(Rimegepant_Periods_MIG_3$Treat)
 Rimegepant_Periods_MIG_3 <- Rimegepant_Periods_MIG_3 %>% ungroup()
 Rimegepant_Periods_MIG_3 %>% group_by(Duration_bucket) %>% summarise(n=weighted.mean(Treat, as.numeric(weight)))
-Duration_bucket     n
-<chr>           <dbl>
-  1 +3months         20.9
-2 1month           18.5
-3 2months          20.7
-Rimegepant_Periods_MIG_3  %>% group_by(Duration_bucket) %>% summarise(n=weighted.median(Treat, as.numeric(weight)))
-Duration_bucket     n
-<chr>           <dbl>
-  1 +3months         19.5
-2 1month           15.5
-3 2months          17.5
 
+                                                         
+Rimegepant_Periods_MIG_3  %>% group_by(Duration_bucket) %>% summarise(n=weighted.median(Treat, as.numeric(weight)))
+
+                                                         
 
 
 # Number of Triptans or CGRPs or Preventives ever tried per patient on each stock 
@@ -10001,31 +7762,17 @@ Rimegepant_Periods_MIG_3 <- Rimegepant_Periods_MIG_3 %>% left_join(MIG_Drug_Hist
 
 
 Rimegepant_Periods_MIG_3 %>% group_by(Duration_bucket) %>% summarise(n=weighted.mean(N_Triptans, as.numeric(weight)))
-Duration_bucket     n
-<chr>           <dbl>
-  1 +3months         1.43
-2 1month           1.16
-3 2months          1.07
+
+                                                         
 Rimegepant_Periods_MIG_3 %>% group_by(Duration_bucket) %>% summarise(n=weighted.median(N_Triptans, as.numeric(weight)))
-Duration_bucket     n
-<chr>           <dbl>
-  1 +3months          0.5
-2 1month            0.5
-3 2months           0.5
 
-
+                                                         
 Rimegepant_Periods_MIG_3 %>% group_by(Duration_bucket) %>% summarise(n=weighted.mean(N_CGRPs, as.numeric(weight)))
-Duration_bucket     n
-<chr>           <dbl>
-  1 +3months         2.08
-2 1month           1.79
-3 2months          2.19
+
+                                                         
 Rimegepant_Periods_MIG_3 %>% group_by(Duration_bucket) %>% summarise(n=weighted.median(N_CGRPs, as.numeric(weight)))
-Duration_bucket     n
-<chr>           <dbl>
-  1 +3months          1.5
-2 1month            1.5
-3 2months           1.5
+
+                                                         
 
 # Nr of preventives
 RIME_Ingredients <- read.table("RIME Ingredients.txt", header = T, sep="\t", quote="", colClasses = "character", stringsAsFactors = FALSE)
@@ -10061,18 +7808,11 @@ Rimegepant_Periods_MIG_3 <- Rimegepant_Periods_MIG_3 %>%  replace(is.na(.), 0)
 
 
 Rimegepant_Periods_MIG_3 %>% group_by(Duration_bucket) %>% summarise(n=weighted.mean(N_Preventives, as.numeric(weight.x)))
-Duration_bucket     n
-<chr>           <dbl>
-  1 +3months         5.97
-2 1month           4.99
-3 2months          6.25
-Rimegepant_Periods_MIG_3 %>% group_by(Duration_bucket) %>% summarise(n=weighted.median(N_Preventives, as.numeric(weight.x)))
-Duration_bucket     n
-<chr>           <dbl>
-  1 +3months          4.5
-2 1month            3.5
-3 2months           5.5
 
+                                                         
+Rimegepant_Periods_MIG_3 %>% group_by(Duration_bucket) %>% summarise(n=weighted.median(N_Preventives, as.numeric(weight.x)))
+
+                                                         
 
 
 
@@ -10110,20 +7850,11 @@ Rimegepant_Periods_MIG_3 <- Rimegepant_Periods_MIG_3 %>%  replace(is.na(.), 0)
 
 
 Rimegepant_Periods_MIG_3 %>% group_by(Duration_bucket) %>% summarise(n=weighted.mean(N_Acutes, as.numeric(weight.x)))
-Duration_bucket     n
-<chr>           <dbl>
-  1 +3months         1.51
-2 1month           1.23
-3 2months          1.15
+
+                                                         
 Rimegepant_Periods_MIG_3 %>% group_by(Duration_bucket) %>% summarise(n=weighted.median(N_Acutes, as.numeric(weight.x)))
 
-Duration_bucket     n
-<chr>           <dbl>
-  1 +3months          0.5
-2 1month            0.5
-3 2months           0.5
-
-
+                                                         
 
 
 
@@ -10160,18 +7891,11 @@ Rimegepant_Periods_MIG_3 <- Rimegepant_Periods_MIG_3 %>%  replace(is.na(.), 0)
 
 
 Rimegepant_Periods_MIG_3 %>% group_by(Duration_bucket) %>% summarise(n=weighted.mean(N_Symptomatics, as.numeric(weight.x)))
-Duration_bucket     n
-<chr>           <dbl>
-  1 +3months         9.03
-2 1month           7.94
-3 2months          8.77
-Rimegepant_Periods_MIG_3 %>% group_by(Duration_bucket) %>% summarise(n=weighted.median(N_Symptomatics, as.numeric(weight.x)))
-Duration_bucket     n
-<chr>           <dbl>
-  +3months          8.5
-2 1month            6.5
-3 2months           8.5
 
+                                                         
+Rimegepant_Periods_MIG_3 %>% group_by(Duration_bucket) %>% summarise(n=weighted.median(N_Symptomatics, as.numeric(weight.x)))
+
+                                                         
 
 
 # Duration ON Triptans 
@@ -10284,17 +8008,11 @@ Rimegepant_Periods_MIG_3 <- Rimegepant_Periods_MIG_3 %>%  replace(is.na(.), 0)
 
 
 Rimegepant_Periods_MIG_3 %>% group_by(Duration_bucket) %>% summarise(n=weighted.mean(Total_duration, as.numeric(weight.x)))
-Duration_bucket     n
-<chr>           <dbl>
-  1 +3months         18.2
-2 1month           12.6
-3 2months          15.5
+
+                                                         
 Rimegepant_Periods_MIG_3 %>% group_by(Duration_bucket) %>% summarise(n=weighted.median(Total_duration, as.numeric(weight.x)))
-Duration_bucket     n
-<chr>           <dbl>
-  1 +3months         11.5
-2 1month            2.5
-3 2months           5.5
+
+                                                         
 
 # ----
 # Pats Injectable CGRP Duration vs Nr Lines at start ---------------------
@@ -10607,10 +8325,6 @@ CGRP_Oral_Periods_MIG_VIZ <- CGRP_Oral_Periods_MIG_VIZ %>% mutate(preventive=ife
 
 CGRP_Oral_Periods_MIG_VIZ %>% group_by(preventive) %>% summarise(n=weighted.mean(Total_duration, weight))
 
-preventive     n
-<chr>      <dbl>
-1 NO_Prev      1.5
-2 Preventive   2.5
 
 CGRP_Oral_Periods_MIG_VIZ %>% group_by(preventive) %>% summarise(n=weighted.mean(Total_duration, weight))
 
@@ -10693,18 +8407,8 @@ CCGRP_Injectable_Periods_MIG_VIZ <- CCGRP_Injectable_Periods_MIG_VIZ %>% mutate(
 
 CCGRP_Injectable_Periods_MIG_VIZ %>% group_by(preventive) %>% summarise(n=weighted.median(Total_duration, weight))
 
-preventive     n
-<chr>      <dbl>
-1 NO_Prev      8.5
-2 Preventive   9.5
-
 
 CCGRP_Injectable_Periods_MIG_VIZ %>% group_by(preventive) %>% summarise(n=weighted.mean(Total_duration, weight))
-
-preventive     n
-<chr>      <dbl>
-1 NO_Prev     11.2
-2 Preventive  12.2
 
 # ----
 # Share of CGRPs Year 4 to year 5 by NEW/OLD Physicians -----------------------------------------------------------------
@@ -10733,12 +8437,12 @@ Summary_Year4to5 <- MIG_Doses_BIG_Year4 %>% select(prov_unique) %>% group_by(pro
                                              ifelse(year4>year5, "DECREASE", 
                                                     ifelse(year4==year5, "MAINTAIN", "NONE"))))))
 
-sum(Summary_Year4to5$year4) #29601
-sum(Summary_Year4to5$year5) #42926
-sum(Summary_Year4to5$Diff_4to5) #13325
+sum(Summary_Year4to5$year4) #
+sum(Summary_Year4to5$year5) #
+sum(Summary_Year4to5$Diff_4to5) #
 
-Summary_Year4to5 %>% filter(year4==0) %>% summarise(n=sum(Diff_4to5)) #8694
-Summary_Year4to5 %>% filter(year5==0) %>% summarise(n=sum(Diff_4to5)) #-2991
+Summary_Year4to5 %>% filter(year4==0) %>% summarise(n=sum(Diff_4to5)) #
+Summary_Year4to5 %>% filter(year5==0) %>% summarise(n=sum(Diff_4to5)) #-
 Summary_Year4to5 %>% filter(year4!=0)  %>% filter(year5!=0) %>% filter(year5>year4) %>% summarise(n=sum(Diff_4to5)) #12137
 Summary_Year4to5 %>% filter(year4!=0)  %>% filter(year5!=0) %>% filter(year5<year4) %>% summarise(n=sum(Diff_4to5)) #-4515
 
@@ -10751,12 +8455,7 @@ Summary_Year4to5 %>% filter(year4!=0) %>% select(prov_unique, Physician_type) %>
 Summary_Year4to5 %>% filter(year4!=0) %>% select(prov_unique, Physician_type) %>% left_join(MIG_Doses_BIG_Year4) %>%
   select(Physician_type, prov_unique, pat_id) %>% distinct() %>% group_by(Physician_type, prov_unique) %>% summarise(n=n()) %>% summarise(n2=mean(n))
 # 
-# Physician_type    n2
-# <chr>          <dbl>
-#   1 DECREASE        1.85
-# 2 INCREASE        1.74
-# 3 MAINTAIN        1.39
-# 4 STOP            1.08
+
 
 Summary_Year4to5 %>% filter(year5!=0) %>% select(prov_unique, Physician_type) %>% left_join(MIG_Doses_BIG_Year5) %>%
   select(prov_unique, pat_id) %>% distinct() %>% group_by(prov_unique) %>% summarise(n=n()) %>% summarise(n2=mean(n)) #1.65
@@ -10765,12 +8464,6 @@ Summary_Year4to5 %>% filter(year5!=0) %>% select(prov_unique, Physician_type) %>
 Summary_Year4to5 %>% filter(year5!=0) %>% select(prov_unique, Physician_type) %>% left_join(MIG_Doses_BIG_Year5) %>%
   select(Physician_type, prov_unique, pat_id) %>% distinct() %>% group_by(Physician_type, prov_unique) %>% summarise(n=n()) %>% summarise(n2=mean(n)) 
 
-# Physician_type    n2
-# <chr>          <dbl>
-#   1 DECREASE        1.63
-# 2 INCREASE        2.36
-# 3 MAINTAIN        1.45
-# 4 NEW             1.16
 
 # -----
 # Share of CGRPs of All CGRPs Physicians prescribe -----------------------------------------------------------------
@@ -10980,11 +8673,6 @@ MIG_Drug_Histories_newPrv_4A <- apply(MIG_Drug_Histories_newPrv,1,current_combo_
 MIG_Drug_Histories_newPrv_4A = t(MIG_Drug_Histories_newPrv_4A)
 MIG_Drug_Histories_newPrv_4A <- as.data.frame(MIG_Drug_Histories_newPrv_4A)
 
-# 4B. # MODERATE SEVERITY -	All other patients not accounted in any of the other groups ----
-# e.g.: no history of CGRP, but history of preventive, however currently not on Preventive + Acute nor Preventive + Symptomatic
-
-# remaining NAs ????
-
 
 
 # ---------
@@ -11131,16 +8819,8 @@ MIG_Rimegepant_After_48 <- MIG_Rimegepant_After_48 %>% left_join(MIG_Flows_Aux._
 
 MIG_Rimegepant_After_48 %>% group_by(Segmentation) %>% summarise(n=sum(as.numeric(weight)))
 
-Segmentation      n
-<chr>         <dbl>
-  1 0             6650.
-2 1             7309.
-3 2             6736.
-4 3             1323.
-5 4            17246.
-6 5             4729.
-7 6              492 
 
+                                      
 # ----
 # FLows to Rimegepant with Cardiovascular comorbidities -----
 MIG_Flows_Aux._Long <- read.table("MIG_Flows_Aux._Long_v2.txt", header = T, sep=",", 
@@ -11165,70 +8845,12 @@ MIG_Flows_Aux._Long <- MIG_Flows_Aux._Long %>% left_join(MIG_Comorbidities)
 MIG_Flows_Aux._Long %>% filter(p1 >=48) %>% filter(!grepl("135",d1)) %>% 
   filter(grepl("135",d2)) %>% group_by(s1, cardiovascular_comorbidity) %>% summarise(pats=sum(as.numeric(weight)))
 # #Inflows
-s1      pats
-<chr>  <dbl>
-  1 a      1933.
-2 A      1098.
-3 d     11663.
-4 D      7264.
-5 I     17184.
-6 O      1858.
-7 p      8652.
-8 x      4332.
 
-s1    cardiovascular_comorbidity   pats
-<chr> <chr>                       <dbl>
-  1 a     0                            808.
-2 a     1                           1126.
-3 A     0                            534.
-4 A     1                            563.
-5 d     0                           1983.
-6 d     1                           9679.
-7 D     0                           3635.
-8 D     1                           3629.
-9 I     0                           6462.
-10 I     1                          10722.
-11 O     0                            477.
-12 O     1                           1381.
-13 p     0                           3660.
-14 p     1                           4992.
-15 x     0                           1985.
-16 x     1                           2347.
-
+                                      
 MIG_Flows_Aux._Long %>% filter(p1 >=48) %>% filter(grepl("135",d1)) %>% 
   filter(!grepl("135",d2)) %>%  group_by(s2, cardiovascular_comorbidity) %>% summarise(pats=sum(as.numeric(weight)))
-# #Outflows
-# s2      pats
-s2      pats
-<chr>  <dbl>
-  1 a       868.
-2 A       302.
-3 d      6986.
-4 D      3468.
-5 I     10821.
-6 O      1219.
-7 p      6798.
-8 x      3099.
 
-
-s2    cardiovascular_comorbidity  pats
-<chr> <chr>                      <dbl>
-  1 a     0                           328.
-2 a     1                           540 
-3 A     0                           125.
-4 A     1                           177.
-5 d     0                          1087.
-6 d     1                          5899.
-7 D     0                          1805.
-8 D     1                          1662.
-9 I     0                          3031.
-10 I     1                          7790.
-11 O     0                           278.
-12 O     1                           941.
-13 p     0                          2137.
-14 p     1                          4661.
-15 x     0                          2229.
-16 x     1                           870.
+                                      
 # ----
 # Pills per month Rimegepant Q1, Q2, Q3, Q4 --------------------------------------------------
 # (from_dt >= "2020-08-01" & from_dt <= "2020-10-31")
@@ -11479,13 +9101,6 @@ MIG_nrLines_Histories_SUMMARY <- MIG_nrLines_Histories_SUMMARY %>% filter(stock=
 
 MIG_nrLines_Histories_SUMMARY %>% group_by(Treat) %>% summarise(n=sum(as.numeric(sum)))
 
-Treat      n
-<chr>  <dbl>
-  1 3       635.
-2 4      3672.
-3 5      1918.
-4 6      2107.
-5 7+    31998.
 
 
 # ----
@@ -11976,94 +9591,40 @@ Patients_with_Neurologist <- Patients_with_Neurologist %>% select(1,3) %>% disti
 
 
 Inj_to_Oral %>% left_join(Patients_with_Neurologist, by=c("patient"="pat_id")) %>% group_by(Physician) %>% summarise(n=sum(as.numeric(weight)))
-# Physician       n
-# <chr>       <dbl>
-#   1 NEUROLOGIST 9143.
-# 2 NA          2087.
+
 
 
 Inj_Intraflow %>% left_join(Patients_with_Neurologist, by=c("patient"="pat_id")) %>% group_by(Physician) %>% summarise(n=sum(as.numeric(weight)))
-# Physician         n
-# <chr>         <dbl>
-# 1 NEUROLOGIST 308158.
-# 2 NA          131296.
+
 
 Inj_to_No_CGRP %>% left_join(Patients_with_Neurologist, by=c("patient"="pat_id")) %>% group_by(Physician) %>% summarise(n=sum(as.numeric(weight)))
-# Physician        n
-# <chr>        <dbl>
-#   1 NEUROLOGIST 41342.
-# 2 NA          21410.
 
 Any_Prev_to_InjCGRP %>% left_join(Patients_with_Neurologist, by=c("patient"="pat_id")) %>% group_by(Physician) %>% summarise(n=sum(as.numeric(weight)))
-# Physician        n
-# <chr>        <dbl>
-#   1 NEUROLOGIST 18456.
-# 2 NA          10140.
+
 
 Any_Early_to_InjCGRP %>% left_join(Patients_with_Neurologist, by=c("patient"="pat_id")) %>% group_by(Physician) %>% summarise(n=sum(as.numeric(weight)))
-# Physician        n
-# <chr>        <dbl>
-#   1 NEUROLOGIST 13148.
-# 2 NA           8495.
 
 Oral_CGRP_to_NO_CGRP %>% left_join(Patients_with_Neurologist, by=c("patient"="pat_id")) %>% group_by(Physician) %>% summarise(n=sum(as.numeric(weight)))
-# Physician        n
-# <chr>        <dbl>
-#   1 NEUROLOGIST 39367.
-# 2 NA          21085.
 
 Any_Prev_to_oral_CGRP %>% left_join(Patients_with_Neurologist, by=c("patient"="pat_id")) %>% group_by(Physician) %>% summarise(n=sum(as.numeric(weight)))
-# Physician        n
-# <chr>        <dbl>
-#   1 NEUROLOGIST 29368.
-# 2 NA          14243.
 
 Any_Early_to_oral_CGRP %>% left_join(Patients_with_Neurologist, by=c("patient"="pat_id")) %>% group_by(Physician) %>% summarise(n=sum(as.numeric(weight)))
-# Physician        n
-# <chr>        <dbl>
-#   1 NEUROLOGIST 17608.
-# 2 NA          13832.
 
 Any_Prev_to_PrevANDAcute %>% left_join(Patients_with_Neurologist, by=c("patient"="pat_id")) %>% group_by(Physician) %>% summarise(n=sum(as.numeric(weight)))
-# Physician          n
-# <chr>          <dbl>
-#   1 NEUROLOGIST  476641.
-# 2 NA          1170455.
 
 Any_Prev_to_PrevANDSympt %>% left_join(Patients_with_Neurologist, by=c("patient"="pat_id")) %>% group_by(Physician) %>% summarise(n=sum(as.numeric(weight)))
-# Physician          n
-# <chr>          <dbl>
-#   1 NEUROLOGIST  619502.
-# 2 NA          3457150.
 
 Any_Ealy_to_PrevANDAcute %>% left_join(Patients_with_Neurologist, by=c("patient"="pat_id")) %>% group_by(Physician) %>% summarise(n=sum(as.numeric(weight)))
-# Physician         n
-# <chr>         <dbl>
-#   1 NEUROLOGIST  63157.
-# 2 NA          227051.
 
 
 
 # ALL
 MIG_Flows_Aux._Long %>% filter(flow=="1")  %>% select(patient, weight) %>% distinct() %>% left_join(Patients_with_Neurologist, by=c("patient"="pat_id")) %>% group_by(Physician) %>% summarise(n=sum(as.numeric(weight)))
-# Physician           n
-# <chr>           <dbl>
-#   1 NEUROLOGIST  2086931.
-# 2 NA          11121232.
-
 #TARGET
 pats_to_remove %>% left_join(MIG_Flows_Aux._Long) %>% filter(flow=="1") %>% select(patient, weight) %>% distinct() %>%  left_join(Patients_with_Neurologist, by=c("patient"="pat_id")) %>% group_by(Physician) %>% summarise(n=sum(as.numeric(weight)))
-# <chr>          <dbl>
-#   1 NEUROLOGIST 1635890 
-# 2 NA          5077243.
 
 #NON TARGET
 MIG_Flows_Aux._Long %>% anti_join(pats_to_remove) %>% filter(flow=="1") %>% select(patient, weight) %>% distinct() %>% left_join(Patients_with_Neurologist, by=c("patient"="pat_id")) %>% group_by(Physician) %>% summarise(n=sum(as.numeric(weight)))
-# Physician          n
-# <chr>          <dbl>
-#   1 NEUROLOGIST  451041.
-# 2 NA          6043989.
-
 
 
 
@@ -12257,29 +9818,12 @@ MIG_Box_Histories <- Pats_to_keep %>% bind_cols(MIG_Box_Histories)
 
 MIG_Box_Histories %>% group_by(month60) %>% summarise(n=sum(as.numeric(weight))) %>% mutate(percent=(n/19043067)*100)
 
-month60        n percent
-<chr>      <dbl>   <dbl>
-  1 a       1070427.   5.62 
-2 A        488526.   2.57 
-3 d       2317460.  12.2  
-4 D        734338.   3.86 
-5 I        396908.   2.08 
-6 O         80119.   0.421
-7 p       4503140.  23.6  
-8 x       8739000  49.6  
+
 
 
 MIG_Box_Histories %>% group_by(month60_NEW) %>% summarise(n=sum(as.numeric(weight))) %>% mutate(percent=(n/19043067)*100)month60_NEW        n percent
 
-<chr>          <dbl>   <dbl>
-  1 a           1556189.   8.17 
-2 A            640755.   3.36 
-3 d           2410046.  12.7  
-4 D            759637.   3.99 
-5 I            399339.   2.10 
-6 O             80535.   0.423
-7 p           4887561.  25.7  
-8 x           7595000  43.6  
+
 # ----
 # Who has comorbidities @ stock m60 ?
 MIG_Comorbidities <- read.table("MIG Comorbidities.txt", header = T, sep="\t", 
@@ -12295,92 +9839,20 @@ MIG_Box_Histories <- MIG_Box_Histories %>% left_join(MIG_Comorbidities)
 MIG_Box_Histories %>% group_by(month60) %>% mutate(total=sum(as.numeric(weight))) %>% group_by(month60, total, cardiovascular_comorbidity) %>% 
   summarise(n=sum(as.numeric(weight))) %>% mutate(percent=n/total)
 
-# month60    total cardiovascular_comorbidity        n percent
-# <chr>      <dbl> <chr>                         <dbl>   <dbl>
-# 1 a       1070427. 0                           496214.   0.464
-# 2 a       1070427. 1                           574213.   0.536
-# 3 A        488526. 0                           348988.   0.714
-# 4 A        488526. 1                           139538.   0.286
-# 5 d       2317460. 0                           476409.   0.206
-# 6 d       2317460. 1                          1841051.   0.794
-# 7 D        734338. 0                           316252.   0.431
-# 8 D        734338. 1                           418086.   0.569
-# 9 I        396908. 0                           193617.   0.488
-# 10 I        396908. 1                           203291.   0.512
-# 11 O         80119. 0                            39693.   0.495
-# 12 O         80119. 1                            40426.   0.505
-# 13 p       4503140. 0                          1652964.   0.367
-# 14 p       4503140. 1                          2850176.   0.633
-# 15 x       8739486. 0                          5572470.   0.638
-# 16 x       8739486. 1                          3167016.   0.362
+
 
 
 MIG_Box_Histories %>% group_by(month60) %>% mutate(total=sum(as.numeric(weight))) %>% group_by(month60, total, epileptic_comorbidity) %>% 
   summarise(n=sum(as.numeric(weight))) %>% mutate(percent=n/total)
 
-# month60    total epileptic_comorbidity        n percent
-# <chr>      <dbl> <chr>                    <dbl>   <dbl>
-# 1 a       1070427. 0                     1024413.  0.957 
-# 2 a       1070427. 1                       46015.  0.0430
-# 3 A        488526. 0                      481970.  0.987 
-# 4 A        488526. 1                        6556.  0.0134
-# 5 d       2317460. 0                     2065884.  0.891 
-# 6 d       2317460. 1                      251576.  0.109 
-# 7 D        734338. 0                      688546.  0.938 
-# 8 D        734338. 1                       45792.  0.0624
-# 9 I        396908. 0                      365967.  0.922 
-# 10 I        396908. 1                       30941.  0.0780
-# 11 O         80119. 0                       74365.  0.928 
-# 12 O         80119. 1                        5753.  0.0718
-# 13 p       4503140. 0                     4182380.  0.929 
-# 14 p       4503140. 1                      320760.  0.0712
-# 15 x       8739486. 0                     8491120.  0.972 
-# 16 x       8739486. 1                      248366.  0.0284
 
 
 MIG_Box_Histories %>% group_by(month60) %>% mutate(total=sum(as.numeric(weight))) %>% group_by(month60, total, pain_comorbidity) %>% 
   summarise(n=sum(as.numeric(weight))) %>% mutate(percent=n/total)
 
-# month60    total pain_comorbidity        n percent
-# <chr>      <dbl> <chr>               <dbl>   <dbl>
-# 1 a       1070427. 0                 245325.   0.229
-# 2 a       1070427. 1                 825102.   0.771
-# 3 A        488526. 0                 214983.   0.440
-# 4 A        488526. 1                 273543.   0.560
-# 5 d       2317460. 0                 243159.   0.105
-# 6 d       2317460. 1                2074301.   0.895
-# 7 D        734338. 0                 203024.   0.276
-# 8 D        734338. 1                 531314.   0.724
-# 9 I        396908. 0                 107286.   0.270
-# 10 I        396908. 1                 289621.   0.730
-# 11 O         80119. 0                  22782.   0.284
-# 12 O         80119. 1                  57337.   0.716
-# 13 p       4503140. 0                1391692.   0.309
-# 14 p       4503140. 1                3111448.   0.691
-# 15 x       8739486. 0                3764318.   0.431
-# 16 x       8739486. 1                4975168.   0.569
-
 MIG_Box_Histories %>% group_by(month60) %>% mutate(total=sum(as.numeric(weight))) %>% group_by(month60, total, psychiatric_comorbidity) %>% 
   summarise(n=sum(as.numeric(weight))) %>% mutate(percent=n/total)
 
-# month60    total psychiatric_comorbidity        n percent
-# <chr>      <dbl> <chr>                      <dbl>   <dbl>
-# 1 a       1070427. 0                        416137.   0.389
-# 2 a       1070427. 1                        654290.   0.611
-# 3 A        488526. 0                        278017.   0.569
-# 4 A        488526. 1                        210509.   0.431
-# 5 d       2317460. 0                        360248.   0.155
-# 6 d       2317460. 1                       1957212.   0.845
-# 7 D        734338. 0                        164712.   0.224
-# 8 D        734338. 1                        569627.   0.776
-# 9 I        396908. 0                        109234.   0.275
-# 10 I        396908. 1                        287674.   0.725
-# 11 O         80119. 0                         21978.   0.274
-# 12 O         80119. 1                         58141.   0.726
-# 13 p       4503140. 0                       1090020.   0.242
-# 14 p       4503140. 1                       3413120.   0.758
-# 15 x       8739486. 0                       4421967.   0.506
-# 16 x       8739486. 1                       4317519.   0.494
 # Age distribution entire cohort -------------------
 
 RIME_Demographics <- read.table("RIME Demographics.txt", header = T, sep="\t", quote="", colClasses = "character", stringsAsFactors = FALSE)
@@ -12478,22 +9950,16 @@ MIG_Drug_Histories_triptan <- MIG_Drug_Histories_triptan %>%
            ifelse(Triptan_Exp!=0 & Tripan_Intolorant=="NO" & month58==0 & month59==0 & month60==0 & Lapsed3months=="Treat", "Fail", "none"))
 
 MIG_Drug_Histories_triptan %>% summarise(n=sum(as.numeric(weight))) 
-# Total 19043067
 
 MIG_Drug_Histories_triptan %>% filter(Triptan_Exp == 0) %>% summarise(n=sum(as.numeric(weight))) 
-# Not Exp 11513931         # Treat Exp = 7529136
 
 MIG_Drug_Histories_triptan %>% filter(Triptan_Exp != 0) %>% filter(Tripan_Intolorant == "YES")  %>% summarise(n=sum(as.numeric(weight))) 
-# Intolorant = 2301464 
 
 MIG_Drug_Histories_triptan %>% filter(Triptan_Exp != 0) %>% filter(Tripan_Intolorant == "NO")  %>% summarise(n=sum(as.numeric(weight))) 
-# Not intolorant = 5227672
 
 MIG_Drug_Histories_triptan %>% filter(Triptan_Exp != 0) %>% filter(Tripan_Intolorant == "NO") %>% filter(Triptan_fail == "Fail")  %>% summarise(n=sum(as.numeric(weight))) 
-# Fail = 2010374
 
 MIG_Drug_Histories_triptan %>% filter(Triptan_Exp != 0) %>% filter(Tripan_Intolorant == "NO") %>% filter(Triptan_fail == "none")  %>% summarise(n=sum(as.numeric(weight))) 
-# Not fial = 3217298
 # -----
 # Rimegepant Outflows vs 1 or 3months first rimegapnt exp ------
 # Rimegepant Durations 1month vs 3+ months type pf pat  -------------------
@@ -12562,29 +10028,11 @@ MIG_Flows_Aux._Long <- MIG_Flows_Aux._Long %>% mutate(p1 = as.numeric(p1)) %>% m
 MIG_Flows_Aux._Long %>% filter(p1 >=48) %>%  inner_join(One_month_Rim_Patients) %>% filter(grepl("135",d1)) %>% 
   filter(!grepl("135",d2)) %>%  group_by(s2) %>% summarise(pats=sum(as.numeric(weight)))
 
-s2     pats
-<chr> <dbl>
-  1 a      586.
-2 A      302.
-3 d     4942.
-4 D     2259.
-5 I     5034.
-6 O      570.
-7 p     4421.
-8 x     2415.
+
 
 MIG_Flows_Aux._Long %>% filter(p1 >=48) %>%  inner_join(Three_months_Rim_Patients) %>% filter(grepl("135",d1)) %>% 
   filter(!grepl("135",d2)) %>%  group_by(s2) %>% summarise(pats=sum(as.numeric(weight)))
 
-s2     pats
-<chr> <dbl>
-  1 a      283.
-2 d     1134.
-3 D      474.
-4 I     5171.
-5 O      462.
-6 p     1612.
-7 x      436.
 
 
 # ----
@@ -12643,34 +10091,11 @@ MIG_Doses_BIG_Rizatriptan <- MIG_Doses_BIG_Rizatriptan %>%  select(pat_id, weigh
 
 # It's OKAY for the comparisons, visibility for each drug ON the market is the same for the comparisions of interest
 # MIG_Doses_BIG_Sumatriptan %>% select(med_format, month) %>% distinct() %>% group_by(med_format) %>% filter(month == min(month))
-# med_format month    
-# <chr>      <yearmon>
-# 1 TABLET     Aug 2016 
-# 2 UNKNOWN    Aug 2016 
-# 3 SOLUTION   Aug 2016 
-# 4 SPRAY      Aug 2016 
-# 5 PEN INJCTR Jun 2017 
-# 6 SYRINGE    Mar 2019 
-# 7 KIT        Aug 2016 
-# 8 AER POW BA Mar 2020 
-# 9 POWDER     Aug 2016 
-# 10 CARTRIDGE  Jul 2020 
-# 11 VIAL       Apr 2020
+
 # 
 # MIG_Doses_BIG_Zolmitriptan %>% select(med_format, month) %>% distinct() %>% group_by(med_format) %>% filter(month == min(month))
-# med_format             month    
-# <chr>                  <yearmon>
-# 1 TABLET                 Aug 2016 
-# 2 SPRAY                  Aug 2016 
-# 3 TABLET, DISINTEGRATING Aug 2016 
-# 
+
 # MIG_Doses_BIG_Rizatriptan %>% select(med_format, month) %>% distinct() %>% group_by(med_format) %>% filter(month == min(month))
-# med_format             month    
-# <chr>                  <yearmon>
-# 1 TABLET                 Aug 2016 
-# 2 TABLET, DISINTEGRATING Aug 2016 
-# 3 TAB RAPDIS             Jul 2017 
-# 
 
 
 # How many unique months each pat was on each formulation
@@ -12682,73 +10107,21 @@ MIG_Doses_BIG_Rizatriptan <- MIG_Doses_BIG_Rizatriptan %>% group_by(pat_id, weig
 ### SUMATRIPTAN ###
 MIG_Doses_BIG_Sumatriptan %>% group_by(med_format) %>% summarise(n = weighted.mean(n, as.numeric(weight)))
 
-med_format     n
-<chr>      <dbl>
-  1 AER POW BA  6.26
-2 CARTRIDGE   3.80
-3 KIT         3.57
-4 PEN INJCTR  2.95
-5 POWDER      5.32
-6 SOLUTION    7.27
-7 SPRAY       5.15
-8 SYRINGE     1.68
-9 TABLET      8.10
-10 UNKNOWN     1.51
-11 VIAL        2.92
+
 
 MIG_Doses_BIG_Sumatriptan %>% group_by(med_format) %>% summarise(n = weighted.median(n, as.numeric(weight)))
-
-med_format     n
-<chr>      <dbl>
-  1 AER POW BA   1  
-2 CARTRIDGE    1.5
-3 KIT          1.5
-4 PEN INJCTR   1.5
-5 POWDER       1  
-6 SOLUTION     1.5
-7 SPRAY        1.5
-8 SYRINGE      1  
-9 TABLET       1.5
-10 UNKNOWN      1  
-11 VIAL         2  
 
 
 ### ZOLMATRIPTAN ###
 MIG_Doses_BIG_Zolmitriptan %>% group_by(med_format) %>% summarise(n = weighted.mean(n, as.numeric(weight)))
 
-med_format                 n
-<chr>                  <dbl>
-  1 SPRAY                   7.28
-2 TABLET                  8.46
-3 TABLET, DISINTEGRATING  6.37
-
 MIG_Doses_BIG_Zolmitriptan %>% group_by(med_format) %>% summarise(n = weighted.median(n, as.numeric(weight)))
-
-med_format                 n
-<chr>                  <dbl>
-  1 SPRAY                    1.5
-2 TABLET                   1.5
-3 TABLET, DISINTEGRATING   1.5
-
 
 
 ### RIZATRIPTAN ###
 MIG_Doses_BIG_Rizatriptan %>% group_by(med_format) %>% summarise(n = weighted.mean(n, as.numeric(weight)))
 
-med_format                 n
-<chr>                  <dbl>
-  1 TAB RAPDIS              3.93
-2 TABLET                  7.68
-3 TABLET, DISINTEGRATING  5.97
-
 MIG_Doses_BIG_Rizatriptan %>% group_by(med_format) %>% summarise(n = weighted.median(n, as.numeric(weight)))
-
-med_format                 n
-<chr>                  <dbl>
-  1 TAB RAPDIS               1.5
-2 TABLET                   2.5
-3 TABLET, DISINTEGRATING   1.5
-
 
 
 
@@ -12772,33 +10145,12 @@ MIG_Doses_BIG_Zolmitriptan <- MIG_Doses_BIG %>% filter(generic_name =="Zolmitrip
 MIG_Doses_BIG_Rizatriptan <- MIG_Doses_BIG %>% filter(generic_name =="Rizatriptan")
 
 MIG_Doses_BIG_Sumatriptan %>% group_by(med_format) %>% summarise(n = weighted.mean(as.numeric(dayssup), as.numeric(weight)))
-med_format     n
-<chr>      <dbl>
-  1 AER POW BA  22.9
-2 CARTRIDGE   21.5
-3 KIT         21.2
-4 PEN INJCTR  17.0
-5 POWDER      20.9
-6 SOLUTION    16.6
-7 SPRAY       23.0
-8 SYRINGE     27.3
-9 TABLET      21.9
-10 UNKNOWN     29.2
-11 VIAL        24.8
+
 
 MIG_Doses_BIG_Zolmitriptan %>% group_by(med_format) %>% summarise(n = weighted.mean(as.numeric(dayssup), as.numeric(weight)))
-med_format                 n
-<chr>                  <dbl>
-  1 SPRAY                   21.8
-2 TABLET                  17.7
-3 TABLET, DISINTEGRATING  19.2
 
 MIG_Doses_BIG_Rizatriptan %>% group_by(med_format) %>% summarise(n = weighted.mean(as.numeric(dayssup), as.numeric(weight)))
-med_format                 n
-<chr>                  <dbl>
-  1 TAB RAPDIS              19.5
-2 TABLET                  17.2
-3 TABLET, DISINTEGRATING  18.
+
 # ----
 # Subdivide intraflows by type of accompaining flows ------------------------------------------------
 
@@ -13288,23 +10640,6 @@ weighted.median(Rimegepant_Periods_MIG$Total_duration, Rimegepant_Periods_MIG$we
 
 Rimegepant_Periods_MIG %>% group_by(Total_duration) %>% summarise(n = sum(weight))
 
-Total_duration      n
-<int>  <dbl>
-  1              1 18150.
-2              2  8974.
-3              3  4927.
-4              4  3820.
-5              5  3528.
-6              6  2984.
-7              7  1656.
-8              8  1864.
-9              9   675.
-10             10   968.
-11             11   481.
-12             12   445.
-13             13   349.
-
-
 
 MIG_Drug_Histories <- read.table("MIG Drug Histories.txt", header = T, sep="\t", colClasses = "character", stringsAsFactors = FALSE)
 
@@ -13366,22 +10701,6 @@ weighted.median(Triptan_Periods_MIG$Total_duration, Triptan_Periods_MIG$weight) 
 
 Triptan_Periods_MIG %>% group_by(Total_duration) %>% summarise(n = sum(weight))
 
-Total_duration        n
--
-<int>    <dbl>
-  1              1 1279529.
-2              2  500723.
-3              3  349317.
-4              4  234438.
-5              5  194578.
-6              6  170497.
-7              7  138903.
-8              8  132430.
-9              9  115283.
-10             10  118586.
-11             11  116083.
-12             12   59446.
-13             13  420431.
 # ------
 #  Persistency Rimegepant vs Triptans (ignore first 3 months since begining of Rimegepant at 51 6months) ---------------------------------------
 MIG_Drug_Histories <- read.table("MIG Drug Histories.txt", header = T, sep="\t", colClasses = "character", stringsAsFactors = FALSE)
@@ -13438,19 +10757,6 @@ weighted.median(Rimegepant_Periods_MIG$Total_duration, Rimegepant_Periods_MIG$we
 
 
 Rimegepant_Periods_MIG %>% group_by(Total_duration) %>% summarise(n = sum(weight))
-
-Total_duration      n
-<int>  <dbl>
-  1              1 16352.
-2              2  9108.
-3              3  4892.
-4              4  4532.
-5              5  2751.
-6              6  2720.
-7              7  1687.
-8              8  1371.
-9              9   929.
-10             10  1701.
 
 
 
@@ -13516,18 +10822,7 @@ weighted.median(Triptan_Periods_MIG$Total_duration, Triptan_Periods_MIG$weight) 
 
 Triptan_Periods_MIG %>% group_by(Total_duration) %>% summarise(n = sum(weight))
 
-Total_duration        n
-<int>    <dbl>
-  1              1 1195914.
-2              2  456212.
-3              3  328600.
-4              4  232772.
-5              5  194234.
-6              6  159277.
-7              7  150787.
-8              8  145908.
-9              9   81027.
-10             10  488584.
+                                                         
 # ----
 #  Persistency Ubrogepant vs Triptans ---------------------------------------
 MIG_Drug_Histories <- read.table("MIG Drug Histories.txt", header = T, sep="\t", colClasses = "character", stringsAsFactors = FALSE)
@@ -13584,45 +10879,9 @@ weighted.median(Ubrogepant_Periods_MIG$Total_duration, Ubrogepant_Periods_MIG$we
 
 Ubrogepant_Periods_MIG %>% group_by(Total_duration) %>% summarise(n = sum(weight))
 
-# Total_duration      n
-# <int>  <dbl>
-# 1              1 62952.
-# 2              2 31290.
-# 3              3 20773.
-# 4              4 17670.
-# 5              5 10877.
-# 6              6 10328.
-# 7              7  8679.
-# 8              8  5534.
-# 9              9  6056.
-# 10             10  6123.
-# 11             11  1565.
-# 12             12   936.
-# 13             13   674.
-# 14             14  1843.
-# 15             15   764.
-# 16             16   376.
-# 17             17   217.
-# 18             18   282.
+                                                         
 
-
-# Total_duration      n
-# <int>  <dbl>
-# 1              1 61986.
-# 2              2 30336.
-# 3              3 20720.
-# 4              4 17200.
-# 5              5 10949.
-# 6              6 10318.
-# 7              7  8811.
-# 8              8  5637.
-# 9              9  6518.
-# 10             10  5583.
-# 11             11  1408.
-# 12             12  1205.
-# 13             13  1057.
-# 14             14  1301.
-# 15             15  1440.
+                                                         
 
 # Triptans
 MIG_Drug_Histories <- read.table("MIG Drug Histories.txt", header = T, sep="\t", colClasses = "character", stringsAsFactors = FALSE)
@@ -13685,44 +10944,6 @@ weighted.median(Triptan_Periods_MIG$Total_duration, Triptan_Periods_MIG$weight) 
 
 Triptan_Periods_MIG %>% group_by(Total_duration) %>% summarise(n = sum(weight))
 
-# Total_duration        n
-# <int>    <dbl>
-# 1              1 1404217.
-# 2              2  545646.
-# 3              3  371898.
-# 4              4  259982.
-# 5              5  199317.
-# 6              6  171794.
-# 7              7  141532.
-# 8              8  125673.
-# 9              9  117385.
-# 10             10  104765.
-# 11             11   97846.
-# 12             12   90591.
-# 13             13   90054.
-# 14             14   83281.
-# 15             15   81774.
-# 16             16   92122.
-# 17             17   45212.
-# 18             18  346120.
-
-# Total_duration        n
-# <int>    <dbl>
-# 1              1 1330461.
-# 2              2  519384.
-# 3              3  351228.
-# 4              4  250494.
-# 5              5  193189.
-# 6              6  171218.
-# 7              7  139099.
-# 8              8  129515.
-# 9              9  115909.
-# 10             10  108266.
-# 11             11   93943.
-# 12             12  105921.
-# 13             13  102720.
-# 14             14   50483.
-# 15             15  385730.
 # -----
 # Most frequent drugs per patient -----------------
 MIG_Drug_Histories_LONG <- read.table("MIG Drug Histories.txt", header = T, sep="\t", colClasses = "character", stringsAsFactors = FALSE)
@@ -13809,139 +11030,6 @@ data.frame(Months_Molecule_Total_50perc %>% group_by(generic_name) %>% summarise
   left_join(Months_Molecule_Total_50perc %>% group_by(generic_name) %>% 
               summarise(mean_dur=weighted.mean(percent, weight))))
 
-# generic_name       pats  mean_dur
-# 1             Sumatriptan 1513084.63 0.7800409
-# 2             Hydrocodone 1029527.01 0.7788711
-# 3             Ondansetron 1019510.67 0.6924915
-# 4              Gabapentin  996326.00 0.7934964
-# 5              Topiramate  916075.10 0.7938602
-# 6               Ibuprofen  860444.92 0.7081953
-# 7              Prednisone  789360.35 0.7077985
-# 8               Oxycodone  750251.82 0.8057004
-# 9             Rizatriptan  534912.08 0.7569897
-# 10        Cyclobenzaprine  486652.87 0.7126459
-# 11              Ketorolac  473419.33 0.6894177
-# 12              Meloxicam  449038.01 0.7353734
-# 13          Dexamethasone  432459.50 0.6844480
-# 14             Clonazepam  412246.10 0.8180143
-# 15               Tramadol  398486.78 0.7602059
-# 16             Tizanidine  387543.53 0.7743474
-# 17             Butalbital  356454.94 0.7513956
-# 18               Fentanyl  336878.78 0.7319515
-# 19               Naproxen  287262.43 0.6987612
-# 20            Lamotrigine  266635.31 0.8402353
-# 21        Botulinum Toxin  253894.70 0.7786871
-# 22           Promethazine  244160.51 0.7043394
-# 23                Codeine  227967.14 0.7200108
-# 24             Diclofenac  212264.19 0.7059621
-# 25               Diazepam  210955.03 0.7580399
-# 26            Hydroxyzine  210169.16 0.7143502
-# 27               Morphine  202413.99 0.8001458
-# 28         Oxygen Therapy  197918.36 0.8316365
-# 29               Baclofen  191736.59 0.7705221
-# 30            Propranolol  183385.04 0.7842530
-# 31          Amitriptyline  177969.89 0.8047268
-# 32             Pregabalin  167740.32 0.8163576
-# 33             Eletriptan  163533.92 0.7830268
-# 34              Celecoxib  136763.79 0.7559958
-# 35         Metoclopramide  133233.48 0.6808717
-# 36          Hydromorphone  131642.55 0.7288527
-# 37              Clonidine  111398.96 0.7872066
-# 38          Nortriptyline   84728.76 0.8026500
-# 39              Valproate   78122.21 0.8100396
-# 40           Zolmitriptan   72175.47 0.7753519
-# 41            Naratriptan   60226.58 0.7837836
-# 42             Citalopram   54496.54 0.8176559
-# 43                Timolol   46518.17 0.7660914
-# 44             Sertraline   44484.50 0.8263118
-# 45             Duloxetine   43958.12 0.8312459
-# 46               Erenumab   41100.26 0.6256721
-# 47          Acetazolamide   38212.16 0.7360192
-# 48              Verapamil   35950.27 0.8029160
-# 49             Zonisamide   35227.15 0.7803227
-# 50          Oxcarbazepine   32594.31 0.7963927
-# 51              Methadone   31985.52 0.8262535
-# 52             Metoprolol   31943.37 0.7813665
-# 53           Indomethacin   30386.01 0.6897927
-# 54       Prochlorperazine   29996.70 0.6993311
-# 55              Memantine   29358.35 0.7892503
-# 56           Galcanezumab   29284.38 0.6448998
-# 57             Fluoxetine   27984.94 0.8220184
-# 58            Venlafaxine   27980.64 0.8342226
-# 59         Cyproheptadine   26944.17 0.7489566
-# 60          Carbamazepine   26597.93 0.8047051
-# 61             Nabumetone   25305.97 0.7340110
-# 62          Buprenorphine   25075.98 0.7790298
-# 63               Etodolac   22861.50 0.7229829
-# 64           Frovatriptan   19406.08 0.7689284
-# 65             Tapentadol   18299.76 0.8076284
-# 66             Meperidine   17720.12 0.6658829
-# 67      Magnesium Sulfate   16577.58 0.6949481
-# 68               Atenolol   16374.88 0.8288064
-# 69          Levetiracetam   14824.24 0.7975275
-# 70       Neurostimulation   12984.60 0.6995247
-# 71             Paroxetine   12556.21 0.8236797
-# 72                Nadolol   11866.78 0.8248779
-# 73             Guanfacine   11503.28 0.8018950
-# 74             Lisinopril   11311.21 0.7750095
-# 75            Butorphanol   10131.17 0.8243351
-# 76            Almotriptan    7363.03 0.7520357
-# 77                Doxepin    7017.27 0.7797409
-# 78             Nifedipine    6635.34 0.6847208
-# 79        Hospitalization    5856.61 0.7364522
-# 80            Oxymorphone    5800.78 0.8208784
-# 81               Sulindac    5509.07 0.7592678
-# 82          Isometheptene    5115.70 0.6680803
-# 83              Phenazone    4854.89 0.6641758
-# 84  Occipital Nerve Block    4170.95 0.7360753
-# 85        Pain Management    4052.63 0.7136624
-# 86             Ubrogepant    3922.53 0.6590017
-# 87             Imipramine    3879.29 0.8336199
-# 88              Piroxicam    3846.18 0.7548685
-# 89      Dihydroergotamine    3799.24 0.7005442
-# 90             Nalbuphine    3769.69 0.7170027
-# 91               Ketamine    3734.06 0.6764377
-# 92       Methylergonovine    3403.30 0.7190996
-# 93            Pentazocine    3169.13 0.7774929
-# 94            Haloperidol    2900.28 0.7666852
-# 95            Milnacipran    2806.57 0.8919291
-# 96              Diltiazem    2785.46 0.8066107
-# 97             Dronabinol    2400.58 0.7344535
-# 98             Diflunisal    2347.05 0.7000687
-# 99         Desvenlafaxine    2337.48 0.8307379
-# 100        Mefenamic Acid    2167.10 0.6934484
-# 101          Fremanezumab    1887.43 0.5601402
-# 102             Oxaprozin    1845.56 0.7175757
-# 103             Nebivolol    1732.99 0.7817317
-# 104            Ergotamine    1593.46 0.7483827
-# 105          Flurbiprofen    1516.06 0.7760386
-# 106     Trimethobenzamide    1498.02 0.6406706
-# 107           Candesartan    1425.17 0.7354015
-# 108           Desipramine    1424.12 0.8077528
-# 109                 Opium    1214.46 0.7425565
-# 110            Ketoprofen    1066.29 0.7106577
-# 111            Rimegepant     948.27 0.7972108
-# 112         Protriptyline     876.78 0.8416179
-# 113           Fluvoxamine     850.37 0.9001796
-# 114            Bisoprolol     849.04 0.9222621
-# 115           Levorphanol     752.85 0.7735477
-# 116    Antiemetic Therapy     744.05 0.6761374
-# 117            Droperidol     704.24 0.7948498
-# 118             Salsalate     672.24 0.8473117
-# 119            Fenoprofen     648.92 0.5978483
-# 120   Nerve Decompression     595.67 0.5000000
-# 121        Dihydrocodeine     529.63 0.5505854
-# 122        Chlorpromazine     476.77 0.9782117
-# 123         NSAID Therapy     293.53 0.8331857
-# 124            Olanzapine     260.73 0.6201102
-# 125          Clomipramine     245.03 0.7325863
-# 126              Pindolol     238.22 0.9122636
-# 127        Opioid Therapy     174.85 0.7099251
-# 128           Telmisartan     104.94 0.9833333
-# 129            Sufentanil      92.19 0.5000000
-# 130             Amoxapine      86.50 0.8444444
-# 131         Meclofenamate      78.05 1.0000000
-
 # ----
 # Restarts (same stock, same drug, etc) --------------
 MIG_Flows_Aux._Long <- fread("MIG_Flows_Aux._Long_v2.txt", colClasses = "character")
@@ -13979,38 +11067,10 @@ MIG_Flows_Aux._Long_2 <- MIG_Flows_Aux._Long_2 %>% group_by(patient) %>%
 MIG_Flows_Aux._Long_2 %>% ungroup() %>% mutate(p1=as.numeric(p1)) %>% filter(p1>=48) %>% filter(re_starts=="1") %>% 
   group_by(Stock_comp, Drugs_comp) %>% summarise(pats=sum(as.numeric(weight)))
 
-# Stock_comp Drugs_comp     pats
-# <chr>      <chr>         <dbl>
-# 1 diff       diff       4722122
-# 2 Same       diff       3303569
-# 3 Same       Same       1919392
 
 data.frame(MIG_Flows_Aux._Long_2 %>% ungroup() %>% mutate(p1=as.numeric(p1)) %>% filter(p1>=48) %>% filter(re_starts=="1") %>% 
     group_by(s2, Stock_comp, Drugs_comp) %>% summarise(pats=sum(as.numeric(weight))))
 
-
-s2 Stock_comp Drugs_comp       pats
-1   a       diff       diff 1657289.89
-2   a       Same       diff 2565567.53
-3   a       Same       Same  602375.61
-4   A       diff       diff  670701.74
-5   A       Same       diff  150958.26
-6   A       Same       Same  647082.37
-7   d       diff       diff  779047.66
-8   d       Same       diff   85169.37
-9   d       Same       Same   15873.75
-10  D       diff       diff  255547.90
-11  D       Same       diff   12309.98
-12  D       Same       Same    9599.21
-13  I       diff       diff   36168.93
-14  I       Same       diff    4035.53
-15  I       Same       Same    4341.22
-16  O       diff       diff   27292.02
-17  O       Same       diff    1690.96
-18  O       Same       Same    3445.79
-19  p       diff       diff 1296073.57
-20  p       Same       diff  483837.19
-21  p       Same       Same  636673.82
 
 # ----
 
@@ -14099,13 +11159,6 @@ string_CGRPInjectable <- paste0("\\b(",paste0(RIME_Ingredients$molecule[RIME_Ing
 
 MIG_Drug_Histories %>% group_by(Year) %>% summarise(n=sum(as.numeric(weight)))
 
-Year          n
-<dbl>      <dbl>
-1     1 101666014.
-2     2 105909127.
-3     3 109893458.
-4     4 112607776.
-5     5 114523477.
 
 MIG_Drug_Histories <- MIG_Drug_Histories %>% mutate(CGRP_Oral_Status = ifelse(grepl(string_CGRPOral, Treat),"Yes", "No"))
 MIG_Drug_Histories <- MIG_Drug_Histories %>% mutate(CGRP_Injectable_Status = ifelse(grepl(string_CGRPInjectable, Treat),"Yes", "No"))
@@ -14117,19 +11170,6 @@ MIG_Drug_Histories <- MIG_Drug_Histories %>% mutate(Steroid_Status = ifelse(grep
 
 MIG_Drug_Histories %>% group_by(Year, CGRP_Injectable_Status) %>% summarise(n=sum(as.numeric(weight)))
 
-# Year CGRP_Injectable_Status          n
-# <dbl> <chr>                       <dbl>
-# 1     1 No                     101666014.
-# 2     2 No                     105908347.
-# 3     2 Yes                          780.
-# 4     3 No                     109126861.
-# 5     3 Yes                       766598.
-# 6     4 No                     109275769.
-# 7     4 Yes                      3332008.
-# 8     5 No                     110074551.
-# 9     5 Yes                      4448925.
-
-
 
 
 Pats_Year2 <- MIG_Drug_Histories %>% filter(Year==2) %>% filter(CGRP_Injectable_Status=="Yes") %>% select(patient) %>% distinct()
@@ -14139,20 +11179,14 @@ Pats_Year5 <- MIG_Drug_Histories %>% filter(Year==5) %>% filter(CGRP_Injectable_
 
 
 Pats_Year2 %>% left_join(MIG_Drug_Histories) %>% filter(Year==2) %>% filter(CGRP_Injectable_Status=="Yes") %>% summarise(n=sum(as.numeric(weight)))
-# Total treated 9008.9
-# On CGRp 779.83
 
 Pats_Year3 %>% left_join(MIG_Drug_Histories) %>% filter(Year==3)  %>% filter(CGRP_Injectable_Status=="Yes") %>% summarise(n=sum(as.numeric(weight)))
-# Total treated 2330590
-# On CGRp 766597.5
 
 Pats_Year4 %>% left_join(MIG_Drug_Histories) %>% filter(Year==4)  %>% filter(CGRP_Injectable_Status=="Yes") %>%  summarise(n=sum(as.numeric(weight)))
-# Total treated 5435632
-# On CGRp 3332008
+
 
 Pats_Year5 %>% left_join(MIG_Drug_Histories) %>% filter(Year==5)  %>%  filter(CGRP_Injectable_Status=="Yes") %>%   summarise(n=sum(as.numeric(weight)))
-# Total treated 6430510
-# On CGRp 4448925
+
 
 # ----
 # Each year, of all the patient-months, how many patient-months do we have for the Triptan class? ------------
@@ -14216,40 +11250,11 @@ string_CGRPInjectable <- paste0("\\b(",paste0(RIME_Ingredients$molecule[RIME_Ing
 
 MIG_Drug_Histories %>% group_by(Year) %>% summarise(n=sum(as.numeric(weight)))
 
-Year          n
-<dbl>      <dbl>
-  1     1 101666014.
-2     2 105909127.
-3     3 109893458.
-4     4 112607776.
-5     5 114523477.
 
 MIG_Drug_Histories <- MIG_Drug_Histories %>% mutate(Triptan_Status = ifelse(grepl(string_Triptan, Treat),"Yes", "No"))
 
 MIG_Drug_Histories %>% group_by(Year, Triptan_Status) %>% summarise(n=sum(as.numeric(weight)))
 
-Year Triptan_Status         n
-<dbl> <chr>              <dbl>
-  1     1 No             86024954.
-2     1 Yes            15641060.
-3     2 No             89574548.
-4     2 Yes            16334579.
-5     3 No             93001243.
-6     3 Yes            16892215.
-7     4 No             95635212.
-8     4 Yes            16972565.
-9     5 No             97943375.
-10     5 Yes            16580101.
-1     1 No             86024954.
-2     1 Yes            15641060.
-3     2 No             89574548.
-4     2 Yes            16334579.
-5     3 No             93001243.
-6     3 Yes            16892215.
-7     4 No             95635212.
-8     4 Yes            16972565.
-9     5 No             97943375.
-10     5 Yes            16580101.
 
 Pats_Year1 <- MIG_Drug_Histories %>% filter(Year==1) %>% filter(Triptan_Status=="Yes") %>% select(patient) %>% distinct()
 Pats_Year2 <- MIG_Drug_Histories %>% filter(Year==2) %>% filter(Triptan_Status=="Yes") %>% select(patient) %>% distinct()
@@ -14259,26 +11264,17 @@ Pats_Year5 <- MIG_Drug_Histories %>% filter(Year==5) %>% filter(Triptan_Status==
 
 
 Pats_Year1 %>% left_join(MIG_Drug_Histories) %>% filter(Year==1) %>% filter(Triptan_Status=="Yes") %>% summarise(n=sum(as.numeric(weight)))
-# Total treated 28199720
-# On Triptan    15641060
+
 
 Pats_Year2 %>% left_join(MIG_Drug_Histories) %>% filter(Year==2) %>% filter(Triptan_Status=="Yes") %>% summarise(n=sum(as.numeric(weight)))
-# Total treated 29570439
-# On Triptan    16334579
+
 
 Pats_Year3 %>% left_join(MIG_Drug_Histories) %>% filter(Year==3)  %>% filter(Triptan_Status=="Yes") %>% summarise(n=sum(as.numeric(weight)))
-# Total treated 30878118
-# On Triptan    16892215
+
 
 Pats_Year4 %>% left_join(MIG_Drug_Histories) %>% filter(Year==4)  %>% filter(Triptan_Status=="Yes") %>%  summarise(n=sum(as.numeric(weight)))
-# Total treated 31458328
-# On Triptan    16972565
 
 Pats_Year5 %>% left_join(MIG_Drug_Histories) %>% filter(Year==5)  %>%  filter(Triptan_Status=="Yes") %>%   summarise(n=sum(as.numeric(weight)))
-# Total treated 31762976
-# On Triptan    16580101
-
-#
 
 #
 # Number of drugs and therapy lines per MAX Stock  ---------------------------------------------------
@@ -14301,26 +11297,10 @@ Max_stock <- Max_stock %>% distinct()
 
 Max_stock %>% ungroup() %>% group_by(Box) %>% summarise(n= weighted.mean(drugs_n, as.numeric(weight)))
 
-# Box       n
-# <chr> <dbl>
-# 0         0
-# 1 1      1.49
-# 2 2      1.28
-# 3 3      1.35
-# 4 4      2.58
-# 5 5      2.75
-# 6 6      3.30
-# 7 7      3.53
+
 
 Max_stock %>% ungroup() %>% mutate(Box=ifelse(Box=="2"|Box=="3","Mod", ifelse(Box=="4"|Box=="5","SevPrev",ifelse(Box=="6"|Box=="7","SevCGRP","Mild")))) %>% group_by(Box) %>% summarise(n= weighted.mean(drugs_n, as.numeric(weight)))
 
-# Box       n
-# <chr> <dbl>
-#   0      0   
-# 1 1      1.49
-# 2 2      1.28
-# 3 3      2.31
-# 4 4      3.49
 
 # avergae number of lines over the 5 years
 Max_stock <- fread("Max_stock_last_12m.txt", colClasses = "character")
@@ -14337,26 +11317,9 @@ Max_stock <- Max_stock %>% left_join(MIG_nrLines_Histories, by = c("patient"="pa
 
 Max_stock %>% group_by(Box) %>% summarise(n=weighted.mean(as.numeric(month60), as.numeric(weight.x)))
 
-# Box       n
-# <chr> <dbl>
-# 1 0      3.48
-# 2 1      5.69
-# 3 2      5.18
-# 4 3      6.41
-# 5 4     13.7 
-# 6 5     13.7 
-# 7 6     17.5 
-# 8 7     20.1 
 
 Max_stock %>% mutate(Box=ifelse(Box=="2"|Box=="3","Mod", ifelse(Box=="4"|Box=="5","SevPrev",ifelse(Box=="6"|Box=="7","SevCGRP","Mild")))) %>% group_by(Box) %>% summarise(n=weighted.mean(as.numeric(month60), as.numeric(weight.x)))
 
-# Box       n
-# <chr> <dbl>
-# 1 0      3.48
-# 2 1      5.69
-# 3 2      5.18
-# 4 3     11.5 
-# 5 4     19.6 
 # ----
 # Number of flows after starting CGRP vs no Start---------------------------------
 # Pick patient on lines 9th to 10th, if shitf
@@ -14581,16 +11544,7 @@ MIG_Box_Histories <- MIG_Box_Histories %>% select(-c(Month)) %>% group_by(patien
 
 Ever_treated %>% inner_join(MIG_Box_Histories) %>% group_by(Box) %>% summarise(pats=sum(as.numeric(weight)))
 
-Box     pats
-<dbl>    <dbl>
-  1     0 3893378.
-2     1 2554012.
-3     2 1044599.
-4     3 3112866.
-5     4 4954857.
-6     5 2061801.
-7     6  136562.
-8     7  572330.
+
 
 MAX_stock_12m <- Ever_treated %>% inner_join(MIG_Box_Histories) 
 
@@ -14645,16 +11599,6 @@ MAX_stock_12m %>% left_join(Preventive_only_Pats) %>%
                         ifelse(is.na(New_Max_box),0,New_Max_box))) %>% 
   group_by(New_Box) %>% summarise(n=sum(as.numeric(weight)))
 
-New_Box        n
-<dbl>    <dbl>
-  1       0 5375886.
-2       1 2812991.
-3       2 1095710.
-4       3 1320268.
-5       4 4954857.
-6       5 2061801.
-7       6  136562.
-8       7  572330.
 
 MAX_stock_12m_2 <- MAX_stock_12m %>% left_join(Preventive_only_Pats) %>%
   mutate(New_Box=ifelse(Box!=3,Box,
@@ -14714,16 +11658,7 @@ MAX_stock_12m_2 %>% left_join(temp) %>%
                           ifelse(is.na(New_Stock),0,New_Stock))) %>% 
   group_by(New_Stock) %>% summarise(n=sum(as.numeric(weight)))
 
-New_Stock        n
-<dbl>    <dbl>
-1         0 5383903.
-2         1 4468434.
-3         2 1125747.
-4         3 1534310.
-5         4 3047317.
-6         5 2061801.
-7         6  136562.
-8         7  572330.
+
 
 MAX_stock_12m_3 <- MAX_stock_12m_2 %>% left_join(temp) %>% 
   mutate(New_Stock=ifelse(New_Box!=4,New_Box,
@@ -14752,16 +11687,7 @@ MAX_stock_12m_3 <- MAX_stock_12m_3 %>% mutate(New_Stock_2 = ifelse( (New_Box!=Bo
 
 MAX_stock_12m_3 %>% group_by(New_Stock_2) %>% summarise(n=sum(as.numeric(weight)))
 
-New_Stock_2        n
-<dbl>    <dbl>
-1           0 4952427.
-2           1 3739371.
-3           2 1044599.
-4           3 2014656.
-5           4 3808658.
-6           5 2061801.
-7           6  136562.
-8           7  572330.
+
 
 fwrite(MAX_stock_12m_3, "Max_Stock_trials.txt")
 
@@ -14808,15 +11734,6 @@ MIG_Box_Histories <- MIG_Box_Histories %>% mutate(New_BoxJul21 = ifelse(Max_Box_
 
 MIG_Box_Histories %>% group_by(New_BoxJul21) %>% summarise(pats=sum(as.numeric(weight)))
 
-1 0            2370652.
-2 1             433185.
-3 2             488526.
-4 3            3157234.
-5 4            1977644.
-6 5             734338.
-7 6              80119.
-8 7             396908.
-9 Mild         8691799.
 
 
 New_BoxJul21 <- MIG_Box_Histories %>% select(patient, weight, New_BoxJul21)
@@ -14843,38 +11760,12 @@ MIG_Drug_Histories <- New_BoxJul21 %>% left_join(MIG_Drug_Histories)
 
 MIG_Drug_Histories %>% group_by(New_BoxJul21) %>% summarise(n=sum(as.numeric(weight))) %>% mutate(percent = n/18330405)
 
-# New_BoxJul21        n percent
-# <chr>           <dbl>   <dbl>
-# 1 0            2370652. 0.129  
-# 2 1             433185. 0.0236 
-# 3 2             488526. 0.0267 
-# 4 3            3157234. 0.172  
-# 5 4            1977644. 0.108  
-# 6 5             734338. 0.0401 
-# 7 6              80119. 0.00437
-# 8 7             396908. 0.0217 
-# 9 Mild         8691799. 0.474  
+
 
 MIG_Drug_Histories %>% mutate(combo = ifelse(grepl(",",month60), "Combo", "Mono")) %>%
   group_by(New_BoxJul21, combo) %>% summarise(n=sum(as.numeric(weight)))
 
-# New_BoxJul21 combo        n
-# <chr>        <chr>    <dbl>
-#   1 0            Mono  2370652.
-# 2 1            Combo  139944.
-# 3 1            Mono   293241.
-# 4 2            Combo  101660.
-# 5 2            Mono   386867.
-# 6 3            Combo 1259183.
-# 7 3            Mono  1898051.
-# 8 4            Combo 1977644.
-# 9 5            Combo  734338.
-# 10 6            Combo   65894.
-# 11 6            Mono    14224.
-# 12 7            Combo  335653.
-# 13 7            Mono    61255.
-# 14 Mild         Combo  776980.
-# 15 Mild         Mono  7914819.
+
 
 MIG_Drug_Histories <- separate_rows(MIG_Drug_Histories, month60, sep = ",", convert=T)
 names(MIG_Drug_Histories)[4] <- "molecule"
@@ -14886,30 +11777,7 @@ data.frame(MIG_Drug_Histories %>% left_join(RIME_Ingredients %>% select(molecule
              select(patient, weight, New_BoxJul21, drug_group) %>% distinct() %>%
              group_by(New_BoxJul21, drug_group) %>% summarise(n=sum(as.numeric(weight))))
 
-# 
-# New_BoxJul21      drug_group          n
-# 1             0            <NA> 2370651.62
-# 2             1     Symptomatic  433184.93
-# 3             2           Acute  488526.34
-# 4             2     Symptomatic   95045.16
-# 5             3    Preventative 3157234.13
-# 6             4    Preventative 1977643.80
-# 7             4     Symptomatic 1977643.80
-# 8             5           Acute  734338.43
-# 9             5    Preventative  734338.43
-# 10            5     Symptomatic  307961.10
-# 11            6           Acute   15091.81
-# 12            6       CGRP Oral   80118.70
-# 13            6    Preventative   59052.98
-# 14            6     Symptomatic   32210.90
-# 15            7           Acute  119924.21
-# 16            7 CGRP Injectable  396907.85
-# 17            7       CGRP Oral   33643.49
-# 18            7    Preventative  284449.11
-# 19            7     Symptomatic  150526.29
-# 20         Mild    Preventative 1685722.13
-# 21         Mild     Symptomatic  977058.62
-# 22         Mild            <NA> 6368834.24
+
 # -----
 
 # Number of drugs per stock m60 ---------------------------------------------------
@@ -14971,32 +11839,12 @@ fwrite(temp_matrix, "New_Flow_Matrix_MildVSModSev.txt", sep="\t")
 MIG_Flows_Aux._Long_v2 %>% filter(p1 >=48) %>% filter(!grepl("135",d1)) %>% 
   filter(grepl("135",d2)) %>% group_by(s1) %>% summarise(pats=sum(as.numeric(weight)))
 
-s1      pats
-<onr>  <dbl>
-  1 a      1933.
-2 A      1098.
-3 d     11663.
-4 D      7264.
-5 I     17184.
-6 O      1858.
-7 p      8652.
-8 x      4332.
 
 
 MIG_Flows_Aux._Long_v2 %>% filter(p1 >=48) %>% filter(grepl("135",d1)) %>% 
   filter(!grepl("135",d2)) %>%  group_by(s2) %>% summarise(pats=sum(as.numeric(weight)))
 
-s2      pats
-<chr>  <dbl>
-  1 a       868.
-2 A       302.
-3 d      6986.
-4 D      3468.
-5 I     10821.
-6 Mild    104.
-7 O      1219.
-8 p      6798.
-9 x      2995.
+
 # ------
 # Marimekko Stock vs Nr of lines ----------
 
@@ -15011,34 +11859,12 @@ weighted.mean(nrLines$month60, nrLines$weight) # 9.021561
 
 nrLines %>% group_by(New_BoxJul21) %>% summarise(n=weighted.mean(month60, weight))
 
-# New_BoxJul21     n
-# <chr>        <dbl>
-# 1 0             7.87
-# 2 1            13.8 
-# 3 2             7.15
-# 4 3            10.5 
-# 5 4            18.6 
-# 6 5            15.3 
-# 7 6            18.6 
-# 8 7            19.9 
-# 9 Mild          5.37
+
 
 nrLines <- nrLines %>% mutate(month60 = ifelse(month60>=6, 6, month60))
 
 nrLines %>% group_by(New_BoxJul21, month60) %>% summarise(n=sum(as.numeric(weight))) %>%
   spread(key = month60, value = n)
-
-# New_BoxJul21      `1`      `2`      `3`      `4`     `5`      `6`
-# <chr>           <dbl>    <dbl>    <dbl>    <dbl>   <dbl>    <dbl>
-# 1 0             119964.  199172.  243668.  246615. 235482. 1325751.
-# 2 1                 NA     5220.   10838.   16564.  25050.  375513.
-# 3 2              34578.   48751.   56558.   55398.  47955.  245286.
-# 4 3              52670.  136858.  192935.  229687. 248058. 2297026.
-# 5 4               3083.   10494.   24984.   39296.  52937. 1846850.
-# 6 5               2186.   10930.   21520.   34775.  33694.  631234.
-# 7 6                354.     538.     897.    2755.   2331.   73243.
-# 8 7                472.    1112.    3313.    5030.   8000.  378980.
-# 9 Mild         1267723. 1343498  1229556. 1022894. 796002. 3032126.
 
 # ----
 # Number of drugs per stock on m60 --------
@@ -15059,17 +11885,6 @@ MIG_Drug_Histories <- MIG_Drug_Histories %>% group_by(patient) %>% mutate(drugs_
 MIG_Drug_Histories <- MIG_Drug_Histories %>% select(-c(month60))
 MIG_Drug_Histories <- MIG_Drug_Histories %>% distinct()
 MIG_Drug_Histories %>% ungroup() %>% group_by(New_BoxJul21) %>% summarise(n= weighted.mean(drugs_n, as.numeric(weight)))
-
-New_BoxJul21     n
-<chr>        <dbl>
-  1 1             1.57
-2 2             1.31
-3 3             1.58
-4 4             3.91
-5 5             3.71
-6 6             3.58
-7 7             3.66
-8 Mild          1.55
 
 MIG_Drug_Histories <- MIG_Drug_Histories %>% mutate(drugs_n = ifelse(drugs_n>=6,6, drugs_n))
 
@@ -15096,21 +11911,7 @@ MIG_Flows_Aux._Long_v2 <- MIG_Flows_Aux._Long_v2 %>% mutate(s1=ifelse(New_BoxJul
 MIG_Flows_Aux._Long_v2 %>% filter(New_BoxJul21!="Mild") %>% group_by(patient, weight) %>% summarise(switches=sum(flow)) %>% ungroup() %>%
   group_by(switches) %>% summarise(total = sum(weight))
 
-switches    total
-<int>    <dbl>
-  1        0  475401.
-2        1  585261.
-3        2 1449840.
-4        3 1168339.
-5        4 1387203.
-6        5 1166639.
-7        6 1041832.
-8        7  823206.
-9        8  617228.
-10        9  440612.
-11       10  274930.
-12       11  156457.
-13       12   51658.
+
 
 
 MIG_Flows_Aux._Long_v2 %>% filter(New_BoxJul21!="Mild") %>% group_by(patient, weight) %>% 
@@ -15124,49 +11925,16 @@ MIG_Flows_Aux._Long_v2 %>% group_by(patient, weight, New_BoxJul21) %>%
   group_by(New_BoxJul21, switches) %>% summarise(total = sum(weight)) %>% 
   spread(key=New_BoxJul21, value=total)
 
-# switches     `0`     `1`     `2`     `3`      `4`     `5`    `6`     `7`     Mild
-# <dbl>   <dbl>   <dbl>   <dbl>   <dbl>    <dbl>   <dbl>  <dbl>   <dbl>    <dbl>
-# 1        0     NA      NA   50933. 334066.   49462.  26512.    NA   14428. 4194500.
-# 2        1 109920.   4148.  60072. 251171.   96801.  42483.  4333.  16333.  749576.
-# 3        2 626355.  23534.  63614. 506178   135908.  62890.  4912.  26448. 1795711.
-# 4        3 326745.  53043.  77528. 404710.  181319.  83226.  7765.  34003.  627098.
-# 5        4 467159.  55468.  63313. 446476.  216786.  86644.  9092.  42266.  604678.
-# 6        5 288920.  66503.  64255. 358572.  233149.  96940. 10279.  48021.  309404.
-# 7        6 551553. 230488. 108811. 856061. 1064218. 335644. 43738. 215409.  410832.
-
 
 MIG_Flows_Aux._Long_v2 %>% group_by(patient, weight, New_BoxJul21) %>% 
   summarise(switches=sum(flow)) %>% ungroup() %>% 
   group_by(New_BoxJul21) %>% summarise(mean = weighted.mean(switches, weight))
-
-New_BoxJul21  mean
-<chr>        <dbl>
-  1 0             4.04
-2 1             5.90
-3 2             3.64
-4 3             3.90
-5 4             5.80
-6 5             5.26
-7 6             6.11
-8 7             5.88
-9 Mild          1.50
 
 
 MIG_Flows_Aux._Long_v2 %>% group_by(patient, weight, New_BoxJul21) %>% 
   summarise(switches=sum(flow)) %>% ungroup() %>% 
   group_by(New_BoxJul21) %>% summarise(mean = weighted.median(switches, weight))
 
-New_BoxJul21  mean
-<chr>        <dbl>
-  1 0              3.5
-2 1              5.5
-3 2              2.5
-4 3              3.5
-5 4              5.5
-6 5              4.5
-7 6              5.5
-8 7              5.5
-9 Mild           0.5
 # -----
 # Restarts (same stock, same drug, etc) --------------
 MIG_Flows_Aux._Long <- fread("MIG_Flows_Aux._Long_v2.txt", colClasses = "character")
@@ -15203,20 +11971,10 @@ MIG_Flows_Aux._Long_2 <- New_BoxJul21 %>% left_join(MIG_Flows_Aux._Long_2)
 MIG_Flows_Aux._Long_2 %>% ungroup() %>% filter(New_BoxJul21!="Mild") %>% mutate(p1=as.numeric(p1)) %>% filter(p1>=48) %>% filter(re_starts=="1") %>% 
   group_by(Stock_comp, Drugs_comp) %>% summarise(pats=sum(as.numeric(weight)))
 
-# Stock_comp Drugs_comp     pats
-# <chr>      <chr>         <dbl>
-# 1 diff       diff       3584731
-# 2 Same       diff       1189403
-# 3 Same       Same       1181921
 
 data.frame(MIG_Flows_Aux._Long_2 %>% ungroup() %>%  filter(New_BoxJul21!="Mild") %>% mutate(p1=as.numeric(p1)) %>% filter(p1>=48) %>% filter(re_starts=="1") %>% 
              group_by(s2, Stock_comp, Drugs_comp) %>% summarise(pats=sum(as.numeric(weight)))) %>%
   spread(key=s2, value=pats)
-# 
-# Stock_comp Drugs_comp        a        A         d         D        I        O        p
-# 1       diff       diff 919888.5 670701.7 685340.65 255547.90 36168.93 27292.02 989791.2
-# 2       Same       diff 567395.2 150958.3  75929.50  12309.98  4035.53  1690.96 377083.5
-# 3       Same       Same 115221.6 647082.4  13753.26   9599.21  4341.22  3445.79 388477.9
 # ------
 # Neurologist seen last 12 m -----------  
 MIG_patients_by_unique_flow <-  read.csv("MIG_patients_by_unique_flow.csv")
@@ -15224,41 +11982,7 @@ MIG_patients_by_unique_flow$weight <- as.numeric(MIG_patients_by_unique_flow$wei
 MIG_patients_by_unique_flow$PatId <- as.character(MIG_patients_by_unique_flow$PatId)
 names(MIG_patients_by_unique_flow)[1] <- "patient"
 
-[1] "PatId"                       
-[2] "weight"                      
-[3] "Inflows.to.Oral.CGRP"        
-[4] "Intra.flows.within.Oral.CGRP"
-[5] "Outflows.of.Oral.CGRP"       
-[6] "Inflows.to.Injectable.CGRP"  
-[7] "Intra.flows.within.Inj.CGRP" 
-[8] "Outflows.of.Inj.CGRP"        
-[9] "Inflows.to.Prev...Acute"     
-[10] "Intra.to.Prev...Acute"       
-[11] "Prev....Prev...Sympt"        
-[12] "Other.Preventive.Flows"      
-[13] "Early.to.Prev"               
-[14] "Early.flows"                 
-[15] "any.severe"                  
-[16] "Mild.flows"                  
-[17] "Mild.flows.1" 
-
 for (i in 3:length(MIG_patients_by_unique_flow)) { print(sum(MIG_patients_by_unique_flow$weight[MIG_patients_by_unique_flow[,i]==1]))}  
-
-# [1] 162544
-# [1] 3860.08
-# [1] 1519.46
-# [1] 272148.3
-# [1] 239778.7
-# [1] 20688.55
-# [1] 1755977
-# [1] 230412.4
-# [1] 2045955
-# [1] 1914193
-# [1] 1377343
-# [1] 1013959
-# [1] 9038379
-# [1] 4169784
-# [1] 2403412
 
 
 MIG_Flows_Aux._Long <- fread("MIG_Flows_Aux._Long_v2.txt", colClasses = "character")
@@ -15351,11 +12075,6 @@ Month_Before_Drug_Pen <- MIG_Drug_Histories %>% group_by(patient, weight) %>% sl
 Month_Start_Drug_Pen %>% left_join(Month_Before_Drug_Pen, by=c("patient"="patient")) %>% arrange(patient) %>%
   filter(CGRP_Inj=="CGRP_Inj") %>% ungroup() %>% group_by(CGRP_Inj_before) %>% summarise(n=sum(as.numeric(weight.x)))
 
-# CGRP_Inj_before      n
-# <chr>            <dbl>
-# 1 CGRP_Inj        13321.
-# 2 no               2499.
-
 
 # Of those who are , how many were already ON Inj?
 Month_Start_Drug_Pen %>% left_join(Month_Before_Drug_Pen, by=c("patient"="patient")) %>% arrange(patient) %>%
@@ -15373,21 +12092,6 @@ Prev_Drugs_Start_Rimegepant %>% left_join(RIME_Ingredients %>% select(molecule, 
   filter(drug_group=="Preventative") %>% ungroup() %>% select(patient, weight, drug_class) %>%
   distinct() %>% group_by(drug_class) %>% summarise(n=sum(as.numeric(weight)))
 
-drug_class           n
-<chr>            <dbl>
-  1 Antiepileptic   14234.
-2 Beta Blocker     6362.
-3 Calcium Blocker  1504.
-4 Cardiovascular   2337.
-5 Muscle Relaxant  6996.
-6 Neural           6879.
-7 SNRI             5738.
-8 SSRI             6253.
-9 Tricyclic        4279.
-
-
-
-
 
 # ------
 # How many scripts of Rimegepant -----------------
@@ -15403,53 +12107,10 @@ MIG_Doses_BIG <- MIG_Doses_BIG %>% mutate(Month = as.yearmon(from_dt))
 
 MIG_Doses_BIG %>% group_by(Month) %>% summarise(n=sum(as.numeric(weight)))
 
-# Month          n
-# <yearmon>  <dbl>
-# 1 Mar 2020    146.
-# 2 Apr 2020    783.
-# 3 May 2020   2062.
-# 4 Jun 2020   4053.
-# 5 Jul 2020   4715.
-# 6 Aug 2020   5149.
-# 7 Sep 2020   4919.
-# 8 Oct 2020  10323.
-# 9 Nov 2020  10291.
-# 10 Dec 2020  13177.
-# 11 Jan 2021   9554.
-# 12 Feb 2021   9013.
-# 13 Mar 2021  13708.
-# 14 Apr 2021  14412.
-# 15 May 2021  14443.
-# 16 Jun 2021  21122.
-# 17 Jul 2021  24339.
-# 18 Aug 2021  27119.
-# 19 Sep 2021  29841.
-
 MIG_Doses_BIG <- MIG_Doses_BIG %>% mutate(Total_supps = as.numeric(weight)*as.numeric(dayssup))
 
 MIG_Doses_BIG %>% group_by(Month) %>% summarise(n=sum(as.numeric(Total_supps)))
 
-# Month           n
-# <yearmon>   <dbl>
-#   1 Mar 2020    4382.
-# 2 Apr 2020   15012.
-# 3 May 2020   49395.
-# 4 Jun 2020   82172.
-# 5 Jul 2020   92317.
-# 6 Aug 2020  112467.
-# 7 Sep 2020   99794.
-# 8 Oct 2020  209825.
-# 9 Nov 2020  228487.
-# 10 Dec 2020  289575.
-# 11 Jan 2021  248711.
-# 12 Feb 2021  208033.
-# 13 Mar 2021  314140.
-# 14 Apr 2021  370182.
-# 15 May 2021  347190.
-# 16 Jun 2021  498485.
-# 17 Jul 2021  603857.
-# 18 Aug 2021  689197.
-# 19 Sep 2021  776551.
 
 
 # ----
@@ -15500,21 +12161,11 @@ Re_starts_pats_Physician <- Re_starts_pats_Physician %>% distinct()
 Re_starts_pats_Physician <- Re_starts_pats %>% left_join(Re_starts_pats_Physician)
 Re_starts_pats_Physician %>% group_by(Physician) %>% summarise(n=sum(as.numeric(weight)))
 
-# Physician          n
-# <chr>          <dbl>
-# 1 NEUROLOGIST  616058.
-# 2 NA          3266599.
-
 Sympt_pats_Physician <- Sympt_pats %>% inner_join(MIG_Doses_BIG) %>% select(patient, specialty) %>% distinct()
 Sympt_pats_Physician <- Sympt_pats_Physician  %>% left_join(Physicians_Vanguard_Lookup) %>% filter(Physician =="NEUROLOGIST") %>% select(patient, Physician)
 Sympt_pats_Physician <- Sympt_pats_Physician %>% distinct()
 Sympt_pats_Physician <- Sympt_pats %>% left_join(Sympt_pats_Physician)
 Sympt_pats_Physician %>% group_by(Physician) %>% summarise(n=sum(as.numeric(weight)))
-
-# Physician         n
-# <chr>         <dbl>
-# 1 NEUROLOGIST 190796.
-# 2 NA          959704.
 
 Acute_pats_Physician <- Acute_pats %>% inner_join(MIG_Doses_BIG) %>% select(patient, specialty) %>% distinct()
 Acute_pats_Physician <- Acute_pats_Physician  %>% left_join(Physicians_Vanguard_Lookup) %>% filter(Physician =="NEUROLOGIST") %>% select(patient, Physician)
@@ -15522,21 +12173,12 @@ Acute_pats_Physician <- Acute_pats_Physician %>% distinct()
 Acute_pats_Physician <- Acute_pats %>% left_join(Acute_pats_Physician)
 Acute_pats_Physician %>% group_by(Physician) %>% summarise(n=sum(as.numeric(weight)))
 
-# Physician         n
-# <chr>         <dbl>
-# 1 NEUROLOGIST 161913.
-# 2 NA          516039.
-
 Prev_pats_Physician <- Prev_pats %>% inner_join(MIG_Doses_BIG) %>% select(patient, specialty) %>% distinct()
 Prev_pats_Physician <- Prev_pats_Physician  %>% left_join(Physicians_Vanguard_Lookup) %>% filter(Physician =="NEUROLOGIST") %>% select(patient, Physician)
 Prev_pats_Physician <- Prev_pats_Physician %>% distinct()
 Prev_pats_Physician <- Prev_pats %>% left_join(Prev_pats_Physician)
 Prev_pats_Physician %>% group_by(Physician) %>% summarise(n=sum(as.numeric(weight)))
 
-# Physician          n
-# <chr>          <dbl>
-# 1 NEUROLOGIST  980557.
-# 2 NA          3135491.
 
 PrevSympt_pats_Physician <- PrevSympt_pats %>% inner_join(MIG_Doses_BIG) %>% select(patient, specialty) %>% distinct()
 PrevSympt_pats_Physician <- PrevSympt_pats_Physician  %>% left_join(Physicians_Vanguard_Lookup) %>% filter(Physician =="NEUROLOGIST") %>% select(patient, Physician)
@@ -15544,21 +12186,12 @@ PrevSympt_pats_Physician <- PrevSympt_pats_Physician %>% distinct()
 PrevSympt_pats_Physician <- PrevSympt_pats %>% left_join(PrevSympt_pats_Physician)
 PrevSympt_pats_Physician %>% group_by(Physician) %>% summarise(n=sum(as.numeric(weight)))
 
-# Physician          n
-# <chr>          <dbl>
-# 1 NEUROLOGIST  987106 
-# 2 NA          3512831.
-
 PrevAcute_pats_Physician <- PrevAcute_pats %>% inner_join(MIG_Doses_BIG) %>% select(patient, specialty) %>% distinct()
 PrevAcute_pats_Physician <- PrevAcute_pats_Physician  %>% left_join(Physicians_Vanguard_Lookup) %>% filter(Physician =="NEUROLOGIST") %>% select(patient, Physician)
 PrevAcute_pats_Physician <- PrevAcute_pats_Physician %>% distinct()
 PrevAcute_pats_Physician <- PrevAcute_pats %>% left_join(PrevAcute_pats_Physician)
 PrevAcute_pats_Physician %>% group_by(Physician) %>% summarise(n=sum(as.numeric(weight)))
 
-# Physician          n
-# <chr>          <dbl>
-# 1 NEUROLOGIST  649304.
-# 2 NA          1393893.
 
 CGRPOral_pats_Physician <- CGRPOral_pats %>% inner_join(MIG_Doses_BIG) %>% select(patient, specialty) %>% distinct()
 CGRPOral_pats_Physician <- CGRPOral_pats_Physician  %>% left_join(Physicians_Vanguard_Lookup) %>% filter(Physician =="NEUROLOGIST") %>% select(patient, Physician)
@@ -15566,10 +12199,6 @@ CGRPOral_pats_Physician <- CGRPOral_pats_Physician %>% distinct()
 CGRPOral_pats_Physician <- CGRPOral_pats %>% left_join(CGRPOral_pats_Physician)
 CGRPOral_pats_Physician %>% group_by(Physician) %>% summarise(n=sum(as.numeric(weight)))
 
-# Physician        n
-# <chr>        <dbl>
-# 1 NEUROLOGIST 84846.
-# 2 NA          36699.
 
 CGRPInj_pats_Physician <- CGRPInj_pats %>% inner_join(MIG_Doses_BIG) %>% select(patient, specialty) %>% distinct()
 CGRPInj_pats_Physician <- CGRPInj_pats_Physician  %>% left_join(Physicians_Vanguard_Lookup) %>% filter(Physician =="NEUROLOGIST") %>% select(patient, Physician)
@@ -15577,10 +12206,6 @@ CGRPInj_pats_Physician <- CGRPInj_pats_Physician %>% distinct()
 CGRPInj_pats_Physician <- CGRPInj_pats %>% left_join(CGRPInj_pats_Physician)
 CGRPInj_pats_Physician %>% group_by(Physician) %>% summarise(n=sum(as.numeric(weight)))
 
-# Physician         n
-# <chr>         <dbl>
-# 1 NEUROLOGIST 358642.
-# 2 NA          154792.
 
 Re_starts_pats  %>% left_join(Flows_per_pat) %>% summarise(n=weighted.mean(N_Flows, as.numeric(weight))) #3.181051
 Sympt_pats %>% left_join(Flows_per_pat) %>% summarise(n=weighted.mean(N_Flows, as.numeric(weight))) #5.411034
@@ -15675,29 +12300,10 @@ Rimegepant_pats <- Rimegepant_pats %>% left_join(Rimegepant_Periods_MIG)
 
 Rimegepant_pats %>% group_by(Stock) %>% summarise(n=weighted.mean(Total_duration, weight))
 
-# Stock     n
-# <chr> <dbl>
-# 1 a      2.79
-# 2 A      3.73
-# 3 d      3.09
-# 4 D      3.17
-# 5 I      3.74
-# 6 O      3.43
-# 7 p      3.16
-# 8 x      2.35
+
 
 Rimegepant_pats %>% group_by(Stock) %>% summarise(n=weighted.median(Total_duration, weight))
 
-Stock     n
-<chr> <dbl>
-  1 a       1.5
-2 A       1  
-3 d       1.5
-4 D       1.5
-5 I       2.5
-6 O       1.5
-7 p       1.5
-8 x       1  
 # ------
 
 # Class Pentrance Month 60 only MODERATE-to-SEVERE -------------------
@@ -15725,31 +12331,6 @@ MIG_Drug_Histories <- MIG_Drug_Histories %>% distinct()
 data.frame(MIG_Drug_Histories %>% group_by(drug_class) %>% summarise(sum_weights = sum(as.numeric(weight))) %>%
              mutate(sum_weights_percent = (sum_weights / 9638606)*100)) %>% arrange(desc(sum_weights_percent))
 
-# drug_class sum_weights sum_weights_percent
-# 1    Antiepileptic  2708822.61         28.10388359
-# 2             SSRI  2026324.11         21.02299970
-# 3     Beta Blocker  1444914.08         14.99090304
-# 4          Triptan  1314670.24         13.63963046
-# 5  Muscle Relaxant  1117437.07         11.59334732
-# 6            NSAID  1092548.39         11.33512865
-# 7             SNRI  1007402.95         10.45174945
-# 8   Cardiovascular   846592.38          8.78334875
-# 9      Weak Opioid   836825.12          8.68201398
-# 10      Antiemetic   808228.51          8.38532574
-# 11   Strong Opioid   753544.70          7.81798426
-# 12       Tricyclic   647543.41          6.71822679
-# 13         Steroid   488296.31          5.06604700
-# 14 CGRP Injectable   386925.85          4.01433413
-# 15        Sedative   324132.74          3.36285911
-# 16          Neural   297766.59          3.08931177
-# 17 Calcium Blocker   294468.92          3.05509863
-# 18       Analgesic   188274.94          1.95334201
-# 19       CGRP Oral   111665.19          1.15852012
-# 20   Antipsychotic   106494.98          1.10487948
-# 21           Ergot     5194.54          0.05389306
-# 22           Ditan     4167.69          0.04323955
-# 23 Hospitalization     3240.73          0.03362239
-
 
 # -----
 # Classs Penetrance across entire 60 month period --------------------------------------
@@ -15776,30 +12357,6 @@ data.frame(MIG_Drug_Histories %>% group_by(drug_class) %>% summarise(sum_weights
              mutate(sum_weights_percent = (sum_weights / 9638606)*100)) %>% arrange(-sum_weights_percent)
 
 
-# drug_class sum_weights sum_weights_percent
-# 1            NSAID   7136926.2          74.0452120
-# 2       Antiemetic   6446513.3          66.8822162
-# 3          Steroid   6122464.5          63.5202277
-# 4      Weak Opioid   5891857.2          61.1276902
-# 5    Antiepileptic   5685228.8          58.9839320
-# 6          Triptan   5186563.7          53.8103089
-# 7    Strong Opioid   5086966.4          52.7769931
-# 8  Muscle Relaxant   4936723.9          51.2182351
-# 9             SSRI   4176753.9          43.3335889
-# 10    Beta Blocker   2960821.9          30.7183623
-# 11        Sedative   2665307.4          27.6524158
-# 12            SNRI   2257951.3          23.4261188
-# 13       Tricyclic   2211670.6          22.9459589
-# 14  Cardiovascular   1674050.3          17.3681782
-# 15   Antipsychotic   1199802.1          12.4478800
-# 16       Analgesic   1050126.1          10.8949993
-# 17          Neural    833424.4           8.6467320
-# 18 Calcium Blocker    776039.0           8.0513613
-# 19 CGRP Injectable    677506.1           7.0290877
-# 20       CGRP Oral    221028.6           2.2931598
-# 21 Hospitalization    185756.5           1.9272139
-# 22           Ergot     85899.1           0.8911984
-# 23           Ditan     12362.5           0.1282602
 # --------
 
 # Classify patients as Acute / Episodeic / Chronic based on pills per month of max class ----------------
@@ -15822,12 +12379,6 @@ MIG_Doses_m12 %>% ungroup() %>% select(pat_id, weight, pills_per_month) %>%
   group_by(frequency) %>% summarise(pats = sum(as.numeric(weight)))
 
 
-frequency        pats
-<chr>           <dbl>
-  1 Acute        2813520.
-2 Chronic      9207683.
-3 Intermediate 2405045.
-
 MIG_Doses_m12 %>% ungroup() %>% select(pat_id, weight, pills_per_month) %>% 
   distinct() %>% summarise(mean = weighted.mean(pills_per_month, as.numeric(weight))) 
 
@@ -15847,11 +12398,6 @@ MIG_Doses_m12 %>% ungroup() %>% select(pat_id, weight, pills_per_month_class) %>
                                           ifelse(pills_per_month_class>=4, "Episodic", "Acute"))) %>%
   group_by(frequency) %>% summarise(pats = sum(as.numeric(weight)))
 
-# frequency     pats
-# <chr>        <dbl>
-# 1 Acute     3436773.
-# 2 Chronic   8475886.
-# 3 Episodic  2513589.
 
 MIG_Doses_dayssup_m12_perMonth_perclass <- MIG_Doses_m12 %>% ungroup() %>% 
   select(pat_id, weight, drug_class, pills_per_month, pills_per_month_class) %>% distinct() %>%
@@ -15976,90 +12522,33 @@ data3 %>% filter(flow==1) %>% summarise(n=sum(as.numeric(weight))) # 38515708
 # Total flows mod to sev last 12 m per stock on m60
 data3 %>% group_by(s1) %>% filter(flow==1) %>% summarise(n=sum(as.numeric(weight)))
  
-# New_BoxJul21         n
-# <chr>            <dbl>
-# 1 0             5764545.
-# 2 1             2136252.
-# 3 2             1414726.
-# 4 3            11510839.
-# 5 4            11184653.
-# 6 5             3751224.
-# 7 6              464149.
-# 8 7             2289320.
+
 
 # Total flows mod to sev OF ACUTE DRUGS last 12 m per stock on m60
 data3 %>% group_by(New_BoxJul21) %>% filter(flow==1) %>% filter(Acute_flow_type!="-" & Prev_flow_type=="-" & CGRP_flow_type=="-") %>% summarise(n=sum(as.numeric(weight)))
 
-# New_BoxJul21        n
-# <chr>           <dbl>
-# 1 0            3101295.
-# 2 1            1224098.
-# 3 2            1083300.
-# 4 3            5729547.
-# 5 4            6138194.
-# 6 5            2247440.
-# 7 6             191873.
-# 8 7            1155674.
 
 
 # Any acute counts, regadless of the rest
 # data3 %>% group_by(New_BoxJul21) %>% filter(flow==1) %>% filter(Acute_flow_type!="-") %>% summarise(n=sum(as.numeric(weight)))
-# New_BoxJul21        n
-# <chr>           <dbl>
-# 1 0            4439773.
-# 2 1            1740193.
-# 3 2            1230415.
-# 4 3            7810370.
-# 5 4            8719539.
-# 6 5            3013810.
-# 7 6             318528.
-# 8 7            1705040.
+
 
 
 # Any Add and or switch of acute vs everything else
 # data3 %>% group_by(s1) %>% filter(flow==1) %>% filter(Acute_flow_type=="A" | Acute_flow_type=="S" | Acute_flow_type=="A+S" | Acute_flow_type=="D+S" | Acute_flow_type=="D") %>% summarise(n=sum(as.numeric(weight)))
 
-# New_BoxJul21        n
-# <chr>           <dbl>
-# 1 0            3432259.
-# 2 1            1242789.
-# 3 2             937785.
-# 4 3            4063309.
-# 5 4            5310136.
-# 6 5            1873470.
-# 7 6             187222.
-# 8 7             970132.
 
 
 
 # Total flows mod to sev OF Prev or CGRP DRUGS last 12 m per stock on m60
 data3 %>% group_by(New_BoxJul21) %>% filter(flow==1) %>% filter(Prev_flow_type!="-" | CGRP_flow_type !="-") %>% summarise(n=sum(as.numeric(weight)))
 
-New_BoxJul21        n
-<chr>           <dbl>
-1 0            2663249.
-2 1             912154.
-3 2             331427.
-4 3            5781292.
-5 4            5046459.
-6 5            1503784.
-7 6             272276.
-8 7            1133646.
 
 
 # Prev or CGRP flows without ACUTE
 # data3 %>% group_by(New_BoxJul21) %>% filter(flow==1) %>% filter(Acute_flow_type=="-" & (Prev_flow_type!="-" | CGRP_flow_type !="-")) %>% summarise(n=sum(as.numeric(weight)))
 # 
-# New_BoxJul21        n
-# <chr>           <dbl>
-# 1 0            1324772.
-# 2 1             396059.
-# 3 2             184311.
-# 4 3            3700469.
-# 5 4            2465114.
-# 6 5             737414.
-# 7 6             145621.
-# 8 7             584280.
+
 
 
 # data3 %>% filter(flow==1) %>% filter((Acute_flow_type=="A" | Acute_flow_type=="S" | Acute_flow_type=="A+S" | Acute_flow_type=="D+S") &
@@ -16112,16 +12601,6 @@ data3 %>% group_by(s1) %>% filter(flow==1) %>%
 to_remove <- data3 %>% group_by(s1) %>% filter(flow==1) %>% 
   filter(Acute_flow_type=="A" | Acute_flow_type=="S" | Acute_flow_type=="A+S" | Acute_flow_type=="D+S") %>%
   select(Index)
-s1           n
-<chr>    <dbl>
-  1 a     1114604.
-2 A      501200.
-3 d     4839823.
-4 D     1298724.
-5 I      875028.
-6 O       86742.
-7 p     5038284.
-8 x     4262697.
 
 data3 <- data3 %>% anti_join(to_remove)
 
@@ -16139,31 +12618,14 @@ to_remove_2 <- data3 %>% group_by(s1) %>% filter(flow==1) %>%
               (CGRP_flow_type=="A" | CGRP_flow_type=="S" | CGRP_flow_type=="A+S" | CGRP_flow_type=="D+S"))) %>%
   select(Index)
 
-s1           n
-<chr>    <dbl>
-  1 a      297805.
-2 A      183721.
-3 d     1076401.
-4 D      368098.
-5 I      239110.
-6 O       31418.
-7 p     1909747.
-8 x     1864538.
 
+                                            
 data3 <- data3 %>% anti_join(to_remove_2)
 
 # Drops
 data3 %>% group_by(s1) %>% filter(flow==1) %>% 
   filter(Acute_flow_type=="D" | Prev_flow_type=="D" | CGRP_flow_type=="D") %>% 
   summarise(n=sum(as.numeric(weight)))
-
-1 a      613972.
-2 A      466235.
-3 d     7683676.
-4 D     3036305.
-5 I      997351.
-6 O      130194.
-7 p     1600034
 
 # Split into Chronic vs not chronic based on Dx hisotry  -------------
 RIME_Demographics <- read.table("RIME Demographics.txt", header = T, sep="\t",colClasses = "character", stringsAsFactors = FALSE)
@@ -16174,45 +12636,12 @@ RIME_Demographics$diagnosis <- "Chronic"
 
 data3 %>% left_join(RIME_Demographics) %>% group_by(New_BoxJul21, diagnosis) %>% filter(flow==1) %>% filter(Prev_flow_type!="-" | CGRP_flow_type !="-") %>% summarise(n=sum(as.numeric(weight)))
 
-# New_BoxJul21 diagnosis        n
-# <chr>        <chr>        <dbl>
-# 1 0            Chronic    492636.
-# 2 0            NA        2170613.
-# 3 1            Chronic    186015.
-# 4 1            NA         726139.
-# 5 2            Chronic     99313.
-# 6 2            NA         232113.
-# 7 3            Chronic   1308095.
-# 8 3            NA        4473197.
-# 9 4            Chronic   1322770.
-# 10 4            NA        3723689.
-# 11 5            Chronic    611053.
-# 12 5            NA         892732.
-# 13 6            Chronic    181739.
-# 14 6            NA          90537.
-# 15 7            Chronic    820147.
-# 16 7            NA         313500.
 
 
 # Prev or CGRP flows without ACUTE
 # data3 %>% left_join(RIME_Demographics) %>% group_by(New_BoxJul21, diagnosis) %>% filter(flow==1) %>% filter(Acute_flow_type=="-" & (Prev_flow_type!="-" | CGRP_flow_type !="-")) %>% summarise(n=sum(as.numeric(weight)))
-# 1 0            Chronic    240784.
-# 2 0            NA        1083987.
-# 3 1            Chronic     72606.
-# 4 1            NA         323453.
-# 5 2            Chronic     56196.
-# 6 2            NA         128115.
-# 7 3            Chronic    806926.
-# 8 3            NA        2893543.
-# 9 4            Chronic    598341.
-# 10 4            NA        1866773.
-# 11 5            Chronic    285641.
-# 12 5            NA         451772.
-# 13 6            Chronic     93630.
-# 14 6            NA          51990.
-# 15 7            Chronic    406850.
-# 16 7            NA         177430.
 
+                                            
 # -------
 # Check for each stock (inc. Mild) the % of chronic -----
 
@@ -16407,30 +12836,7 @@ MIG_Drug_Histories <- MIG_Drug_Histories %>% distinct()
 data.frame(MIG_Drug_Histories %>% group_by(drug_class) %>% summarise(sum_weights = sum(as.numeric(weight))) %>%
              mutate(sum_weights_percent = (sum_weights / 9638606)*100)) %>% arrange(-sum_weights_percent)
 
-# drug_class sum_weights sum_weights_percent
-# 1    Antiepileptic  4296450.12          44.5754305
-# 2            NSAID  3861276.60          40.0605295
-# 3          Triptan  3620451.37          37.5619812
-# 4       Antiemetic  3260567.60          33.8282071
-# 5  Muscle Relaxant  2998367.30          31.1078936
-# 6             SSRI  2885935.05          29.9414153
-# 7          Steroid  2667472.46          27.6748781
-# 8      Weak Opioid  2541104.61          26.3638187
-# 9    Strong Opioid  2286333.32          23.7205808
-# 10    Beta Blocker  2072237.17          21.4993451
-# 11            SNRI  1431215.34          14.8487794
-# 12       Tricyclic  1138737.27          11.8143357
-# 13  Cardiovascular  1135355.57          11.7792508
-# 14        Sedative  1091414.89          11.3233686
-# 15 CGRP Injectable   557395.30           5.7829452
-# 16       Analgesic   484112.31           5.0226382
-# 17          Neural   467226.75           4.8474515
-# 18   Antipsychotic   458120.97           4.7529795
-# 19 Calcium Blocker   453438.46           4.7043987
-# 20       CGRP Oral   214864.82           2.2292105
-# 21 Hospitalization    41065.69           0.4260542
-# 22           Ergot    25355.75           0.2630645
-# 23           Ditan    11858.06           0.1230267
+
 
 
 # Durations 12 months
@@ -17706,16 +14112,6 @@ MIG_Flows_Aux._Long <- MIG_Flows_Aux._Long %>% mutate(p1 = as.numeric(p1)) %>% m
 MIG_Flows_Aux._Long %>% filter(p1 >=48) %>% filter(!grepl("135",d1)) %>% 
   filter(grepl("135",d2)) %>% group_by(s1) %>% summarise(pats=sum(as.numeric(weight)))
 # #Inflows
-# s1      pats
-# <chr>  <dbl>
-# 1 a      1933.
-# 2 A      1098.
-# 3 d     11663.
-# 4 D      7264.
-# 5 I     17184.
-# 6 O      1858.
-# 7 p      8652.
-# 8 x      4332.
 
 # Nr of Lines on each Month
 MIG_nrLines_Histories <- read.table("MIG_nrLines_Histories.txt", 
@@ -17736,16 +14132,7 @@ MIG_Flows_Aux._Long <- MIG_Flows_Aux._Long %>% left_join(MIG_nrLines_Histories, 
 MIG_Flows_Aux._Long %>% filter(p1 >=48) %>% filter(!grepl("135",d1)) %>% 
   filter(grepl("135",d2)) %>% group_by(s1) %>% summarise(n=weighted.mean(Treat, as.numeric(weight)))
 
-# s1        n
-# <chr> <dbl>
-# 1 a     14.8 
-# 2 A     11.8 
-# 3 d     23.5 
-# 4 D     19.5 
-# 5 I     23.8 
-# 6 O     21.4 
-# 7 p     13.7 
-# 8 x      6.96
+
 
 
 # Nr of Molecules on the months before
@@ -18383,41 +14770,6 @@ Risk_pred_model <- glm( Group ~ ., data = data_train, family = binomial)
 
 summary(Risk_pred_model)
 
-# Call:
-#   glm(formula = Group ~ ., family = binomial, data = data_train)
-# 
-# Deviance Residuals: 
-#   Min       1Q   Median       3Q      Max  
-# -3.5012  -0.4953   0.0586   0.4554   2.8027  
-# 
-# Coefficients:
-#   Estimate Std. Error z value             Pr(>|z|)    
-#   (Intercept)          -1.916552   0.231880  -8.265 < 0.0000000000000002 ***
-#   age                  -0.010600   0.002732  -3.880             0.000104 ***
-#   intractable_earliest  0.603490   0.075700   7.972  0.00000000000000156 ***
-#   severe_earliest       0.325434   0.088695   3.669             0.000243 ***
-#   chronic_earliest      1.391664   0.072678  19.148 < 0.0000000000000002 ***
-#   p1_SSRIExp           -0.355428   0.069053  -5.147  0.00000026444317760 ***
-#   p1_CardiovascularExp -0.392147   0.079583  -4.928  0.00000083285097918 ***
-#   p1_TriptanExp         0.890858   0.066794  13.337 < 0.0000000000000002 ***
-#   p1_WeakOpioidExp     -0.276670   0.075965  -3.642             0.000270 ***
-#   Lines                 0.064867   0.004270  15.191 < 0.0000000000000002 ***
-#   C                     0.566547   0.085524   6.624  0.00000000003485995 ***
-#   LapsedTime           -0.018687   0.002143  -8.719 < 0.0000000000000002 ***
-#   NEUROLOGIST           2.024383   0.071343  28.375 < 0.0000000000000002 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# (Dispersion parameter for binomial family taken to be 1)
-# 
-# Null deviance: 12247.9  on 8834  degrees of freedom
-# Residual deviance:  6250.1  on 8822  degrees of freedom
-# AIC: 6276.1
-# 
-# Number of Fisher Scoring iterations: 5
-
-
-
 predict <- predict(Risk_pred_model, data_test, type = 'response')
 
 table_mat <- table(data_test$Group, predict > 0.50)
@@ -18566,33 +14918,6 @@ Risk_pred_model <- glm( Group ~ ., data = data_train, family = binomial)
 
 summary(Risk_pred_model)
 
-# Call:
-#   glm(formula = Group ~ ., family = binomial, data = data_train)
-# 
-# Deviance Residuals: 
-#   Min       1Q   Median       3Q      Max  
-# -2.7920  -0.5057   0.1352   0.5441   2.0591  
-# 
-# Coefficients:
-#   Estimate Std. Error z value             Pr(>|z|)    
-# (Intercept)      -1.99212    0.09381 -21.235 < 0.0000000000000002 ***
-#   chronic_earliest  0.97779    0.12557   7.787  0.00000000000000686 ***
-#   p1_InjExp         1.91553    0.18516  10.345 < 0.0000000000000002 ***
-#   p1_TriptanExp     0.81348    0.11306   7.195  0.00000000000062517 ***
-#   `ANEST/PAIN`      0.93963    0.17349   5.416  0.00000006094193740 ***
-#   NEUROLOGIST       2.03621    0.12169  16.733 < 0.0000000000000002 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# (Dispersion parameter for binomial family taken to be 1)
-# 
-# Null deviance: 3383.8  on 2440  degrees of freedom
-# Residual deviance: 2024.6  on 2435  degrees of freedom
-# AIC: 2036.6
-# 
-# Number of Fisher Scoring iterations: 5
-
-
 
 predict <- predict(Risk_pred_model, data_test, type = 'response')
 
@@ -18736,32 +15061,6 @@ Risk_pred_model <- glm( Group ~ ., data = data_train, family = binomial)
 
 summary(Risk_pred_model)
 
-# Call:
-#   glm(formula = Group ~ ., family = binomial, data = data_train)
-# 
-# Deviance Residuals: 
-#   Min       1Q   Median       3Q      Max  
-# -2.5316  -0.6486  -0.5727   0.6795   1.9436  
-# 
-# Coefficients:
-#   Estimate Std. Error z value             Pr(>|z|)    
-# (Intercept)       -1.7248     0.1286 -13.408 < 0.0000000000000002 ***
-#   chronic_earliest   1.5417     0.1666   9.256 < 0.0000000000000002 ***
-#   p1_TriptanExp      0.9404     0.1409   6.675      0.0000000000248 ***
-#   C                  0.2730     0.1403   1.946               0.0517 .  
-# NEUROLOGIST        2.1327     0.1539  13.859 < 0.0000000000000002 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# (Dispersion parameter for binomial family taken to be 1)
-# 
-# Null deviance: 1838.0  on 1325  degrees of freedom
-# Residual deviance: 1284.6  on 1321  degrees of freedom
-# AIC: 1294.6
-# 
-# Number of Fisher Scoring iterations: 5
-
-
 
 predict <- predict(Risk_pred_model, data_test, type = 'response')
 
@@ -18869,29 +15168,6 @@ MIG_Drug_Histories <- MIG_Drug_Histories %>% distinct()
 data.frame(MIG_Drug_Histories %>% group_by(drug_class) %>% summarise(sum_weights = sum(as.numeric(weight))) %>%
              mutate(sum_weights_percent = (sum_weights / 9638606)*100)) 
 
-# 1    Antiepileptic  4296450.12          44.5754305
-# 2            NSAID  3861276.60          40.0605295
-# 3          Triptan  3620451.37          37.5619812
-# 4       Antiemetic  3260567.60          33.8282071
-# 5  Muscle Relaxant  2998367.30          31.1078936
-# 6             SSRI  2885935.05          29.9414153
-# 7          Steroid  2667472.46          27.6748781
-# 8      Weak Opioid  2541104.61          26.3638187
-# 9    Strong Opioid  2286333.32          23.7205808
-# 10    Beta Blocker  2072237.17          21.4993451
-# 11            SNRI  1431215.34          14.8487794
-# 12       Tricyclic  1138737.27          11.8143357
-# 13  Cardiovascular  1135355.57          11.7792508
-# 14        Sedative  1091414.89          11.3233686
-# 15 CGRP Injectable   557395.30           5.7829452
-# 16       Analgesic   484112.31           5.0226382
-# 17          Neural   467226.75           4.8474515
-# 18   Antipsychotic   458120.97           4.7529795
-# 19 Calcium Blocker   453438.46           4.7043987
-# 20       CGRP Oral   214864.82           2.2292105
-# 21 Hospitalization    41065.69           0.4260542
-# 22           Ergot    25355.75           0.2630645
-# 23           Ditan    11858.06           0.1230267
 
 
 
@@ -18918,31 +15194,6 @@ MIG_Drug_Histories <- MIG_Drug_Histories %>% distinct()
 data.frame(MIG_Drug_Histories %>% group_by(patient, weight, drug_class) %>% count()  %>% ungroup() %>%
              group_by(drug_class) %>% summarise(mean=weighted.mean(n, as.numeric(weight)))) 
 
-
-#         drug_class     mean
-# 1        Analgesic 4.952696
-# 2       Antiemetic 2.916120
-# 3    Antiepileptic 7.497723
-# 4    Antipsychotic 2.709868
-# 5     Beta Blocker 8.249293
-# 6  CGRP Injectable 7.778877
-# 7        CGRP Oral 3.592865
-# 8  Calcium Blocker 7.748456
-# 9   Cardiovascular 8.917927
-# 10           Ditan 2.946151
-# 11           Ergot 2.603112
-# 12 Hospitalization 1.112253
-# 13 Muscle Relaxant 4.557787
-# 14           NSAID 3.480901
-# 15          Neural 7.266879
-# 16            SNRI 8.354980
-# 17            SSRI 8.377645
-# 18        Sedative 3.705711
-# 19         Steroid 2.082192
-# 20   Strong Opioid 3.967333
-# 21       Tricyclic 6.917494
-# 22         Triptan 4.455630
-# 23     Weak Opioid 4.064067
 
 
 
@@ -19043,12 +15294,6 @@ US_time$Country <- "US"
 times_df <- JP_time %>% bind_rows(US_time)
 
 times_df %>% group_by(Country, group) %>% summarise(mean=weighted.mean(n, pats))
-
-#   Country group  mean
-# 1 JP      A      6.75
-# 2 JP      P     11.5 
-# 3 US      A      5.30
-# 4 US      P     10.9
 
 
 times_df %>% filter(group=="P") %>%
@@ -19166,19 +15411,5 @@ Doses %>% mutate(month60=ifelse(grepl("P", month60), "P", month60)) %>%
  group_by(month60, drug_group, large_class_dpt, CGRP ) %>% summarise(total=sum(total))
 
 
-#    month60 drug_group large_class_dpt    CGRP       total
-#    <chr>   <chr>      <chr>             <dbl>       <dbl>
-#  1 A       A          Internal Medicine     0  298369975.
-#  2 A       A          Neurology             0   68887749.
-#  3 A       P          Internal Medicine     0   98141352 
-#  4 A       P          Internal Medicine     1     185854.
-#  5 A       P          Neurology             0   23627398.
-#  6 A       P          Neurology             1      67488.
-#  7 P       A          Internal Medicine     0  476728247.
-#  8 P       A          Neurology             0   87760624.
-#  9 P       P          Internal Medicine     0 1140003166.
-# 10 P       P          Internal Medicine     1    3185906.
-# 11 P       P          Neurology             0  148999003.
-# 12 P       P          Neurology             1    1802322.
 
 # ------------------

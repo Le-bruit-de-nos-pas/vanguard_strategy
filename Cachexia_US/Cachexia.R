@@ -30,14 +30,6 @@ Diabetes_Cancer_History <- Diabetes_Cancer_History %>% left_join(DANU_Measures, 
 
 Diabetes_Cancer_History %>% select(patient, weight, CancerStatus, test) %>% distinct() %>% group_by(CancerStatus, test) %>% summarise(n=sum(weight))
 
-
-# CancerStatus test          n
-# <chr>        <chr>     <dbl>
-# 1 Cancer       BMI    4919320. (63% of those with cancer, 10% of all Diabetic)
-# 2 Cancer       NA     2895853.
-# 3 no           BMI   24323599.
-# 4 no           NA    16105652.
-
 Diabetes_Cancer_History <- Diabetes_Cancer_History %>% drop_na()
 
 Diabetes_Cancer_History <- Diabetes_Cancer_History %>% group_by(patient) %>% filter(claimed == min(claimed) | claimed == max(claimed)) %>%
@@ -57,9 +49,6 @@ Diabetes_Cancer_History$claimed <- as.Date(Diabetes_Cancer_History$claimed)
 
 Diabetes_Cancer_History %>% group_by(patient) %>% mutate(ElapsedTime = as.numeric(claimed - lag(claimed))/30.5) %>% 
   filter(!is.na(ElapsedTime)) %>% filter(ElapsedTime > 6) %>% ungroup() %>% summarise(n=sum(weight))
-
-# 3409912 (69% of cancer with BMI, 44% of cancer, /% of diabetic )
-
 
 
 Diabetes_Cancer_History %>% group_by(patient) %>% mutate(BMIdiff = as.numeric(value - lag(value))) %>% filter(!is.na(BMIdiff)) %>%
@@ -90,13 +79,6 @@ Obesity_Cancer_History <- OBE_Cancer_History %>% left_join(DANU_Measures, by=c("
 
 Obesity_Cancer_History %>% select(patient, weight, CancerStatus, test) %>% distinct() %>% group_by(CancerStatus, test) %>% summarise(n=sum(weight))
 
-
-# CancerStatus test          n
-# <chr>        <chr>     <dbl>
-# 1 Cancer       BMI    6531318.
-# 2 Cancer       NA     2420189.
-# 3 no           BMI   71333736.
-# 4 no           NA    26183805.
 
 Obesity_Cancer_History <- Obesity_Cancer_History %>% drop_na()
 
@@ -131,17 +113,7 @@ DIA_OBE_pts_CanDx <- fread("DIA_OBE_pts_CanDx.txt")
 
 unique(DIA_OBE_pts_CanDx$condition)
 
-# [1] "Intestinal Cancer"       "Head Cancer"            
-# [3] "Other Cancer"            "Respiratory Cancer"     
-# [5] "Lung Cancer"             "Skin Cancer"            
-# [7] "Breast Cancer"           "Reproductive Cancer"    
-# [9] "Prostate Cancer"         "Kidney Cancer"          
-# [11] "Urinary Cancer"          "Thyroid Cancer"         
-# [13] "Lymphoma Cancer"         "Unspecified Cancer"     
-# [15] "Bone Cancer"             "Leukemia Cancer"        
-# [17] "Myeloma Cancer"          "Cancer History"         
-# [19] "Benign Tumor"            "Gastroesophageal Cancer"
-# [21] "Salivary Cancer"  
+#
 
 DIA_OBE_pts_CanDx <- DIA_OBE_pts_CanDx %>% filter(condition != "Benign Tumor")
 DIA_OBE_pts_CanDx <- DIA_OBE_pts_CanDx %>% filter(condition != "Cancer History")
@@ -187,52 +159,11 @@ length(unique((temp$patient))) # 80266 with BMIs
 
 data.frame(temp %>% group_by(condition) %>% summarise(n=weighted.mean(BMI, weight, na.rm=T)) %>% arrange(n))
 
-# condition        n
-# 1              Head Cancer 28.70449
-# 2  Gastroesophageal Cancer 29.12877
-# 3              Lung Cancer 29.34071
-# 4       Respiratory Cancer 29.65811
-# 5           Urinary Cancer 29.73795
-# 6          Prostate Cancer 29.83909
-# 7              Skin Cancer 29.84841
-# 8          Leukemia Cancer 29.85144
-# 9             Other Cancer 29.89064
-# 10         Lymphoma Cancer 30.05676
-# 11          Myeloma Cancer 30.05803
-# 12       Intestinal Cancer 30.39219
-# 13      Unspecified Cancer 30.54425
-# 14           Breast Cancer 30.63386
-# 15             Bone Cancer 31.12984
-# 16         Salivary Cancer 31.77709
-# 17           Kidney Cancer 31.93505
-# 18          Thyroid Cancer 32.16917
-# 19     Reproductive Cancer 33.18298
-
-
 BMIs_After_FirstDx <- temp %>% group_by(patient) %>% filter(Date_BMI>=Date)
 
 data.frame(BMIs_After_FirstDx %>% group_by(condition) %>% summarise(n=weighted.mean(BMI, weight, na.rm=T)) %>% arrange(n))
 
-# condition        n
-# 1              Head Cancer 28.18620
-# 2  Gastroesophageal Cancer 28.41773
-# 3              Lung Cancer 29.06137
-# 4       Respiratory Cancer 29.34225
-# 5             Other Cancer 29.54702
-# 6          Leukemia Cancer 29.54877
-# 7           Urinary Cancer 29.60365
-# 8              Skin Cancer 29.66699
-# 9           Myeloma Cancer 29.69494
-# 10         Prostate Cancer 29.70048
-# 11         Lymphoma Cancer 29.90021
-# 12       Intestinal Cancer 30.17401
-# 13      Unspecified Cancer 30.28620
-# 14           Breast Cancer 30.54493
-# 15             Bone Cancer 31.00906
-# 16         Salivary Cancer 31.49262
-# 17           Kidney Cancer 31.73878
-# 18          Thyroid Cancer 32.08234
-# 19     Reproductive Cancer 32.83474
+
 
 BMIs_After_FirstDx <- BMIs_After_FirstDx %>%  ungroup() %>% mutate(ElapsedTime = as.numeric(round((Date_BMI-Date)/30.5)))
 
@@ -439,26 +370,6 @@ BMIs_After_FirstDx <- fread("BMIs_After_FirstDx_pooled.txt", sep="\t")
 data.frame(BMIs_After_FirstDx %>% group_by(condition) %>% summarise(n=weighted.mean(BMI, weight, na.rm=T)) %>% arrange(n))
 
 
-# condition        n
-# 1              Head Cancer 28.66748
-# 2  Gastroesophageal Cancer 28.75362
-# 3              Lung Cancer 29.32573
-# 4       Respiratory Cancer 29.70063
-# 5             Other Cancer 29.77399
-# 6          Leukemia Cancer 29.78533
-# 7          Prostate Cancer 29.82890
-# 8           Urinary Cancer 29.83831
-# 9              Skin Cancer 29.88806
-# 10          Myeloma Cancer 29.97246
-# 11         Lymphoma Cancer 30.07859
-# 12       Intestinal Cancer 30.42859
-# 13      Unspecified Cancer 30.58700
-# 14           Breast Cancer 30.79041
-# 15             Bone Cancer 31.29426
-# 16         Salivary Cancer 31.70286
-# 17           Kidney Cancer 32.03070
-# 18          Thyroid Cancer 32.44994
-# 19     Reproductive Cancer 33.29513
 
 
 BMIs_After_FirstDx <- BMIs_After_FirstDx %>%  ungroup() %>% mutate(ElapsedTime = as.numeric(round((Date_BMI-Date)/30.5)))
@@ -935,12 +846,6 @@ Pooled <- NASH_BMIs_All_Cancer %>% bind_rows(NASH_BMIs_EntireCohort)
 
 Pooled %>% ungroup() %>% group_by(group) %>% summarise(n=mean(as.numeric(BMI), na.rm=T))
 
-# group                    n
-# <chr>                <dbl>
-# 1 All NASH Patients     34.0
-# 2 NASH Cancer Patients  33.1
-
-
 Pooled$BMI <- as.numeric(Pooled$BMI)
 
 Pooled <- Pooled %>% filter(!is.na(BMI))
@@ -977,49 +882,8 @@ DIA_BMIs_All_Cancer <- DIA_BMIs_All_Cancer %>%  ungroup() %>% mutate(ElapsedTime
 
 data.frame(OBE_BMIs_All_Cancer %>% group_by(condition) %>% summarise(n=weighted.mean(BMI, weight, na.rm=T)) %>% arrange(n))
 
-# condition        n
-# 1              Head Cancer 27.93287
-# 2  Gastroesophageal Cancer 27.95642
-# 3              Lung Cancer 28.31618
-# 4       Respiratory Cancer 28.57266
-# 5           Myeloma Cancer 28.76813
-# 6           Urinary Cancer 29.06234
-# 7              Skin Cancer 29.12680
-# 8          Prostate Cancer 29.17216
-# 9             Other Cancer 29.18504
-# 10         Lymphoma Cancer 29.33695
-# 11         Leukemia Cancer 29.39249
-# 12      Unspecified Cancer 29.58504
-# 13       Intestinal Cancer 29.61624
-# 14           Breast Cancer 29.94888
-# 15             Bone Cancer 29.95362
-# 16         Salivary Cancer 30.73726
-# 17           Kidney Cancer 31.31355
-# 18          Thyroid Cancer 31.42927
-# 19     Reproductive Cancer 31.94527
 
 data.frame(DIA_BMIs_All_Cancer %>% group_by(condition) %>% summarise(n=weighted.mean(BMI, weight, na.rm=T)) %>% arrange(n))
-
-# condition        n
-# 1  Gastroesophageal Cancer 29.27570
-# 2              Head Cancer 29.53573
-# 3          Leukemia Cancer 30.23295
-# 4             Other Cancer 30.35001
-# 5          Prostate Cancer 30.52017
-# 6              Lung Cancer 30.53109
-# 7           Urinary Cancer 30.57479
-# 8       Respiratory Cancer 30.62184
-# 9              Skin Cancer 30.86472
-# 10         Lymphoma Cancer 31.10523
-# 11          Myeloma Cancer 31.20029
-# 12       Intestinal Cancer 31.29205
-# 13      Unspecified Cancer 31.63323
-# 14           Breast Cancer 31.97440
-# 15         Salivary Cancer 32.30448
-# 16           Kidney Cancer 32.58150
-# 17             Bone Cancer 33.19027
-# 18          Thyroid Cancer 33.65472
-# 19     Reproductive Cancer 35.02493
 
 
 
@@ -2121,102 +1985,20 @@ DIA_BMIs_All_Cancer <- DIA_BMIs_All_Cancer %>% select(patient, weight, condition
 
 DIA_BMIs_All_Cancer %>% group_by(condition) %>% count()
 
-1 Bone Cancer               190
-2 Breast Cancer            5598
-3 Gastroesophageal Cancer   381
-4 Head Cancer               516
-5 Intestinal Cancer        2181
-6 Kidney Cancer            1221
-7 Leukemia Cancer          1161
-8 Lung Cancer              1196
-9 Lymphoma Cancer          1484
-10 Myeloma Cancer            547
-11 Other Cancer             1742
-12 Prostate Cancer          5457
-13 Reproductive Cancer      2033
-14 Respiratory Cancer        238
-15 Salivary Cancer           100
-16 Skin Cancer              4946
-17 Thyroid Cancer           1394
-18 Unspecified Cancer       2339
-19 Urinary Cancer           1318
+
 
 
 OBE_BMIs_All_Cancer %>% group_by(condition) %>% count()
 
-condition                   n
-<chr>                   <int>
-  1 Bone Cancer               300
-2 Breast Cancer            9301
-3 Gastroesophageal Cancer   314
-4 Head Cancer               803
-5 Intestinal Cancer        2658
-6 Kidney Cancer            1263
-7 Leukemia Cancer          1437
-8 Lung Cancer              1318
-9 Lymphoma Cancer          2196
-10 Myeloma Cancer            501
-11 Other Cancer             1976
-12 Prostate Cancer          6945
-13 Reproductive Cancer      2798
-14 Respiratory Cancer        255
-15 Salivary Cancer           110
-16 Skin Cancer              7788
-17 Thyroid Cancer           2161
-18 Unspecified Cancer       2992
-19 Urinary Cancer           1519
+
 
 
 DIA_BMIs_All_Cancer %>% inner_join(DIA_OBE_pts_CanDx, by=c("patient"="patient")) %>% group_by(condition) %>% count()
-
-condition                   n
-<chr>                   <int>
-  1 Bone Cancer               108
-2 Breast Cancer             994
-3 Gastroesophageal Cancer    76
-4 Head Cancer               134
-5 Intestinal Cancer         500
-6 Kidney Cancer             169
-7 Leukemia Cancer            83
-8 Lung Cancer               376
-9 Lymphoma Cancer           188
-10 Myeloma Cancer             71
-11 Other Cancer              411
-12 Prostate Cancer           561
-13 Reproductive Cancer       305
-14 Respiratory Cancer         39
-15 Salivary Cancer            18
-16 Skin Cancer               721
-17 Thyroid Cancer            144
-18 Unspecified Cancer        427
-19 Urinary Cancer            130
-
 
 
 OBE_BMIs_All_Cancer %>% inner_join(DIA_OBE_pts_CanDx, by=c("patient"="patient")) %>% group_by(condition) %>% count()
 
 
-condition                   n
-<chr>                   <int>
-  1 Bone Cancer               137
-2 Breast Cancer            1625
-3 Gastroesophageal Cancer    71
-4 Head Cancer               218
-5 Intestinal Cancer         634
-6 Kidney Cancer             164
-7 Leukemia Cancer            90
-8 Lung Cancer               448
-9 Lymphoma Cancer           266
-10 Myeloma Cancer             59
-11 Other Cancer              371
-12 Prostate Cancer           576
-13 Reproductive Cancer       429
-14 Respiratory Cancer         37
-15 Salivary Cancer            19
-16 Skin Cancer              1049
-17 Thyroid Cancer            257
-18 Unspecified Cancer        508
-19 Urinary Cancer            123
 # -------------
 # Pool all BMIs together Diabetes & Obesity with Cancer --------
 DIA_Disorder_Histories <- fread("DIA Disorder Histories.txt")
@@ -2300,23 +2082,11 @@ OBE_BMIs_All_Cancer <-  OBE_BMIs_All_Cancer %>% select(-c(weight, Date, conditio
 Pooled_DIA <- DIA_BMIs_All_Pats %>% bind_rows(DIA_BMIs_All_Cancer)
 
 Pooled_DIA %>% ungroup() %>% group_by(group) %>% summarise(n=mean(as.numeric(BMI), na.rm=T))
-# 
-# <chr>                    <dbl>
-#   1 All Diabetes Patients     32.1
-# 2 Diabetes Cancer Patients  30.9
-
 
 
 Pooled_OBE <- OBE_BMIs_All_Pats %>% bind_rows(OBE_BMIs_All_Cancer)
 
 Pooled_OBE %>% ungroup() %>% group_by(group) %>% summarise(n=mean(as.numeric(BMI), na.rm=T))
-
-# group                       n
-# <chr>                   <dbl>
-#   1 All Obesity Patients     30.4
-# 2 Obesity Cancer Patients  29.8
-
-
 
 
 

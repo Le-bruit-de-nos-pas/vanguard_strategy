@@ -16,14 +16,6 @@ Pfizer_Migraine_Pat[1:10, 1:10]
 
 Pfizer_Migraine_Pat %>% group_by(qcountries) %>% count()
 
-# 1  4 [Belgium]    73
-# 2  7 [China]    1201
-# 3 11 [France]    739
-# 4 12 [Germany]  1101
-# 5 15 [Italy]    1112
-# 6 24 [Spain]    1102
-# 7 27 [UK]       1032
-# 8 28 [US]       1452
 
 
 # ------------------
@@ -1582,14 +1574,8 @@ UK_df <- Pfizer_Migraine_Pat %>% filter(qcountries==27)
 
 UK_df %>% select(patNum, SCR_1_RC) %>% group_by(SCR_1_RC) %>% count()
 
-# 1 1 [GP/PCP/Internist]   475
-# 2 2 [Neurologist]        557
 
 UK_df %>% select(patNum, PhyPrimarySpeciality2) %>% group_by(PhyPrimarySpeciality2) %>% count()
-
-# 1 1 [GP/PCP/Internist]                        475
-# 2 3 [Neurologist (headache specialist)]       295
-# 3 4 [Neurologist (non-headache specialist)]   262
 
 
 all_molecules_df <- fread("UK_AllMolecules_OverTime_m60extended.txt", sep="\t")
@@ -2011,14 +1997,8 @@ US_df <- Pfizer_Migraine_Pat %>% filter(qcountries==28)
 
 US_df %>% select(patNum, SCR_1_RC) %>% group_by(SCR_1_RC) %>% count()
 
-# 1 1 [GP/PCP/Internist]   607
-# 2 2 [Neurologist]        845
-
 US_df %>% select(patNum, PhyPrimarySpeciality2) %>% group_by(PhyPrimarySpeciality2) %>% count()
 
-# 1 1 [GP/PCP/Internist]                        607
-# 2 3 [Neurologist (headache specialist)]       320
-# 3 4 [Neurologist (non-headache specialist)]   525
 
 all_molecules_df <- fread("US_AllMolecules_OverTime_m60extended.txt", sep="\t")
 CurrentCGRP <- all_molecules_df %>% select(patNum, `60`) 
@@ -2120,23 +2100,6 @@ current_classes %>% mutate(class2=ifelse(class=="Triptans", "Triptans",
                                                  "Triptan Combination"), "OtherAcute", "OtherPrev" )))) %>%
   select(patNum, class2) %>% distinct() %>% group_by(class2) %>% count() %>% mutate(n=n/1032) 
 
-# 1 Triptans                               0.646   
-#  2 Anti-CGRP mAb                          0.238   
-#  3 Beta-Blockers                          0.171   
-#  4 Nsaid Inc Combs                        0.136   
-#  5 Anticonvulsants                        0.124   
-#  6 Antidepressants / Anxiolytics / Benzos 0.123   
-#  7 Non Opioid Analgesics inc combs        0.0610  
-#  8 Neurotoxins                            0.0601  
-#  9 Opioid Analgesics inc combs            0.0378  
-# 10 Antimigraine                           0.0310  
-# 11 Calcium Antagonists                    0.0155  
-# 12 Other drug therapies                   0.0107  
-# 13 Triptan Combination                    0.00581 
-# 14 NA                                     0.00194 
-# 15 Antihistamines                         0.000969
-# 16 Antipsychotics                         0.000969
-
 
 all_molecules_df <- fread("UK_AllMolecules_OverTime.txt", sep="\t")
 
@@ -2162,23 +2125,6 @@ current_classes %>% mutate(class2=ifelse(class=="Triptans", "Triptans",
                                                  "Opioid Analgesics inc combs", "Antimigraine",
                                                  "Triptan Combination"), "OtherAcute", "OtherPrev" )))) %>%
   select(patNum, class2) %>% distinct() %>% group_by(class2) %>% count() %>% mutate(n=n/1032) 
-
-#  1 Triptans                               0.356   
-#  2 Anti-CGRP mAb                          0.113   
-#  3 Beta-Blockers                          0.110   
-#  4 Anticonvulsants                        0.0921  
-#  5 Nsaid Inc Combs                        0.0843  
-#  6 Antidepressants / Anxiolytics / Benzos 0.0804  
-#  7 Non Opioid Analgesics inc combs        0.0446  
-#  8 Neurotoxins                            0.0359  
-#  9 Opioid Analgesics inc combs            0.0310  
-# 10 Antimigraine                           0.0242  
-# 11 Calcium Antagonists                    0.0107  
-# 12 Other drug therapies                   0.0107  
-# 13 Triptan Combination                    0.00484 
-# 14 NA                                     0.00194 
-# 15 Antihistamines                         0.000969
-# 16 Antipsychotics                         0.000969
 
 
 
@@ -2211,15 +2157,6 @@ UK_df %>% mutate(molecule_number=as.numeric(molecule_number)) %>%
                                                                                       ifelse(molecule_number %in% c(214), "Botox", NA )))))))))))  %>%
   select(patNum, class) %>% distinct() %>% group_by(class) %>% count() %>% mutate(n=n/1032)
 
-# 1 Anticonvulsant 0.126 
-# 2 Antidepressant 0.127 
-# 3 BetaBlocker    0.155 
-# 4 Botox          0.0684
-# 5 Mab            0.271 
-# 6 NSAID          0.211 
-# 7 Opioid         0.0419
-# 8 Other          0.0518
-# 9 Triptan        0.677 
 
 # ---------------------------------
 # Other trials ? ------------
@@ -3412,14 +3349,8 @@ China_df <- Pfizer_Migraine_Pat %>% filter(qcountries==7)
 
 China_df %>% select(patNum, SCR_1_RC) %>% group_by(SCR_1_RC) %>% count()
 
-# 1 1 [GP/PCP/Internist]   400
-# 2 2 [Neurologist]        801
-
 China_df %>% select(patNum, PhyPrimarySpeciality2) %>% group_by(PhyPrimarySpeciality2) %>% count()
 
-# 1 1 [GP/PCP/Internist]                        400
-# 2 3 [Neurologist (headache specialist)]       581
-# 3 4 [Neurologist (non-headache specialist)]   220
 
 all_molecules_df <- fread("China_AllMolecules_OverTime_m60extended.txt", sep="\t")
 all_molecules_df <- all_molecules_df %>% distinct()
@@ -3512,10 +3443,6 @@ unique(China_df$molecule_number)
 
 length(unique(China_df$patNum))
 
-# other acutr 112,121,122,
-# othr prev 212,215,219
-
-
 China_df %>% mutate(molecule_number=as.numeric(molecule_number)) %>%
   mutate(class=ifelse(molecule_number %in% c(101,102,103,104,105,106,107,108), "Triptan", 
                               ifelse(molecule_number %in% c(109,110,111,115,116,123,220), "NSAID",
@@ -3530,23 +3457,9 @@ China_df %>% mutate(molecule_number=as.numeric(molecule_number)) %>%
                                                                                       ifelse(molecule_number %in% c(214), "Botox", NA )))))))))))) %>%
   select(patNum, class) %>% distinct() %>% group_by(class) %>% count() %>% mutate(n=n/1018)
 
-# 1 Anticonvulsant 0.122  
-# 2 Antidepressant 0.0815 
-# 3 BetaBlocker    0.159  
-# 4 Mab            0.00982
-# 5 NSAID          0.494  
-# 6 Opioid         0.0639 
-# 7 Other_Acute    0.0845 
-# 8 Other_Prev     0.150  
-# 9 Triptan        0.447
+
 
 China_df %>% select(patNum, PhyPrimarySpeciality2) %>% distinct() %>% group_by(PhyPrimarySpeciality2) %>% count()
-
-# 1 1 [GP/PCP/Internist]                        288
-# 2 3 [Neurologist (headache specialist)]       522
-# 3 4 [Neurologist (non-headache specialist)]   208
-
-
 
 
 China_df %>% mutate(molecule_number=as.numeric(molecule_number)) %>%
@@ -3610,20 +3523,6 @@ current_classes %>% mutate(class2=ifelse(class=="Triptans", "Triptans",
                                     ifelse(class=="Anti-CGRP gepant", "Gepant","OtherPrev" ))))) %>%
   select(patNum, class2) %>% distinct() %>% group_by(class2) %>% count() %>% mutate(n=n/1155) 
 
-#  1 Nsaid Inc Combs                        0.481   
-#  2 Triptans                               0.434   
-#  3 Calcium Antagonists                    0.235   
-#  4 Beta-Blockers                          0.219   
-#  5 Anticonvulsants                        0.140   
-#  6 Antidepressants / Anxiolytics / Benzos 0.0840  
-#  7 Non Opioid Analgesics inc combs        0.0745  
-#  8 Ergotamines & Derivatives              0.0693  
-#  9 Opioid Analgesics inc combs            0.0641  
-# 10 Anti-CGRP mAb                          0.0104  
-# 11 Antimigraine                           0.00346 
-# 12 Other drug therapies                   0.00173 
-# 13 Emetic W/Wo Analgesic                  0.000866
-# 14 Vitamins/Supplements                   0.000866
 
 
 # OTHER 
@@ -3639,10 +3538,6 @@ China_df %>% select(patNum, PhyPrimarySpeciality2, Acute_vs_Prophy) %>% group_by
 # -----------
 # Physician breakdown Dx and Rx per country ---------
 
-# PRF_B_3a_YRC. First consultation (Healthcare professionals (HCPs) responsible for this patient's migraine)
-# PRF_B_3b_YRC. Diagnosis of migraine (Healthcare professionals (HCPs) responsible for this patient's migraine)
-# PRF_B_3c_YRC. Initiated first acute treatment (Healthcare professionals (HCPs) responsible for this patient's migraine)
-# PRF_B_3d_YRC. Initiated first preventive treatment (Healthcare professionals (HCPs) responsible for this patient's migraine)
 
 
 data.frame(Pfizer_Migraine_Pat %>% select(patNum, PhyPrimarySpeciality2, qcountries,  PRF_B_3a_YRC) %>%

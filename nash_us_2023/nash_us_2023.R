@@ -1,0 +1,14403 @@
+# Import required libraries ---------
+
+library(tidyverse)
+library(data.table)
+library(hacksaw)
+library(splitstackshape)
+library(zoo)
+library(spatstat)
+library(ggridges)
+options(scipen = 999)
+
+
+# ------
+# How many of pats within each NASH groups also have Obesity ? ---------------
+NASH_diagnosis <- fread("NASH_diagnosis.txt")
+
+sum(NASH_diagnosis$weight)
+NASH_diagnosis %>% group_by(NASH_diganosis) %>% summarise(n=sum(weight)) # 
+
+
+DANU_Demographics <- fread("DANU Demographics.txt")
+DANU_Demographics <- DANU_Demographics %>% filter(grepl("Obesity", diagnosis))
+DANU_Demographics <- DANU_Demographics %>% select(patid, weight, diagnosis)
+
+NASH_diagnosis <- NASH_diagnosis %>% left_join(DANU_Demographics, by=c("patient"="patid", "weight"="weight"))
+
+NASH_diagnosis <- NASH_diagnosis %>% 
+  mutate(Obesity_status = ifelse(diagnosis=="Obesity"|diagnosis=="Diabetes + Obesity", "Obesity +/- Diabetes", "no OBE"))
+
+NASH_diagnosis %>% group_by(NASH_diganosis, Obesity_status) %>% summarise(n=sum(weight))
+
+
+NASH_diagnosis <- NASH_diagnosis %>% 
+  mutate(Obesity_only = ifelse(diagnosis=="Obesity", "Obesity only", 
+                               ifelse(diagnosis=="Diabetes + Obesity", "Obesity + Diabetes", "other")))
+
+NASH_diagnosis %>% group_by(NASH_diganosis, Obesity_only) %>% summarise(n=sum(weight))
+
+
+# ------
+# How many pats within each group also have cirrhosis ? ------------------
+NASH_diagnosis <- fread("NASH_diagnosis.txt")
+NASH_Events <- fread("NASH Events.txt")
+NASH_Diagnosis_Codes <- fread("NASH Diagnosis Codes.txt")
+
+NASH_Events <- NASH_Events %>% select(patid, weight, code) %>% distinct()
+
+LiverFailurePats <- NASH_Events %>% left_join(NASH_Diagnosis_Codes %>% select(code, condition)) %>% 
+  filter(condition=="Cirrhosis"|condition=="Liver Failure") %>%
+  select(patid, condition) %>% distinct() %>% mutate(condition="Any Liver Failure") %>% distinct()
+
+NASH_diagnosis <- NASH_diagnosis %>% left_join(LiverFailurePats, by=c("patient"="patid"))
+
+NASH_diagnosis <- NASH_diagnosis %>% mutate(New_Diagnosis = ifelse(is.na(condition), NASH_diganosis, "Cirrhosis"))
+
+NASH_diagnosis %>% group_by(NASH_diganosis, condition) %>% summarise(n=sum(weight))
+
+
+# -----
+# Venn diagram NASH vs T2 DM vs Obesity ---------------------
+NASH_diagnosis <- fread("NASH_diagnosis.txt")
+
+NASH_diagnosis <- NASH_diagnosis %>% filter(grepl("NASH", NASH_diganosis))
+
+DANU_Demographics <- fread("DANU Demographics.txt")
+names(DANU_Demographics)[1] <- "patient"
+
+NASH_diagnosis <- NASH_diagnosis %>% left_join(DANU_Demographics %>% select(patient, weight, diagnosis))
+
+NASH_diagnosis %>% group_by(diagnosis) %>% summarise(n=sum(weight))
+
+
+DANU_Demographics %>% group_by(diagnosis) %>% summarise(n=sum(weight))
+
+# --------
+
+# How long has been since first NASH Dx ? --------------------
+NASH_diagnosis <- fread("NASH_diagnosis.txt")
+NASH_diagnosis <- NASH_diagnosis %>% filter(grepl("NASH", NASH_diganosis))
+
+NASH_Events <- fread("NASH Events.txt")
+NASH_Events <- NASH_Events %>% select(patid, weight, claimed, code) %>% distinct()
+
+NASH_Diagnosis_Codes <- fread("NASH Diagnosis Codes.txt")
+NASH_Events <- NASH_Events %>% left_join(NASH_Diagnosis_Codes %>% select(code, condition))
+
+NASH_diagnosis <- NASH_diagnosis %>% select(patient) %>% left_join(NASH_Events, by=c("patient"="patid"))
+NASH_diagnosis <- NASH_diagnosis %>% filter(condition=="NASH")
+
+NASH_diagnosis <- NASH_diagnosis %>% group_by(patient) %>% slice(1)
+NASH_diagnosis <- NASH_diagnosis %>% mutate(claimed = as.Date(claimed))
+NASH_diagnosis <- NASH_diagnosis %>% mutate(dayslapsed= as.Date("2021-04-30")-claimed) %>%
+  mutate(monthslapsed=dayslapsed/30.5) 
+
+NASH_diagnosis$monthslapsed <- as.numeric(NASH_diagnosis$monthslapsed)
+
+NASH_diagnosis <- NASH_diagnosis %>% mutate(monthslapsedbucket = ifelse(monthslapsed<=12,1,
+                                                      ifelse(monthslapsed<=24,2,
+                                                             ifelse(monthslapsed<=36,3,
+                                                                    ifelse(monthslapsed<=48,4,
+                                                                           ifelse(monthslapsed<=60,5,
+                                                                                  ifelse(monthslapsed<=72,6,NA)))))))
+
+NASH_diagnosis %>% group_by(monthslapsedbucket) %>% summarise(n=sum(weight))
+
+
+NASH_diagnosis %>% 
+  ggplot(aes(monthslapsed))+
+  geom_histogram(bins=1677)
+
+# 
+# ------
+# Drug penetrance across different types of liver disease ----------
+NASH_diagnosis         <- fread("NASH_diagnosis.txt")
+
+
+DANU_Ingredients  <- DANU_Ingredients %>% select(molecule, drug_class)
+DANU_Ingredients$molecule <- as.numeric(DANU_Ingredients$molecule)
+
+
+OBE_Drug_Histories     <- fread("OBE Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+
+NASH_diagnosis <- NASH_diagnosis %>% left_join(OBE_Drug_Histories %>% select(-c(disease, weight)))
+
+NASH_diagnosis <- gather(NASH_diagnosis, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_diagnosis <- NASH_diagnosis %>% filter(Treat!="-") %>% filter(!is.na(Treat))
+
+NASH_diagnosis <- separate_rows(NASH_diagnosis, Treat, sep = ",", convert=T )
+
+NASH_diagnosis <- NASH_diagnosis %>% select(-c(Month)) %>% group_by(patient, weight, NASH_diganosis) %>% distinct()
+
+names(NASH_diagnosis)[4] <- "molecule"
+
+NASH_diagnosis <- NASH_diagnosis %>% left_join(DANU_Ingredients) %>% filter(!is.na(drug_class))
+NASH_diagnosis <- NASH_diagnosis %>% select(patient, weight, NASH_diganosis, drug_class)
+NASH_diagnosis <- NASH_diagnosis %>% distinct()
+
+data.frame(NASH_diagnosis %>% group_by(NASH_diganosis) %>% summarise(n=sum(weight)))
+
+data.frame(NASH_diagnosis %>% group_by(NASH_diganosis, drug_class) %>% summarise(n=sum(weight)))
+
+
+# -----
+# Anticholesterol Durgs NAFLD pats ------------------
+# Drugs ever tried 
+NASH_Ingredients <- fread("NASH Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Ingredients <- NASH_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+
+NASH_Ingredients$class <- as.numeric(NASH_Ingredients$class)
+NASH_Ingredients$molecule <- as.numeric(NASH_Ingredients$molecule)
+
+NAFLD_Drug_Histories <- fread("NAFLD Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+NAFLD_Drug_Histories <- NAFLD_Drug_Histories %>% select(patient, weight, month1:month60)
+
+NAFLD_Drug_Histories <- gather(NAFLD_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+NAFLD_Drug_Histories <- NAFLD_Drug_Histories %>% group_by(patient) %>% arrange(patient, Month)
+
+NAFLD_Drug_Histories <- separate_rows(NAFLD_Drug_Histories, Treat, sep = ",", convert=T )
+NAFLD_Drug_Histories <- NAFLD_Drug_Histories %>% filter(Treat != "-")
+
+names(NAFLD_Drug_Histories)[4] <- "molecule"
+NAFLD_Drug_Histories$molecule <- as.numeric(NAFLD_Drug_Histories$molecule)
+
+NAFLD_Drug_Histories <- NAFLD_Drug_Histories %>% left_join(NASH_Ingredients %>% 
+                                                             select(molecule, drug_group, drug_class))
+
+NAFLD_Drug_Histories <- NAFLD_Drug_Histories %>% select(-c(Month))
+NAFLD_Drug_Histories <- NAFLD_Drug_Histories %>% select(patient, weight, drug_group, drug_class)
+NAFLD_Drug_Histories <- NAFLD_Drug_Histories %>% distinct()
+
+NAFLD_Drug_Histories %>% ungroup() %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
+
+NAFLD_Drug_Histories %>% ungroup() %>% select(patient, weight, drug_group) %>% distinct() %>% group_by(drug_group) %>% summarise(n=sum(weight)) 
+
+
+sum(NAFLD_Drug_Histories$weight) # 
+
+
+data.frame(NAFLD_Drug_Histories %>% ungroup() %>% select(patient, weight, drug_group, drug_class) %>% distinct() %>% 
+             group_by(drug_group, drug_class) %>% summarise(n=sum(weight)))
+
+
+
+# --------
+
+
+# NASH Drug Usage month60 ------------------
+NASH_Ingredients <- fread("NASH Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Ingredients <- NASH_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+
+
+NASH_Ingredients$class <- as.numeric(NASH_Ingredients$class)
+NASH_Ingredients$molecule <- as.numeric(NASH_Ingredients$molecule)
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, weight, month60)
+
+
+NASH_Drug_Histories <- separate_rows(NASH_Drug_Histories, month60, sep = ",", convert=T )
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(month60 != "-")
+
+names(NASH_Drug_Histories)[3] <- "molecule"
+NASH_Drug_Histories$molecule <- as.numeric(NASH_Drug_Histories$molecule)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% left_join(NASH_Ingredients %>% 
+                                                           select(molecule, drug_group))
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, weight, drug_group)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% distinct()
+
+NASH_Drug_Histories %>% ungroup() %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
+
+NASH_Drug_Histories %>% ungroup() %>% select(patient, weight, drug_group) %>% distinct() %>% group_by(drug_group) %>% summarise(n=sum(weight)) 
+
+# ----------
+
+# Lines of therapy NASH ----------
+
+drgNASH <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+
+drgNASH <- data.frame(drgNASH, stringsAsFactors = F)
+
+nrLines <- drgNASH[,c(1:3)] 
+nrLines$month1 <- (drgNASH$month1 != "-")*1
+
+for(i in 2:60){
+  cat(i)
+  nrLines[,i+3] <- apply(drgNASH[,(4:(i+3))], 1, function(x) length(unique(x[x!="-"])))
+  names(nrLines)[i+3] <- paste0("month",i)
+}
+
+fwrite(nrLines,"NASH_nrLines_Histories.txt")
+
+nrLines <- fread("NASH_nrLines_Histories.txt")
+
+nrLines <- nrLines %>% select(patient, weight, month60)
+nrLines <- nrLines %>% mutate(month60 = ifelse(month60>=8,8,month60))
+
+BoxHistories <- fread("NASH Box Histories.txt", integer64 = "character", stringsAsFactors = F)
+BoxHistories <- BoxHistories %>% select(patient, weight, month60)
+BoxHistories <- BoxHistories %>% mutate(Stockm60 = str_sub(month60, 2L, 2L)) %>% select(patient, Stockm60)
+
+data.frame(nrLines %>% left_join(BoxHistories) %>% group_by(Stockm60, month60) %>% summarise(n=sum(weight)))
+
+
+nrLines <- fread("NASH_nrLines_Histories.txt")
+
+nrLines <- nrLines %>% select(patient, weight, month60)
+
+BoxHistories <- fread("NASH Box Histories.txt", integer64 = "character", stringsAsFactors = F)
+BoxHistories <- BoxHistories %>% select(patient, weight, month60)
+BoxHistories <- BoxHistories %>% mutate(Stockm60 = str_sub(month60, 2L, 2L)) %>% select(patient, Stockm60)
+
+data.frame(nrLines %>% left_join(BoxHistories) %>% group_by(Stockm60) %>% summarise(n=weighted.mean(month60, weight)))
+
+# -------
+# Number of molecules on m60 NASH ------
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+
+pats_to_keep <- NASH_Drug_Histories %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, weight, month60)
+NASH_Drug_Histories <- separate_rows(NASH_Drug_Histories, month60, sep = ",", convert=T )
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(month60 != "-")
+
+N_drugs_m60 <- NASH_Drug_Histories %>% group_by(patient) %>% count()
+
+N_drugs_m60 <- pats_to_keep %>% left_join(N_drugs_m60) %>% mutate(n=ifelse(is.na(n),0,n))
+
+BoxHistories <- fread("NASH Box Histories.txt", integer64 = "character", stringsAsFactors = F)
+BoxHistories <- BoxHistories %>% select(patient, weight, month60)
+BoxHistories <- BoxHistories %>% mutate(Stockm60 = str_sub(month60, 2L, 2L)) %>% select(patient, Stockm60)
+
+N_drugs_m60 <- N_drugs_m60 %>% left_join(BoxHistories)
+
+N_drugs_m60 %>% group_by(Stockm60) %>% summarise(n=weighted.mean(n,weight))
+
+
+N_drugs_m60 <- N_drugs_m60 %>% mutate(n = ifelse(n>=8,8,n))
+
+data.frame(N_drugs_m60 %>% group_by(Stockm60, n) %>% summarise(pats=sum(weight)))
+
+# ------
+# Pick GLP1 patients to image NASH ------------
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+
+SemaglutideOralPats <- NASH_Drug_Histories %>% filter(grepl("69",month60)) %>% select(patient)
+SemaglutideOralPats <- SemaglutideOralPats %>% mutate(patient = paste(patient, collapse= ","))
+SemaglutideOralPats <- SemaglutideOralPats %>% distinct()
+fwrite(SemaglutideOralPats, "SemaglutideOralPats.txt")
+
+SemaglutideInjPats <- NASH_Drug_Histories %>% filter(grepl("75",month60)) %>% select(patient)
+SemaglutideInjPats <- SemaglutideInjPats %>% mutate(patient = paste(patient, collapse= ","))
+SemaglutideInjPats <- SemaglutideInjPats %>% distinct()
+fwrite(SemaglutideInjPats, "SemaglutideInjPats.txt")
+
+
+# ---------
+# Lines of therapy NAFLD ----------
+drgNAFLD <- fread("NAFLD Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+
+drgNAFLD <- data.frame(drgNAFLD, stringsAsFactors = F)
+
+nrLines <- drgNAFLD[,c(1:3)] 
+nrLines$month1 <- (drgNAFLD$month1 != "-")*1
+
+for(i in 2:60){
+  cat(i)
+  nrLines[,i+3] <- apply(drgNAFLD[,(4:(i+3))], 1, function(x) length(unique(x[x!="-"])))
+  names(nrLines)[i+3] <- paste0("month",i)
+}
+
+fwrite(nrLines,"NAFLD_nrLines_Histories.txt")
+
+nrLines <- fread("NAFLD_nrLines_Histories.txt")
+
+nrLines <- nrLines %>% select(patient, weight, month60)
+nrLines <- nrLines %>% mutate(month60 = ifelse(month60>=8,8,month60))
+
+BoxHistories <- fread("NAFLD Box Histories.txt", integer64 = "character", stringsAsFactors = F)
+BoxHistories <- BoxHistories %>% select(patient, weight, month60)
+BoxHistories <- BoxHistories %>% mutate(Stockm60 = str_sub(month60, 2L, 2L)) %>% select(patient, Stockm60)
+
+data.frame(nrLines %>% left_join(BoxHistories) %>% group_by(Stockm60, month60) %>% summarise(n=sum(weight)))
+
+
+nrLines <- fread("NASH_nrLines_Histories.txt")
+
+nrLines <- nrLines %>% select(patient, weight, month60)
+
+BoxHistories <- fread("NAFLD Box Histories.txt", integer64 = "character", stringsAsFactors = F)
+BoxHistories <- BoxHistories %>% select(patient, weight, month60)
+BoxHistories <- BoxHistories %>% mutate(Stockm60 = str_sub(month60, 2L, 2L)) %>% select(patient, Stockm60)
+
+data.frame(nrLines %>% left_join(BoxHistories) %>% group_by(Stockm60) %>% summarise(n=weighted.mean(month60, weight)))
+
+# -------
+# Number of molecules on m60 NAFLD ------
+NAFLD_Drug_Histories <- fread("NAFLD Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+
+pats_to_keep <- NAFLD_Drug_Histories %>% select(patient, weight)
+
+NAFLD_Drug_Histories <- NAFLD_Drug_Histories %>% select(patient, weight, month60)
+NAFLD_Drug_Histories <- separate_rows(NAFLD_Drug_Histories, month60, sep = ",", convert=T )
+NAFLD_Drug_Histories <- NAFLD_Drug_Histories %>% filter(month60 != "-")
+
+N_drugs_m60 <- NAFLD_Drug_Histories %>% group_by(patient) %>% count()
+
+N_drugs_m60 <- pats_to_keep %>% left_join(N_drugs_m60) %>% mutate(n=ifelse(is.na(n),0,n))
+
+BoxHistories <- fread("NAFLD Box Histories.txt", integer64 = "character", stringsAsFactors = F)
+BoxHistories <- BoxHistories %>% select(patient, weight, month60)
+BoxHistories <- BoxHistories %>% mutate(Stockm60 = str_sub(month60, 2L, 2L)) %>% select(patient, Stockm60)
+
+N_drugs_m60 <- N_drugs_m60 %>% left_join(BoxHistories)
+
+N_drugs_m60 %>% group_by(Stockm60) %>% summarise(n=weighted.mean(n,weight))
+
+
+N_drugs_m60 <- N_drugs_m60 %>% mutate(n = ifelse(n>=8,8,n))
+
+data.frame(N_drugs_m60 %>% group_by(Stockm60, n) %>% summarise(pats=sum(weight)))
+
+# ------
+# Pick GLP1 patients to image NAFLD ------------
+NAFLD_Drug_Histories <- fread("NAFLD Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+
+SemaglutideOralPats <- NAFLD_Drug_Histories %>% filter(grepl("69",month60)) %>% select(patient)
+SemaglutideOralPats <- SemaglutideOralPats %>% mutate(patient = paste(patient, collapse= ","))
+SemaglutideOralPats <- SemaglutideOralPats %>% distinct()
+fwrite(SemaglutideOralPats, "SemaglutideOralPats_NAFLD.txt")
+
+SemaglutideInjPats <- NAFLD_Drug_Histories %>% filter(grepl("75",month60)) %>% select(patient)
+SemaglutideInjPats <- SemaglutideInjPats %>% mutate(patient = paste(patient, collapse= ","))
+SemaglutideInjPats <- SemaglutideInjPats %>% distinct()
+fwrite(SemaglutideInjPats, "SemaglutideInjPats_NAFLD.txt")
+
+
+# ------
+# Penetrance of each Dx ----------
+NASH_Events <- fread("NASH Events.txt")
+Dx_code <- fread("NASH Diagnosis Codes.txt")
+Dx_code <- Dx_code %>% select(code, condition, source, type, description)
+
+NASH_Events %>% select(patid, weight) %>% distinct() %>% summarise(n=sum(weight)) #
+ 
+length(unique(NASH_Events$patid)) #
+
+NASH_Events <- NASH_Events %>% left_join(Dx_code)
+
+NASH_Pats <- NASH_Events %>% filter(condition=="NASH") %>% select(patid) %>% distinct()
+NAFLD_Pats <-  NASH_Events %>% filter(condition=="NAFLD") %>% select(patid) %>% distinct()
+
+NAFLD_Pats <- NAFLD_Pats %>% anti_join(NASH_Pats)
+
+NASH_Pats <- NASH_Pats %>% left_join(NASH_Events)
+NAFLD_Pats <- NAFLD_Pats %>% left_join(NASH_Events)
+
+NASH_Pats %>% select(patid, weight) %>% distinct() %>% summarise(n=sum(weight)) #
+NASH_Pats %>% select(patid, weight, condition) %>% distinct() %>% group_by(condition) %>% summarise(n=sum(weight)) %>% arrange(desc(n))
+
+
+
+NAFLD_Pats %>% select(patid, weight) %>% distinct() %>% summarise(n=sum(weight)) #
+NAFLD_Pats %>% select(patid, weight, condition) %>% distinct() %>% group_by(condition) %>% summarise(n=sum(weight)) %>% arrange(desc(n))
+
+
+
+
+NASH_Pats <- NASH_Pats %>% mutate(claimed = as.Date(claimed))
+NAFLD_Pats <- NAFLD_Pats %>% mutate(claimed = as.Date(claimed))
+
+# First NASH Dx to First Liver Biopsy
+data.frame(NASH_Pats %>% filter(condition == "Liver Biopsy") %>% select(patid) %>% distinct() %>%
+  left_join(NASH_Pats)  %>% select(-c(description, code, source, type))  %>% group_by(patid, weight) %>% 
+  slice(if(any(condition == "Liver Biopsy")) which.max(condition=="NASH"):which.max(condition == "Liver Biopsy") else row_number())   %>%
+  filter(row_number()==1 | row_number()==n()) %>%
+  mutate(NASH_To_Biopsy = claimed-lag(claimed)) %>% 
+  mutate(NASH_To_Biopsy_months = parse_number(as.character((claimed-lag(claimed))/30.5))) %>%
+  filter(!is.na(NASH_To_Biopsy_months)) %>% ungroup() %>%
+  mutate(NASH_To_Biopsy_months = round(NASH_To_Biopsy_months)) %>%
+  group_by(NASH_To_Biopsy_months) %>% summarise(n=sum(weight)))
+
+
+# First Dx (Any other) to First Liver Biopsy
+data.frame(NASH_Pats %>% filter(condition == "Liver Biopsy") %>% select(patid) %>% distinct() %>%
+             left_join(NASH_Pats)  %>% select(-c(description, code, source, type))  %>% group_by(patid, weight) %>% 
+             slice(if(any(condition == "Liver Biopsy")) which.max(condition != "Liver Biopsy"):which.max(condition == "Liver Biopsy") else row_number())   %>%
+             filter(row_number()==1 | row_number()==n()) %>%
+             mutate(AnyDx_To_Biopsy = claimed-lag(claimed)) %>% 
+             mutate(AnyDx_To_Biopsy_months = parse_number(as.character((claimed-lag(claimed))/30.5))) %>%
+             filter(!is.na(AnyDx_To_Biopsy_months)) %>% ungroup() %>%
+             mutate(AnyDx_To_Biopsy_months = round(AnyDx_To_Biopsy_months)) %>%
+             group_by(AnyDx_To_Biopsy_months) %>% summarise(n=sum(weight)))
+
+
+
+# First NAFLD Dx to First Liver Biopsy
+data.frame(NAFLD_Pats %>% filter(condition == "Liver Biopsy") %>% select(patid) %>% distinct() %>%
+             left_join(NAFLD_Pats)  %>% select(-c(description, code, source, type))  %>% group_by(patid, weight) %>% 
+             slice(if(any(condition == "Liver Biopsy")) which.max(condition=="NAFLD"):which.max(condition == "Liver Biopsy") else row_number())   %>%
+             filter(row_number()==1 | row_number()==n()) %>%
+             mutate(NAFLD_To_Biopsy = claimed-lag(claimed)) %>% 
+             mutate(NAFLD_To_Biopsy_months = parse_number(as.character((claimed-lag(claimed))/30.5))) %>%
+             filter(!is.na(NAFLD_To_Biopsy_months)) %>% ungroup() %>%
+             mutate(NAFLD_To_Biopsy_months = round(NAFLD_To_Biopsy_months)) %>%
+             group_by(NAFLD_To_Biopsy_months) %>% summarise(n=sum(weight)))
+
+
+# First Dx (Any other) to First Liver Biopsy
+data.frame(NAFLD_Pats %>% filter(condition == "Liver Biopsy") %>% select(patid) %>% distinct() %>%
+             left_join(NAFLD_Pats)  %>% select(-c(description, code, source, type))  %>% group_by(patid, weight) %>% 
+             slice(if(any(condition == "Liver Biopsy")) which.max(condition != "Liver Biopsy"):which.max(condition == "Liver Biopsy") else row_number())   %>%
+             filter(row_number()==1 | row_number()==n()) %>%
+             mutate(AnyDx_To_Biopsy = claimed-lag(claimed)) %>% 
+             mutate(AnyDx_To_Biopsy_months = parse_number(as.character((claimed-lag(claimed))/30.5))) %>%
+             filter(!is.na(AnyDx_To_Biopsy_months)) %>% ungroup() %>%
+             mutate(AnyDx_To_Biopsy_months = round(AnyDx_To_Biopsy_months)) %>%
+             group_by(AnyDx_To_Biopsy_months) %>% summarise(n=sum(weight)))
+
+# ---------
+# Penetrance of each Dx for cirrhosis/liver failure pats --------
+NASH_diagnosis <- fread("NASH_diagnosis.txt")
+NASH_Events <- fread("NASH Events.txt")
+NASH_Diagnosis_Codes <- fread("NASH Diagnosis Codes.txt")
+
+NASH_Events <- NASH_Events %>% select(patid, weight, code) %>% distinct()
+
+LiverFailurePats <- NASH_Events %>% left_join(NASH_Diagnosis_Codes %>% select(code, condition)) %>% 
+  filter(condition=="Cirrhosis"|condition=="Liver Failure") %>%
+  select(patid, condition) %>% distinct() %>% mutate(condition="Any Liver Failure") %>% distinct()
+
+LiverFailurePats
+
+
+
+NASH_Events <- fread("NASH Events.txt")
+Dx_code <- fread("NASH Diagnosis Codes.txt")
+Dx_code <- Dx_code %>% select(code, condition, source, type, description)
+
+NASH_Events %>% select(patid, weight) %>% distinct() %>% summarise(n=sum(weight)) #
+
+length(unique(NASH_Events$patid)) #
+
+NASH_Events <- NASH_Events %>% left_join(Dx_code)
+
+NASH_Pats <- NASH_Events %>% filter(condition=="NASH") %>% select(patid) %>% distinct()
+
+NASH_Pats <- NASH_Pats %>% left_join(NASH_Events)
+
+NASH_Pats %>% select(patid, weight) %>% distinct() %>% summarise(n=sum(weight)) #
+NASH_Pats %>% select(patid, weight, condition) %>% distinct() %>% group_by(condition) %>% summarise(n=sum(weight)) %>% arrange(desc(n))
+
+
+LiverFailurePats %>% select(patid) %>% distinct() %>% inner_join(NASH_Pats) %>% 
+  select(patid, weight) %>% distinct() %>% summarise(n=sum(weight)) # 
+
+LiverFailurePats %>% select(patid) %>% distinct() %>% inner_join(NASH_Pats) %>% 
+  select(patid, weight, condition) %>% distinct() %>% group_by(condition) %>% summarise(n=sum(weight)) %>% arrange(desc(n))
+
+
+
+# ----------
+# Scripts per Specialty NASH -------------
+NASH_US_Doses <- fread("NASH Doses.txt")
+NASH_US_Doses <- NASH_US_Doses %>% filter(status != "G")
+NASH_US_Doses <- NASH_US_Doses %>% select(-c(drug_id, weight, dayssup, taxonomy1, taxonomy2, status))
+NASH_US_Doses <- NASH_US_Doses %>% mutate(from_dt = as.Date(from_dt))
+NASH_US_Doses <- NASH_US_Doses %>%filter(from_dt >= "2016-05-01" & from_dt <= "2021-04-30") 
+
+Specialties_to_keep <- fread("Specialties_to_keep.txt")
+
+temp1 <- data.frame(NASH_US_Doses %>% group_by(specialty) %>% summarise(n=n()) %>%
+             left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
+             ungroup() %>% group_by(PHYSICIAN) %>% summarise(n2=sum(n)) %>% arrange(-n2) %>% filter(PHYSICIAN != "FACILITY"))
+
+temp2 <- data.frame(NASH_US_Doses %>% filter(drug_group == "Anticholesterol") %>% group_by(specialty) %>% summarise(n=n()) %>%
+  left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
+  ungroup() %>% group_by(PHYSICIAN) %>% summarise(n3=sum(n)) %>% arrange(-n3) %>% filter(PHYSICIAN != "FACILITY"))
+
+
+temp3 <- data.frame(NASH_US_Doses %>% filter(drug_group == "Antiobesity") %>% group_by(specialty) %>% summarise(n=n()) %>%
+             left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
+             ungroup() %>% group_by(PHYSICIAN) %>% summarise(n4=sum(n)) %>% arrange(-n4) %>% filter(PHYSICIAN != "FACILITY"))
+
+temp4 <- data.frame(NASH_US_Doses %>% filter(drug_group == "Hepatoprotective") %>% group_by(specialty) %>% summarise(n=n()) %>%
+             left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
+             ungroup() %>% group_by(PHYSICIAN) %>% summarise(n5=sum(n)) %>% arrange(-n5) %>% filter(PHYSICIAN != "FACILITY"))
+
+
+temp5 <- NASH_US_Doses %>% filter(drug_group == "Antidiabetic") %>% group_by(specialty) %>% summarise(n=n()) %>%
+  left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
+  ungroup() %>% group_by(PHYSICIAN) %>% summarise(n6=sum(n)) %>% arrange(-n6) %>% filter(PHYSICIAN != "FACILITY")
+
+
+temp6 <- data.frame(NASH_US_Doses %>% filter(drug_group == "GLP1 Oral") %>% group_by(specialty) %>% summarise(n=n()) %>%
+             left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
+             ungroup() %>% group_by(PHYSICIAN) %>% summarise(n7=sum(n)) %>% arrange(-n7) %>% filter(PHYSICIAN != "FACILITY"))
+
+
+temp7 <- data.frame(NASH_US_Doses %>% filter(drug_group == "GLP1 Injectable") %>% group_by(specialty) %>% summarise(n=n()) %>%
+             left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
+             ungroup() %>% group_by(PHYSICIAN) %>% summarise(n8=sum(n)) %>% arrange(-n8) %>% filter(PHYSICIAN != "FACILITY"))
+
+
+temp8 <- data.frame(NASH_US_Doses %>% filter(drug_group == "Hospitalization") %>% group_by(specialty) %>% summarise(n=n()) %>%
+             left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
+             ungroup() %>% group_by(PHYSICIAN) %>% summarise(n9=sum(n)) %>% arrange(-n9) %>% filter(PHYSICIAN != "FACILITY"))
+
+
+temp1 %>% left_join(temp2) %>% left_join(temp3) %>% left_join(temp4) %>% left_join(temp5) %>% left_join(temp6) %>% left_join(temp7) %>% left_join(temp8)
+
+NASH_US_Doses %>% filter(drug_group == "GLP1 Oral") %>% 
+  arrange(pat_id, from_dt) %>% group_by(pat_id) %>% slice(1) %>% ungroup()%>%
+  group_by(specialty) %>% summarise(n=n()) %>% 
+  left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty"))%>%
+  ungroup() %>% group_by(PHYSICIAN) %>% summarise(n2=sum(n)) %>% arrange(-n2) %>% filter(PHYSICIAN != "FACILITY")
+
+
+NASH_US_Doses %>% filter(drug_group == "GLP1 Injectable") %>% 
+  arrange(pat_id, from_dt) %>% group_by(pat_id) %>% slice(1) %>% ungroup()%>%
+  group_by(specialty) %>% summarise(n=n()) %>% 
+  left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty"))%>%
+  ungroup() %>% group_by(PHYSICIAN) %>% summarise(n2=sum(n)) %>% arrange(-n2) %>% filter(PHYSICIAN != "FACILITY")
+
+
+NASH_US_Doses %>% filter(drug_group == "Hepatoprotective") %>% 
+  arrange(pat_id, from_dt) %>% group_by(pat_id) %>% slice(1) %>% ungroup()%>%
+  group_by(specialty) %>% summarise(n=n()) %>% 
+  left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty"))%>%
+  ungroup() %>% group_by(PHYSICIAN) %>% summarise(n2=sum(n)) %>% arrange(-n2) %>% filter(PHYSICIAN != "FACILITY")
+
+# ------
+# Dx per Specialty NASH/NAFLD ---------
+
+# First NASH Dx
+
+NASH_Events <- fread("NASH Events.txt")
+NASH_Diagnosis_Codes <- fread("NASH Diagnosis Codes.txt")
+
+NASH_Events <- NASH_Events %>% left_join(NASH_Diagnosis_Codes %>% select(code, condition)) %>% filter(condition=="NASH") %>% 
+  group_by(patid) %>% slice(1)
+
+NASH_Event_Claims_Providers <- fread("NASH Event Claims Providers.txt")
+NASH_Event_Claims_Providers <- NASH_Event_Claims_Providers %>% select(prov, specialty)
+
+temp <- data.frame(NASH_Events %>% left_join(NASH_Event_Claims_Providers) %>% ungroup() %>%
+                     group_by(specialty) %>% summarise(n=sum(weight)) %>% arrange(-n))
+
+fwrite(temp, "First_NASH_Dx_Physicians.txt", sep="\t")
+
+
+# All Events
+
+NASH_Events <- fread("NASH Events.txt")
+
+NASH_Event_Claims_Providers <- fread("NASH Event Claims Providers.txt")
+NASH_Event_Claims_Providers <- NASH_Event_Claims_Providers %>% select(prov, specialty)
+
+temp2 <- data.frame(NASH_Events %>% left_join(NASH_Event_Claims_Providers) %>% ungroup() %>%
+                      group_by(specialty) %>% summarise(n=sum(weight)) %>% arrange(-n))
+
+NASH_Events <- NASH_Events %>% left_join(NASH_Event_Claims_Providers)
+
+fwrite(temp2, "ALLEvents_Physicians.txt", sep="\t")
+
+
+
+
+# First Fibrosis Event
+
+
+NASH_Events <- fread("NASH Events.txt")
+NASH_Diagnosis_Codes <- fread("NASH Diagnosis Codes.txt")
+
+NASH_Events <- NASH_Events %>% left_join(NASH_Diagnosis_Codes %>% select(code, condition)) %>% filter(condition=="Fibrosis") %>% 
+  group_by(patid) %>% slice(1)
+
+NASH_Event_Claims_Providers <- fread("NASH Event Claims Providers.txt")
+NASH_Event_Claims_Providers <- NASH_Event_Claims_Providers %>% select(prov, specialty)
+
+temp <- data.frame(NASH_Events %>% left_join(NASH_Event_Claims_Providers) %>% ungroup() %>%
+                     group_by(specialty) %>% summarise(n=sum(weight)) %>% arrange(-n))
+
+fwrite(temp, "First_Fibrosis_Dx_Physicians.txt", sep="\t")
+
+
+
+# First NAFLD Dx
+
+NASH_Events <- fread("NASH Events.txt")
+NASH_Diagnosis_Codes <- fread("NASH Diagnosis Codes.txt")
+
+NAFLD_Events <- NASH_Events %>% left_join(NASH_Diagnosis_Codes %>% select(code, condition)) %>% filter(condition=="NAFLD") %>% 
+  group_by(patid) %>% slice(1)
+
+NASH_Event_Claims_Providers <- fread("NASH Event Claims Providers.txt")
+NASH_Event_Claims_Providers <- NASH_Event_Claims_Providers %>% select(prov, specialty)
+
+temp <- data.frame(NAFLD_Events %>% left_join(NASH_Event_Claims_Providers) %>% ungroup() %>%
+                     group_by(specialty) %>% summarise(n=sum(weight)) %>% arrange(-n))
+
+fwrite(temp, "First_NAFLD_Dx_Physicians.txt", sep="\t")
+
+
+
+
+
+
+# First NASH Dx by type of NASH 
+
+NASH_diagnosis <- fread("NASH_diagnosis.txt")
+NASH_diagnosis %>% filter(grepl("NASH",NASH_diganosis)) %>% summarise(n=sum(weight)) # 
+NASH_diagnosis <- NASH_diagnosis %>%filter(grepl("NASH",NASH_diganosis))
+
+NASH_Events <- fread("NASH Events.txt")
+NASH_Diagnosis_Codes <- fread("NASH Diagnosis Codes.txt")
+
+NASH_Events <- NASH_Events %>% left_join(NASH_Diagnosis_Codes %>% select(code, condition)) %>% filter(condition=="NASH") %>% 
+  group_by(patid) %>% slice(1)
+
+NASH_Event_Claims_Providers <- fread("NASH Event Claims Providers.txt")
+NASH_Event_Claims_Providers <- NASH_Event_Claims_Providers %>% select(prov, specialty)
+
+
+NASH_Events <- NASH_diagnosis %>% select(patient, NASH_diganosis) %>% left_join(NASH_Events, by=c("patient"="patid"))
+
+
+temp <- data.frame(NASH_Events %>% left_join(NASH_Event_Claims_Providers) %>% ungroup() %>%
+                     group_by(NASH_diganosis, specialty) %>% summarise(n=sum(weight)) %>% arrange(NASH_diganosis,-n))
+
+fwrite(temp, "First_NASH_TypeOfNASH_Dx_Physicians.txt", sep="\t")
+
+
+
+# -----
+# Scripts per Specialty NAFLD -------------
+NAFLD_US_Doses <- fread("NAFLD Doses.txt")
+NAFLD_US_Doses <- NAFLD_US_Doses %>% filter(status != "G")
+NAFLD_US_Doses <- NAFLD_US_Doses %>% select(-c(drug_id, weight, dayssup, taxonomy1, taxonomy2, status))
+NAFLD_US_Doses <- NAFLD_US_Doses %>% mutate(from_dt = as.Date(from_dt))
+NAFLD_US_Doses <- NAFLD_US_Doses %>%filter(from_dt >= "2016-05-01" & from_dt <= "2021-04-30") 
+
+Specialties_to_keep <- fread("Specialties_to_keep.txt")
+
+temp1 <- data.frame(NAFLD_US_Doses %>% group_by(specialty) %>% summarise(n=n()) %>%
+                      left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
+                      ungroup() %>% group_by(PHYSICIAN) %>% summarise(n2=sum(n)) %>% arrange(-n2) %>% filter(PHYSICIAN != "FACILITY"))
+
+temp2 <- data.frame(NAFLD_US_Doses %>% filter(drug_group == "Anticholesterol") %>% group_by(specialty) %>% summarise(n=n()) %>%
+                      left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
+                      ungroup() %>% group_by(PHYSICIAN) %>% summarise(n3=sum(n)) %>% arrange(-n3) %>% filter(PHYSICIAN != "FACILITY"))
+
+
+temp3 <- data.frame(NAFLD_US_Doses %>% filter(drug_group == "Antiobesity") %>% group_by(specialty) %>% summarise(n=n()) %>%
+                      left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
+                      ungroup() %>% group_by(PHYSICIAN) %>% summarise(n4=sum(n)) %>% arrange(-n4) %>% filter(PHYSICIAN != "FACILITY"))
+
+temp4 <- data.frame(NAFLD_US_Doses %>% filter(drug_group == "Hepatoprotective") %>% group_by(specialty) %>% summarise(n=n()) %>%
+                      left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
+                      ungroup() %>% group_by(PHYSICIAN) %>% summarise(n5=sum(n)) %>% arrange(-n5) %>% filter(PHYSICIAN != "FACILITY"))
+
+
+temp5 <- NAFLD_US_Doses %>% filter(drug_group == "Antidiabetic") %>% group_by(specialty) %>% summarise(n=n()) %>%
+  left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
+  ungroup() %>% group_by(PHYSICIAN) %>% summarise(n6=sum(n)) %>% arrange(-n6) %>% filter(PHYSICIAN != "FACILITY")
+
+
+temp6 <- data.frame(NAFLD_US_Doses %>% filter(drug_group == "GLP1 Oral") %>% group_by(specialty) %>% summarise(n=n()) %>%
+                      left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
+                      ungroup() %>% group_by(PHYSICIAN) %>% summarise(n7=sum(n)) %>% arrange(-n7) %>% filter(PHYSICIAN != "FACILITY"))
+
+
+temp7 <- data.frame(NAFLD_US_Doses %>% filter(drug_group == "GLP1 Injectable") %>% group_by(specialty) %>% summarise(n=n()) %>%
+                      left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
+                      ungroup() %>% group_by(PHYSICIAN) %>% summarise(n8=sum(n)) %>% arrange(-n8) %>% filter(PHYSICIAN != "FACILITY"))
+
+
+temp8 <- data.frame(NAFLD_US_Doses %>% filter(drug_group == "Hospitalization") %>% group_by(specialty) %>% summarise(n=n()) %>%
+                      left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty")) %>%
+                      ungroup() %>% group_by(PHYSICIAN) %>% summarise(n9=sum(n)) %>% arrange(-n9) %>% filter(PHYSICIAN != "FACILITY"))
+
+
+temp1 %>% left_join(temp2) %>% left_join(temp3) %>% left_join(temp4) %>% left_join(temp5) %>% left_join(temp6) %>% left_join(temp7) %>% left_join(temp8)
+
+NAFLD_US_Doses %>% filter(drug_group == "GLP1 Oral") %>% 
+  arrange(pat_id, from_dt) %>% group_by(pat_id) %>% slice(1) %>% ungroup()%>%
+  group_by(specialty) %>% summarise(n=n()) %>% 
+  left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty"))%>%
+  ungroup() %>% group_by(PHYSICIAN) %>% summarise(n2=sum(n)) %>% arrange(-n2) %>% filter(PHYSICIAN != "FACILITY")
+
+
+data.frame(NAFLD_US_Doses %>% filter(drug_group == "GLP1 Injectable") %>% 
+  arrange(pat_id, from_dt) %>% group_by(pat_id) %>% slice(1) %>% ungroup()%>%
+  group_by(specialty) %>% summarise(n=n()) %>% 
+  left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty"))%>%
+  ungroup() %>% group_by(PHYSICIAN) %>% summarise(n2=sum(n)) %>% arrange(-n2) %>% filter(PHYSICIAN != "FACILITY"))
+
+
+data.frame(NAFLD_US_Doses %>% filter(drug_group == "Hepatoprotective") %>% 
+  arrange(pat_id, from_dt) %>% group_by(pat_id) %>% slice(1) %>% ungroup()%>%
+  group_by(specialty) %>% summarise(n=n()) %>% 
+  left_join(Specialties_to_keep %>% select(specialty, PHYSICIAN), by=c("specialty"="specialty"))%>%
+  ungroup() %>% group_by(PHYSICIAN) %>% summarise(n2=sum(n)) %>% arrange(-n2) %>% filter(PHYSICIAN != "FACILITY"))
+
+
+# ------
+# NASH patients into NASH only, T2DM, OBE, T2DM+OBE. Drug penetrance in each group -----------
+NASH_diagnosis <- fread("NASH_diagnosis.txt")
+
+NASH_diagnosis <- NASH_diagnosis %>% filter(grepl("NASH", NASH_diganosis))
+
+DANU_Demographics <- fread("DANU Demographics.txt")
+names(DANU_Demographics)[1] <- "patient"
+
+NASH_diagnosis <- NASH_diagnosis %>% left_join(DANU_Demographics %>% select(patient, weight, diagnosis))
+
+NASH_diagnosis %>% group_by(diagnosis) %>% summarise(n=sum(weight))
+
+
+
+
+# Drugs ever tried 
+NASH_Ingredients <- fread("NASH Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Ingredients <- NASH_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+
+NASH_Ingredients$class <- as.numeric(NASH_Ingredients$class)
+NASH_Ingredients$molecule <- as.numeric(NASH_Ingredients$molecule)
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, weight, month1:month60)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient, Month)
+
+NASH_Drug_Histories <- separate_rows(NASH_Drug_Histories, Treat, sep = ",", convert=T )
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat != "-")
+
+names(NASH_Drug_Histories)[4] <- "molecule"
+NASH_Drug_Histories$molecule <- as.numeric(NASH_Drug_Histories$molecule)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% left_join(NASH_Ingredients %>% 
+                                                           select(molecule, drug_group, drug_class))
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(-c(Month))
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, weight, drug_group, drug_class)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% distinct()
+
+NASH_Drug_Histories %>% ungroup() %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 976705 (7208 ever treated)
+
+NASH_Drug_Histories %>% ungroup() %>% select(patient, weight, drug_group) %>% distinct() %>% group_by(drug_group) %>% summarise(n=sum(weight)) 
+ 
+
+
+data.frame(NASH_Drug_Histories %>% ungroup() %>% distinct() %>% 
+             group_by(drug_group, drug_class) %>% summarise(n=sum(weight))) 
+
+
+
+sum(NASH_diagnosis$weight) # 
+
+NASH_Drug_Histories <- NASH_diagnosis %>% left_join(NASH_Drug_Histories)
+
+data.frame(NASH_Drug_Histories %>% select(patient, weight, diagnosis, drug_group) %>% 
+             distinct() %>% group_by(diagnosis, drug_group) %>%  summarise(n=sum(weight)))
+
+
+data.frame(NASH_Drug_Histories %>% select(patient, weight, diagnosis, drug_class) %>% 
+             distinct() %>% group_by(diagnosis, drug_class) %>%  summarise(n=sum(weight)))
+
+
+# -----
+# How many using SGLT2 ---------------
+NASH_diagnosis <- fread("NASH_diagnosis.txt")
+NASH_diagnosis <- NASH_diagnosis %>% filter(grepl("NASH", NASH_diganosis))
+
+
+NASH_Ingredients <- fread("NASH Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Ingredients <- NASH_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+NASH_Ingredients$class <- as.numeric(NASH_Ingredients$class)
+NASH_Ingredients$molecule <- as.numeric(NASH_Ingredients$molecule)
+
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, weight, month1:month60)
+
+sum(NASH_Drug_Histories$weight) #
+
+NASH_Drug_Histories %>% filter(grepl("56", month60)|grepl("57", month60)|grepl("58", month60)|grepl("59", month60)) %>%
+  summarise(n=sum(weight)) 
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient, Month)
+
+NASH_Drug_Histories %>% filter(grepl("56", Treat)|grepl("57", Treat)|grepl("58", Treat)|grepl("59", Treat)) %>%
+  select(patient, weight) %>% distinct() %>% ungroup() %>% summarise(n=sum(weight)) 
+
+
+# ------
+# NASH patients with dyslipidemia  -----------
+NASH_diagnosis <- fread("NASH_diagnosis.txt")
+
+NASH_diagnosis <- NASH_diagnosis %>% filter(grepl("NASH", NASH_diganosis))
+
+NASH_Demographics <- fread("NASH Demographics All.txt")
+names(NASH_Demographics)[1] <- "patient"
+
+NASH_Demographics <- NASH_Demographics %>% select(patient, weight, dyslipidemia) %>% filter(!is.na(dyslipidemia))
+
+NASH_diagnosis <- NASH_diagnosis %>% inner_join(NASH_Demographics %>% select(patient, weight,dyslipidemia))
+
+# Drugs ever tried 
+NASH_Ingredients <- fread("NASH Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Ingredients <- NASH_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+
+NASH_Ingredients$class <- as.numeric(NASH_Ingredients$class)
+NASH_Ingredients$molecule <- as.numeric(NASH_Ingredients$molecule)
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, weight, month1:month60)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient, Month)
+
+NASH_Drug_Histories <- separate_rows(NASH_Drug_Histories, Treat, sep = ",", convert=T )
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat != "-")
+
+names(NASH_Drug_Histories)[4] <- "molecule"
+NASH_Drug_Histories$molecule <- as.numeric(NASH_Drug_Histories$molecule)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% left_join(NASH_Ingredients %>% 
+                                                           select(molecule, drug_group, drug_class))
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(-c(Month))
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, weight, drug_group, drug_class)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% distinct()
+
+NASH_Drug_Histories %>% ungroup() %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) 
+
+NASH_Drug_Histories %>% ungroup() %>% select(patient, weight, drug_group) %>% distinct() %>% group_by(drug_group) %>% summarise(n=sum(weight)) 
+
+
+
+
+data.frame(NASH_Drug_Histories %>% ungroup() %>% distinct() %>% 
+             group_by(drug_group, drug_class) %>% summarise(n=sum(weight))) 
+
+
+
+
+sum(NASH_diagnosis$weight) # 
+
+NASH_Drug_Histories <- NASH_diagnosis %>% left_join(NASH_Drug_Histories)
+
+data.frame(NASH_Drug_Histories %>% select(patient, weight, drug_group) %>% 
+             distinct() %>% group_by(drug_group) %>%  summarise(n=sum(weight)))
+
+
+
+# ----
+
+
+# Type of insurance / coverage plan  ------------
+NASH_Demographics <- fread("NASH Demographics All.txt")
+
+NASH_Demographics <- NASH_Demographics %>% filter(diagnosis != "-")
+
+NASH_Demographics %>% group_by(plan) %>% summarise(n =sum(weight)) # 
+
+
+
+# 
+# C	Commercial private health care plan
+# M	Medicare public health care plan
+# D	Dual public and private health care plans
+
+NASH_Demographics %>% group_by(plan, product) %>% summarise(n =sum(weight))
+
+
+
+
+# EPO	Exclusive provider organization
+# GPO	Group purchasing organization
+# HMO	Health maintenance organization
+# IND	Indemnity
+# IPP	Individual program plan
+# OTH	Other
+# POS	Point of service
+# PPO	Preferred provider organization
+# SPN	State policy network
+# ?	Unknown
+# ----------
+# Type of insurance / coverage plan T2 DM as control  ------------
+DANU_Demographics <- fread("DANU Demographics.txt")
+
+DANU_Demographics <- DANU_Demographics %>% filter(diagnosis == "Diabetes" | diagnosis == "Diabetes + Obesity")
+
+DANU_Demographics %>% group_by(plan) %>% summarise(n = sum(weight)) # 15421963
+
+
+# C	Commercial private health care plan
+# M	Medicare public health care plan
+# D	Dual public and private health care plans
+
+data.frame(DANU_Demographics %>% group_by(plan, product) %>% summarise(n =sum(weight)))
+
+
+
+# EPO	Exclusive provider organization
+# GPO	Group purchasing organization
+# HMO	Health maintenance organization
+# IND	Indemnity
+# IPP	Individual program plan
+# OTH	Other
+# POS	Point of service
+# PPO	Preferred provider organization
+# SPN	State policy network
+# ?	Unknown
+
+# ----------
+# Type of insurance / coverage plan T2 DM as control  ------------
+DANU_Demographics <- fread("DANU Demographics.txt")
+
+DANU_Demographics <- DANU_Demographics %>% filter(diagnosis == "Obesity" | diagnosis == "Diabetes + Obesity")
+
+DANU_Demographics %>% group_by(plan) %>% summarise(n = sum(weight)) 
+
+
+
+# C	Commercial private health care plan
+# M	Medicare public health care plan
+# D	Dual public and private health care plans
+
+data.frame(DANU_Demographics %>% group_by(plan, product) %>% summarise(n =sum(weight)))
+
+
+
+# EPO	Exclusive provider organization
+# GPO	Group purchasing organization
+# HMO	Health maintenance organization
+# IND	Indemnity
+# IPP	Individual program plan
+# OTH	Other
+# POS	Point of service
+# PPO	Preferred provider organization
+# SPN	State policy network
+# ?	Unknown
+# ---------
+
+# NASH patients into diagnosis: Drug penetrance in each group -----------
+NASH_Demographics <- fread("NASH Demographics All.txt")
+
+Diagnosis_Type <- NASH_Demographics %>% filter(diagnosis != "-") %>% select(patid, weight, diagnosis)
+Diagnosis_Type <- Diagnosis_Type %>% filter(grepl("NASH", diagnosis))
+
+names(Diagnosis_Type)[1] <- "patient"
+
+Diagnosis_Type  %>% summarise(n=sum(weight)) #
+
+Diagnosis_Type  %>% group_by(diagnosis) %>% summarise(n=sum(weight)) #
+
+
+
+# Drugs ever tried 
+NASH_Ingredients <- fread("NASH Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Ingredients <- NASH_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+
+NASH_Ingredients$class <- as.numeric(NASH_Ingredients$class)
+NASH_Ingredients$molecule <- as.numeric(NASH_Ingredients$molecule)
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, weight, month1:month60)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient, Month)
+
+NASH_Drug_Histories <- separate_rows(NASH_Drug_Histories, Treat, sep = ",", convert=T )
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat != "-")
+
+names(NASH_Drug_Histories)[4] <- "molecule"
+NASH_Drug_Histories$molecule <- as.numeric(NASH_Drug_Histories$molecule)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% left_join(NASH_Ingredients %>% 
+                                                           select(molecule, drug_group, drug_class))
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(-c(Month))
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, weight, drug_group, drug_class)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% distinct()
+
+NASH_Drug_Histories %>% ungroup() %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 976705 (7208 ever treated)
+
+NASH_Drug_Histories %>% ungroup() %>% select(patient, weight, drug_group) %>% distinct() %>% group_by(drug_group) %>% summarise(n=sum(weight)) 
+
+
+sum(Diagnosis_Type$weight) # 
+
+NASH_Drug_Histories <- Diagnosis_Type %>% left_join(NASH_Drug_Histories)
+
+data.frame(NASH_Drug_Histories %>% select(patient, weight, diagnosis, drug_group) %>% 
+             distinct() %>% group_by(diagnosis, drug_group) %>%  summarise(n=sum(weight)) %>%
+             spread(key = diagnosis, value=n))
+
+
+
+# -----
+# NASH patients into NASH type: Drug penetrance in each group -----------
+NASH_diagnosis <- fread("NASH_diagnosis.txt")
+
+NASH_diagnosis <- NASH_diagnosis %>% filter(grepl("NASH", NASH_diganosis))
+
+NASH_diagnosis  %>% summarise(n=sum(weight)) #
+
+NASH_diagnosis  %>% group_by(NASH_diganosis) %>% summarise(n=sum(weight)) #
+
+
+
+# Drugs ever tried 
+NASH_Ingredients <- fread("NASH Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Ingredients <- NASH_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+
+NASH_Ingredients$class <- as.numeric(NASH_Ingredients$class)
+NASH_Ingredients$molecule <- as.numeric(NASH_Ingredients$molecule)
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, weight, month1:month60)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient, Month)
+
+NASH_Drug_Histories <- separate_rows(NASH_Drug_Histories, Treat, sep = ",", convert=T )
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat != "-")
+
+names(NASH_Drug_Histories)[4] <- "molecule"
+NASH_Drug_Histories$molecule <- as.numeric(NASH_Drug_Histories$molecule)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% left_join(NASH_Ingredients %>% 
+                                                           select(molecule, drug_group, drug_class))
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(-c(Month))
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, weight, drug_group, drug_class)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% distinct()
+
+NASH_Drug_Histories %>% ungroup() %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) 
+
+NASH_Drug_Histories %>% ungroup() %>% select(patient, weight, drug_group) %>% distinct() %>% group_by(drug_group) %>% summarise(n=sum(weight)) 
+
+sum(NASH_diagnosis$weight) # 
+
+
+data.frame(NASH_Drug_Histories %>% ungroup() %>% select(patient, weight, drug_group, drug_class) %>% distinct() %>% 
+             group_by(drug_group, drug_class) %>% summarise(n=sum(weight)))
+
+
+NASH_Drug_Histories <- NASH_diagnosis %>% left_join(NASH_Drug_Histories)
+
+data.frame(NASH_Drug_Histories %>% select(patient, weight, NASH_diganosis, drug_group, drug_class) %>% 
+             distinct() %>% group_by(NASH_diganosis, drug_group, drug_class) %>%  summarise(n=sum(weight)))
+
+
+
+# -----
+# -----
+# Claims Lab ----------------------
+NASH_Extract_Claims_Lab_Results <- fread("NASH Extract Claims Lab Results.txt")
+
+length(unique(NASH_Extract_Claims_Lab_Results$patid)) # 1753
+
+length(unique(NASH_Extract_Claims_Lab_Results$tst_desc)) # 4587
+
+NASH_Extract_Claims_Lab_Results %>% select(patid, tst_desc) %>% 
+  distinct() %>% group_by(patid) %>% count() %>% arrange(-n) # MAX (389 Tests per pat)
+
+NASH_Extract_Claims_Lab_Results_test_desc_countPats <- data.frame(NASH_Extract_Claims_Lab_Results %>% select(tst_desc, patid)  %>% distinct() %>% 
+                                                                    group_by(tst_desc) %>% count() %>% arrange(-n))
+
+
+
+# Extract Labs ----------------
+NASH_Extract_Labs <- fread("NASH Extract Labs.txt")
+
+length(unique(NASH_Extract_Labs$patid)) # 5845
+length(unique(NASH_Extract_Labs$test_type)) # 6
+length(unique(NASH_Extract_Labs$encid))  # 110381
+length(unique(NASH_Extract_Labs$test_name))  # 515
+
+NASH_Extract_Labs_testname <- data.frame(NASH_Extract_Labs %>% select(test_name, patid)  %>% distinct() %>% 
+                                           group_by(test_name) %>% count() %>% arrange(-n))
+
+# NLP Measurements ------------------
+NASH_Extract_NLP_Measurements <- fread("NASH Extract NLP Measurements.txt")
+
+length(unique(NASH_Extract_NLP_Measurements$patid)) # 4774
+length(unique(NASH_Extract_NLP_Measurements$measurement_type)) # 5380
+length(unique(NASH_Extract_NLP_Measurements$encid))  # 110381
+length(unique(NASH_Extract_NLP_Measurements$test_name))  # 515
+
+NASH_Extract_Labs_testname <- data.frame(NASH_Extract_Labs %>% select(test_name, patid)  %>% distinct() %>% 
+                                           group_by(test_name) %>% count() %>% arrange(-n))
+
+
+# Observations --------------
+NASH_Extract_Observations <- fread("NASH Extract Observations.txt")
+
+length(unique(NASH_Extract_Observations$patid)) # 6485
+length(unique(NASH_Extract_Observations$obs_type)) # 74
+
+
+NASH_Extract_Observations_summary <- data.frame(NASH_Extract_Observations %>% select(obs_type, patid)  %>% distinct() %>% 
+                                                  group_by(obs_type) %>% count() %>% arrange(-n))
+
+
+# NASH Extract Symptom --------------
+NASH_Extract_Symptoms <- fread("NASH Extract Symptoms.txt")
+
+length(unique(NASH_Extract_Symptoms$patid)) # 6485
+length(unique(NASH_Extract_Symptoms$code)) # 73217
+
+Dx_code <- fread("NASH Diagnosis Codes.txt")
+Dx_code <- Dx_code %>% select(code, condition, source, type, description)
+
+NASH_Extract_Symptoms <- NASH_Extract_Symptoms %>% left_join(Dx_code)
+
+unique(NASH_Extract_Symptoms$condition)
+
+NASH_Extract_Symptoms %>% select(patid, condition) %>% distinct() %>% 
+  filter(condition=="Liver Ultrasound")
+# -----
+# -----
+# Pooling Lab Results across datasets FIB-4 --------------------
+# ----- 
+# AST -----------
+NASH_Extract_Claims_Lab_Results <- fread("NASH Extract Claims Lab Results.txt")
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% select(patid, weight, fst_dt, rslt_nbr, rslt_unit_nm, tst_desc )
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% drop_na()
+
+NASH_Extract_Claims_Lab_Results %>% filter(grepl("AST", tst_desc)) %>% select(rslt_unit_nm, tst_desc) %>% distinct()
+
+NASH_Extract_Claims_Lab_Results <- 
+  NASH_Extract_Claims_Lab_Results %>% filter(tst_desc == "ASPARTATE TRANSAMINASE" | 
+                                               tst_desc == "AST (SGOT)" | 
+                                               tst_desc == "AST" | 
+                                               tst_desc == "AST/SGOT" | 
+                                               tst_desc == "AST (SGOT) P5P" | 
+                                               tst_desc == "AST (SGOT)" | 
+                                               tst_desc == "SGOT (AST)" | 
+                                               tst_desc == "AST(SGOT)" | 
+                                               tst_desc == "AST-SGOT" | 
+                                               tst_desc == "AST(GOT) (POLY)")
+
+unique(NASH_Extract_Claims_Lab_Results$rslt_unit_nm)
+
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% mutate(TEST = "AST", ORIGIN = "ExtractClaimsLab")
+
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% select(patid, weight, fst_dt, rslt_nbr, TEST, ORIGIN)
+
+names(NASH_Extract_Claims_Lab_Results)[3] <- "date"
+names(NASH_Extract_Claims_Lab_Results)[4] <- "result"
+
+
+NASH_Extract_Labs <- fread("NASH Extract Labs.txt")
+NASH_Extract_Labs <- NASH_Extract_Labs %>% select(patid, test_type, weight, test_name, result_date, test_result, result_unit)
+NASH_Extract_Labs <- NASH_Extract_Labs %>% drop_na()
+
+NASH_Extract_Labs %>% filter(grepl("Aspartate", test_name))
+
+NASH_Extract_Labs %>% filter(grepl("AST", test_name)) %>% select(test_name, result_unit) %>% distinct()
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% filter(test_name == "Aspartate aminotransferase (AST)")
+
+unique(NASH_Extract_Labs$result_unit)
+unique(NASH_Extract_Labs$test_result)
+
+NASH_Extract_Labs$test_result <- as.numeric(NASH_Extract_Labs$test_result)
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% filter(!is.na(test_result))
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% mutate(TEST = "AST", ORIGIN = "ExtractLabs")
+
+NASH_Extract_Claims_Lab_Results %>% bind_rows(NASH_Extract_Labs)
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% select(patid, weight, result_date, test_result, TEST, ORIGIN)
+
+names(NASH_Extract_Labs)[3] <- "date"
+names(NASH_Extract_Labs)[4] <- "result"
+
+AST_Results_NASH_Pooled <-  NASH_Extract_Claims_Lab_Results %>% bind_rows(NASH_Extract_Labs) %>% distinct()
+
+AST_Results_NASH_Pooled <- AST_Results_NASH_Pooled %>% filter(result>4)
+
+fwrite(AST_Results_NASH_Pooled, "AST_Results_NASH_Pooled.txt", sep="\t")
+
+
+
+
+
+
+# -----
+# ALT ----------------
+NASH_Extract_Claims_Lab_Results <- fread("NASH Extract Claims Lab Results.txt")
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% select(patid, weight, fst_dt, rslt_nbr, rslt_unit_nm, tst_desc )
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% drop_na()
+
+NASH_Extract_Claims_Lab_Results %>% filter(grepl("ALT", tst_desc)) %>% select(rslt_unit_nm, tst_desc) %>% distinct()
+
+NASH_Extract_Claims_Lab_Results <- 
+  NASH_Extract_Claims_Lab_Results %>% filter(tst_desc == "ALANINE TRANSAMINASE" | 
+                                               tst_desc == "ALT (SGPT)" | 
+                                               tst_desc == "ALT" | 
+                                               tst_desc == "ALT/SGPT" | 
+                                               tst_desc == "ALT (SGPT) P5P" | 
+                                               tst_desc == "ALT (SGPT)" | 
+                                               tst_desc == "SGPT (ALT)" |
+                                               tst_desc == "SGPT/ALT" | 
+                                               tst_desc == "ALT(SGPT)" | 
+                                               tst_desc == "ALT-SGOT" |
+                                               tst_desc == "ALT (GPT) (POLY)")
+
+unique(NASH_Extract_Claims_Lab_Results$rslt_unit_nm)
+
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% mutate(TEST = "ALT", ORIGIN = "ExtractClaimsLab")
+
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% select(patid, weight, fst_dt, rslt_nbr, TEST, ORIGIN)
+
+names(NASH_Extract_Claims_Lab_Results)[3] <- "date"
+names(NASH_Extract_Claims_Lab_Results)[4] <- "result"
+
+
+NASH_Extract_Labs <- fread("NASH Extract Labs.txt")
+NASH_Extract_Labs <- NASH_Extract_Labs %>% select(patid, test_type, weight, test_name, result_date, test_result, result_unit)
+NASH_Extract_Labs <- NASH_Extract_Labs %>% drop_na()
+
+NASH_Extract_Labs %>% filter(grepl("Alanine", test_name))
+
+NASH_Extract_Labs %>% filter(grepl("ALT", test_name)) %>% select(test_name, result_unit) %>% distinct()
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% filter(test_name == "Alanine aminotransferase (ALT)")
+
+unique(NASH_Extract_Labs$result_unit)
+unique(NASH_Extract_Labs$test_result)
+
+NASH_Extract_Labs$test_result <- as.numeric(NASH_Extract_Labs$test_result)
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% filter(!is.na(test_result))
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% mutate(TEST = "ALT", ORIGIN = "ExtractLabs")
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% select(patid, weight, result_date, test_result, TEST, ORIGIN)
+
+names(NASH_Extract_Labs)[3] <- "date"
+names(NASH_Extract_Labs)[4] <- "result"
+
+ALT_Results_NASH_Pooled <-  NASH_Extract_Claims_Lab_Results %>% bind_rows(NASH_Extract_Labs) %>% distinct()
+
+ALT_Results_NASH_Pooled <- ALT_Results_NASH_Pooled %>% filter(result>4)
+
+
+fwrite(ALT_Results_NASH_Pooled, "ALT_Results_NASH_Pooled.txt", sep="\t")
+
+# ----
+# Platelets ---------------
+NASH_Extract_Claims_Lab_Results <- fread("NASH Extract Claims Lab Results.txt")
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% select(patid, weight, fst_dt, rslt_nbr, rslt_unit_nm, tst_desc )
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% drop_na()
+
+NASH_Extract_Claims_Lab_Results %>% filter(grepl("PLATELET", tst_desc)) %>% select(rslt_unit_nm, tst_desc) %>% distinct()
+
+NASH_Extract_Claims_Lab_Results <- 
+  NASH_Extract_Claims_Lab_Results %>% filter(tst_desc == "PLATELET" | 
+                                               tst_desc == "PLATELET COUNT" | 
+                                               tst_desc == "CBC W/DIFF, PLATELET CT." | 
+                                               tst_desc == "CBC, NO DIFFERENTIAL/PLATELET" | 
+                                               tst_desc == "CBC, PLATELET, NO DIFFERENTIAL" | 
+                                               tst_desc == "PLATELET COUNT&PLATELET COUNT" | 
+                                               tst_desc == "CBC WITH DIFFERENTIAL/PLATELET" |
+                                               tst_desc == "PLATELETS")
+
+unique(NASH_Extract_Claims_Lab_Results$rslt_unit_nm)
+
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% mutate(TEST = "PLATELET", ORIGIN = "ExtractClaimsLab")
+
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% select(patid, weight, fst_dt, rslt_nbr, rslt_unit_nm, TEST, ORIGIN)
+
+names(NASH_Extract_Claims_Lab_Results)[3] <- "date"
+names(NASH_Extract_Claims_Lab_Results)[4] <- "result"
+names(NASH_Extract_Claims_Lab_Results)[5] <- "units"
+
+
+NASH_Extract_Labs <- fread("NASH Extract Labs.txt")
+NASH_Extract_Labs <- NASH_Extract_Labs %>% select(patid, test_type, weight, test_name, result_date, test_result, result_unit)
+NASH_Extract_Labs <- NASH_Extract_Labs %>% drop_na()
+
+NASH_Extract_Labs %>% filter(grepl("Platelet", test_name))
+
+NASH_Extract_Labs %>% filter(grepl("Platelet", test_name)) %>% select(test_name, result_unit) %>% distinct()
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% filter(test_name == "Platelet count (PLT)")
+
+unique(NASH_Extract_Labs$result_unit)
+unique(NASH_Extract_Labs$test_result)
+
+NASH_Extract_Labs$test_result <- as.numeric(NASH_Extract_Labs$test_result)
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% filter(!is.na(test_result))
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% mutate(TEST = "PLATELET", ORIGIN = "ExtractLabs")
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% select(patid, weight, result_date, test_result, result_unit, TEST, ORIGIN)
+
+names(NASH_Extract_Labs)[3] <- "date"
+names(NASH_Extract_Labs)[4] <- "result"
+names(NASH_Extract_Labs)[5] <- "units"
+
+Platelet_Results_NASH_Pooled <-  NASH_Extract_Claims_Lab_Results %>% bind_rows(NASH_Extract_Labs) %>% distinct()
+
+unique(Platelet_Results_NASH_Pooled$units)
+
+Platelet_Results_NASH_Pooled <- Platelet_Results_NASH_Pooled %>% 
+  filter(units != "" & units != "%"  & units != "G/DL" & units != "PG" & units != "FL" & 
+           units != "GM/DL" & units != "fL" & units != "gm/dL" & units != "pg")
+
+unique(Platelet_Results_NASH_Pooled$units)
+
+range(Platelet_Results_NASH_Pooled$result)
+
+Platelet_Results_NASH_Pooled <- Platelet_Results_NASH_Pooled %>% filter(!grepl("6", units))
+Platelet_Results_NASH_Pooled <- Platelet_Results_NASH_Pooled %>% filter(units!="ml")
+Platelet_Results_NASH_Pooled$units <- "Thousands/uL"
+Platelet_Results_NASH_Pooled <- Platelet_Results_NASH_Pooled %>% filter(result>10)
+
+fwrite(Platelet_Results_NASH_Pooled, "Platelet_Results_NASH_Pooled.txt", sep="\t")
+
+
+
+# -----
+# Fibrosis 4 Score Calculation Exact Date Match --------------
+Platelet_Results_NASH_Pooled <- fread("Platelet_Results_NASH_Pooled.txt", sep="\t")
+Platelet_Results_NASH_Pooled <- Platelet_Results_NASH_Pooled %>% select(-c(units))
+AST_Results_NASH_Pooled <- fread("AST_Results_NASH_Pooled.txt", sep="\t")
+ALT_Results_NASH_Pooled <- fread("ALT_Results_NASH_Pooled.txt", sep="\t")
+
+DANU_Demographics <- fread("DANU Demographics.txt", sep="\t")
+
+temp <- AST_Results_NASH_Pooled %>% inner_join(ALT_Results_NASH_Pooled, by = c("patid", "weight", "date")) %>%
+  inner_join(Platelet_Results_NASH_Pooled, by = c("patid", "weight", "date"))
+
+names(temp)[4] <- "resultAST"
+names(temp)[5] <- "TESTAST"
+names(temp)[6] <- "ORIGINAST"
+names(temp)[7] <- "resultALT"
+names(temp)[8] <- "TESTALT"
+names(temp)[9] <- "ORIGINALT"
+names(temp)[10] <- "resultPLATELETS"
+names(temp)[11] <- "TESTPLATELETS"
+names(temp)[12] <- "ORIGINPLATELETS"
+
+temp <- temp %>% select(-c(ORIGINAST, ORIGINALT, ORIGINPLATELETS))
+
+temp <- temp %>% left_join(DANU_Demographics %>% select(patid, age))
+
+temp$Year <- format(as.POSIXct(temp$date, format = "%Y/%m/%d"), format="%Y")
+temp$Year <- as.numeric(temp$Year)
+
+temp$elapsed_time <- 2021-temp$Year
+
+temp$ageactual <- temp$age-temp$elapsed_time
+
+temp$fibrosis4 <- (temp$ageactual*temp$resultAST) / (temp$resultPLATELETS*sqrt(temp$resultALT))
+
+
+
+temp <- fread("FIB4_ExactDate.txt", sep="\t")
+temp <- temp %>% distinct()
+
+fwrite(temp, "FIB4_ExactDate.txt", sep="\t")
+
+
+range(temp$fibrosis4)
+
+median(temp$fibrosis4)  # 1.565227
+mean(temp$fibrosis4)  # 5.088158
+length(unique(temp$patid)) # 4397
+quantile(temp$fibrosis4, c(.25, .50, .75)) 
+# 
+# 25%       50%       75% 
+# 0.9421246 1.5652274 3.3945945
+
+temp %>% select(fibrosis4) %>%
+  filter(fibrosis4<=10)%>%
+  ggplot(aes(fibrosis4)) +
+  geom_histogram(bins=1000, fill="midnightblue")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\n FIB-4 Score")
+
+
+temp %>% group_by(patid) %>% filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup() %>% 
+  summarise(n=mean(fibrosis4)) #3.64
+
+temp %>% group_by(patid) %>% filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup() %>% 
+  summarise(n=median(fibrosis4)) #1.58
+
+temp2 <- temp %>% group_by(patid) %>% filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup()  
+
+quantile(temp2$fibrosis4, c(.25, .50, .75)) 
+
+# 25%      50%      75% 
+# 1.000272 1.577639 2.851628 
+
+
+temp2 %>% select(fibrosis4) %>%
+  filter(fibrosis4<=10)%>%
+  ggplot(aes(fibrosis4)) +
+  geom_histogram(bins=1000, fill="deeppink4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\n FIB-4 Score")
+
+fwrite(temp, "FIB4_ExactDate.txt", sep="\t")
+
+
+
+# -----
+# Compare FIB4 with Dx of NASH Dates Exact Date Match -------------
+FIB4_ExactDate<- fread("FIB4_ExactDate.txt", sep="\t")
+
+NASH_Events <- fread("NASH Events.txt")
+NASH_Events <- NASH_Events %>% select(patid, weight, claimed, code) %>% distinct()
+
+NASH_Diagnosis_Codes <- fread("NASH Diagnosis Codes.txt")
+NASH_Events <- NASH_Events %>% left_join(NASH_Diagnosis_Codes %>% select(code, condition))
+NASH_Events <- NASH_Events %>% filter(condition=="NASH")
+NASH_Events <- NASH_Events %>% group_by(patid) %>% slice(1)
+NASH_Events <- NASH_Events %>% select(patid, claimed)
+names(NASH_Events)[2] <- "FirstNASHDx"
+
+FIB4_ExactDate <- FIB4_ExactDate %>% left_join(NASH_Events) 
+
+fwrite(FIB4_ExactDate, "FIB4_ExactDate.txt", sep="\t")
+
+# 2987 of the 4397 pats have lab date before the first NASH Dx
+
+# Check MAX FIB-4 Before NASH Dx
+FIB4_ExactDate %>% group_by(patid) %>% filter(date < FirstNASHDx) %>% 
+  filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup() %>% select(fibrosis4) %>% arrange(-fibrosis4) %>%
+  mutate(mean=mean(fibrosis4))
+
+FIB4_ExactDate %>% group_by(patid) %>% filter(date < FirstNASHDx) %>% 
+  filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup() %>% select(fibrosis4) %>% arrange(-fibrosis4) %>%
+  mutate(median=median(fibrosis4))
+
+FIB4_ExactDate %>% group_by(patid) %>% filter(date < FirstNASHDx) %>% 
+  filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup() %>% select(fibrosis4) %>% arrange(-fibrosis4) %>%
+  mutate(quantile25=quantile(fibrosis4, 0.25))
+
+FIB4_ExactDate %>% group_by(patid) %>% filter(date < FirstNASHDx) %>% 
+  filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup() %>% select(fibrosis4) %>% arrange(-fibrosis4) %>%
+  mutate(quantile75=quantile(fibrosis4, 0.75))
+
+
+FIB4_ExactDate %>% group_by(patid) %>% filter(date < FirstNASHDx) %>% 
+  filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>%
+  filter(fibrosis4<=10)%>%
+  ggplot(aes(fibrosis4)) +
+  geom_histogram(bins=1000, fill="darkslategray4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\n FIB-4 Score")
+
+
+# Check FIB-4 Closest to NASH Dx
+FIB4_ExactDate %>% group_by(patid) %>% filter(date < FirstNASHDx) %>% 
+  filter(date==max(date)) %>% slice(1) %>% ungroup() %>% select(fibrosis4) %>% arrange(-fibrosis4) %>%
+  mutate(mean=mean(fibrosis4))
+
+FIB4_ExactDate %>% group_by(patid) %>% filter(date < FirstNASHDx) %>% 
+  filter(date==max(date)) %>% slice(1) %>% ungroup() %>% select(fibrosis4) %>% arrange(-fibrosis4) %>%
+  mutate(median=median(fibrosis4))
+
+
+FIB4_ExactDate %>% group_by(patid) %>% filter(date < FirstNASHDx) %>% 
+  filter(date==max(date)) %>% slice(1) %>% ungroup() %>% select(fibrosis4) %>% arrange(-fibrosis4) %>%
+  mutate(quantile25=quantile(fibrosis4, 0.25))
+
+FIB4_ExactDate %>% group_by(patid) %>% filter(date < FirstNASHDx) %>% 
+  filter(date==max(date)) %>% slice(1) %>% ungroup() %>% select(fibrosis4) %>% arrange(-fibrosis4) %>%
+  mutate(quantile75=quantile(fibrosis4, 0.75))
+
+
+FIB4_ExactDate %>% group_by(patid) %>% filter(date < FirstNASHDx) %>% 
+  filter(date==max(date)) %>% slice(1) %>% 
+  filter(fibrosis4<=10)%>%
+  ggplot(aes(fibrosis4)) +
+  geom_histogram(bins=1000, fill="darkturquoise")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\n FIB-4 Score")
+
+
+
+
+# -----
+# After the first NASH Dx, how many are in each bucket of risk ? <1.3  1.2-2.67 >2.67 -----------
+
+FIB4_ExactDate %>% group_by(patid) %>% filter(date > FirstNASHDx) %>% 
+  filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup() %>% select(fibrosis4) %>% arrange(-fibrosis4) %>%
+  mutate(mean=mean(fibrosis4)) # 3.71
+
+
+FIB4_ExactDate %>% group_by(patid) %>% filter(date > FirstNASHDx) %>% 
+  filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup() %>% select(fibrosis4) %>% arrange(-fibrosis4) %>%
+  mutate(median=median(fibrosis4)) # 1.56
+
+
+FIB4_ExactDate %>% group_by(patid) %>% filter(date > FirstNASHDx) %>% 
+  filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup() %>% select(fibrosis4) %>% arrange(-fibrosis4) %>%
+  mutate(quantile25=quantile(fibrosis4, 0.25)) # 1.01
+
+
+FIB4_ExactDate %>% group_by(patid) %>% filter(date > FirstNASHDx) %>% 
+  filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup() %>% select(fibrosis4) %>% arrange(-fibrosis4) %>%
+  mutate(quantile75=quantile(fibrosis4, 0.75)) #2.84
+
+
+FIB4_ExactDate %>% group_by(patid) %>% filter(date > FirstNASHDx) %>% 
+  filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% 
+  filter(fibrosis4<=10)%>%
+  ggplot(aes(fibrosis4)) +
+  geom_histogram(bins=1000, fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\n FIB-4 Score")
+
+
+
+FIB4_ExactDate %>% group_by(patid) %>% filter(date > FirstNASHDx) %>% 
+  filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup() %>% select(fibrosis4) %>% arrange(-fibrosis4) %>%
+  mutate(bucket=ifelse(fibrosis4<1.3,"low",
+                       ifelse(fibrosis4>2.67,"High", "Medium"))) %>%
+  group_by(bucket) %>% count()
+
+
+# ------
+
+# Pooling Lab Results across datasets MELD SCORES --------------------
+# ----- 
+# Creatinine -----------
+NASH_Extract_Claims_Lab_Results <- fread("NASH Extract Claims Lab Results.txt")
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% select(patid, weight, fst_dt, rslt_nbr, rslt_unit_nm, tst_desc )
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% drop_na()
+
+NASH_Extract_Claims_Lab_Results %>% filter(grepl("CREATININE", tst_desc)) %>% select(rslt_unit_nm, tst_desc) %>% distinct()
+
+NASH_Extract_Claims_Lab_Results <- 
+  NASH_Extract_Claims_Lab_Results %>% filter(tst_desc == "CREATININE" | tst_desc == "CREATININE SERUM")
+
+unique(NASH_Extract_Claims_Lab_Results$rslt_unit_nm)
+
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% filter(rslt_nbr != 0.00)
+
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% mutate(TEST = "CREATININE", ORIGIN = "ExtractClaimsLab")
+
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% select(patid, weight, fst_dt, rslt_nbr, TEST, ORIGIN)
+
+names(NASH_Extract_Claims_Lab_Results)[3] <- "date"
+names(NASH_Extract_Claims_Lab_Results)[4] <- "result"
+
+
+NASH_Extract_Labs <- fread("NASH Extract Labs.txt")
+NASH_Extract_Labs <- NASH_Extract_Labs %>% select(patid, test_type, weight, test_name, result_date, test_result, result_unit)
+NASH_Extract_Labs <- NASH_Extract_Labs %>% drop_na()
+
+NASH_Extract_Labs %>% filter(grepl("Creatinine", test_name))
+
+NASH_Extract_Labs %>% filter(grepl("Creatinine", test_name)) %>% select(test_name, result_unit) %>% distinct()
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% filter(test_name == "Creatinine")
+
+unique(NASH_Extract_Labs$result_unit)
+unique(NASH_Extract_Labs$test_result)
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% mutate(TEST = "CREATININE", ORIGIN = "ExtractLabs")
+
+NASH_Extract_Labs %>% filter(result_unit != "mm" & result_unit != "units" )
+
+NASH_Extract_Labs$test_result <- as.numeric(NASH_Extract_Labs$test_result)
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% filter(!is.na(test_result))
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% select(patid, weight, result_date, test_result, TEST, ORIGIN)
+
+names(NASH_Extract_Labs)[3] <- "date"
+names(NASH_Extract_Labs)[4] <- "result"
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% filter(result != 0.000)
+
+CREATININE_Results_NASH_Pooled <-  NASH_Extract_Claims_Lab_Results %>% bind_rows(NASH_Extract_Labs) %>% distinct()
+
+
+fwrite(CREATININE_Results_NASH_Pooled, "CREATININE_Results_NASH_Pooled.txt", sep="\t")
+
+
+
+
+# -----
+# Bilirubin ----------------
+NASH_Extract_Claims_Lab_Results <- fread("NASH Extract Claims Lab Results.txt")
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% select(patid, weight, fst_dt, rslt_nbr, rslt_unit_nm, tst_desc )
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% drop_na()
+
+NASH_Extract_Claims_Lab_Results %>% filter(grepl("BILIRUBIN", tst_desc)) %>% select(rslt_unit_nm, tst_desc) %>% distinct()
+
+NASH_Extract_Claims_Lab_Results <- 
+  NASH_Extract_Claims_Lab_Results %>% filter(tst_desc == "BILIRUBIN, TOTAL" | 
+                                               tst_desc == "TOTAL BILIRUBIN" | 
+                                               tst_desc == "BILIRUBIN,TOTAL" | 
+                                               tst_desc == "BILIRUBIN TOTAL" )
+
+unique(NASH_Extract_Claims_Lab_Results$rslt_unit_nm)
+
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% mutate(TEST = "BILIRUBIN", ORIGIN = "ExtractClaimsLab")
+
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% select(patid, weight, fst_dt, rslt_nbr, TEST, ORIGIN)
+
+names(NASH_Extract_Claims_Lab_Results)[3] <- "date"
+names(NASH_Extract_Claims_Lab_Results)[4] <- "result"
+
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% filter(result>0)
+
+NASH_Extract_Labs <- fread("NASH Extract Labs.txt")
+NASH_Extract_Labs <- NASH_Extract_Labs %>% select(patid, test_type, weight, test_name, result_date, test_result, result_unit)
+NASH_Extract_Labs <- NASH_Extract_Labs %>% drop_na()
+
+NASH_Extract_Labs %>% filter(grepl("Bilirubin", test_name))
+
+NASH_Extract_Labs %>% filter(grepl("Bilirubin", test_name)) %>% select(test_name, result_unit) %>% distinct()
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% filter(test_name == "Bilirubin.total")
+
+unique(NASH_Extract_Labs$result_unit)
+unique(NASH_Extract_Labs$test_result)
+
+NASH_Extract_Labs$test_result <- as.numeric(NASH_Extract_Labs$test_result)
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% filter(!is.na(test_result))
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% filter(test_result>0)
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% mutate(TEST = "BLIRUBIN", ORIGIN = "ExtractLabs")
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% select(patid, weight, result_date, test_result, TEST, ORIGIN)
+
+names(NASH_Extract_Labs)[3] <- "date"
+names(NASH_Extract_Labs)[4] <- "result"
+
+BILIRUBIN_Results_NASH_Pooled <-  NASH_Extract_Claims_Lab_Results %>% bind_rows(NASH_Extract_Labs) %>% distinct()
+
+fwrite(BILIRUBIN_Results_NASH_Pooled, "BILIRUBIN_Results_NASH_Pooled.txt", sep="\t")
+
+# ----
+# Sodium ---------------
+NASH_Extract_Claims_Lab_Results <- fread("NASH Extract Claims Lab Results.txt")
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% select(patid, weight, fst_dt, rslt_nbr, rslt_unit_nm, tst_desc )
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% drop_na()
+
+NASH_Extract_Claims_Lab_Results %>% filter(grepl("SODIUM", tst_desc)) %>% select(rslt_unit_nm, tst_desc) %>% distinct()
+
+NASH_Extract_Claims_Lab_Results <- 
+  NASH_Extract_Claims_Lab_Results %>% filter(tst_desc == "SODIUM" | 
+                                               tst_desc == "SODIUM, SERUM" | 
+                                               tst_desc == "CHEMISTRY&SODIUM")
+
+unique(NASH_Extract_Claims_Lab_Results$rslt_unit_nm)
+
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% filter(rslt_nbr > 0)
+
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% mutate(TEST = "SODIUM", ORIGIN = "ExtractClaimsLab")
+
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% select(patid, weight, fst_dt, rslt_nbr, rslt_unit_nm, TEST, ORIGIN)
+
+names(NASH_Extract_Claims_Lab_Results)[3] <- "date"
+names(NASH_Extract_Claims_Lab_Results)[4] <- "result"
+names(NASH_Extract_Claims_Lab_Results)[5] <- "units"
+
+NASH_Extract_Labs <- fread("NASH Extract Labs.txt")
+NASH_Extract_Labs <- NASH_Extract_Labs %>% select(patid, test_type, weight, test_name, result_date, test_result, result_unit)
+NASH_Extract_Labs <- NASH_Extract_Labs %>% drop_na()
+
+NASH_Extract_Labs %>% filter(grepl("Sodium", test_name))
+
+NASH_Extract_Labs %>% filter(grepl("Sodium", test_name)) %>% select(test_name, result_unit) %>% distinct()
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% filter(test_name == "Sodium (Na)")
+
+unique(NASH_Extract_Labs$result_unit)
+unique(NASH_Extract_Labs$test_result)
+
+NASH_Extract_Labs$test_result <- as.numeric(NASH_Extract_Labs$test_result)
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% filter(!is.na(test_result))
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% filter(test_result>0)
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% mutate(TEST = "SODIUM", ORIGIN = "ExtractLabs")
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% select(patid, weight, result_date, test_result, result_unit, TEST, ORIGIN)
+
+names(NASH_Extract_Labs)[3] <- "date"
+names(NASH_Extract_Labs)[4] <- "result"
+names(NASH_Extract_Labs)[5] <- "units"
+
+SODIUM_Results_NASH_Pooled <-  NASH_Extract_Claims_Lab_Results %>% bind_rows(NASH_Extract_Labs) %>% distinct()
+
+fwrite(SODIUM_Results_NASH_Pooled, "SODIUM_Results_NASH_Pooled.txt", sep="\t")
+
+
+
+# -----
+# INR ---------------
+NASH_Extract_Claims_Lab_Results <- fread("NASH Extract Claims Lab Results.txt")
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% select(patid, weight, fst_dt, rslt_nbr, rslt_unit_nm, tst_desc )
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% drop_na()
+
+NASH_Extract_Claims_Lab_Results %>% filter(grepl("INR", tst_desc)) %>% select(rslt_unit_nm, tst_desc) %>% distinct()
+
+NASH_Extract_Claims_Lab_Results <- 
+  NASH_Extract_Claims_Lab_Results %>% filter(tst_desc == "INR")
+
+unique(NASH_Extract_Claims_Lab_Results$rslt_unit_nm)
+
+NASH_Extract_Claims_Lab_Results$rslt_nbr <- as.numeric(NASH_Extract_Claims_Lab_Results$rslt_nbr)
+
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% mutate(TEST = "INR", ORIGIN = "ExtractClaimsLab")
+
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% select(patid, weight, fst_dt, rslt_nbr, rslt_unit_nm, TEST, ORIGIN)
+
+names(NASH_Extract_Claims_Lab_Results)[3] <- "date"
+names(NASH_Extract_Claims_Lab_Results)[4] <- "result"
+names(NASH_Extract_Claims_Lab_Results)[5] <- "units"
+
+NASH_Extract_Labs <- fread("NASH Extract Labs.txt")
+NASH_Extract_Labs <- NASH_Extract_Labs %>% select(patid, test_type, weight, test_name, result_date, test_result, result_unit)
+NASH_Extract_Labs <- NASH_Extract_Labs %>% drop_na()
+
+NASH_Extract_Labs %>% filter(grepl("INR", test_name))
+
+NASH_Extract_Labs %>% filter(grepl("INR", test_name)) %>% select(test_name, result_unit) %>% distinct()
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% filter(test_name == "Prothrombin.INR")
+
+unique(NASH_Extract_Labs$result_unit)
+unique(NASH_Extract_Labs$test_result)
+
+NASH_Extract_Labs$test_result <- as.numeric(NASH_Extract_Labs$test_result)
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% filter(!is.na(test_result))
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% mutate(TEST = "INR", ORIGIN = "ExtractLabs")
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% select(patid, weight, result_date, test_result, result_unit, TEST, ORIGIN)
+
+names(NASH_Extract_Labs)[3] <- "date"
+names(NASH_Extract_Labs)[4] <- "result"
+names(NASH_Extract_Labs)[5] <- "units"
+
+INR_Results_NASH_Pooled <-  NASH_Extract_Claims_Lab_Results %>% bind_rows(NASH_Extract_Labs) %>% distinct()
+
+unique(INR_Results_NASH_Pooled$units)
+
+INR_Results_NASH_Pooled <- INR_Results_NASH_Pooled %>% filter(result>0)
+fwrite(INR_Results_NASH_Pooled, "INR_Results_NASH_Pooled.txt", sep="\t")
+
+
+
+# -----
+# MELD SCORES Calculation Exact Date Match --------------
+CREATININE_Results_NASH_Pooled <- fread("CREATININE_Results_NASH_Pooled.txt", sep="\t")
+BILIRUBIN_Results_NASH_Pooled <- fread("BILIRUBIN_Results_NASH_Pooled.txt", sep="\t")
+SODIUM_Results_NASH_Pooled <- fread("SODIUM_Results_NASH_Pooled.txt", sep="\t")
+SODIUM_Results_NASH_Pooled <- SODIUM_Results_NASH_Pooled %>% select(-c(units))
+INR_Results_NASH_Pooled <- fread("INR_Results_NASH_Pooled.txt", sep="\t")
+INR_Results_NASH_Pooled <- INR_Results_NASH_Pooled %>% select(-c(units))
+
+temp <- CREATININE_Results_NASH_Pooled %>% inner_join(BILIRUBIN_Results_NASH_Pooled, by = c("patid", "weight", "date")) %>%
+  inner_join(SODIUM_Results_NASH_Pooled, by = c("patid", "weight", "date")) %>% inner_join(INR_Results_NASH_Pooled, by = c("patid", "weight", "date"))
+
+names(temp)[4] <- "resultCREATININE"
+names(temp)[5] <- "TESTCREATININE"
+names(temp)[6] <- "ORIGINCREATININE"
+names(temp)[7] <- "resultBILIRUBIN"
+names(temp)[8] <- "TESTBILIRUBIN"
+names(temp)[9] <- "ORIGINBILIRUBIN"
+names(temp)[10] <- "resultSODIUM"
+names(temp)[11] <- "TESTSODIUM"
+names(temp)[12] <- "ORIGINSODIUM"
+names(temp)[13] <- "resultINR"
+names(temp)[14] <- "TESTINR"
+names(temp)[15] <- "ORIGININR"
+
+temp <- temp %>% select(-c(ORIGINCREATININE, ORIGINBILIRUBIN, ORIGINSODIUM, ORIGININR))
+
+
+temp <- temp %>% mutate(resultBILIRUBIN=ifelse(resultBILIRUBIN<1,1,resultBILIRUBIN)) %>%
+  mutate(resultINR=ifelse(resultINR<1,1,resultINR)) %>%
+  mutate(resultCREATININE=ifelse(resultCREATININE<1,1,resultCREATININE)) %>%
+  mutate(resultCREATININE=ifelse(resultCREATININE>4,4,resultCREATININE)) %>%
+  mutate(resultSODIUM=ifelse(resultSODIUM<125,125,ifelse(resultSODIUM>137,137,resultSODIUM)))
+
+
+temp$MELD <- ((log(temp$resultBILIRUBIN)*3.78) + (log(temp$resultINR)*11.2) + (log(temp$resultCREATININE)*9.57) + 6.43)
+temp$MELDNa <- temp$MELD + 1.32 * (137 - temp$resultSODIUM) - (0.033*temp$MELD*(137-temp$resultSODIUM))
+
+temp <- temp %>% distinct()
+
+mean(temp$MELD) # 14.98523
+mean(temp$MELDNa) # 16.36341
+
+median(temp$MELD) # 12.87395
+median(temp$MELDNa) # 14.97155
+
+length(unique(temp$patid)) # 1564
+
+
+quantile(temp$MELDNa, c(.25, .50, .75)) 
+# 
+# 25%       50%       75% 
+# 9.050096 14.971546 21.728735
+
+min(temp$MELDNa) #6.43
+max(temp$MELDNa) #49.36482
+
+
+temp %>% select(MELDNa) %>%
+  ggplot(aes(MELDNa)) +
+  geom_density(colour="deepskyblue4", fill="deepskyblue4", alpha=0.6, size=2)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Proportion \n")+xlab("\n MELD Score")
+
+
+temp %>% group_by(patid) %>% filter(MELDNa==max(MELDNa)) %>% slice(1) %>% ungroup() %>% 
+  summarise(n=mean(MELDNa)) # 11.4
+
+temp %>% group_by(patid) %>% filter(MELDNa==max(MELDNa)) %>% slice(1) %>% ungroup() %>% 
+  summarise(n=median(MELDNa)) #8.65
+
+temp2 <- temp %>% group_by(patid) %>% filter(MELDNa==max(MELDNa)) %>% slice(1) %>% ungroup()  
+
+quantile(temp2$MELDNa, c(.25, .50, .75)) 
+
+# 25%      50%      75% 
+# 7.077493 8.645620 13.632019 
+
+
+temp2 %>% select(MELDNa) %>%
+  ggplot(aes(MELDNa)) +
+  geom_density(colour="deeppink4", fill="deeppink4", alpha=0.6, size=2)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\n MELD Score")
+
+fwrite(temp, "MELD_ExactDate.txt", sep="\t")
+
+# -----
+# Compare MELD with Dx of NASH Dates Exact Date Match -------------
+MELD_ExactDate<- fread("MELD_ExactDate.txt", sep="\t")
+
+NASH_Events <- fread("NASH Events.txt")
+NASH_Events <- NASH_Events %>% select(patid, weight, claimed, code) %>% distinct()
+
+NASH_Diagnosis_Codes <- fread("NASH Diagnosis Codes.txt")
+NASH_Events <- NASH_Events %>% left_join(NASH_Diagnosis_Codes %>% select(code, condition))
+NASH_Events <- NASH_Events %>% filter(condition=="NASH")
+NASH_Events <- NASH_Events %>% group_by(patid) %>% slice(1)
+NASH_Events <- NASH_Events %>% select(patid, claimed)
+names(NASH_Events)[2] <- "FirstNASHDx"
+
+MELD_ExactDate <- MELD_ExactDate %>% left_join(NASH_Events) 
+
+fwrite(MELD_ExactDate, "MELD_ExactDate.txt", sep="\t")
+
+# 792 of the 1564 pats have lab date before the first NASH Dx
+
+# Check MAX MELD Before NASH Dx
+MELD_ExactDate %>% group_by(patid) %>% filter(date < FirstNASHDx) %>% 
+  filter(MELDNa==max(MELDNa)) %>% slice(1) %>% ungroup() %>% select(MELDNa) %>% arrange(-MELDNa) %>%
+  mutate(mean=mean(MELDNa))
+
+MELD_ExactDate %>% group_by(patid) %>% filter(date < FirstNASHDx) %>% 
+  filter(MELDNa==max(MELDNa)) %>% slice(1) %>% ungroup() %>% select(MELDNa) %>% arrange(-MELDNa) %>%
+  mutate(median=median(MELDNa))
+
+MELD_ExactDate %>% group_by(patid) %>% filter(date < FirstNASHDx) %>% 
+  filter(MELDNa==max(MELDNa)) %>% slice(1) %>% ungroup() %>% select(MELDNa) %>% arrange(-MELDNa) %>%
+  mutate(quantile25=quantile(MELDNa, 0.25))
+
+MELD_ExactDate %>% group_by(patid) %>% filter(date < FirstNASHDx) %>% 
+  filter(MELDNa==max(MELDNa, 0.25)) %>% slice(1) %>% ungroup() %>% select(MELDNa) %>% arrange(-MELDNa) %>%
+  mutate(quantile75=quantile(MELDNa, 0.75))
+
+
+MELD_ExactDate %>% group_by(patid) %>% filter(date < FirstNASHDx) %>% 
+  filter(MELDNa==max(MELDNa)) %>% slice(1) %>%
+  ggplot(aes(MELDNa)) +
+  geom_density(colour="midnightblue", fill="midnightblue", alpha=0.6, size=2)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Proportion \n")+xlab("\n MELD Score")
+
+
+# Check MELD Closest to NASH Dx
+MELD_ExactDate %>% group_by(patid) %>% filter(date < FirstNASHDx) %>% 
+  filter(date==max(date)) %>% slice(1) %>% ungroup() %>% select(MELDNa) %>% arrange(-MELDNa) %>%
+  mutate(mean=mean(MELDNa))
+
+MELD_ExactDate %>% group_by(patid) %>% filter(date < FirstNASHDx) %>% 
+  filter(date==max(date)) %>% slice(1) %>% ungroup() %>% select(MELDNa) %>% arrange(-MELDNa) %>%
+  mutate(median=median(MELDNa))
+
+
+MELD_ExactDate %>% group_by(patid) %>% filter(date < FirstNASHDx) %>% 
+  filter(date==max(date)) %>% slice(1) %>% ungroup() %>% select(MELDNa) %>% arrange(-MELDNa) %>%
+  mutate(quantile25=quantile(MELDNa, 0.25))
+
+MELD_ExactDate %>% group_by(patid) %>% filter(date < FirstNASHDx) %>% 
+  filter(date==max(date)) %>% slice(1) %>% ungroup() %>% select(MELDNa) %>% arrange(-MELDNa) %>%
+  mutate(quantile75=quantile(MELDNa, 0.75))
+
+
+MELD_ExactDate %>% group_by(patid) %>% filter(date < FirstNASHDx) %>% 
+  filter(date==max(date)) %>% slice(1) %>% 
+  ggplot(aes(MELDNa)) +
+  geom_density(colour="darkturquoise", fill="darkturquoise", alpha=0.6, size=2)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Proportion \n")+xlab("\n FIB-4 Score")
+
+
+
+# After the first NASH Dx
+
+MELD_ExactDate %>% group_by(patid) %>% filter(date > FirstNASHDx) %>% 
+  filter(MELDNa==max(MELDNa)) %>% slice(1) %>% ungroup() %>% select(MELDNa) %>% arrange(-MELDNa) %>%
+  mutate(mean=mean(MELDNa)) # 11.6
+
+
+MELD_ExactDate %>% group_by(patid) %>% filter(date > FirstNASHDx) %>% 
+  filter(MELDNa==max(MELDNa)) %>% slice(1) %>% ungroup() %>% select(MELDNa) %>% arrange(-MELDNa) %>%
+  mutate(median=median(MELDNa)) # 9.06
+
+
+MELD_ExactDate %>% group_by(patid) %>% filter(date > FirstNASHDx) %>% 
+  filter(MELDNa==max(MELDNa)) %>% slice(1) %>% ungroup() %>% select(MELDNa) %>% arrange(-MELDNa) %>%
+  mutate(quantile25=quantile(MELDNa, 0.25)) # 7.34
+
+
+MELD_ExactDate %>% group_by(patid) %>% filter(date > FirstNASHDx) %>% 
+  filter(MELDNa==max(MELDNa)) %>% slice(1) %>% ungroup() %>% select(MELDNa) %>% arrange(-MELDNa) %>%
+  mutate(quantile75=quantile(MELDNa, 0.75)) #13.9
+
+
+MELD_ExactDate %>% group_by(patid) %>% filter(date > FirstNASHDx) %>% 
+  filter(MELDNa==max(MELDNa)) %>% slice(1) %>% 
+  ggplot(aes(MELDNa)) +
+  geom_density(colour="deepskyblue4", fill="deepskyblue4", alpha=0.6, size=2)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Density \n")+xlab("\n MELD Score")
+
+
+# ----
+# Combine FIB4 and MELD scores --------------------------
+
+MELD_ExactDate<- fread("MELD_ExactDate.txt", sep="\t")
+MELD_ExactDate <- MELD_ExactDate %>% select(patid, weight, date, MELDNa, FirstNASHDx)
+MELD_ExactDate$Test <- "MELDNa"
+names(MELD_ExactDate)[4] <- "Score"
+
+FIB4_ExactDate<- fread("FIB4_ExactDate.txt", sep="\t")
+FIB4_ExactDate <- FIB4_ExactDate %>% select(patid, weight, date, fibrosis4, FirstNASHDx)
+FIB4_ExactDate$Test <- "fibrosis4"
+names(FIB4_ExactDate)[4] <- "Score"
+
+Comb_FIB4_MELD <- FIB4_ExactDate %>% bind_rows(MELD_ExactDate)
+
+# How many unique pats?
+length(unique(Comb_FIB4_MELD$patid)) #4409
+
+Pats_ratio %>% inner_join(Comb_FIB4_MELD %>% select(patid) %>% distinct())
+ 
+# How many with each test before/after the first Dx?
+Comb_FIB4_MELD %>% filter(Test=="fibrosis4") %>% filter(date < FirstNASHDx) %>% select(patid) %>% distinct() %>% count() #2987
+Comb_FIB4_MELD %>% filter(Test=="MELDNa") %>% filter(date < FirstNASHDx) %>% select(patid) %>% distinct() %>% count() #802
+
+Comb_FIB4_MELD %>% filter(Test=="fibrosis4") %>% filter(date > FirstNASHDx) %>% select(patid) %>% distinct() %>% count() #3093
+Comb_FIB4_MELD %>% filter(Test=="MELDNa") %>% filter(date > FirstNASHDx) %>% select(patid) %>% distinct() %>% count() #1001
+
+
+# How many with ANY test before/after the first Dx?
+Comb_FIB4_MELD %>% filter(date < FirstNASHDx) %>% select(patid) %>% distinct() #
+Comb_FIB4_MELD %>% filter(date > FirstNASHDx) %>% select(patid) %>% distinct() #
+
+
+# Elapsed Months from test to first Dx
+Comb_FIB4_MELD$elapsedTime <- ((Comb_FIB4_MELD$FirstNASHDx - Comb_FIB4_MELD$date) / 30.5)
+
+# How many with test 12m before/after first Dx
+Comb_FIB4_MELD %>% filter(elapsedTime <= 12 & elapsedTime>0) %>% select(patid, Test) %>% 
+  distinct() %>%group_by(Test) %>% count()
+
+Comb_FIB4_MELD %>% filter(elapsedTime <= 12 & elapsedTime>0) %>% select(patid) %>% 
+  distinct() %>% count() #2172
+
+Comb_FIB4_MELD %>% filter(elapsedTime >= 12 & elapsedTime>=0) %>% select(patid, Test) %>% 
+  distinct() %>%group_by(Test) %>% count()
+
+Comb_FIB4_MELD %>% filter(elapsedTime >= 12 & elapsedTime>=0) %>% select(patid) %>% 
+  distinct() %>% count() #1935
+
+
+# How many above thresold ?
+Comb_FIB4_MELD %>% filter(Test=="fibrosis4") %>% filter(Score>=1.3) %>% select(patid) %>% distinct() #2676
+
+Comb_FIB4_MELD %>% filter(Test=="MELDNa") %>% filter(Score>=7) %>% select(patid) %>% distinct() #1179
+
+Comb_FIB4_MELD %>% filter((Test=="MELDNa"&Score>=7)|(Test=="fibrosis4"&Score>=1.3)) %>% select(patid) %>% distinct() #2873
+
+
+# How many above thresold ? 12m before
+Comb_FIB4_MELD %>% filter(elapsedTime <= 12 & elapsedTime>0) %>% filter(Test=="fibrosis4") %>%
+  filter(Score>=1.3) %>% select(patid) %>% distinct() #1215
+
+Comb_FIB4_MELD %>% filter(elapsedTime <= 12 & elapsedTime>0) %>% filter(Test=="MELDNa") %>%
+  filter(Score>=7) %>% select(patid) %>% distinct() #378
+
+Comb_FIB4_MELD %>% filter(elapsedTime <= 12 & elapsedTime>0) %>%
+  filter((Test=="MELDNa"&Score>=7)|(Test=="fibrosis4"&Score>=1.3)) %>% select(patid) %>% distinct() #1299
+
+
+# How many above thresold ? 12m after
+Comb_FIB4_MELD %>% filter(elapsedTime >= 12 & elapsedTime>=0) %>% filter(Test=="fibrosis4") %>%
+  filter(Score>=1.3) %>% select(patid) %>% distinct() #964
+
+Comb_FIB4_MELD %>% filter(elapsedTime >= 12 & elapsedTime>=0) %>% filter(Test=="MELDNa") %>%
+  filter(Score>=7) %>% select(patid) %>% distinct() #267
+
+Comb_FIB4_MELD %>% filter(elapsedTime >= 12 & elapsedTime>=0) %>%
+  filter((Test=="MELDNa"&Score>=7)|(Test=="fibrosis4"&Score>=1.3)) %>% select(patid) %>% distinct() #1030
+
+
+# How many above thresold after Dx?
+Comb_FIB4_MELD %>% filter(date > FirstNASHDx) %>% filter(Test=="fibrosis4") %>%
+  filter(Score>=1.3) %>% select(patid) %>% distinct() #1870
+
+Comb_FIB4_MELD %>% filter(date > FirstNASHDx) %>% filter(Test=="MELDNa") %>%
+  filter(Score>=7) %>% select(patid) %>% distinct() #778
+
+Comb_FIB4_MELD %>% filter(date > FirstNASHDx) %>%
+  filter((Test=="MELDNa"&Score>=7)|(Test=="fibrosis4"&Score>=1.3)) %>% select(patid) %>% distinct() #1990
+
+
+# -----
+# FIB4 and MELD over time -----------------------------
+FIB4_ExactDate <- fread("FIB4_ExactDate.txt", sep="\t")
+FIB4_ExactDate <- FIB4_ExactDate %>% select(patid, weight, date, fibrosis4, FirstNASHDx)
+FIB4_ExactDate$Test <- "fibrosis4"
+names(FIB4_ExactDate)[4] <- "Score"
+FIB4_ExactDate$elapsedTime <- round(((FIB4_ExactDate$date  - FIB4_ExactDate$FirstNASHDx) / 30.5))
+
+
+MELD_ExactDate<- fread("MELD_ExactDate.txt", sep="\t")
+MELD_ExactDate <- MELD_ExactDate %>% select(patid, weight, date, MELDNa, FirstNASHDx)
+MELD_ExactDate$Test <- "MELDNa"
+names(MELD_ExactDate)[4] <- "Score"
+MELD_ExactDate$elapsedTime <- round(((MELD_ExactDate$date - MELD_ExactDate$FirstNASHDx ) / 30.5))
+
+
+# MELD over time
+
+MELD_ExactDate %>%
+  group_by(patid) %>% filter(Score==max(Score)) %>%
+  slice(1) %>%
+  ggplot(aes(elapsedTime, Score)) +
+  geom_jitter(size=0.3, alpha=0.3)+
+  geom_smooth(method="lm")+
+  #ylim(6,40)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())
+
+
+MELD_ExactDate %>% arrange(patid) %>% group_by(patid) %>% filter(Score==max(Score)) %>%
+  slice(1)  %>%
+  ungroup() %>%
+  select(patid, Score, elapsedTime) %>% distinct() %>%
+  ggplot(aes(elapsedTime, Score)) +
+  geom_smooth(method="loess", colour="deepskyblue4", size= 2, fill="deepskyblue4", alpha=0.5)+
+  xlim(-24,24)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n Time From Lab Results to First NASH Dx")+
+  ylab("% Difference \n (over mean throughout follow-up) \n")
+
+
+
+MELD_ExactDate %>% arrange(patid) %>% group_by(patid) %>% 
+  mutate(MeanScore=mean(Score)) %>% 
+  mutate(ScoreDiff = ((Score-MeanScore)/MeanScore)*100)  %>%
+  ungroup() %>%
+  select(patid, ScoreDiff, elapsedTime) %>% distinct() %>%
+  ggplot(aes(elapsedTime, ScoreDiff)) +
+  geom_jitter()+
+  xlim(-24,24)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n Time From Lab Results to First NASH Dx")+
+  ylab("% Difference \n (over mean throughout follow-up) \n")
+
+
+
+temp <- MELD_ExactDate %>% arrange(patid) %>% group_by(patid) %>% 
+  mutate(MeanScore=mean(Score)) %>% 
+  mutate(ScoreDiff = ((Score-MeanScore)/MeanScore)*100)  %>%
+  ungroup() %>%
+  select(patid, ScoreDiff, elapsedTime) %>% distinct() %>%
+  filter(elapsedTime>-40 & elapsedTime< & ScoreDiff<0)  %>%
+  arrange(patid, elapsedTime)
+
+
+
+
+# FIB4 over time
+
+FIB4_ExactDate %>%
+  filter(Score<=10) %>%
+  ggplot(aes(elapsedTime, Score)) +
+  geom_smooth(method="lm")+
+  xlim(-24,24)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())
+
+
+FIB4_ExactDate %>% arrange(patid) %>% filter(Score<=20) %>%
+  group_by(patid) %>% filter(Score==max(Score)) %>%
+  slice(1)  %>%
+  ungroup()  %>%
+  select(patid, Score, elapsedTime) %>% distinct() %>%
+  ggplot(aes(elapsedTime, Score)) +
+  geom_smooth(method="lm", colour="firebrick", size= 2, fill="firebrick", alpha=0.5)+
+  xlim(-24,24)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n Time From Lab Results to First NASH Dx")+
+  ylab("% Difference \n (over mean throughout follow-up) \n")
+
+
+
+# ------
+# Age NASH vs NAFLD ----------------
+NASH_diagnosis <- fread("NASH_diagnosis.txt")
+
+DANU_Demographics <- fread("DANU Demographics.txt", sep="\t")
+
+NASH_diagnosis <- NASH_diagnosis %>% left_join(DANU_Demographics %>% select(patid, weight, age), 
+                                               by=c("patient"="patid", "weight"="weight"))
+
+
+NAFLD_pats <- NASH_diagnosis %>% filter(grepl("NAFLD", NASH_diganosis))
+NASH_pats <- NASH_diagnosis %>% filter(grepl("NASH", NASH_diganosis))
+
+weighted.mean(NAFLD_pats$age, NAFLD_pats$weight) #55.95375
+
+NAFLD_pats %>% select(age) %>%
+  ggplot(aes(age)) +
+  geom_histogram(bins=72, colour="gray", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n Age")+ ylab("Number of Patients \n")
+
+weighted.mean(NASH_pats$age, NASH_pats$weight) #56.899
+
+NASH_pats %>% select(age) %>%
+  ggplot(aes(age)) +
+  geom_histogram(bins=72, colour="gray", fill="deeppink4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n Age")+ ylab("Number of Patients \n")
+# ---------
+
+
+# Determine whether the scores are different in treated vs non-treated pats ---------------
+
+MELD_ExactDate<- fread("MELD_ExactDate.txt", sep="\t")
+MELD_ExactDate <- MELD_ExactDate %>% select(patid, weight, date, MELDNa, FirstNASHDx)
+MELD_ExactDate$Test <- "MELDNa"
+names(MELD_ExactDate)[4] <- "Score"
+
+FIB4_ExactDate<- fread("FIB4_ExactDate.txt", sep="\t")
+FIB4_ExactDate <- FIB4_ExactDate %>% select(patid, weight, date, fibrosis4, FirstNASHDx)
+FIB4_ExactDate$Test <- "fibrosis4"
+names(FIB4_ExactDate)[4] <- "Score"
+
+Comb_FIB4_MELD <- FIB4_ExactDate %>% bind_rows(MELD_ExactDate)
+Comb_FIB4_MELD$elapsedTime <- ((Comb_FIB4_MELD$FirstNASHDx - Comb_FIB4_MELD$date) / 30.5)
+
+length(unique(Comb_FIB4_MELD$patid)) # 4409
+
+# Ever treated
+NASH_Drug_Histories     <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+length(unique((NASH_Drug_Histories$patient))) # 9772
+
+NASH_Drug_Histories %>% filter(Treat != "-") %>% select(patient, weight) %>% distinct() %>% count() # 7208
+Ever_Treated_NASH <- NASH_Drug_Histories %>% filter(Treat != "-") %>% select(patient) %>% distinct() 
+Ever_Treated_NASH$EverTreated <- "EverTreated"
+
+Ever_Labs_NASH <- Comb_FIB4_MELD %>% select(patid) %>% distinct()
+
+Ever_Labs_NASH$Labs <- "WithLabResults"
+
+TreatLabsPats <- Ever_Treated_NASH %>% full_join(Ever_Labs_NASH, by=c("patient"="patid"))
+
+NASH_pats <- NASH_Drug_Histories %>% select(patient) %>% distinct()
+
+TreatLabsPats <- NASH_pats %>% full_join(TreatLabsPats)
+
+
+# Check whether lab testing and treatment status are in any way correlated
+
+TreatLabsPats %>% group_by(EverTreated, Labs) %>% count()
+
+TreatLabsPats %>% group_by(Labs, EverTreated) %>% count()
+
+
+# Split based on labs/treatment status
+
+TreatedPats_Scores <- TreatLabsPats %>% filter(Labs == "WithLabResults" & EverTreated =="EverTreated") 
+NonTreatedPats_Scores <- TreatLabsPats %>% filter(Labs == "WithLabResults" & is.na(EverTreated)) 
+
+TreatedPats_Scores <- TreatedPats_Scores %>% left_join(Comb_FIB4_MELD, by=c("patient"="patid"))
+NonTreatedPats_Scores <- NonTreatedPats_Scores %>% left_join(Comb_FIB4_MELD, by=c("patient"="patid"))
+
+length(unique(TreatedPats_Scores$patient)) # 3352
+length(unique(NonTreatedPats_Scores$patient)) # 1057
+
+TreatedPats_Scores$EverTreated
+NonTreatedPats_Scores$EverTreated <- "No"
+
+AllTreatsLabs <- TreatedPats_Scores %>% bind_rows(NonTreatedPats_Scores)
+
+Fib4 <- AllTreatsLabs %>% filter(Test=="fibrosis4")
+Meld <- AllTreatsLabs %>% filter(Test=="MELDNa")
+
+
+# Pick only the mean score for each patient
+Fib4 <- Fib4 %>% group_by(patient) %>% mutate(Score = mean(Score)) %>% slice(1)
+Meld <- Meld %>% group_by(patient) %>% mutate(Score = mean(Score)) %>% slice(1)
+
+
+
+
+# Mean FIB4 Ever Treated vs Never Treated
+mean(Fib4$Score[Fib4$EverTreated == "EverTreated"]) # 2.106822
+mean(Fib4$Score[Fib4$EverTreated == "No"]) # 1.733353
+
+# Mean MELD Ever Treated vs Never Treated
+mean(Meld$Score[Meld$EverTreated == "EverTreated"]) # 10.17628
+mean(Meld$Score[Meld$EverTreated == "No"]) # 9.7159
+
+# Median FIB4 Ever Treated vs Never Treated
+median(Fib4$Score[Fib4$EverTreated == "EverTreated"]) # 1.329038
+median(Fib4$Score[Fib4$EverTreated == "No"]) # 1.146745
+
+# Median FIB4 Ever Treated vs Never Treated
+median(Meld$Score[Meld$EverTreated == "EverTreated"]) # 8.472001
+median(Meld$Score[Meld$EverTreated == "No"]) # 7.841641
+
+
+
+
+# Wilcoxon-Mann-Whitney test FIB4 Score ~ Ever Treated Status (using the median, as it's very left skewed )
+
+wilcox.test(Score ~ EverTreated, data = Fib4, exact = FALSE)
+
+
+
+
+# Wilcoxon-Mann-Whitney test MELD Score ~ Ever Treated Status (using the median, as it's very left skewed )
+
+wilcox.test(Score ~ EverTreated, data = Meld, exact = FALSE)
+
+
+# ----
+# Check Scores before / after Surgery ------------------
+MELD_ExactDate<- fread("MELD_ExactDate.txt", sep="\t")
+MELD_ExactDate <- MELD_ExactDate %>% select(patid, weight, date, MELDNa, FirstNASHDx)
+MELD_ExactDate$Test <- "MELDNa"
+names(MELD_ExactDate)[4] <- "Score"
+
+FIB4_ExactDate<- fread("FIB4_ExactDate.txt", sep="\t")
+FIB4_ExactDate <- FIB4_ExactDate %>% select(patid, weight, date, fibrosis4, FirstNASHDx)
+FIB4_ExactDate$Test <- "fibrosis4"
+names(FIB4_ExactDate)[4] <- "Score"
+
+Comb_FIB4_MELD <- FIB4_ExactDate %>% bind_rows(MELD_ExactDate)
+Comb_FIB4_MELD$elapsedTime <- ((Comb_FIB4_MELD$FirstNASHDx - Comb_FIB4_MELD$date) / 30.5)
+
+length(unique(Comb_FIB4_MELD$patid)) # 4409
+
+Months_lookup <- fread("Months_lookup.txt",  integer64 = "character", stringsAsFactors = F)
+Months_lookup$Month <- paste0(Months_lookup$Month,"-1")
+Months_lookup$Month <- format(as.Date(Months_lookup$Month), "%Y-%m")
+
+setDT(Comb_FIB4_MELD)[, Month_Yrdate := format(as.Date(date), "%Y-%m") ]
+setDT(Comb_FIB4_MELD)[, Month_YrFirstNASHDx := format(as.Date(FirstNASHDx), "%Y-%m") ]
+
+Comb_FIB4_MELD <- Comb_FIB4_MELD %>% select(patid, weight, Score, Test, elapsedTime, Month_Yrdate)
+
+Comb_FIB4_MELD <- Comb_FIB4_MELD %>% left_join(Months_lookup, by = c("Month_Yrdate" = "Month")) %>% 
+  filter(!is.na(Exact_Month))
+
+Comb_FIB4_MELD <- Comb_FIB4_MELD %>% select(-c(Month_Yrdate, elapsedTime))
+
+
+
+# Ever treated
+NASH_Drug_Histories     <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(-c(disease))
+
+length(unique((NASH_Drug_Histories$patient))) # 9772
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>%
+  mutate(SurgeryStatus = 
+           ifelse(grepl("79", Treat)|grepl("80", Treat)|grepl("81", Treat)|grepl("82", Treat), "Surgery", "No"))
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, Month, SurgeryStatus)
+
+SurgeryPats <- NASH_Drug_Histories %>% filter(SurgeryStatus== "Surgery") %>% select(patient) %>% distinct()
+
+NASH_Drug_Histories <- SurgeryPats %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(SurgeryStatus== "Surgery")
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% filter(Month==min(Month))
+
+Comb_FIB4_MELD <- SurgeryPats %>% inner_join(Comb_FIB4_MELD, by=c("patient"="patid"))
+length(unique(Comb_FIB4_MELD$patient)) # 289
+
+Comb_FIB4_MELD <- Comb_FIB4_MELD %>% inner_join(NASH_Drug_Histories, by=c("patient"="patient")) %>% arrange(patient)
+
+Comb_FIB4_MELD <- Comb_FIB4_MELD %>% mutate(Exact_Month = Exact_Month-Month) %>% select(-c(Month, SurgeryStatus))
+
+Comb_FIB4_MELD <- data.frame(Comb_FIB4_MELD %>% group_by(patient, Exact_Month, Test) %>% 
+                               mutate(Score=mean(Score)) %>% slice(1))
+
+
+Comb_FIB4_MELD %>% filter(Test=="fibrosis4") %>% filter(Exact_Month < 0) %>% summarise(n=mean(Score)) #4.409762
+
+Comb_FIB4_MELD %>% filter(Test=="fibrosis4") %>% filter(Exact_Month > 0) %>% summarise(n=mean(Score)) #1.80873
+
+Comb_FIB4_MELD %>% filter(Test=="fibrosis4") %>%
+  filter(Score<20) %>%
+  ggplot(aes(Exact_Month, Score))+
+  geom_jitter(colour="deepskyblue4", alpha=0.4, size=2)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n Month(s) Before / After Surgery")+
+  ylab("Mean FIB-4 Score \n")
+
+Comb_FIB4_MELD %>% filter(Test=="fibrosis4") %>%
+  filter(Score<20) %>%
+  ggplot(aes(Exact_Month, Score))+
+  geom_smooth(colour="deepskyblue4", fill="deepskyblue4", alpha=0.4, size=2)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n Month(s) Before / After Surgery")+
+  ylab("Mean FIB-4 Score \n")
+
+
+
+Comb_FIB4_MELD %>% filter(Test=="MELDNa") %>% filter(Exact_Month < 0) %>% summarise(n=mean(Score)) #15.00274
+
+Comb_FIB4_MELD %>% filter(Test=="MELDNa") %>% filter(Exact_Month > 0) %>% summarise(n=mean(Score)) #10.79643
+
+Comb_FIB4_MELD %>% filter(Test=="MELDNa") %>%
+  ggplot(aes(Exact_Month, Score))+
+  geom_jitter(colour="deeppink4", alpha=0.4, size=2)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n Month(s) Before / After Surgery")+
+  ylab("Mean MELD Score \n")
+
+Comb_FIB4_MELD %>% filter(Test=="MELDNa") %>%
+  ggplot(aes(Exact_Month, Score))+
+  geom_smooth(colour="deeppink4", fill="deeppink4", alpha=0.4, size=2)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n Month(s) Before / After Surgery")+
+  ylab("Mean MELD Score \n")
+
+# -----
+# Check Scores before / after Surgery NEW FIB4 ------------------
+
+FIB4_NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+FIB4_NASH_Pats <- FIB4_NASH_Pats %>% select(patient, claimed, fibrosis4)
+
+
+Months_lookup <- fread("Months_lookup.txt",  integer64 = "character", stringsAsFactors = F)
+Months_lookup$Month <- paste0(Months_lookup$Month,"-1")
+Months_lookup$Month <- format(as.Date(Months_lookup$Month), "%Y-%m")
+
+FIB4_NASH_Pats$Month_Yrdate <- format(as.Date(FIB4_NASH_Pats$claimed), "%Y-%m")
+
+
+FIB4_NASH_Pats <- FIB4_NASH_Pats %>% left_join(Months_lookup, by = c("Month_Yrdate" = "Month")) %>% 
+  filter(!is.na(Exact_Month))
+
+FIB4_NASH_Pats <- FIB4_NASH_Pats %>% select(-c(Month_Yrdate))
+
+
+# Ever treated
+NASH_Drug_Histories     <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(-c(disease))
+
+length(unique((NASH_Drug_Histories$patient))) # 9772
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>%
+  mutate(SurgeryStatus = 
+           ifelse(grepl("79", Treat)|grepl("80", Treat)|grepl("81", Treat)|grepl("82", Treat), "Surgery", "No"))
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, Month, SurgeryStatus)
+
+SurgeryPats <- NASH_Drug_Histories %>% filter(SurgeryStatus== "Surgery") %>% select(patient) %>% distinct()
+
+NASH_Drug_Histories <- SurgeryPats %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(SurgeryStatus== "Surgery")
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% filter(Month==min(Month))
+
+
+
+FIB4_NASH_Pats <- SurgeryPats %>% inner_join(FIB4_NASH_Pats)
+length(unique(FIB4_NASH_Pats$patient)) # 290
+
+FIB4_NASH_Pats <- FIB4_NASH_Pats %>% inner_join(NASH_Drug_Histories, by=c("patient"="patient")) %>% arrange(patient)
+
+FIB4_NASH_Pats <- FIB4_NASH_Pats %>% mutate(Exact_Month = Exact_Month-Month) %>% select(-c(Month, SurgeryStatus))
+
+FIB4_NASH_Pats <- FIB4_NASH_Pats %>% select(-claimed)
+FIB4_NASH_Pats <- data.frame(FIB4_NASH_Pats %>% group_by(patient, Exact_Month) %>% 
+                               mutate(fibrosis4=mean(fibrosis4)) %>% slice(1))
+
+
+FIB4_NASH_Pats %>% filter(Exact_Month < 0) %>% summarise(n=mean(fibrosis4)) #4.455225
+
+FIB4_NASH_Pats %>% filter(Exact_Month > 0) %>% summarise(n=mean(fibrosis4)) #2.093822
+
+
+FIB4_NASH_Pats %>% 
+  filter(fibrosis4<20) %>%
+  ggplot(aes(Exact_Month, fibrosis4))+
+  geom_jitter(colour="deepskyblue4", alpha=0.4, size=2)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n Month(s) Before / After Surgery")+
+  ylab("Mean FIB-4 Score \n")
+
+FIB4_NASH_Pats %>% 
+  filter(fibrosis4<20) %>%
+  ggplot(aes(Exact_Month, fibrosis4))+
+  geom_smooth(colour="deepskyblue4", fill="deepskyblue4", alpha=0.4, size=2)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n Month(s) Before / After Surgery")+
+  ylab("Mean FIB-4 Score \n")
+
+
+
+
+# --------
+
+# Check Scores before / after GLP1 Injectable -------------
+MELD_ExactDate<- fread("MELD_ExactDate.txt", sep="\t")
+MELD_ExactDate <- MELD_ExactDate %>% select(patid, weight, date, MELDNa, FirstNASHDx)
+MELD_ExactDate$Test <- "MELDNa"
+names(MELD_ExactDate)[4] <- "Score"
+
+FIB4_ExactDate<- fread("FIB4_ExactDate.txt", sep="\t")
+FIB4_ExactDate <- FIB4_ExactDate %>% select(patid, weight, date, fibrosis4, FirstNASHDx)
+FIB4_ExactDate$Test <- "fibrosis4"
+names(FIB4_ExactDate)[4] <- "Score"
+
+Comb_FIB4_MELD <- FIB4_ExactDate %>% bind_rows(MELD_ExactDate)
+Comb_FIB4_MELD$elapsedTime <- ((Comb_FIB4_MELD$FirstNASHDx - Comb_FIB4_MELD$date) / 30.5)
+
+length(unique(Comb_FIB4_MELD$patid)) # 4409
+
+Months_lookup <- fread("Months_lookup.txt",  integer64 = "character", stringsAsFactors = F)
+Months_lookup$Month <- paste0(Months_lookup$Month,"-1")
+Months_lookup$Month <- format(as.Date(Months_lookup$Month), "%Y-%m")
+
+setDT(Comb_FIB4_MELD)[, Month_Yrdate := format(as.Date(date), "%Y-%m") ]
+setDT(Comb_FIB4_MELD)[, Month_YrFirstNASHDx := format(as.Date(FirstNASHDx), "%Y-%m") ]
+
+Comb_FIB4_MELD <- Comb_FIB4_MELD %>% select(patid, weight, Score, Test, elapsedTime, Month_Yrdate)
+
+Comb_FIB4_MELD <- Comb_FIB4_MELD %>% left_join(Months_lookup, by = c("Month_Yrdate" = "Month")) %>% 
+  filter(!is.na(Exact_Month))
+
+Comb_FIB4_MELD <- Comb_FIB4_MELD %>% select(-c(Month_Yrdate, elapsedTime))
+
+
+
+# Ever treated
+NASH_Drug_Histories     <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(-c(disease))
+
+length(unique((NASH_Drug_Histories$patient))) # 9772
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>%
+  mutate(GLP1InjectableStatus = 
+           ifelse(grepl("70", Treat)|grepl("71", Treat)|grepl("72", Treat)|grepl("73", Treat)|grepl("74", Treat)|grepl("75", Treat), "GLP1Injectable", "No"))
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, Month, GLP1InjectableStatus)
+
+GLP1InjectablePats <- NASH_Drug_Histories %>% filter(GLP1InjectableStatus== "GLP1Injectable") %>% select(patient) %>% distinct()
+
+NASH_Drug_Histories <- GLP1InjectablePats %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(GLP1InjectableStatus== "GLP1Injectable")
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% filter(Month==min(Month))
+
+Comb_FIB4_MELD <- GLP1InjectablePats %>% inner_join(Comb_FIB4_MELD, by=c("patient"="patid"))
+length(unique(Comb_FIB4_MELD$patient)) # 552
+
+Comb_FIB4_MELD <- Comb_FIB4_MELD %>% inner_join(NASH_Drug_Histories, by=c("patient"="patient")) %>% arrange(patient)
+
+Comb_FIB4_MELD <- Comb_FIB4_MELD %>% mutate(Exact_Month = Exact_Month-Month) %>% select(-c(Month, GLP1InjectableStatus))
+
+Comb_FIB4_MELD <- data.frame(Comb_FIB4_MELD %>% group_by(patient, Exact_Month, Test) %>% 
+                               mutate(Score=mean(Score)) %>% slice(1))
+
+
+Comb_FIB4_MELD %>% filter(Test=="fibrosis4") %>% filter(Exact_Month < 0 & Exact_Month > (-12)) %>% summarise(n=mean(Score)) #1.949488
+
+Comb_FIB4_MELD %>% filter(Test=="fibrosis4") %>% filter(Exact_Month > 0& Exact_Month < 12) %>% summarise(n=mean(Score)) #2.198779
+
+Comb_FIB4_MELD %>% filter(Test=="fibrosis4") %>%
+  group_by(patient, Exact_Month) %>% mutate(Score=median(Score)) %>%
+  slice(1) %>%
+  filter(Score<20) %>%
+  filter(Exact_Month > (-12) & Exact_Month < 12) %>%
+  ggplot(aes(Exact_Month, Score))+
+  geom_jitter(colour="deepskyblue4", alpha=0.4, size=2)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n Month(s) Before / After GLP1 Injectable")+
+  ylab("Mean FIB-4 Score \n")
+
+Comb_FIB4_MELD %>% filter(Test=="fibrosis4") %>%
+  group_by(patient, Exact_Month) %>% mutate(Score=median(Score)) %>%
+  slice(1) %>%
+  filter(Score<20) %>%
+  #filter(Exact_Month > (-12) & Exact_Month < 12) %>%
+  ggplot(aes(Exact_Month, Score))+
+  geom_smooth(method="lm",colour="deepskyblue4", fill="deepskyblue4", alpha=0.4, size=2)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n Month(s) Before / After GLP1 Injectable")+
+  ylab("Mean FIB-4 Score \n")
+
+
+
+Comb_FIB4_MELD %>% filter(Test=="MELDNa") %>% filter(Exact_Month < 0 & Exact_Month > (-12)) %>% summarise(n=mean(Score)) #15.00274
+
+Comb_FIB4_MELD %>% filter(Test=="MELDNa") %>% filter(Exact_Month > 0& Exact_Month < 12) %>% summarise(n=mean(Score)) #10.79643
+
+Comb_FIB4_MELD %>% filter(Test=="MELDNa") %>%
+  #filter(Exact_Month > (-12) & Exact_Month < 12) %>%
+  group_by(patient, Exact_Month) %>% mutate(Score=median(Score)) %>%
+  slice(1) %>%
+  ggplot(aes(Exact_Month, Score))+
+  geom_jitter(colour="deeppink4", alpha=0.4, size=2)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n Month(s) Before / After GLP1 Injectable")+
+  ylab("Mean MELD Score \n")
+
+
+Comb_FIB4_MELD %>% filter(Test=="MELDNa") %>%
+  group_by(patient, Exact_Month) %>% mutate(Score=median(Score)) %>%
+  slice(1) %>%
+  ggplot(aes(Exact_Month))+
+  geom_density(colour="deeppink4", alpha=0.4, size=2)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n Month(s) Before / After GLP1 Injectable")+
+  ylab("Mean MELD Score \n")
+
+
+Comb_FIB4_MELD %>% filter(Test=="MELDNa") %>%
+  group_by(patient, Exact_Month) %>% mutate(Score=median(Score)) %>%
+  slice(1) %>%
+  ggplot(aes(Exact_Month, Score))+
+  geom_smooth(colour="deeppink4", fill="deeppink4", alpha=0.4, size=2)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n Month(s) Before / After GLP1 Injectable")+
+  ylab("Mean MELD Score \n")
+
+
+
+# ------------
+
+# FIB4 and MELD over time -----------------------------
+FIB4_ExactDate <- fread("FIB4_ExactDate.txt", sep="\t")
+FIB4_ExactDate <- FIB4_ExactDate %>% select(patid, weight, date, fibrosis4, FirstNASHDx)
+FIB4_ExactDate$Test <- "fibrosis4"
+names(FIB4_ExactDate)[4] <- "Score"
+FIB4_ExactDate$elapsedTime <- round(((FIB4_ExactDate$date  - FIB4_ExactDate$FirstNASHDx) / 30.5))
+names(FIB4_ExactDate)[1] <- "patient"
+
+MELD_ExactDate<- fread("MELD_ExactDate.txt", sep="\t")
+MELD_ExactDate <- MELD_ExactDate %>% select(patid, weight, date, MELDNa, FirstNASHDx)
+MELD_ExactDate$Test <- "MELDNa"
+names(MELD_ExactDate)[4] <- "Score"
+MELD_ExactDate$elapsedTime <- round(((MELD_ExactDate$date - MELD_ExactDate$FirstNASHDx ) / 30.5))
+names(MELD_ExactDate)[1] <- "patient"
+
+
+to_keep_FIB4 <- FIB4_ExactDate %>% select(patient, elapsedTime) %>% filter(elapsedTime< (0)) %>% select(patient) %>% distinct()
+to_keep2_FIB4 <- FIB4_ExactDate %>% select(patient, elapsedTime) %>% filter(elapsedTime>= 0 ) %>% select(patient) %>% distinct()
+
+
+
+FIB4_ExactDate %>% anti_join(SurgeryPats) %>%
+  #inner_join(to_keep_FIB4) %>% inner_join(to_keep2_FIB4) %>%
+  group_by(patient, elapsedTime) %>% mutate(Score=median(Score)) %>%
+  slice(1) %>%
+  filter(Score<20) %>%
+  ggplot(aes(elapsedTime, Score)) +
+  geom_jitter(size=0.3, alpha=0.3, colour="firebrick")+
+  geom_smooth(method="lm", colour="deepskyblue4", fill="deepskyblue4")+
+  #ylim(6,40)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("FIB-4 Score \n")+xlab("Time before/after 1st NASH Dx")
+
+
+
+to_keep_FIB4 <- FIB4_ExactDate %>% select(patient, elapsedTime) %>% filter(elapsedTime< (-24)) %>% select(patient) %>% distinct()
+to_keep2_FIB4 <- FIB4_ExactDate %>% select(patient, elapsedTime) %>% filter(elapsedTime> 24 ) %>% select(patient) %>% distinct()
+
+
+temp <- FIB4_ExactDate %>% anti_join(SurgeryPats) %>%
+  inner_join(to_keep_FIB4) %>% inner_join(to_keep2_FIB4) %>%
+  group_by(patient, elapsedTime) %>% mutate(Score=median(Score)) %>%
+  slice(1) %>%
+  filter(Score<20) %>%
+  filter( elapsedTime < (-24) | elapsedTime > 24) %>%
+  select(Score, elapsedTime) %>%
+  mutate(Dx=ifelse(elapsedTime>0, 1, 0))
+
+summary(glm( Dx ~ Score, data = temp, family = binomial))
+
+
+
+temp %>% 
+  ggplot(aes(Score, Dx)) +
+  geom_point(alpha = 0.2, colour="firebrick") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), colour="darkslategray", fill="darkslategray") +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n FIB-4 (2 years prior to vs after 1st NASH Dx)")+
+  ylab("Probability of NASH Positive \n")
+
+
+
+to_keep_MELD <- MELD_ExactDate %>% select(patient, elapsedTime) %>% filter(elapsedTime< (-24)) %>% select(patient) %>% distinct()
+to_keep2_MELD <- MELD_ExactDate %>% select(patient, elapsedTime) %>% filter(elapsedTime> 24 ) %>% select(patient) %>% distinct()
+
+
+
+temp2 <- MELD_ExactDate %>% anti_join(SurgeryPats) %>%
+  inner_join(to_keep_MELD) %>% inner_join(to_keep2_MELD) %>%
+  group_by(patient, elapsedTime) %>% mutate(Score=median(Score)) %>%
+  slice(1) %>%
+  filter( elapsedTime < (-24) | elapsedTime > 24) %>%
+  select(Score, elapsedTime) %>%
+  mutate(Dx=ifelse(elapsedTime>0, 1, 0))
+
+
+
+temp2 %>% 
+  ggplot(aes(Score, Dx)) +
+  geom_point(alpha = 0.2, colour="deeppink3") +
+  xlim(0,20)+
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), colour="deepskyblue4", fill="deepskyblue4") +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n MELD (2 years prior to vs after 1st NASH Dx)")+
+  ylab("Probability of NASH Positive \n")
+
+
+
+# -----------
+# Get each lab result over time -------------------
+
+
+NASH_Drug_Histories     <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(-c(disease))
+
+length(unique((NASH_Drug_Histories$patient))) # 9772
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>%
+  mutate(SurgeryStatus = 
+           ifelse(grepl("79", Treat)|grepl("80", Treat)|grepl("81", Treat)|grepl("82", Treat), "Surgery", "No"))
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, Month, SurgeryStatus)
+
+SurgeryPats <- NASH_Drug_Histories %>% filter(SurgeryStatus== "Surgery") %>% select(patient) %>% distinct()
+
+
+#  AST
+
+AST_Results_NASH_Pooled <- fread("AST_Results_NASH_Pooled.txt")
+
+NASH_Events <- fread("NASH Events.txt")
+NASH_Events <- NASH_Events %>% select(patid, weight, claimed, code) %>% distinct()
+
+NASH_Diagnosis_Codes <- fread("NASH Diagnosis Codes.txt")
+NASH_Events <- NASH_Events %>% left_join(NASH_Diagnosis_Codes %>% select(code, condition))
+NASH_Events <- NASH_Events %>% filter(condition=="NASH")
+NASH_Events <- NASH_Events %>% group_by(patid) %>% slice(1)
+NASH_Events <- NASH_Events %>% select(patid, claimed)
+names(NASH_Events)[2] <- "FirstNASHDx"
+
+AST_Results_NASH_Pooled <- AST_Results_NASH_Pooled %>% inner_join(NASH_Events) 
+
+AST_Results_NASH_Pooled$date <- as.Date(AST_Results_NASH_Pooled$date)
+AST_Results_NASH_Pooled$FirstNASHDx <- as.Date(AST_Results_NASH_Pooled$FirstNASHDx)
+
+AST_Results_NASH_Pooled$elapsedTime <- round(((AST_Results_NASH_Pooled$date - AST_Results_NASH_Pooled$FirstNASHDx ) / 30.5))
+
+AST_Results_NASH_Pooled$elapsedTime <- as.numeric(AST_Results_NASH_Pooled$elapsedTime)
+
+
+
+to_keep_AST <- AST_Results_NASH_Pooled %>% select(patid, elapsedTime) %>% filter(elapsedTime< (0)) %>% select(patid) %>% distinct()
+to_keep2_AST <- AST_Results_NASH_Pooled %>% select(patid, elapsedTime) %>% filter(elapsedTime> 0 ) %>% select(patid) %>% distinct()
+
+
+AST_Results_NASH_Pooled %>% anti_join(SurgeryPats, by= c("patid"="patient")) %>%
+  inner_join(to_keep_AST) %>% inner_join(to_keep2_AST) %>%
+  group_by(patid, elapsedTime) %>% filter(result==median(result)) %>%
+  slice(1) %>%
+  ggplot(aes(elapsedTime, result)) +
+  geom_jitter(size=0.3, alpha=0.3)+
+  geom_smooth(method="lm")+
+  ylim(0,500)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())
+
+
+to_keep_AST <- AST_Results_NASH_Pooled %>% select(patid, elapsedTime) %>% filter(elapsedTime<0) %>% select(patid) %>% distinct()
+to_keep2_AST <- AST_Results_NASH_Pooled %>% select(patid, elapsedTime) %>% filter(elapsedTime>0) %>% select(patid) %>% distinct()
+
+to_keep_AST %>% inner_join(to_keep2_AST) %>% inner_join(AST_Results_NASH_Pooled) %>%
+  anti_join(SurgeryPats, by=c("patid"="patient")) %>%
+ # filter(elapsedTime<=0) %>%
+  group_by(patid, elapsedTime) %>% filter(result==median(result)) %>%
+  slice(1) %>%
+  ggplot(aes(elapsedTime, result)) +
+  geom_jitter(size=1, alpha=0.3, colour="deepskyblue4")+
+ # geom_smooth(method="lm", colour="firebrick", fill="firebrick")+
+  ylim(0,500)+
+  xlab("\n Time to/from First NASH Dx")+ylab("AST (IU/L) \n")  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())
+
+
+ data.frame(to_keep_AST %>% inner_join(to_keep2_AST) %>% inner_join(AST_Results_NASH_Pooled) %>%
+              anti_join(SurgeryPats, by=c("patid"="patient")) %>%
+              filter(elapsedTime<=0)%>%
+                   group_by(patid, elapsedTime) %>% filter(result==median(result)) %>%
+                   slice(1) %>% ungroup() %>% group_by(elapsedTime) %>% summarise(n=median(result)))
+
+# ALT 
+
+ALT_Results_NASH_Pooled <- fread("ALT_Results_NASH_Pooled.txt")
+
+NASH_Events <- fread("NASH Events.txt")
+NASH_Events <- NASH_Events %>% select(patid, weight, claimed, code) %>% distinct()
+
+NASH_Diagnosis_Codes <- fread("NASH Diagnosis Codes.txt")
+NASH_Events <- NASH_Events %>% left_join(NASH_Diagnosis_Codes %>% select(code, condition))
+NASH_Events <- NASH_Events %>% filter(condition=="NASH")
+NASH_Events <- NASH_Events %>% group_by(patid) %>% slice(1)
+NASH_Events <- NASH_Events %>% select(patid, claimed)
+names(NASH_Events)[2] <- "FirstNASHDx"
+
+ALT_Results_NASH_Pooled <- ALT_Results_NASH_Pooled %>% inner_join(NASH_Events) 
+
+ALT_Results_NASH_Pooled$date <- as.Date(ALT_Results_NASH_Pooled$date)
+ALT_Results_NASH_Pooled$FirstNASHDx <- as.Date(ALT_Results_NASH_Pooled$FirstNASHDx)
+
+ALT_Results_NASH_Pooled$elapsedTime <- round(((ALT_Results_NASH_Pooled$date - ALT_Results_NASH_Pooled$FirstNASHDx ) / 30.5))
+
+ALT_Results_NASH_Pooled$elapsedTime <- as.numeric(ALT_Results_NASH_Pooled$elapsedTime)
+
+ALT_Results_NASH_Pooled %>%
+  group_by(patid, elapsedTime) %>% filter(result==max(result)) %>%
+  slice(1) %>%
+  ggplot(aes(elapsedTime, result)) +
+  geom_jitter(size=0.3, alpha=0.3, colour="deepskyblue4")+
+  geom_smooth(method="lm", colour="firebrick", fill="firebrick")+
+  ylim(0,500)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())
+
+
+to_keep_ALT <- ALT_Results_NASH_Pooled %>% select(patid, elapsedTime) %>% filter(elapsedTime<0) %>% select(patid) %>% distinct()
+to_keep2_ALT <- ALT_Results_NASH_Pooled %>% select(patid, elapsedTime) %>% filter(elapsedTime>0) %>% select(patid) %>% distinct()
+
+to_keep_ALT %>% inner_join(to_keep2_ALT) %>% anti_join(SurgeryPats, by=c("patid"="patient")) %>%
+  inner_join(ALT_Results_NASH_Pooled) %>%
+  group_by(patid, elapsedTime) %>% filter(result==median(result)) %>%
+  slice(1) %>%
+  ggplot(aes(elapsedTime, result)) +
+  geom_jitter(size=1, alpha=0.3, colour="deepskyblue4")+
+  #geom_smooth(method="lm", colour="firebrick", fill="firebrick")+
+  ylim(0,500)+xlim(-12,12)+
+  xlab("\n Time to/from First NASH Dx")+ylab("ALT (IU/L) \n")  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())
+
+
+data.frame(to_keep_ALT %>% inner_join(to_keep2_ALT) %>% anti_join(SurgeryPats, by=c("patid"="patient")) %>%
+             inner_join(ALT_Results_NASH_Pooled) %>%
+             filter(elapsedTime<=0) %>%
+             group_by(patid, elapsedTime) %>% filter(result==median(result)) %>%
+             slice(1) %>% ungroup() %>% group_by(elapsedTime) %>% summarise(n=median(result)))
+
+
+
+temp <- to_keep_ALT %>% inner_join(to_keep2_ALT) %>% anti_join(SurgeryPats, by=c("patid"="patient")) %>%
+  inner_join(ALT_Results_NASH_Pooled) %>% bind_rows(to_keep_AST %>% inner_join(to_keep2_AST) %>% anti_join(SurgeryPats, by=c("patid"="patient")) %>%
+                                                      inner_join(AST_Results_NASH_Pooled))
+
+
+
+temp %>% select(-c(ORIGIN, date, FirstNASHDx, weight)) %>% group_by(patid, elapsedTime) %>% distinct() %>%
+  pivot_wider(names_from = TEST, values_from = result, values_fn = median) %>%
+  drop_na() %>% mutate(ratio=AST/ALT) %>%
+  ungroup() %>% group_by(elapsedTime) %>% summarise(n=median(ratio)) %>%
+  filter(elapsedTime<=0 & elapsedTime>= (-48)) %>%
+  ggplot(aes(elapsedTime, n)) +
+  geom_jitter(size=3, alpha=0.9, colour="deepskyblue4")+
+  geom_smooth(method="lm", colour="firebrick", fill="firebrick")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())
+
+Pats_ratio_lessthan1 <- temp %>% select(-c(ORIGIN, date, FirstNASHDx, weight)) %>% group_by(patid, elapsedTime) %>% distinct() %>%
+  pivot_wider(names_from = TEST, values_from = result, values_fn = median) %>% 
+  drop_na() %>% mutate(ratio=AST/ALT) %>% ungroup() %>% filter(ratio<1) %>% select(patid) %>% distinct() 
+
+Pats_ratio <- temp %>% select(-c(ORIGIN, date, FirstNASHDx, weight)) %>% group_by(patid, elapsedTime) %>% distinct() %>%
+  pivot_wider(names_from = TEST, values_from = result, values_fn = median) %>% 
+  drop_na() %>% mutate(ratio=AST/ALT) %>% ungroup()  %>% select(patid) %>% distinct() 
+
+
+# Platelet  ---------
+Platelet_Results_NASH_Pooled <- fread("Platelet_Results_NASH_Pooled.txt")
+
+
+NASH_Events <- fread("NASH Events.txt")
+NASH_Events <- NASH_Events %>% select(patid, weight, claimed, code) %>% distinct()
+
+NASH_Diagnosis_Codes <- fread("NASH Diagnosis Codes.txt")
+NASH_Events <- NASH_Events %>% left_join(NASH_Diagnosis_Codes %>% select(code, condition))
+NASH_Events <- NASH_Events %>% filter(condition=="NASH")
+NASH_Events <- NASH_Events %>% group_by(patid) %>% slice(1)
+NASH_Events <- NASH_Events %>% select(patid, claimed)
+names(NASH_Events)[2] <- "FirstNASHDx"
+
+
+Platelet_Results_NASH_Pooled <- Platelet_Results_NASH_Pooled %>% inner_join(NASH_Events) 
+
+Platelet_Results_NASH_Pooled$date <- as.Date(Platelet_Results_NASH_Pooled$date)
+Platelet_Results_NASH_Pooled$FirstNASHDx <- as.Date(Platelet_Results_NASH_Pooled$FirstNASHDx)
+
+Platelet_Results_NASH_Pooled$elapsedTime <- round(((Platelet_Results_NASH_Pooled$date - Platelet_Results_NASH_Pooled$FirstNASHDx ) / 30.5))
+
+Platelet_Results_NASH_Pooled$elapsedTime <- as.numeric(Platelet_Results_NASH_Pooled$elapsedTime)
+
+
+Platelet_Results_NASH_Pooled %>%
+  group_by(patid, elapsedTime) %>% filter(result==median(result)) %>%
+  slice(1) %>%
+  ggplot(aes(elapsedTime, result)) +
+  geom_jitter(size=0.3, alpha=0.3)+
+  #geom_smooth(method="lm")+
+  ylim(0,500)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())
+
+
+
+
+
+
+# ---------
+# INR -------------
+
+
+INR_Results_NASH_Pooled <- fread("INR_Results_NASH_Pooled.txt")
+
+
+NASH_Events <- fread("NASH Events.txt")
+NASH_Events <- NASH_Events %>% select(patid, weight, claimed, code) %>% distinct()
+
+NASH_Diagnosis_Codes <- fread("NASH Diagnosis Codes.txt")
+NASH_Events <- NASH_Events %>% left_join(NASH_Diagnosis_Codes %>% select(code, condition))
+NASH_Events <- NASH_Events %>% filter(condition=="NASH")
+NASH_Events <- NASH_Events %>% group_by(patid) %>% slice(1)
+NASH_Events <- NASH_Events %>% select(patid, claimed)
+names(NASH_Events)[2] <- "FirstNASHDx"
+
+
+INR_Results_NASH_Pooled <- INR_Results_NASH_Pooled %>% inner_join(NASH_Events) 
+
+INR_Results_NASH_Pooled$date <- as.Date(INR_Results_NASH_Pooled$date)
+INR_Results_NASH_Pooled$FirstNASHDx <- as.Date(INR_Results_NASH_Pooled$FirstNASHDx)
+
+INR_Results_NASH_Pooled$elapsedTime <- round(((INR_Results_NASH_Pooled$date - INR_Results_NASH_Pooled$FirstNASHDx ) / 30.5))
+
+INR_Results_NASH_Pooled$elapsedTime <- as.numeric(INR_Results_NASH_Pooled$elapsedTime)
+
+
+INR_Results_NASH_Pooled %>%
+  group_by(patid, elapsedTime) %>% filter(result==max(result)) %>%
+  slice(1) %>%
+  ggplot(aes(elapsedTime, result)) +
+  geom_jitter(size=0.3, alpha=0.3)+
+  geom_smooth(method="loess")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())
+
+# ----------
+# Which tests increase around Dx time ? ------------
+
+NASH_Events <- fread("NASH Events.txt")
+NASH_Events <- NASH_Events %>% select(patid, weight, claimed, code) %>% distinct()
+
+NASH_Diagnosis_Codes <- fread("NASH Diagnosis Codes.txt")
+NASH_Events <- NASH_Events %>% left_join(NASH_Diagnosis_Codes %>% select(code, condition))
+NASH_Events <- NASH_Events %>% filter(condition=="NASH")
+NASH_Events <- NASH_Events %>% group_by(patid) %>% slice(1)
+NASH_Events <- NASH_Events %>% select(patid, claimed)
+names(NASH_Events)[2] <- "FirstNASHDx"
+NASH_Events$FirstNASHDx <- as.Date(NASH_Events$FirstNASHDx)
+
+DANU_Measures <- fread("DANU Measures.txt", integer64 = "character", stringsAsFactors = F)
+DANU_Measures <- NASH_Events %>% select(patid) %>% left_join(DANU_Measures)
+DANU_Measures <- DANU_Measures %>% select(patid, test, claimed, value)
+DANU_Measures$claimed <- as.Date(DANU_Measures$claimed)
+DANU_Measures <- DANU_Measures %>% left_join(NASH_Events)
+
+DANU_Measures <- DANU_Measures %>% filter(!is.na(test))
+
+DANU_Measures$elapsedTime <- round(((DANU_Measures$claimed - DANU_Measures$FirstNASHDx ) / 30.5))
+
+DANU_Measures$elapsedTime <- as.numeric(DANU_Measures$elapsedTime)
+
+DANU_Measures %>% group_by(test) %>% count()
+
+
+
+data.frame(DANU_Measures %>% group_by(test, elapsedTime) %>% count() %>% spread(key=test, value=n))
+
+
+DANU_Measures %>% group_by(test, elapsedTime) %>% count() %>%
+  ggplot(aes(elapsedTime, n, fill=test, colour=test)) +
+  geom_col(show.legend = F)+
+  facet_wrap(~test, scales = "free", ncol = 7) +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  scale_fill_viridis_d()+
+  scale_colour_viridis_d()+
+  ylab("Number of test recoreds per month \n")+xlab("\nElapsed time to/from 1st NASH Dx")
+
+
+# Repeat for unrelated test: WBC
+NASH_Extract_Claims_Lab_Results <- fread("NASH Extract Claims Lab Results.txt")
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% filter(loinc_cd == "6690-2") %>% select(patid, fst_dt)
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% left_join(NASH_Events)  
+NASH_Extract_Claims_Lab_Results$fst_dt <- as.Date(NASH_Extract_Claims_Lab_Results$fst_dt)
+
+NASH_Extract_Claims_Lab_Results$elapsedTime <- round(((NASH_Extract_Claims_Lab_Results$fst_dt - NASH_Extract_Claims_Lab_Results$FirstNASHDx ) / 30.5))
+
+NASH_Extract_Claims_Lab_Results$elapsedTime <- as.numeric(NASH_Extract_Claims_Lab_Results$elapsedTime)
+
+data.frame(NASH_Extract_Claims_Lab_Results %>% group_by(elapsedTime) %>% count()) %>%
+  ggplot(aes(elapsedTime, n)) +
+  geom_col(show.legend = F, colour="darkslategray", fill="darkslategray")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of test recoreds per month \n")+xlab("\nElapsed time to/from 1st NASH Dx")
+
+
+# Repeat for unrelated test: WBC
+NASH_Extract_Claims_Lab_Results <- fread("NASH Extract Claims Lab Results.txt")
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% filter(loinc_cd == "6690-2") %>% select(patid, fst_dt)
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% left_join(NASH_Events)  
+NASH_Extract_Claims_Lab_Results$fst_dt <- as.Date(NASH_Extract_Claims_Lab_Results$fst_dt)
+
+NASH_Extract_Claims_Lab_Results$elapsedTime <- round(((NASH_Extract_Claims_Lab_Results$fst_dt - NASH_Extract_Claims_Lab_Results$FirstNASHDx ) / 30.5))
+
+NASH_Extract_Claims_Lab_Results$elapsedTime <- as.numeric(NASH_Extract_Claims_Lab_Results$elapsedTime)
+
+data.frame(NASH_Extract_Claims_Lab_Results %>% group_by(elapsedTime) %>% count()) %>%
+  ggplot(aes(elapsedTime, n)) +
+  geom_col(show.legend = F, colour="darkslategray", fill="darkslategray")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of test recoreds per month \n")+xlab("\nElapsed time to/from 1st NASH Dx")
+
+
+
+# Repeat for unrelated test: Height Inches
+NASH_Extract_Claims_Lab_Results <- fread("NASH Extract Claims Lab Results.txt")
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% filter(grepl("HEIGHT",tst_desc)) %>% select(patid, fst_dt)
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% left_join(NASH_Events)  
+NASH_Extract_Claims_Lab_Results$fst_dt <- as.Date(NASH_Extract_Claims_Lab_Results$fst_dt)
+
+NASH_Extract_Claims_Lab_Results$elapsedTime <- round(((NASH_Extract_Claims_Lab_Results$fst_dt - NASH_Extract_Claims_Lab_Results$FirstNASHDx ) / 30.5))
+
+NASH_Extract_Claims_Lab_Results$elapsedTime <- as.numeric(NASH_Extract_Claims_Lab_Results$elapsedTime)
+
+data.frame(NASH_Extract_Claims_Lab_Results %>% group_by(elapsedTime) %>% count()) %>%
+  ggplot(aes(elapsedTime, n)) +
+  geom_col(show.legend = F, colour="deeppink4", fill="deeppink4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of test records per month \n")+xlab("\nElapsed time to/from 1st NASH Dx")
+
+
+
+# Repeat for unrelated test: o2 SATURATION
+NASH_Extract_Labs <- fread("NASH Extract Labs.txt")
+
+NASH_Extract_Labs <- NASH_Extract_Labs %>% filter(test_name == "Oxygen saturation (SpO2).pulse oximetry") %>% select(patid, result_date)
+NASH_Extract_Labs <- NASH_Extract_Labs %>% left_join(NASH_Events)  
+NASH_Extract_Labs$result_date <- as.Date(NASH_Extract_Labs$result_date)
+
+NASH_Extract_Labs$elapsedTime <- round(((NASH_Extract_Labs$result_date - NASH_Extract_Labs$FirstNASHDx ) / 30.5))
+
+NASH_Extract_Labs$elapsedTime <- as.numeric(NASH_Extract_Labs$elapsedTime)
+
+data.frame(NASH_Extract_Labs %>% group_by(elapsedTime) %>% count()) %>%
+  ggplot(aes(elapsedTime, n)) +
+  geom_col(show.legend = F, colour="deeppink4", fill="deeppink4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of test records per month \n")+xlab("\nElapsed time to/from 1st NASH Dx")
+
+# --------
+# New Measure All Danuglipron Pats -------------------------------------
+
+NASH_Pats <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Pats <- NASH_Pats %>% select(patient)
+
+DIA_Pats <- fread("DIA Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+DIA_Pats <- DIA_Pats %>% select(patient)
+DIA_Pats <- DIA_Pats %>% anti_join(NASH_Pats)
+
+OBE_Pats <- fread("OBE Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+OBE_Pats <- OBE_Pats %>% select(patient)
+OBE_Pats <- OBE_Pats %>% anti_join(NASH_Pats)
+
+
+DANU_Measures <- fread("DANU Measures.txt", integer64 = "character", stringsAsFactors = F)
+
+NASH_Pats <- NASH_Pats %>% left_join(DANU_Measures, by = c("patient"="patid"))
+DIA_Pats <- DIA_Pats %>% left_join(DANU_Measures, by = c("patient"="patid"))
+OBE_Pats <- OBE_Pats %>% left_join(DANU_Measures, by = c("patient"="patid"))
+
+
+
+# AST NASH vs DIA vs OBE
+NASH_Pats_AST <- NASH_Pats %>% filter(test == "AST Level")
+DIA_Pats_AST <- DIA_Pats %>% filter(test == "AST Level")
+oBE_Pats_AST <- OBE_Pats %>% filter(test == "AST Level")
+
+NASH_Pats_AST %>% filter(value <= 200 & value >0) %>% 
+  ggplot(aes(value)) +
+  geom_histogram(bins=336, colour="deepskyblue4", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\nNASH AST Level")
+
+DIA_Pats_AST %>% filter(value <= 200 & value >0) %>% 
+  ggplot(aes(value)) +
+  geom_histogram(bins=756, colour="deepskyblue4", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\nDIA AST Level")
+
+oBE_Pats_AST %>% filter(value <= 200 & value >0) %>% 
+  ggplot(aes(value)) +
+  geom_histogram(bins=1491, colour="deepskyblue4", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\nOBE AST Level")
+
+
+
+# ALT NASH vs DIA vs OBE
+NASH_Pats_ALT <- NASH_Pats %>% filter(test == "ALT Level")
+DIA_Pats_ALT <- DIA_Pats %>% filter(test == "ALT Level")
+oBE_Pats_ALT <- OBE_Pats %>% filter(test == "ALT Level")
+
+
+NASH_Pats_ALT %>% filter(value <= 200 & value >0) %>% 
+  ggplot(aes(value)) +
+  geom_histogram(bins=276, colour="deepskyblue4", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\nNASH ALT Level")
+
+DIA_Pats_ALT %>% filter(value <= 200 & value >0) %>% 
+  ggplot(aes(value)) +
+  geom_histogram(bins=615, colour="deepskyblue4", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\nDIA ALT Level")
+
+oBE_Pats_ALT %>% filter(value <= 200 & value >0) %>% 
+  ggplot(aes(value)) +
+  geom_histogram(bins=615, colour="deepskyblue4", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\nOBE ALT Level")
+
+
+
+# Platelets NASH vs DIA vs OBE
+NASH_Pats_Platelets <- NASH_Pats %>% filter(test == "Platelet Count")
+DIA_Pats_Platelets <- DIA_Pats %>% filter(test == "Platelet Count")
+oBE_Pats_Platelets <- OBE_Pats %>% filter(test == "Platelet Count")
+
+
+NASH_Pats_Platelets %>% filter(value <= 500 & value >0) %>% 
+  ggplot(aes(value)) +
+  geom_histogram(bins=748, colour="deepskyblue4", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\nNASH Platelets Level")
+
+DIA_Pats_Platelets %>% filter(value <= 500 & value >0) %>% 
+  ggplot(aes(value)) +
+  geom_histogram(bins=1988, colour="deepskyblue4", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\nDIA Platelets Level")
+
+oBE_Pats_Platelets %>% filter(value <= 500 & value >0) %>% 
+  ggplot(aes(value)) +
+  geom_histogram(bins=2097, colour="deepskyblue4", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\nOBE Platelets Level")
+
+
+
+
+
+
+# Gamma Globulin NASH vs DIA vs OBE
+NASH_Pats_GammaGlobulin <- NASH_Pats %>% filter(test == "Gamma Globulin")
+DIA_Pats_GammaGlobulin <- DIA_Pats %>% filter(test == "Gamma Globulin")
+oBE_Pats_GammaGlobulin <- OBE_Pats %>% filter(test == "Gamma Globulin")
+
+
+NASH_Pats_GammaGlobulin %>%  
+  ggplot(aes(value)) +
+  xlim(0,10)+
+  geom_histogram(bins=331, colour="deepskyblue4", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\nNASH Gamma Globulin Level")
+
+DIA_Pats_GammaGlobulin %>% 
+  ggplot(aes(value)) +
+  xlim(0,10)+
+  geom_histogram(bins=331, colour="deepskyblue4", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\nDIA Gamma Globulin Level")
+
+oBE_Pats_GammaGlobulin %>% 
+  ggplot(aes(value)) +
+  xlim(0,10)+
+  geom_histogram(bins=331, colour="deepskyblue4", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\nOBE Gamma Globulin Level")
+
+
+
+
+# Albumin Level NASH vs DIA vs OBE
+NASH_Pats_Albumin <- NASH_Pats %>% filter(test == "Albumin Level")
+DIA_Pats_Albumin <- DIA_Pats %>% filter(test == "Albumin Level")
+oBE_Pats_Albumin <- OBE_Pats %>% filter(test == "Albumin Level")
+
+mean(NASH_Pats_Albumin$value) #3.960414
+median(NASH_Pats_Albumin$value) #4.1
+
+mean(DIA_Pats_Albumin$value) #4.026112
+median(DIA_Pats_Albumin$value) #4.1
+
+mean(oBE_Pats_Albumin$value) #4.139651
+median(oBE_Pats_Albumin$value) #4.2
+
+
+NASH_Pats_Albumin %>%  
+  ggplot(aes(value)) +
+  xlim(1,6)+
+  geom_histogram(bins=203, colour="deepskyblue4", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\nNASH Albumin Level")
+
+DIA_Pats_Albumin %>% 
+  ggplot(aes(value)) +
+  xlim(1,6)+
+  geom_histogram(bins=470, colour="deepskyblue4", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\nDIA Albumin Level")
+
+oBE_Pats_Albumin %>% 
+  ggplot(aes(value)) +
+  xlim(1,6)+
+  geom_histogram(bins=498, colour="deepskyblue4", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\nOBE Albumin Level")
+
+
+
+# BMI Level NASH vs DIA vs OBE
+NASH_Pats_BMI <- NASH_Pats %>% filter(test == "BMI")
+DIA_Pats_BMI <- DIA_Pats %>% filter(test == "BMI")
+oBE_Pats_BMI <- OBE_Pats %>% filter(test == "BMI")
+
+
+NASH_Pats_BMI %>%  
+  ggplot(aes(value)) +
+  xlim(10,50)+
+  geom_histogram( colour="deepskyblue4", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\nNASH BMI Level")
+
+DIA_Pats_BMI %>% 
+  ggplot(aes(value)) +
+  xlim(10,50)+
+  geom_histogram(colour="deepskyblue4", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\nDIA BMI Level")
+
+oBE_Pats_BMI %>% 
+  ggplot(aes(value)) +
+  xlim(10,50)+
+  geom_histogram( colour="deepskyblue4", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\nOBE BMI Level")
+
+
+
+
+
+# Split NASH Pats into type of NASH 
+
+NASH_diagnosis <- fread("NASH_diagnosis.txt")
+NASH_diagnosis <- NASH_diagnosis %>% filter(grepl("NASH", NASH_diganosis))
+NASH_diagnosis  %>% summarise(n=sum(weight)) #1339983
+
+NASH_Pats_Cirrhosis <- NASH_diagnosis  %>% filter(NASH_diganosis == "NASH-Cirrohsis") %>% select(patient) %>% left_join(NASH_Pats)
+NASH_Pats_Fibrosis <- NASH_diagnosis  %>% filter(NASH_diganosis == "NASH-Fibrosis") %>% select(patient) %>% left_join(NASH_Pats)
+NASH_Pats_NASHOnly <- NASH_diagnosis  %>% filter(NASH_diganosis == "NASH-Only") %>% select(patient) %>% left_join(NASH_Pats)
+
+
+
+#  Fibrosis Score NASH only vs NASH Fibrosis vs NASH Cirrhosis
+NASH_Pats_Cirrhosis_FibrosisScore <- NASH_Pats_Cirrhosis %>% filter(test == "Fibrosis Score")
+NASH_Pats_Fibrosis_FibrosisScore <- NASH_Pats_Fibrosis %>% filter(test == "Fibrosis Score")
+NASH_Pats_NASHOnly_FibrosisScore <- NASH_Pats_NASHOnly %>% filter(test == "Fibrosis Score")
+
+NASH_Pats_Cirrhosis_FibrosisScore %>% 
+  ggplot(aes(value)) +
+  geom_histogram(bins=37, colour="deepskyblue4", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\nNASH Cirrhosis Score")
+
+NASH_Pats_Fibrosis_FibrosisScore %>% 
+  ggplot(aes(value)) +
+  geom_histogram(bins=17, colour="deepskyblue4", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\nNASH Fibrosis  Score")
+
+NASH_Pats_NASHOnly_FibrosisScore %>% 
+  ggplot(aes(value)) +
+  geom_histogram(bins=42, colour="deepskyblue4", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\nNASH only Fibrosis Score")
+
+
+
+
+#  Fibrosis Stage NASH only vs NASH Fibrosis vs NASH Cirrhosis
+NASH_Pats_Cirrhosis_FibrosisStage <- NASH_Pats_Cirrhosis %>% filter(test == "Fibrosis Stage")
+NASH_Pats_Fibrosis_FibrosisStage <- NASH_Pats_Fibrosis %>% filter(test == "Fibrosis Stage")
+NASH_Pats_NASHOnly_FibrosisStage <- NASH_Pats_NASHOnly %>% filter(test == "Fibrosis Stage")
+
+NASH_Pats_Cirrhosis_FibrosisStage %>% 
+  ggplot(aes(value)) +
+  geom_histogram(bins=8, colour="deepskyblue4", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\nNASH Cirrhosis, Fibrosis Stage")
+
+NASH_Pats_Fibrosis_FibrosisStage %>% 
+  ggplot(aes(value)) +
+  geom_histogram(bins=9, colour="deepskyblue4", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\nNASH Fibrosis, Fibrosis Stage")
+
+NASH_Pats_NASHOnly_FibrosisStage %>% 
+  ggplot(aes(value)) +
+  geom_histogram(bins=8, colour="deepskyblue4", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\nNASH only, Fibrosis Stage")
+
+
+
+
+
+#  Fibrosis Activity NASH only vs NASH Fibrosis vs NASH Cirrhosis
+NASH_Pats_Cirrhosis_FibrosisActivity <- NASH_Pats_Cirrhosis %>% filter(test == "Fibrosis Activity")
+NASH_Pats_Fibrosis_FibrosisActivity <- NASH_Pats_Fibrosis %>% filter(test == "Fibrosis Activity")
+NASH_Pats_NASHOnly_FibrosisActivity <- NASH_Pats_NASHOnly %>% filter(test == "Fibrosis Activity")
+
+NASH_Pats_Cirrhosis_FibrosisActivity %>% 
+  ggplot(aes(value)) +
+  xlim(0,10)+ylim(0,11)+
+  geom_histogram(bins=10, colour="deepskyblue4", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\nNASH Cirrhosis, Fibrosis Activity")
+
+NASH_Pats_Fibrosis_FibrosisActivity %>% 
+  ggplot(aes(value)) +
+  xlim(0,10)+ylim(0,11)+
+  geom_histogram(bins=10, colour="deepskyblue4", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\nNASH Fibrosis,Fibrosis Activity")
+
+NASH_Pats_NASHOnly_FibrosisActivity %>% 
+  ggplot(aes(value)) +
+  xlim(0,10)+ylim(0,11)+
+  geom_histogram(bins=10, colour="deepskyblue4", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\nNASH only, Fibrosis Activity")
+
+
+
+
+#  NASH Indicator NASH only vs NASH Fibrosis vs NASH Cirrhosis
+# NASH_Pats_Cirrhosis_NASHIndicator <- NASH_Pats_Cirrhosis %>% filter(test == "NASH Indicator")
+# NASH_Pats_Fibrosis_NASHIndicator <- NASH_Pats_Fibrosis %>% filter(test == "NASH Indicator")
+# NASH_Pats_NASHOnly_NASHIndicator <- NASH_Pats_NASHOnly %>% filter(test == "NASH Indicator")
+# 
+# NASH_Pats_Cirrhosis_NASHIndicator %>% 
+#   ggplot(aes(value)) +
+#   xlim(0,1)+ylim(0,11)+
+#   geom_histogram(bins=10, colour="deepskyblue4", fill="deepskyblue4")+
+#   theme(panel.grid.major=element_blank(),
+#         panel.grid.minor = element_blank(),
+#         panel.background = element_blank())+
+#   ylab("Number of Patients \n")+xlab("\nNASH Cirrhosis, NASH Indicator")
+# 
+# NASH_Pats_Fibrosis_NASHIndicator %>% 
+#   ggplot(aes(value)) +
+#   xlim(0,1)+ylim(0,11)+
+#   geom_histogram(bins=10, colour="deepskyblue4", fill="deepskyblue4")+
+#   theme(panel.grid.major=element_blank(),
+#         panel.grid.minor = element_blank(),
+#         panel.background = element_blank())+
+#   ylab("Number of Patients \n")+xlab("\nNASH Fibrosis, NASH Indicator")
+# 
+# NASH_Pats_NASHOnly_NASHIndicator %>% 
+#   ggplot(aes(value)) +
+#   #xlim(0,1)+ylim(0,11)+
+#   geom_histogram(bins=10, colour="deepskyblue4", fill="deepskyblue4")+
+#   theme(panel.grid.major=element_blank(),
+#         panel.grid.minor = element_blank(),
+#         panel.background = element_blank())+
+#   ylab("Number of Patients \n")+xlab("\nNASH only, NASH Indicator")
+
+
+# ------
+# Waterfall -----
+
+# Biopsy pats
+NASH_Events <- fread("NASH Events.txt")
+Dx_code <- fread("NASH Diagnosis Codes.txt")
+Dx_code <- Dx_code %>% select(code, condition, source, type, description)
+NASH_Events <- NASH_Events %>% left_join(Dx_code)
+NASH_Pats <- NASH_Events %>% filter(condition=="NASH") %>% select(patid) %>% distinct()
+NASH_Pats <- NASH_Pats %>% left_join(NASH_Events)
+NASH_Pats %>% select(patid, weight) %>% distinct() %>% summarise(n=sum(weight)) #1339983
+Biopsy_Pats <- NASH_Pats %>% select(patid, weight, condition) %>% distinct() %>% filter(condition=="Liver Biopsy") %>% select(patid) %>% distinct()
+
+
+# MELD Scores
+MELD_ExactDate<- fread("MELD_ExactDate.txt", sep="\t")
+MELD_ExactDate <- MELD_ExactDate %>% select(patid, weight, date, MELDNa, FirstNASHDx)
+MELD_ExactDate$Test <- "MELDNa"
+names(MELD_ExactDate)[4] <- "Score"
+
+MELD_Thresold <- MELD_ExactDate %>% filter((Test=="MELDNa"&Score>=7)) %>% select(patid) %>% distinct() #1179
+
+
+#FIB4
+FIB4_NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+
+# NASH Patients to filter new tests 
+NASH_Pats <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Pats <- NASH_Pats %>% select(patient) %>% distinct()
+
+# NEw lab test (check for AST/ALT >50 or Platelets <100)
+DANU_Measures <- fread("DANU Measures.txt", integer64 = "character", stringsAsFactors = F)
+
+NASH_Pats <- NASH_Pats %>% left_join(DANU_Measures, by = c("patient"="patid"))
+
+NASH_Pats %>% filter( (test=="AST Level" & value>50) | (test=="ALT Level" & value>50) | (test=="Platelet Count" & value<100) ) %>%
+  select(patient) %>% distinct() %>% full_join(MELD_Thresold, by=c("patient"="patid")) %>% full_join(Biopsy_Pats,  by=c("patient"="patid")) %>% 
+  full_join(FIB4_NASH_Pats%>% filter(fibrosis4>1.3)) %>% select(patient) %>% distinct() # 4789
+
+
+
+
+MELD_ExactDate %>%  select(patid) %>% distinct() #1564
+NASH_Pats %>% filter(test=="AST Level") %>% select(patient) %>% distinct() #4966
+NASH_Pats %>% filter(test=="ALT Level") %>% select(patient) %>% distinct() #4976
+NASH_Pats %>% filter(test=="Platelet Count") %>% select(patient) %>% distinct() #5006
+
+MELD_ExactDate %>%  select(patid) %>% distinct() %>% full_join(NASH_Pats %>% filter(test=="AST Level") %>% select(patient) %>% distinct(), by=c("patid"="patient")) %>%
+  full_join(NASH_Pats %>% filter(test=="ALT Level") %>% select(patient) %>% distinct(), by=c("patid"="patient")) %>% 
+  full_join(NASH_Pats %>% filter(test=="Platelet Count") %>% select(patient) %>% distinct(), by=c("patid"="patient")) %>%
+  full_join(Biopsy_Pats) %>% full_join(FIB4_NASH_Pats %>% select(patient), by=c("patid"="patient")) %>% select(patid)  %>% distinct()
+
+# 5959
+
+# ------
+# Calculate FIB4 for the other populations -------------------------
+NASH_Pats <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Pats <- NASH_Pats %>% select(patient)
+
+NAFLD_Pats <- fread("NAFLD Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+NAFLD_Pats <- NAFLD_Pats %>% select(patient)
+NAFLD_Pats <- NAFLD_Pats %>% anti_join(NASH_Pats)
+
+
+DIA_Pats <- fread("DIA Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+DIA_Pats <- DIA_Pats %>% select(patient)
+DIA_Pats <- DIA_Pats %>% anti_join(NASH_Pats)
+
+OBE_Pats <- fread("OBE Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+OBE_Pats <- OBE_Pats %>% select(patient)
+OBE_Pats <- OBE_Pats %>% anti_join(NASH_Pats)
+
+
+DANU_Measures <- fread("DANU Measures.txt", integer64 = "character", stringsAsFactors = F)
+
+NASH_Pats <- NASH_Pats %>% left_join(DANU_Measures, by = c("patient"="patid"))
+DIA_Pats <- DIA_Pats %>% left_join(DANU_Measures, by = c("patient"="patid"))
+OBE_Pats <- OBE_Pats %>% left_join(DANU_Measures, by = c("patient"="patid"))
+NAFLD_Pats <- NAFLD_Pats %>% left_join(DANU_Measures, by = c("patient"="patid"))
+
+
+NASH_Pats <- NASH_Pats %>% filter(test=="AST Level"|test=="ALT Level"|test=="Platelet Count")
+DIA_Pats <- DIA_Pats %>% filter(test=="AST Level"|test=="ALT Level"|test=="Platelet Count")
+OBE_Pats <- OBE_Pats %>% filter(test=="AST Level"|test=="ALT Level"|test=="Platelet Count")
+NAFLD_Pats <- NAFLD_Pats %>% filter(test=="AST Level"|test=="ALT Level"|test=="Platelet Count")
+
+NASH_Pats <- NASH_Pats %>% select(patient, test, claimed, value)
+DIA_Pats <- DIA_Pats %>% select(patient, test, claimed, value)
+OBE_Pats <- OBE_Pats %>% select(patient, test, claimed, value)
+NAFLD_Pats <- NAFLD_Pats %>% select(patient, test, claimed, value)
+
+
+
+
+
+# NASH only
+NASH_Pats_AST <- NASH_Pats %>% filter(test=="AST Level")
+NASH_Pats_ALT <- NASH_Pats %>% filter(test=="ALT Level")
+NASH_Pats_Platelets <- NASH_Pats %>% filter(test=="Platelet Count")
+
+names(NASH_Pats_AST)[4] <-"AST"
+names(NASH_Pats_ALT)[4] <-"ALT"
+names(NASH_Pats_Platelets)[4] <-"Platelets"
+
+NASH_Pats_AST <- NASH_Pats_AST %>% select(1,3,4)
+NASH_Pats_ALT <- NASH_Pats_ALT %>% select(1,3,4)
+NASH_Pats_Platelets <- NASH_Pats_Platelets %>% select(1,3,4)
+
+NASH_Pats <- NASH_Pats_AST %>% full_join(NASH_Pats_ALT, by = c("patient", "claimed")) %>% full_join(NASH_Pats_Platelets, by = c("patient", "claimed"))  %>% drop_na()
+
+
+DANU_Demographics <- fread("DANU Demographics.txt")
+DANU_Demographics <- DANU_Demographics %>% select(patid, age)
+
+NASH_Pats <- NASH_Pats %>% left_join(DANU_Demographics, by=c("patient"="patid"))
+NASH_Pats$claimed <- as.Date(NASH_Pats$claimed)
+
+NASH_Pats$finalDate <- as.Date("2021-04-30")
+
+NASH_Pats$diff <- round(((NASH_Pats$finalDate - NASH_Pats$claimed)/30.5)/12)
+
+NASH_Pats$age <- NASH_Pats$age - NASH_Pats$diff 
+
+NASH_Pats <- NASH_Pats %>% select(1,2,3,4,5,6)
+NASH_Pats$age <- as.numeric(NASH_Pats$age)
+
+NASH_Pats$fibrosis4 <- (NASH_Pats$age*NASH_Pats$AST) / (NASH_Pats$Platelets*sqrt(NASH_Pats$ALT))
+
+
+NASH_Pats <- NASH_Pats %>% filter(Platelets>10)
+NASH_Pats <- NASH_Pats %>% filter(AST>5)
+NASH_Pats <- NASH_Pats %>% filter(ALT>5)
+
+fwrite(NASH_Pats, "FIB4_NASH_Pats.txt")
+
+NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+
+range(NASH_Pats$fibrosis4) # 0.01773381 1844.73340950
+
+median(NASH_Pats$fibrosis4)  # 2.018538
+mean(NASH_Pats$fibrosis4)  # 7.459196
+length(unique(NASH_Pats$patient)) # 4541
+quantile(NASH_Pats$fibrosis4, c(.25, .50, .75)) 
+
+# 25%      50%      75% 
+# 1.047984 2.018538 4.306434 
+
+
+NASH_Pats %>% select(fibrosis4) %>% filter(fibrosis4<=10)%>%
+  ggplot(aes(fibrosis4)) +
+  geom_histogram(bins=1000, fill="midnightblue")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\n FIB-4 Score")
+
+
+
+NASH_Pats %>% group_by(patient) %>% filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup() %>% 
+  summarise(n=mean(fibrosis4)) #5.74
+
+NASH_Pats %>% group_by(patient) %>% filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup() %>% 
+  summarise(n=median(fibrosis4)) #1.66
+
+temp2 <- NASH_Pats %>% group_by(patient) %>% filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup()  
+
+quantile(temp2$fibrosis4, c(.25, .50, .75)) 
+
+# 25%      50%      75% 
+# 1.025355 1.660889 3.198794 
+
+temp2 %>% select(fibrosis4) %>%
+  filter(fibrosis4<=10)%>%
+  ggplot(aes(fibrosis4)) +
+  geom_histogram(bins=5000, fill="deeppink4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\n FIB-4 Score")
+
+
+
+
+
+
+
+# DIA only
+DIA_Pats_AST <- DIA_Pats %>% filter(test=="AST Level")
+DIA_Pats_ALT <- DIA_Pats %>% filter(test=="ALT Level")
+DIA_Pats_Platelets <- DIA_Pats %>% filter(test=="Platelet Count")
+
+names(DIA_Pats_AST)[4] <-"AST"
+names(DIA_Pats_ALT)[4] <-"ALT"
+names(DIA_Pats_Platelets)[4] <-"Platelets"
+
+DIA_Pats_AST <- DIA_Pats_AST %>% select(1,3,4)
+DIA_Pats_ALT <- DIA_Pats_ALT %>% select(1,3,4)
+DIA_Pats_Platelets <- DIA_Pats_Platelets %>% select(1,3,4)
+
+DIA_Pats <- DIA_Pats_AST %>% full_join(DIA_Pats_ALT, by = c("patient", "claimed")) %>% full_join(DIA_Pats_Platelets, by = c("patient", "claimed"))  %>% drop_na()
+
+DANU_Demographics <- fread("DANU Demographics.txt")
+DANU_Demographics <- DANU_Demographics %>% select(patid, age)
+
+DIA_Pats <- DIA_Pats %>% left_join(DANU_Demographics, by=c("patient"="patid"))
+DIA_Pats$claimed <- as.Date(DIA_Pats$claimed)
+
+DIA_Pats$finalDate <- as.Date("2021-04-30")
+
+DIA_Pats$diff <- round(((DIA_Pats$finalDate - DIA_Pats$claimed)/30.5)/12)
+
+DIA_Pats$age <- DIA_Pats$age - DIA_Pats$diff 
+
+DIA_Pats <- DIA_Pats %>% select(1,2,3,4,5,6)
+DIA_Pats$age <- as.numeric(DIA_Pats$age)
+
+DIA_Pats$fibrosis4 <- (DIA_Pats$age*DIA_Pats$AST) / (DIA_Pats$Platelets*sqrt(DIA_Pats$ALT))
+
+
+DIA_Pats <- DIA_Pats %>% filter(Platelets>10)
+DIA_Pats <- DIA_Pats %>% filter(AST>5)
+DIA_Pats <- DIA_Pats %>% filter(ALT>5)
+
+fwrite(DIA_Pats, "FIB4_Diabetes_Pats.txt")
+
+DIA_Pats <- fread("FIB4_Diabetes_Pats.txt")
+
+range(DIA_Pats$fibrosis4) #0.008262961 5825.695284564
+
+median(DIA_Pats$fibrosis4)  # 1.307857
+mean(DIA_Pats$fibrosis4)  # 2.997771
+length(unique(DIA_Pats$patient)) # 145796
+quantile(DIA_Pats$fibrosis4, c(.25, .50, .75)) 
+
+# 25%       50%       75% 
+# 0.8522559 1.3078574 2.1058930 
+
+
+DIA_Pats %>% select(fibrosis4) %>% filter(fibrosis4<=10)%>%
+  ggplot(aes(fibrosis4)) +
+  geom_histogram(bins=5000, fill="midnightblue")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\n FIB-4 Score")
+
+
+
+DIA_Pats %>% group_by(patient) %>% filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup() %>% 
+  summarise(n=mean(fibrosis4)) #2.95
+
+DIA_Pats %>% group_by(patient) %>% filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup() %>% 
+  summarise(n=median(fibrosis4)) #1.34
+
+temp2 <- DIA_Pats %>% group_by(patient) %>% filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup()  
+
+quantile(temp2$fibrosis4, c(.25, .50, .75)) 
+
+# 25%       50%       75% 
+# 0.8907215 1.3379286 2.0663735
+
+temp2 %>% select(fibrosis4) %>%
+  filter(fibrosis4<=10)%>%
+  ggplot(aes(fibrosis4)) +
+  geom_histogram(bins=5000, fill="deeppink4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\n FIB-4 Score")
+
+
+
+
+
+
+# OBE only
+OBE_Pats_AST <- OBE_Pats %>% filter(test=="AST Level")
+OBE_Pats_ALT <- OBE_Pats %>% filter(test=="ALT Level")
+OBE_Pats_Platelets <- OBE_Pats %>% filter(test=="Platelet Count")
+
+names(OBE_Pats_AST)[4] <-"AST"
+names(OBE_Pats_ALT)[4] <-"ALT"
+names(OBE_Pats_Platelets)[4] <-"Platelets"
+
+OBE_Pats_AST <- OBE_Pats_AST %>% select(1,3,4)
+OBE_Pats_ALT <- OBE_Pats_ALT %>% select(1,3,4)
+OBE_Pats_Platelets <- OBE_Pats_Platelets %>% select(1,3,4)
+
+OBE_Pats <- OBE_Pats_AST %>% full_join(OBE_Pats_ALT, by = c("patient", "claimed")) %>% full_join(OBE_Pats_Platelets, by = c("patient", "claimed"))  %>% drop_na()
+
+DANU_Demographics <- fread("DANU Demographics.txt")
+DANU_Demographics <- DANU_Demographics %>% select(patid, age)
+
+OBE_Pats <- OBE_Pats %>% left_join(DANU_Demographics, by=c("patient"="patid"))
+OBE_Pats$claimed <- as.Date(OBE_Pats$claimed)
+
+OBE_Pats$finalDate <- as.Date("2021-04-30")
+
+OBE_Pats$diff <- round(((OBE_Pats$finalDate - OBE_Pats$claimed)/30.5)/12)
+
+OBE_Pats$age <- OBE_Pats$age - OBE_Pats$diff 
+
+OBE_Pats <- OBE_Pats %>% select(1,2,3,4,5,6)
+OBE_Pats$age <- as.numeric(OBE_Pats$age)
+
+OBE_Pats$fibrosis4 <- (OBE_Pats$age*OBE_Pats$AST) / (OBE_Pats$Platelets*sqrt(OBE_Pats$ALT))
+
+
+OBE_Pats <- OBE_Pats %>% filter(Platelets>10)
+OBE_Pats <- OBE_Pats %>% filter(AST>5)
+OBE_Pats <- OBE_Pats %>% filter(ALT>5)
+
+fwrite(OBE_Pats, "FIB4_Obesity_Pats.txt")
+
+OBE_Pats <- fread("FIB4_Obesity_Pats.txt")
+
+range(OBE_Pats$fibrosis4) # 0.006037801 1586.266847911
+
+median(OBE_Pats$fibrosis4)  # 1.086311
+mean(OBE_Pats$fibrosis4)  # 2.405577
+length(unique(OBE_Pats$patient)) # 307381
+quantile(OBE_Pats$fibrosis4, c(.25, .50, .75)) 
+
+# 25%       50%       75% 
+# 0.6952373 1.0863112 1.7550412 
+
+
+OBE_Pats %>% select(fibrosis4) %>% filter(fibrosis4<=10)%>%
+  ggplot(aes(fibrosis4)) +
+  geom_histogram(bins=5000, fill="midnightblue")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\n FIB-4 Score")
+
+
+
+OBE_Pats %>% group_by(patient) %>% filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup() %>% 
+  summarise(n=mean(fibrosis4)) #2.04
+
+OBE_Pats %>% group_by(patient) %>% filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup() %>% 
+  summarise(n=median(fibrosis4)) #1.03
+
+temp2 <- OBE_Pats %>% group_by(patient) %>% filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup()  
+
+quantile(temp2$fibrosis4, c(.25, .50, .75)) 
+
+# 25%       50%       75% 
+# 0.6813441 1.0287167 1.5584716
+
+temp2 %>% select(fibrosis4) %>%
+  filter(fibrosis4<=10)%>%
+  ggplot(aes(fibrosis4)) +
+  geom_histogram(bins=5000, fill="deeppink4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\n FIB-4 Score")
+
+
+
+
+
+
+
+
+
+
+# NAFLD only
+NAFLD_Pats_AST <- NAFLD_Pats %>% filter(test=="AST Level")
+NAFLD_Pats_ALT <- NAFLD_Pats %>% filter(test=="ALT Level")
+NAFLD_Pats_Platelets <- NAFLD_Pats %>% filter(test=="Platelet Count")
+
+names(NAFLD_Pats_AST)[4] <-"AST"
+names(NAFLD_Pats_ALT)[4] <-"ALT"
+names(NAFLD_Pats_Platelets)[4] <-"Platelets"
+
+NAFLD_Pats_AST <- NAFLD_Pats_AST %>% select(1,3,4)
+NAFLD_Pats_ALT <- NAFLD_Pats_ALT %>% select(1,3,4)
+NAFLD_Pats_Platelets <- NAFLD_Pats_Platelets %>% select(1,3,4)
+
+NAFLD_Pats <- NAFLD_Pats_AST %>% full_join(NAFLD_Pats_ALT, by = c("patient", "claimed")) %>% full_join(NAFLD_Pats_Platelets, by = c("patient", "claimed"))  %>% drop_na()
+
+DANU_Demographics <- fread("DANU Demographics.txt")
+DANU_Demographics <- DANU_Demographics %>% select(patid, age)
+
+NAFLD_Pats <- NAFLD_Pats %>% left_join(DANU_Demographics, by=c("patient"="patid"))
+NAFLD_Pats$claimed <- as.Date(NAFLD_Pats$claimed)
+
+NAFLD_Pats$finalDate <- as.Date("2021-04-30")
+
+NAFLD_Pats$diff <- round(((NAFLD_Pats$finalDate - NAFLD_Pats$claimed)/30.5)/12)
+
+NAFLD_Pats$age <- NAFLD_Pats$age - NAFLD_Pats$diff 
+
+NAFLD_Pats <- NAFLD_Pats %>% select(1,2,3,4,5,6)
+NAFLD_Pats$age <- as.numeric(NAFLD_Pats$age)
+
+NAFLD_Pats$fibrosis4 <- (NAFLD_Pats$age*NAFLD_Pats$AST) / (NAFLD_Pats$Platelets*sqrt(NAFLD_Pats$ALT))
+
+
+NAFLD_Pats <- NAFLD_Pats %>% filter(Platelets>10)
+NAFLD_Pats <- NAFLD_Pats %>% filter(AST>5)
+NAFLD_Pats <- NAFLD_Pats %>% filter(ALT>5)
+
+fwrite(NAFLD_Pats, "FIB4_NAFLD_Pats.txt")
+
+NAFLD_Pats <- fread("FIB4_NAFLD_Pats.txt")
+
+range(NAFLD_Pats$fibrosis4) # 0.006457958 1586.266847911
+
+median(NAFLD_Pats$fibrosis4)  # 1.197922
+mean(NAFLD_Pats$fibrosis4)  # 3.238828
+length(unique(NAFLD_Pats$patient)) # 46622
+quantile(NAFLD_Pats$fibrosis4, c(.25, .50, .75)) 
+
+# 25%       50%       75% 
+# 0.7660323 1.1979222 2.0473327
+
+
+NAFLD_Pats %>% select(fibrosis4) %>% filter(fibrosis4<=10)%>%
+  ggplot(aes(fibrosis4)) +
+  geom_histogram(bins=1000, fill="midnightblue")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\n FIB-4 Score")
+
+
+
+NAFLD_Pats %>% group_by(patient) %>% filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup() %>% 
+  summarise(n=mean(fibrosis4)) #3.44
+
+NAFLD_Pats %>% group_by(patient) %>% filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup() %>% 
+  summarise(n=median(fibrosis4)) #1.27
+
+temp2 <- NAFLD_Pats %>% group_by(patient) %>% filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup()  
+
+quantile(temp2$fibrosis4, c(.25, .50, .75)) 
+
+# 25%       50%       75% 
+# 0.8427931 1.2656335 2.0431454  
+
+temp2 %>% select(fibrosis4) %>%
+  filter(fibrosis4<=10)%>%
+  ggplot(aes(fibrosis4)) +
+  geom_histogram(bins=5000, fill="deeppink4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\n FIB-4 Score")
+
+
+
+
+
+
+# --------
+# AGE distribution NASH, Diabetes, Obesity --------------------------------------------------------
+NASH_Pats <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Pats <- NASH_Pats %>% select(patient)
+
+DIA_Pats <- fread("DIA Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+DIA_Pats <- DIA_Pats %>% select(patient)
+
+OBE_Pats <- fread("OBE Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+OBE_Pats <- OBE_Pats %>% select(patient)
+
+
+DANU_Demographics <- fread("DANU Demographics.txt", sep="\t")
+
+
+# % above 65
+NASH_Pats %>% summarise(n=sum(weight)) #1339983
+DIA_Pats  %>% summarise(n=sum(weight)) #48244424
+OBE_Pats  %>% summarise(n=sum(weight)) #106469049
+
+NASH_Pats %>% filter(age>=65) %>% summarise(n=sum(weight)) #457898.7
+DIA_Pats  %>% filter(age>=65) %>%summarise(n=sum(weight)) #22631982
+OBE_Pats  %>% filter(age>=65) %>%summarise(n=sum(weight)) #23501177
+
+
+NASH_Pats <- NASH_Pats %>% left_join(DANU_Demographics %>% select(patid, weight, age), 
+                                     by=c("patient"="patid"))
+
+
+DIA_Pats <- DIA_Pats %>% left_join(DANU_Demographics %>% select(patid, weight, age), 
+                                   by=c("patient"="patid"))
+
+
+OBE_Pats <- OBE_Pats %>% left_join(DANU_Demographics %>% select(patid, weight, age), 
+                                   by=c("patient"="patid"))
+
+
+weighted.mean(NASH_Pats$age, NASH_Pats$weight) #56.899
+weighted.median(NASH_Pats$age, NASH_Pats$weight) #58.5
+
+NASH_Pats %>% select(age) %>%
+  ggplot(aes(age)) +
+  geom_histogram(bins=72, colour="gray", fill="deepskyblue4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n Age")+ ylab("Number of Patients \n")
+
+
+weighted.mean(DIA_Pats$age, DIA_Pats$weight) #60.96606
+weighted.median(DIA_Pats$age, DIA_Pats$weight) #62.5
+
+DIA_Pats %>% select(age) %>%
+  ggplot(aes(age)) +
+  geom_histogram(bins=72, colour="gray", fill="deeppink4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n Age")+ ylab("Number of Patients \n")
+
+
+
+weighted.mean(OBE_Pats$age, OBE_Pats$weight) #49.09858
+weighted.median(OBE_Pats$age, OBE_Pats$weight) #47.5
+
+OBE_Pats %>% select(age) %>%
+  ggplot(aes(age)) +
+  geom_histogram(bins=72, colour="gray", fill="mediumaquamarine")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n Age")+ ylab("Number of Patients \n")
+
+
+# ---------
+# Logistic regression to classify patients as having NASH vs not having NASH -------------
+
+NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+Diabetes_Pats <- fread("FIB4_Diabetes_Pats.txt")
+Obesity_Pats <- fread("FIB4_Obesity_Pats.txt")
+
+
+NASH_Pats$Has_Nash <- 1
+Diabetes_Pats$Has_Nash <- 0
+Obesity_Pats$Has_Nash <- 0
+
+NASH_Pats$Condition <- "NASH"
+Diabetes_Pats$Condition <- "DIA"
+Obesity_Pats$Condition <- "OBE"
+
+NAsh_Indicator <- NASH_Pats %>% bind_rows(Diabetes_Pats) %>% bind_rows(Obesity_Pats)
+
+summary(glm( Has_Nash ~ fibrosis4, data = NAsh_Indicator, family = binomial))
+
+
+NAsh_Indicator %>% 
+  ggplot(aes(fibrosis4, Has_Nash)) +
+  #geom_point(alpha = 0.2, colour="firebrick") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), colour="darkslategray", fill="darkslategray") +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n FIB-4")+
+  ylab("Probability of NASH Dx \n")
+
+
+
+NAsh_Indicator_1000 <- NAsh_Indicator[fibrosis4<=1000]
+
+
+# Only FIB4 below 1000
+
+summary(glm( Has_Nash ~ fibrosis4, data = NAsh_Indicator_1000, family = binomial))
+
+NAsh_Indicator_1000 %>% 
+  ggplot(aes(fibrosis4, Dx_Status)) +
+  #geom_point(alpha = 0.2, colour="firebrick") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), colour="darkslategray", fill="darkslategray") +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n FIB-4")+
+  ylab("Probability of NASH Dx \n")
+
+
+# What if we filter everything below 1000?
+
+
+NAsh_Indicator_All1000 <- NAsh_Indicator[fibrosis4<=1000 & AST<=1000 & ALT <=1000]
+
+
+# All below 1000
+
+summary(glm( Has_Nash ~ fibrosis4, data = NAsh_Indicator_All1000, family = binomial))
+
+NAsh_Indicator_All1000 %>% 
+  ggplot(aes(fibrosis4, Has_Nash)) +
+  #geom_point(alpha = 0.2, colour="firebrick") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), colour="darkslategray", fill="darkslategray") +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n FIB-4")+
+  ylab("Probability of NASH Dx \n")
+
+
+
+# All below 200
+
+NAsh_Indicator_All200 <- NAsh_Indicator[fibrosis4<=200 & AST<=200 & ALT <=200]
+
+summary(glm( Has_Nash ~ fibrosis4, data = NAsh_Indicator_All200, family = binomial))
+
+NAsh_Indicator_All200 %>% 
+  ggplot(aes(fibrosis4, Has_Nash)) +
+  #geom_point(alpha = 0.2, colour="firebrick") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), colour="darkslategray", fill="darkslategray") +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n FIB-4")+
+  ylab("Probability of NASH Dx \n")
+
+
+
+summary(glm( Has_Nash ~ AST+ALT+Platelets+age, data = NAsh_Indicator_All1000, family = binomial))
+
+
+NAsh_Indicator_All1000 %>% 
+  ggplot(aes(AST, Has_Nash)) +
+  #geom_point(alpha = 0.2, colour="firebrick") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), colour="darkslategray", fill="darkslategray") +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n AST")+
+  ylab("Probability of NASH Dx \n")
+
+
+NAsh_Indicator_All1000 %>% 
+  ggplot(aes(ALT, Has_Nash)) +
+  #geom_point(alpha = 0.2, colour="firebrick") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), colour="darkslategray", fill="darkslategray") +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n ALT")+
+  ylab("Probability of NASH Dx \n")
+
+
+NAsh_Indicator_All1000 %>% 
+  ggplot(aes(Platelets, Has_Nash)) +
+  #geom_point(alpha = 0.2, colour="firebrick") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), colour="darkslategray", fill="darkslategray") +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n Platelet count")+
+  ylab("Probability of NASH Dx \n")
+
+
+NAsh_Indicator_All1000 %>% 
+  ggplot(aes(age, Has_Nash)) +
+  #geom_point(alpha = 0.2, colour="firebrick") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), colour="darkslategray", fill="darkslategray") +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n Age (years)")+
+  ylab("Probability of NASH Dx \n")
+
+
+
+
+# -------
+# Counting the patients with comorbidity ON both Dx (e.g. NASH & DIA) -----------
+
+NASH_Pats <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Pats <- NASH_Pats %>% select(patient)
+
+DIA_Pats <- fread("DIA Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+DIA_Pats <- DIA_Pats %>% select(patient)
+
+OBE_Pats <- fread("OBE Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+OBE_Pats <- OBE_Pats %>% select(patient)
+
+DANU_Measures <- fread("DANU Measures.txt", integer64 = "character", stringsAsFactors = F)
+
+NASH_Pats <- NASH_Pats %>% left_join(DANU_Measures, by = c("patient"="patid"))
+DIA_Pats <- DIA_Pats %>% left_join(DANU_Measures, by = c("patient"="patid"))
+OBE_Pats <- OBE_Pats %>% left_join(DANU_Measures, by = c("patient"="patid"))
+
+NASH_Pats <- NASH_Pats %>% filter(test=="AST Level"|test=="ALT Level"|test=="Platelet Count")
+DIA_Pats <- DIA_Pats %>% filter(test=="AST Level"|test=="ALT Level"|test=="Platelet Count")
+OBE_Pats <- OBE_Pats %>% filter(test=="AST Level"|test=="ALT Level"|test=="Platelet Count")
+
+NASH_Pats <- NASH_Pats %>% select(patient, test, claimed, value)
+DIA_Pats <- DIA_Pats %>% select(patient, test, claimed, value)
+OBE_Pats <- OBE_Pats %>% select(patient, test, claimed, value)
+
+
+
+
+
+# NASH only
+NASH_Pats_AST <- NASH_Pats %>% filter(test=="AST Level")
+NASH_Pats_ALT <- NASH_Pats %>% filter(test=="ALT Level")
+NASH_Pats_Platelets <- NASH_Pats %>% filter(test=="Platelet Count")
+
+names(NASH_Pats_AST)[4] <-"AST"
+names(NASH_Pats_ALT)[4] <-"ALT"
+names(NASH_Pats_Platelets)[4] <-"Platelets"
+
+NASH_Pats_AST <- NASH_Pats_AST %>% select(1,3,4)
+NASH_Pats_ALT <- NASH_Pats_ALT %>% select(1,3,4)
+NASH_Pats_Platelets <- NASH_Pats_Platelets %>% select(1,3,4)
+
+NASH_Pats <- NASH_Pats_AST %>% full_join(NASH_Pats_ALT, by = c("patient", "claimed")) %>% full_join(NASH_Pats_Platelets, by = c("patient", "claimed"))  %>% drop_na()
+
+DANU_Demographics <- fread("DANU Demographics.txt")
+DANU_Demographics <- DANU_Demographics %>% select(patid, age)
+
+NASH_Pats <- NASH_Pats %>% left_join(DANU_Demographics, by=c("patient"="patid"))
+NASH_Pats$claimed <- as.Date(NASH_Pats$claimed)
+
+NASH_Pats$finalDate <- as.Date("2021-04-30")
+
+NASH_Pats$diff <- round(((NASH_Pats$finalDate - NASH_Pats$claimed)/30.5)/12)
+
+NASH_Pats$age <- NASH_Pats$age - NASH_Pats$diff 
+
+NASH_Pats <- NASH_Pats %>% select(1,2,3,4,5,6)
+NASH_Pats$age <- as.numeric(NASH_Pats$age)
+
+NASH_Pats$fibrosis4 <- (NASH_Pats$age*NASH_Pats$AST) / (NASH_Pats$Platelets*sqrt(NASH_Pats$ALT))
+
+
+NASH_Pats <- NASH_Pats %>% filter(Platelets>10)
+NASH_Pats <- NASH_Pats %>% filter(AST>5)
+NASH_Pats <- NASH_Pats %>% filter(ALT>5)
+
+fwrite(NASH_Pats, "FIB4_NASH_Pats_ALL.txt")
+
+
+range(NASH_Pats$fibrosis4) # 0.01773381 1844.73340950
+
+median(NASH_Pats$fibrosis4)  # 2.018538
+mean(NASH_Pats$fibrosis4)  # 7.459196
+length(unique(NASH_Pats$patient)) # 4541
+quantile(NASH_Pats$fibrosis4, c(.25, .50, .75)) 
+
+# 25%      50%      75% 
+# 1.047984 2.018538 4.306434 
+
+
+NASH_Pats %>% select(fibrosis4) %>% filter(fibrosis4<=10)%>%
+  ggplot(aes(fibrosis4)) +
+  geom_histogram(bins=1000, fill="midnightblue")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\n FIB-4 Score")
+
+
+
+NASH_Pats %>% group_by(patient) %>% filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup() %>% 
+  summarise(n=mean(fibrosis4)) #5.74
+
+NASH_Pats %>% group_by(patient) %>% filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup() %>% 
+  summarise(n=median(fibrosis4)) #1.66
+
+temp2 <- NASH_Pats %>% group_by(patient) %>% filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup()  
+
+quantile(temp2$fibrosis4, c(.25, .50, .75)) 
+
+# 25%      50%      75% 
+# 1.025355 1.660889 3.198794 
+
+temp2 %>% select(fibrosis4) %>%
+  filter(fibrosis4<=10)%>%
+  ggplot(aes(fibrosis4)) +
+  geom_histogram(bins=5000, fill="deeppink4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\n FIB-4 Score")
+
+
+
+
+
+
+
+# DIA only
+DIA_Pats_AST <- DIA_Pats %>% filter(test=="AST Level")
+DIA_Pats_ALT <- DIA_Pats %>% filter(test=="ALT Level")
+DIA_Pats_Platelets <- DIA_Pats %>% filter(test=="Platelet Count")
+
+names(DIA_Pats_AST)[4] <-"AST"
+names(DIA_Pats_ALT)[4] <-"ALT"
+names(DIA_Pats_Platelets)[4] <-"Platelets"
+
+DIA_Pats_AST <- DIA_Pats_AST %>% select(1,3,4)
+DIA_Pats_ALT <- DIA_Pats_ALT %>% select(1,3,4)
+DIA_Pats_Platelets <- DIA_Pats_Platelets %>% select(1,3,4)
+
+DIA_Pats <- DIA_Pats_AST %>% full_join(DIA_Pats_ALT, by = c("patient", "claimed")) %>% full_join(DIA_Pats_Platelets, by = c("patient", "claimed"))  %>% drop_na()
+
+DANU_Demographics <- fread("DANU Demographics.txt")
+DANU_Demographics <- DANU_Demographics %>% select(patid, age)
+
+DIA_Pats <- DIA_Pats %>% left_join(DANU_Demographics, by=c("patient"="patid"))
+DIA_Pats$claimed <- as.Date(DIA_Pats$claimed)
+
+DIA_Pats$finalDate <- as.Date("2021-04-30")
+
+DIA_Pats$diff <- round(((DIA_Pats$finalDate - DIA_Pats$claimed)/30.5)/12)
+
+DIA_Pats$age <- DIA_Pats$age - DIA_Pats$diff 
+
+DIA_Pats <- DIA_Pats %>% select(1,2,3,4,5,6)
+DIA_Pats$age <- as.numeric(DIA_Pats$age)
+
+DIA_Pats$fibrosis4 <- (DIA_Pats$age*DIA_Pats$AST) / (DIA_Pats$Platelets*sqrt(DIA_Pats$ALT))
+
+
+DIA_Pats <- DIA_Pats %>% filter(Platelets>10)
+DIA_Pats <- DIA_Pats %>% filter(AST>5)
+DIA_Pats <- DIA_Pats %>% filter(ALT>5)
+
+fwrite(DIA_Pats, "FIB4_Diabetes_Pats_ALL.txt")
+
+
+range(DIA_Pats$fibrosis4) #0.008262961 5825.695284564
+
+median(DIA_Pats$fibrosis4)  # 1.318781
+mean(DIA_Pats$fibrosis4)  # 3.092956
+length(unique(DIA_Pats$patient)) # 148380
+quantile(DIA_Pats$fibrosis4, c(.25, .50, .75)) 
+
+# 25%       50%       75% 
+# 0.8563988 1.3187811 2.1447812 
+
+
+DIA_Pats %>% select(fibrosis4) %>% filter(fibrosis4<=10)%>%
+  ggplot(aes(fibrosis4)) +
+  geom_histogram(bins=5000, fill="midnightblue")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\n FIB-4 Score")
+
+
+
+DIA_Pats %>% group_by(patient) %>% filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup() %>% 
+  summarise(n=mean(fibrosis4)) #3.02
+
+DIA_Pats %>% group_by(patient) %>% filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup() %>% 
+  summarise(n=median(fibrosis4)) #1.34
+
+temp2 <- DIA_Pats %>% group_by(patient) %>% filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup()  
+
+quantile(temp2$fibrosis4, c(.25, .50, .75)) 
+
+# 25%       50%       75% 
+# 0.8939671 1.3441004 2.0842980 
+
+temp2 %>% select(fibrosis4) %>%
+  filter(fibrosis4<=10)%>%
+  ggplot(aes(fibrosis4)) +
+  geom_histogram(bins=5000, fill="deeppink4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\n FIB-4 Score")
+
+
+
+
+
+
+# OBE only
+OBE_Pats_AST <- OBE_Pats %>% filter(test=="AST Level")
+OBE_Pats_ALT <- OBE_Pats %>% filter(test=="ALT Level")
+OBE_Pats_Platelets <- OBE_Pats %>% filter(test=="Platelet Count")
+
+names(OBE_Pats_AST)[4] <-"AST"
+names(OBE_Pats_ALT)[4] <-"ALT"
+names(OBE_Pats_Platelets)[4] <-"Platelets"
+
+OBE_Pats_AST <- OBE_Pats_AST %>% select(1,3,4)
+OBE_Pats_ALT <- OBE_Pats_ALT %>% select(1,3,4)
+OBE_Pats_Platelets <- OBE_Pats_Platelets %>% select(1,3,4)
+
+OBE_Pats <- OBE_Pats_AST %>% full_join(OBE_Pats_ALT, by = c("patient", "claimed")) %>% full_join(OBE_Pats_Platelets, by = c("patient", "claimed"))  %>% drop_na()
+
+DANU_Demographics <- fread("DANU Demographics.txt")
+DANU_Demographics <- DANU_Demographics %>% select(patid, age)
+
+OBE_Pats <- OBE_Pats %>% left_join(DANU_Demographics, by=c("patient"="patid"))
+OBE_Pats$claimed <- as.Date(OBE_Pats$claimed)
+
+OBE_Pats$finalDate <- as.Date("2021-04-30")
+
+OBE_Pats$diff <- round(((OBE_Pats$finalDate - OBE_Pats$claimed)/30.5)/12)
+
+OBE_Pats$age <- OBE_Pats$age - OBE_Pats$diff 
+
+OBE_Pats <- OBE_Pats %>% select(1,2,3,4,5,6)
+OBE_Pats$age <- as.numeric(OBE_Pats$age)
+
+OBE_Pats$fibrosis4 <- (OBE_Pats$age*OBE_Pats$AST) / (OBE_Pats$Platelets*sqrt(OBE_Pats$ALT))
+
+
+OBE_Pats <- OBE_Pats %>% filter(Platelets>10)
+OBE_Pats <- OBE_Pats %>% filter(AST>5)
+OBE_Pats <- OBE_Pats %>% filter(ALT>5)
+
+fwrite(OBE_Pats, "FIB4_Obesity_Pats_ALL.txt")
+
+
+range(OBE_Pats$fibrosis4) # 0.006037801 1586.266847911
+
+median(OBE_Pats$fibrosis4)  # 1.094585
+mean(OBE_Pats$fibrosis4)  # 2.542138
+length(unique(OBE_Pats$patient)) # 307309062381
+quantile(OBE_Pats$fibrosis4, c(.25, .50, .75)) 
+
+# 25%       50%       75% 
+# 0.6989222 1.0945851 1.7826334
+
+
+OBE_Pats %>% select(fibrosis4) %>% filter(fibrosis4<=10)%>%
+  ggplot(aes(fibrosis4)) +
+  geom_histogram(bins=5000, fill="midnightblue")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\n FIB-4 Score")
+
+
+
+OBE_Pats %>% group_by(patient) %>% filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup() %>% 
+  summarise(n=mean(fibrosis4)) #2.05
+
+OBE_Pats %>% group_by(patient) %>% filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup() %>% 
+  summarise(n=median(fibrosis4)) #1.03
+
+temp2 <- OBE_Pats %>% group_by(patient) %>% filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup()  
+
+quantile(temp2$fibrosis4, c(.25, .50, .75)) 
+
+# 25%       50%       75% 
+# 0.6823691 1.0301348 1.5617891 
+
+temp2 %>% select(fibrosis4) %>%
+  filter(fibrosis4<=10)%>%
+  ggplot(aes(fibrosis4)) +
+  geom_histogram(bins=5000, fill="deeppink4")+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Number of Patients \n")+xlab("\n FIB-4 Score")
+
+
+# Merging the 3 datasets together
+
+Nash_Dx <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+Nash_Dx <- Nash_Dx %>% select(patient)
+
+Nash_Dx$Dx_Status <- "Yes"
+
+NASH_Pats <- NASH_Pats %>% left_join(Nash_Dx) 
+DIA_Pats <- DIA_Pats %>% left_join(Nash_Dx) %>% mutate(Dx_Status=ifelse(is.na(Dx_Status), "No", Dx_Status))
+OBE_Pats <- OBE_Pats %>% left_join(Nash_Dx) %>% mutate(Dx_Status=ifelse(is.na(Dx_Status), "No", Dx_Status))
+
+
+
+NASH_Pats <- NASH_Pats %>% mutate(Dx_Status=ifelse(Dx_Status=="Yes", 1, 0))
+DIA_Pats <- DIA_Pats %>% mutate(Dx_Status=ifelse(Dx_Status=="Yes", 1, 0))
+OBE_Pats <- OBE_Pats %>%  mutate(Dx_Status=ifelse(Dx_Status=="Yes", 1, 0))
+
+
+NASH_Pats$Condition <- "NASH"
+DIA_Pats$Condition <- "DIA"
+OBE_Pats$Condition <- "OBE"
+
+NAsh_Indicator <- NASH_Pats %>% bind_rows(DIA_Pats) %>% bind_rows(OBE_Pats)
+
+summary(glm( Dx_Status ~ fibrosis4, data = NAsh_Indicator, family = binomial))
+
+
+
+NAsh_Indicator %>% 
+  ggplot(aes(fibrosis4, Dx_Status)) +
+  #geom_point(alpha = 0.2, colour="firebrick") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), colour="darkslategray", fill="darkslategray") +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n FIB-4")+
+  ylab("Probability of NASH Dx \n")
+
+
+
+
+NAsh_Indicator_1000 <- NAsh_Indicator[fibrosis4<=1000]
+
+
+# Only FIB4 below 1000
+
+summary(glm( Dx_Status ~ fibrosis4, data = NAsh_Indicator_1000, family = binomial))
+
+
+
+NAsh_Indicator_1000 %>% 
+  ggplot(aes(fibrosis4, Dx_Status)) +
+  #geom_point(alpha = 0.2, colour="firebrick") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), colour="darkslategray", fill="darkslategray") +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n FIB-4")+
+  ylab("Probability of NASH Dx \n")
+
+
+# What if we filter everything below 1000?
+
+
+NAsh_Indicator_All1000 <- NAsh_Indicator[fibrosis4<=1000 & AST<=1000 & ALT <=1000]
+
+
+# All below 1000
+
+summary(glm( Dx_Status ~ fibrosis4, data = NAsh_Indicator_All1000, family = binomial))
+
+
+
+NAsh_Indicator_All1000 %>% 
+  ggplot(aes(fibrosis4, Dx_Status)) +
+  #geom_point(alpha = 0.2, colour="firebrick") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), colour="darkslategray", fill="darkslategray") +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n FIB-4")+
+  ylab("Probability of NASH Dx \n")
+
+
+
+# All below 200
+
+NAsh_Indicator_All200 <- NAsh_Indicator[fibrosis4<=200 & AST<=200 & ALT <=200]
+
+summary(glm( Dx_Status ~ fibrosis4, data = NAsh_Indicator_All200, family = binomial))
+
+
+NAsh_Indicator_All200 %>% 
+  ggplot(aes(fibrosis4, Dx_Status)) +
+  #geom_point(alpha = 0.2, colour="firebrick") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), colour="darkslategray", fill="darkslategray") +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n FIB-4")+
+  ylab("Probability of NASH Dx \n")
+
+
+
+
+
+# All below 200 + Platelets above 10
+
+NAsh_Indicator_All200Platelet10 <- NAsh_Indicator[fibrosis4<=200 & AST<=200 & ALT <=200 & Platelets>=10]
+
+summary(glm( Dx_Status ~ fibrosis4, data = NAsh_Indicator_All200Platelet10, family = binomial))
+
+
+
+NAsh_Indicator_All200Platelet10 %>% 
+  ggplot(aes(fibrosis4, Dx_Status)) +
+  #geom_point(alpha = 0.2, colour="firebrick") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), colour="darkslategray", fill="darkslategray") +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n FIB-4")+
+  ylab("Probability of NASH Dx \n")
+
+
+
+summary(glm( Dx_Status ~ AST+ALT+Platelets+age, data = NAsh_Indicator_All200Platelet10, family = binomial))
+
+
+NAsh_Indicator_All200Platelet10 %>% 
+  ggplot(aes(AST, Dx_Status)) +
+  #geom_point(alpha = 0.2, colour="firebrick") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), colour="darkslategray", fill="darkslategray") +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n AST")+
+  ylab("Probability of NASH Dx \n")
+
+
+NAsh_Indicator_All200Platelet10 %>% 
+  ggplot(aes(ALT, Dx_Status)) +
+  #geom_point(alpha = 0.2, colour="firebrick") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), colour="darkslategray", fill="darkslategray") +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n ALT")+
+  ylab("Probability of NASH Dx \n")
+
+
+NAsh_Indicator_All200Platelet10 %>% 
+  ggplot(aes(Platelets, Dx_Status)) +
+  #geom_point(alpha = 0.2, colour="firebrick") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), colour="darkslategray", fill="darkslategray") +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n Platelet count")+
+  ylab("Probability of NASH Dx \n")
+
+
+NAsh_Indicator_All200Platelet10 %>% 
+  ggplot(aes(age, Dx_Status)) +
+  #geom_point(alpha = 0.2, colour="firebrick") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), colour="darkslategray", fill="darkslategray") +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n Age (years)")+
+  ylab("Probability of NASH Dx \n")
+
+
+
+
+
+NAsh_Indicator %>% filter(Condition=="NASH") %>% select(patient) %>% distinct() #4541
+NAsh_Indicator %>% filter(Condition=="DIA") %>% select(patient) %>% distinct() #148380
+NAsh_Indicator %>% filter(Condition=="OBE") %>% select(patient) %>% distinct() #309062
+
+
+NAsh_Indicator %>% filter(Condition=="NASH") %>% filter(AST>=100 & ALT>=100 & ALT>AST) %>% select(patient) %>% distinct() #392
+NAsh_Indicator %>% filter(Condition=="NASH") %>% filter(AST>=200 | ALT>=200) %>% select(patient) %>% distinct() #31
+
+
+
+NAsh_Indicator %>% filter(Condition=="NASH") %>% filter(AST>=100 | ALT>=100) %>% select(patient) %>% distinct() #1079 #24%
+NAsh_Indicator %>% filter(Condition=="DIA") %>% filter(AST>=100 | ALT>=100) %>% select(patient) %>% distinct() #9319 #6%
+NAsh_Indicator %>% filter(Condition=="OBE") %>% filter(AST>=100 | ALT>=100) %>% select(patient) %>% distinct() #13701 #4%
+
+
+NAsh_Indicator %>% filter(Condition=="NASH") %>% filter(AST>=100 | ALT>=100) %>% select(patient) %>% distinct() #1079 #24%
+NAsh_Indicator %>% filter(Condition=="DIA") %>% filter(AST>=100 | ALT>=100) %>% select(patient) %>% distinct() #9319 #6%
+NAsh_Indicator %>% filter(Condition=="OBE") %>% filter(AST>=100 | ALT>=100) %>% select(patient) %>% distinct() #13701 #4%
+
+
+NAsh_Indicator %>% filter(Condition=="NASH") %>% filter(fibrosis4>1.3) %>% select(patient) %>% distinct() #2848 #62%
+NAsh_Indicator %>% filter(Condition=="DIA") %>% filter(fibrosis4>1.3) %>% select(patient) %>% distinct() #77360 #52%
+NAsh_Indicator %>% filter(Condition=="OBE") %>% filter(fibrosis4>1.3) %>% select(patient) %>% distinct() #108335 #35%
+
+NAsh_Indicator %>% filter(Condition=="NASH") %>% filter(fibrosis4>2.67) %>% select(patient) %>% distinct() #1394 #31%
+NAsh_Indicator %>% filter(Condition=="DIA") %>% filter(fibrosis4>2.67) %>% select(patient) %>% distinct() #23594 #16%
+NAsh_Indicator %>% filter(Condition=="OBE") %>% filter(fibrosis4>2.67) %>% select(patient) %>% distinct() #26311 #9%
+
+NAsh_Indicator %>% filter(Condition=="NASH") %>% filter(ALT>AST) %>% select(patient) %>% distinct() #3636 #80%
+NAsh_Indicator %>% filter(Condition=="DIA") %>% filter(ALT>AST) %>% select(patient) %>% distinct() #105681 #71%
+NAsh_Indicator %>% filter(Condition=="OBE") %>% filter(ALT>AST) %>% select(patient) %>% distinct() #204558 #66%
+
+
+# -------
+
+# Create an indicator table with the tests of relevance each NASH patient had  -------------
+
+# ALL NASH Pats
+NASH_Pats_Index <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Pats_Index <- NASH_Pats_Index %>% select(patient)
+
+
+# Pats with +2 Diagnoses
+NASH_diagnosis <- fread("NASH_diagnosis.txt")
+NASH_diagnosis <- NASH_diagnosis %>% filter(grepl("NASH", NASH_diganosis))
+
+NASH_Events <- fread("NASH Events.txt")
+NASH_Events <- NASH_Events %>% select(patid, weight, claimed, code) %>% distinct()
+
+NASH_Diagnosis_Codes <- fread("NASH Diagnosis Codes.txt")
+NASH_Events <- NASH_Events %>% left_join(NASH_Diagnosis_Codes %>% select(code, condition))
+
+NASH_diagnosis <- NASH_diagnosis %>% select(patient) %>% left_join(NASH_Events, by=c("patient"="patid"))
+NASH_diagnosis <- NASH_diagnosis %>% filter(condition=="NASH")
+
+Pats_2Plus_Dxs <- NASH_diagnosis %>% group_by(patient) %>% count() %>% filter(n>1) %>% select(patient) %>% distinct() #5,676
+Pats_2Plus_Dxs$PLus2_Dx <- "Plus2_Dxs"
+
+
+# Biopsy pats
+NASH_Events <- fread("NASH Events.txt")
+Dx_code <- fread("NASH Diagnosis Codes.txt")
+Dx_code <- Dx_code %>% select(code, condition, source, type, description)
+NASH_Events <- NASH_Events %>% left_join(Dx_code)
+NASH_Pats <- NASH_Events %>% filter(condition=="NASH") %>% select(patid) %>% distinct()
+NASH_Pats <- NASH_Pats %>% left_join(NASH_Events)
+NASH_Pats %>% select(patid, weight) %>% distinct() %>% summarise(n=sum(weight)) #1339983
+Biopsy_Pats <- NASH_Pats %>% select(patid, weight, condition) %>% distinct() %>% filter(condition=="Liver Biopsy") %>% select(patid) %>% distinct()
+Biopsy_Pats$Biopsy <- "Biopsy"
+names(Biopsy_Pats)[1] <- "patient"
+
+NASH_Pats_Index <- NASH_Pats_Index %>% left_join(Pats_2Plus_Dxs) %>% left_join(Biopsy_Pats)
+
+
+# Scores above / below threshold 
+NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+
+AST_above50 <- NASH_Pats %>% filter(AST>50) %>% select(patient) %>% distinct()
+AST_above50$AST_above50 <- "AST_above50"
+
+ALT_above50 <- NASH_Pats %>% filter(ALT>50) %>% select(patient) %>% distinct()
+ALT_above50$ALT_above50 <- "AST_above50"
+
+AST_ALT_above50 <- NASH_Pats %>% filter(ALT>50 & AST>50) %>% select(patient) %>% distinct()
+AST_ALT_above50$AST_ALT_above50 <- "AST_ALT_above50"
+
+Platelets_below150 <- NASH_Pats %>% filter(Platelets<150) %>% select(patient) %>% distinct()
+Platelets_below150$Platelets_below150 <- "Platelets_below150"
+
+FIB4_1p3 <- NASH_Pats %>% filter(fibrosis4>1.3) %>% select(patient) %>% distinct()
+FIB4_1p3$FIB4_1p3 <- "FIB4_1p3"
+
+FIB4_2p7 <- NASH_Pats %>% filter(fibrosis4>2.7) %>% select(patient) %>% distinct()
+FIB4_2p7$FIB4_2p7 <- "FIB4_2p7"
+
+NASH_Pats_Index <- NASH_Pats_Index %>% left_join(AST_above50) %>% left_join(ALT_above50) %>% left_join(AST_ALT_above50) %>% 
+  left_join(Platelets_below150) %>% left_join(FIB4_1p3) %>% left_join(FIB4_2p7)
+
+
+Pats_to_remove <- data.frame(NASH_Pats_Index[is.na(PLus2_Dx)&is.na(Biopsy)&is.na(AST_above50)&is.na(ALT_above50)&is.na(AST_ALT_above50)&
+                                               is.na(Platelets_below150)&is.na(FIB4_1p3)&is.na(FIB4_2p7),patient])
+
+names(Pats_to_remove) <- "patient"
+
+NASH_Pats_Index <- NASH_Pats_Index %>% anti_join(Pats_to_remove)
+
+NASH_Pats_Index %>% filter(PLus2_Dx=="Plus2_Dxs" & (AST_above50=="AST_above50"|ALT_above50=="ALT_above50") & FIB4_1p3=="FIB4_1p3")
+
+NASH_Pats_Index %>% filter(AST_above50=="AST_above50"&ALT_above50=="AST_above50"&Platelets_below150=="Platelets_below150")
+
+
+
+# Define a "NEGATIVE" Population and a "POSITIVE" population to train the model and find an acceptable cut-off
+# Check how many on the entire populations would be above the cut-off
+
+DIA_Pats <- fread("DIA Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+DIA_Pats <- DIA_Pats %>% select(patient)
+
+NASH_Dossiers <- fread("NASH Dossiers.txt")
+
+DIA_Pats <- DIA_Pats %>% left_join(NASH_Dossiers, by=c("patient"="patid"))
+unique(DIA_Pats$condition)
+
+
+NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+DIA_Pats <- fread("FIB4_Diabetes_Pats.txt")
+OBE_Pats <- fread("FIB4_Obesity_Pats.txt")
+
+DIA_Pats_to_remove <- DIA_Pats %>% filter((AST>50|ALT>50|Platelets<150)) %>% select(patient) %>% distinct()
+
+DIA_Pats <- DIA_Pats %>% anti_join(DTA_Pats_to_remove)
+
+
+
+NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+
+NASH_To_keep <- NASH_Pats %>% filter(AST>50&ALT>50&Platelets<150) %>% select(patient) %>% distinct()
+
+NASH_Pats <- NASH_To_keep %>% left_join(NASH_Pats)
+
+NASH_Pats$Dx_status <- 1
+DIA_Pats$Dx_status <- 0
+
+Indicator <- NASH_Pats %>% bind_rows(DIA_Pats)
+
+
+summary(glm( Dx_status ~ AST, data = Indicator, family = binomial))
+
+
+
+# --------
+# FIB4 distribution by type of NASH --------------
+
+NASH_diagnosis <- fread("NASH_diagnosis.txt")
+NASH_diagnosis <- NASH_diagnosis %>% filter(grepl("NASH", NASH_diganosis))
+
+NASH_Pats_Cirrhosis <- NASH_diagnosis  %>% filter(NASH_diganosis == "NASH-Cirrohsis") %>% select(patient) 
+NASH_Pats_Fibrosis <- NASH_diagnosis  %>% filter(NASH_diganosis == "NASH-Fibrosis") %>% select(patient)
+NASH_Pats_NASHOnly <- NASH_diagnosis  %>% filter(NASH_diganosis == "NASH-Only") %>% select(patient) 
+
+NASH_Pats_Cirrhosis$group <- "Cirrhosis"
+NASH_Pats_Fibrosis$group <- "Fibrosis"
+NASH_Pats_NASHOnly$group <- "NASH Only"
+
+NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+NASH_Pats <- NASH_Pats %>% select(patient, fibrosis4)
+
+
+NASH_Pats_Cirrhosis <- NASH_Pats_Cirrhosis %>% inner_join(NASH_Pats)
+NASH_Pats_Fibrosis <- NASH_Pats_Fibrosis %>% inner_join(NASH_Pats)
+NASH_Pats_NASHOnly <- NASH_Pats_NASHOnly %>% inner_join(NASH_Pats)
+
+
+Temp_Ridges <- NASH_Pats_Cirrhosis %>% bind_rows(NASH_Pats_Fibrosis) %>% bind_rows(NASH_Pats_NASHOnly)
+
+Temp_Ridges %>% filter(fibrosis4<10) %>% ggplot(aes(x = fibrosis4, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "D", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlab("\n FIB4") + ylab("Disease Group \n")
+
+
+length(unique(NASH_Pats$patient))
+
+# -----------
+# Train a logistic regression model with POSITIVE cases as anyone who ever had a BIOPSY or AST&ALT&PLATELETS altered ----------
+# Those who never did but for which we have all the tests as negative controls 
+
+# Remove everyone with Liver Cancer or Alcohol Abuse
+NASH_Dossiers <- fread("NASH Dossiers.txt")
+Cancer_Alcohol_pats <- NASH_Dossiers %>% filter(condition == "Liver Cancer" | condition == "Alcohol Abuse") %>% select(patid) %>% distinct()
+Biopsy_pats <- NASH_Dossiers %>% filter(condition == "Liver Biopsy") %>% select(patid) %>% distinct()
+names(Cancer_Alcohol_pats)[1] <- "patient"
+names(Biopsy_pats)[1] <- "patient"
+Biopsy_pats$Biopsy_Ever <- "Biopsy"
+
+# Get Pats with all labs on the same date 
+NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+DIA_Pats <- fread("FIB4_Diabetes_Pats.txt")
+OBE_Pats <- fread("FIB4_Obesity_Pats.txt")
+NAFLD_Pats <- fread("FIB4_NAFLD_Pats.txt")
+
+NASH_Pats$group <- "NASH"
+DIA_Pats$group <- "DIA"
+OBE_Pats$group <- "OBE"
+NAFLD_Pats$group <- "NAFLD"
+
+
+Temp_Ridges <- NASH_Pats %>% bind_rows(DIA_Pats) %>% bind_rows(OBE_Pats) %>% bind_rows(NAFLD_Pats)
+
+Temp_Ridges$group <- factor(Temp_Ridges$group, levels = c("OBE", "DIA", "NAFLD", "NASH"))
+
+Temp_Ridges %>% filter(AST>0 & AST<200) %>% ggplot(aes(x = AST, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "D", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlab("\n AST (IU/L)") + ylab("Disease Group \n")
+
+
+
+Temp_Ridges %>% filter(ALT>0 & ALT<200) %>% ggplot(aes(x = ALT, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "C", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlab("\n ALT (IU/L)") + ylab("Disease Group \n")
+
+
+
+Temp_Ridges %>% filter(Platelets>0 & Platelets<600) %>% ggplot(aes(x = Platelets, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "A", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlab("\n Platelet Count (x10^3 / uL)") + ylab("Disease Group \n")
+
+
+
+Temp_Ridges %>% filter(fibrosis4<10) %>% ggplot(aes(x = fibrosis4, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "D", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlab("\n FIB4") + ylab("Disease Group \n")
+
+
+DANU_Measures <- fread("DANU Measures.txt")
+
+
+
+# Remove Cancer/Alcohol
+NASH_Pats <- NASH_Pats %>% anti_join(Cancer_Alcohol_pats)
+DIA_Pats <- DIA_Pats %>% anti_join(Cancer_Alcohol_pats)
+OBE_Pats<- OBE_Pats %>% anti_join(Cancer_Alcohol_pats)
+NAFLD_Pats<- NAFLD_Pats %>% anti_join(Cancer_Alcohol_pats)
+
+# Add Biopsy ever status
+NASH_Pats <- NASH_Pats %>% left_join(Biopsy_pats)
+DIA_Pats <- DIA_Pats %>% left_join(Biopsy_pats)
+OBE_Pats<- OBE_Pats %>% left_join(Biopsy_pats)
+NAFLD_Pats<- NAFLD_Pats %>% left_join(Biopsy_pats)
+
+
+# Flag patients as Positive / negative
+NASH_To_keep <- NASH_Pats %>% filter((AST>50&ALT>50&Platelets<150)|Biopsy_Ever=="Biopsy") %>% select(patient) %>% distinct()
+NASH_To_keep$Dx_status <- 1
+NASH_To_keep <- NASH_To_keep %>% left_join(NASH_Pats)
+NASH_To_keep <- NASH_To_keep %>% mutate(Biopsy_Ever=ifelse(Biopsy_Ever=="Biopsy",1,0))
+NASH_To_keep <- NASH_To_keep %>% select(-Biopsy_Ever)
+NASH_To_keep <- NASH_To_keep %>% select(1,3,4,5,6,7,8,2)
+
+
+DIA_To_keep <- DIA_Pats %>% filter((AST>50&ALT>50&Platelets<150)|Biopsy_Ever=="Biopsy") %>% select(patient) %>% distinct()
+DIA_To_keep$Dx_status <- 1
+DIA_To_keep <- DIA_To_keep %>% left_join(DIA_Pats)
+DIA_To_keep <- DIA_To_keep %>% mutate(Biopsy_Ever=ifelse(Biopsy_Ever=="Biopsy",1,0))
+DIA_To_keep <- DIA_To_keep %>% select(-Biopsy_Ever)
+DIA_To_keep <- DIA_To_keep %>% select(1,3,4,5,6,7,8,2)
+
+
+OBE_To_keep <- OBE_Pats %>% filter((AST>50&ALT>50&Platelets<150)|Biopsy_Ever=="Biopsy") %>% select(patient) %>% distinct()
+OBE_To_keep$Dx_status <- 1
+OBE_To_keep <- OBE_To_keep %>% left_join(OBE_Pats)
+OBE_To_keep <- OBE_To_keep %>% mutate(Biopsy_Ever=ifelse(Biopsy_Ever=="Biopsy",1,0))
+OBE_To_keep <- OBE_To_keep %>% select(-Biopsy_Ever)
+OBE_To_keep <- OBE_To_keep %>% select(1,3,4,5,6,7,8,2)
+
+
+NAFLD_To_keep <- NAFLD_Pats %>% filter((AST>50&ALT>50&Platelets<150)|Biopsy_Ever=="Biopsy") %>% select(patient) %>% distinct()
+NAFLD_To_keep$Dx_status <- 1
+NAFLD_To_keep <- NAFLD_To_keep %>% left_join(NAFLD_Pats)
+NAFLD_To_keep <- NAFLD_To_keep %>% mutate(Biopsy_Ever=ifelse(Biopsy_Ever=="Biopsy",1,0))
+NAFLD_To_keep <- NAFLD_To_keep %>% select(-Biopsy_Ever)
+NAFLD_To_keep <- NAFLD_To_keep %>% select(1,3,4,5,6,7,8,2)
+
+
+NASH_Pats_to_remove <- NASH_Pats %>% filter((AST>50|ALT>50|Platelets<150|Biopsy_Ever=="Biopsy")) %>% select(patient) %>% distinct()
+NASH_Negative <- NASH_Pats %>% anti_join(NASH_Pats_to_remove)
+NASH_Negative <- NASH_Negative %>% select(-Biopsy_Ever)
+NASH_Negative$Dx_status <- 0
+
+
+DIA_Pats_to_remove <- DIA_Pats %>% filter((AST>50|ALT>50|Platelets<150|Biopsy_Ever=="Biopsy")) %>% select(patient) %>% distinct()
+DIA_Negative <- DIA_Pats %>% anti_join(DIA_Pats_to_remove)
+DIA_Negative <- DIA_Negative %>% select(-Biopsy_Ever)
+DIA_Negative$Dx_status <- 0
+
+OBE_Pats_to_remove <- OBE_Pats %>% filter((AST>50|ALT>50|Platelets<150|Biopsy_Ever=="Biopsy")) %>% select(patient) %>% distinct()
+OBE_Negative <- OBE_Pats %>% anti_join(OBE_Pats_to_remove)
+OBE_Negative <- OBE_Negative %>% select(-Biopsy_Ever)
+OBE_Negative$Dx_status <- 0
+
+NAFLD_Pats_to_remove <- NAFLD_Pats %>% filter((AST>50|ALT>50|Platelets<150|Biopsy_Ever=="Biopsy")) %>% select(patient) %>% distinct()
+NAFLD_Negative <- NAFLD_Pats %>% anti_join(NAFLD_Pats_to_remove)
+NAFLD_Negative <- NAFLD_Negative %>% select(-Biopsy_Ever)
+NAFLD_Negative$Dx_status <- 0
+
+
+NASH_To_keep <- NASH_To_keep %>% sample_n(5000)
+DIA_To_keep <- DIA_To_keep %>% sample_n(5000)
+OBE_To_keep <- OBE_To_keep %>% sample_n(5000)
+NAFLD_To_keep <- NAFLD_To_keep %>% sample_n(5000)
+NASH_Negative <- NASH_Negative %>% sample_n(5000)
+DIA_Negative <- DIA_Negative %>% sample_n(5000)
+OBE_Negative <- OBE_Negative %>% sample_n(5000)
+NAFLD_Negative <- NAFLD_Negative %>% sample_n(5000)
+
+Indicator <- NASH_To_keep %>% bind_rows(DIA_To_keep) %>% bind_rows(OBE_To_keep) %>% bind_rows(NAFLD_To_keep) %>%
+  bind_rows(DIA_Negative) %>% bind_rows(OBE_Negative) %>% bind_rows(NAFLD_Negative)
+
+Indicator %>% filter(Dx_status==1) %>% summarise(n=mean(fibrosis4))
+Indicator %>% filter(Dx_status==0) %>% summarise(n=mean(fibrosis4))
+Indicator %>% filter(Dx_status==1) %>% summarise(n=median(fibrosis4))
+Indicator %>% filter(Dx_status==0) %>% summarise(n=median(fibrosis4))
+
+
+Risk_pred_model <- glm( Dx_status ~ AST+ALT+Platelets, data = Indicator, family = binomial)
+
+NASH_Pats <- NASH_Pats %>% select(-c(Biopsy_Ever))
+DIA_Pats <- DIA_Pats %>% select(-c(Biopsy_Ever))
+OBE_Pats <- OBE_Pats %>% select(-c(Biopsy_Ever))
+NAFLD_Pats <- NAFLD_Pats %>% select(-c(Biopsy_Ever))
+
+
+
+Indicator %>% 
+  ggplot(aes(fibrosis4, Dx_status)) +
+  #geom_point(alpha = 0.2, colour="firebrick") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), colour="darkslategray", fill="darkslategray") +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlim(0,25)+
+  xlab("\n FIB-4")+
+  ylab("Probability of High-Risk patient \n")
+
+
+Indicator %>% 
+  ggplot(aes(AST, Dx_status)) +
+  #geom_point(alpha = 0.2, colour="firebrick") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), colour="darkslategray", fill="darkslategray") +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlim(0,200)+
+  xlab("\n AST (IU/L)")+
+  ylab("Probability of High-Risk patient \n")
+
+
+Indicator %>% 
+  ggplot(aes(ALT, Dx_status)) +
+  #geom_point(alpha = 0.2, colour="firebrick") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), colour="darkslategray", fill="darkslategray") +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlim(0,200)+
+  xlab("\n ALT (IU/L)")+
+  ylab("Probability of High-Risk patient \n")
+
+
+
+Indicator %>% 
+  ggplot(aes(Platelets, Dx_status)) +
+  #geom_point(alpha = 0.2, colour="firebrick") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), colour="darkslategray", fill="darkslategray", level=0.99 ) +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlim(0,1000)+
+  xlab("\n Platelets (x 10^3 / uL)")+
+  ylab("Probability of High-Risk patient \n")
+
+
+
+NASH_Probability <- data.frame(Risk_pred_model %>% predict(NASH_Pats, type = "response"))
+DIA_Probability <- data.frame(Risk_pred_model %>% predict(DIA_Pats, type = "response"))
+OBE_Probability <- data.frame(Risk_pred_model %>% predict(OBE_Pats, type = "response"))
+NAFLD_Probability <- data.frame(Risk_pred_model %>% predict(NAFLD_Pats, type = "response"))
+
+
+NASH_Probability <- NASH_Pats %>% select(patient) %>% bind_cols(NASH_Probability)
+DIA_Probability <- DIA_Pats %>% select(patient) %>% bind_cols(DIA_Probability)
+OBE_Probability <- OBE_Pats %>% select(patient) %>% bind_cols(OBE_Probability)
+NAFLD_Probability <- NAFLD_Pats %>% select(patient) %>% bind_cols(NAFLD_Probability)
+
+
+length(unique(NASH_Probability$patient)) # 3747
+length(unique(DIA_Probability$patient)) # 134827
+length(unique(OBE_Probability$patient)) # 288951
+length(unique(NAFLD_Probability$patient)) # 40686
+
+
+
+NASH_Probability %>% filter(Risk_pred_model.....predict.NASH_Pats..type....response..>0.95) %>%
+  select(patient) %>% distinct() # 2150 (57%)   (62% if not using the NASH as negative)
+
+DIA_Probability %>% filter(Risk_pred_model.....predict.DIA_Pats..type....response..>0.95) %>%
+  select(patient) %>% distinct() # 27648 (20%)   (24% if not using the NASH as negative)
+
+OBE_Probability %>% filter(Risk_pred_model.....predict.OBE_Pats..type....response..>0.95) %>%
+  select(patient) %>% distinct() # 43010 (15%)   (18% if not using the NASH as negative)
+
+NAFLD_Probability %>% filter(Risk_pred_model.....predict.NAFLD_Pats..type....response..>0.95) %>%
+  select(patient) %>% distinct() # 14449 (35%)   (40% if not using the NASH as negative)
+
+# --------
+# NASH patients Dx vs FBI4 --------------------------------------
+NASH_Dossiers <- fread("NASH Dossiers.txt")
+Cancer_Alcohol_pats <- NASH_Dossiers %>% filter(condition == "Liver Cancer" | condition == "Alcohol Abuse") %>% select(patid) %>% distinct()
+names(Cancer_Alcohol_pats)[1] <- "patient"
+
+
+NASH_Pats_FIB4 <- fread("FIB4_NASH_Pats.txt")
+NASH_Pats_FIB4 <- NASH_Pats_FIB4 %>% anti_join(Cancer_Alcohol_pats)
+NASH_Pats_FIB4 <- NASH_Pats_FIB4 %>% group_by(patient) %>% filter(fibrosis4 == max(fibrosis4)) %>% slice(1)
+NASH_Pats_FIB4 <- NASH_Pats_FIB4 %>% select(patient, age, fibrosis4)
+
+NASH_diagnosis <- fread("NASH_diagnosis.txt")
+NASH_diagnosis %>% filter(grepl("NASH",NASH_diganosis)) %>% summarise(n=sum(weight)) # 1339983
+NASH_diagnosis <- NASH_diagnosis %>%filter(grepl("NASH",NASH_diganosis))
+NASH_diagnosis <- NASH_diagnosis %>% anti_join(Cancer_Alcohol_pats)
+
+
+NASH_diagnosis <- NASH_diagnosis %>% left_join(NASH_Pats_FIB4) %>% drop_na()
+
+NASH_diagnosis <- NASH_diagnosis %>% mutate(FIB4_Bucket = ifelse(fibrosis4>4.12, "F4",
+                                                                 ifelse(fibrosis4>2.67&fibrosis4<=4.12,"F3","F1-F2")))
+
+
+
+
+NASH_diagnosis <- NASH_diagnosis %>% mutate(FIB4_Bucket = ifelse(fibrosis4>1.3&age<60, "Fibrosis",
+                                                                 ifelse(fibrosis4>1.88&age<70,"Fibrosis",
+                                                                        ifelse(fibrosis4>1.95&age>70,"Fibrosis", "NASH-only"))))
+
+
+NASH_diagnosis <- NASH_diagnosis %>% mutate(FIB4_Bucket = ifelse(NASH_diagnosis$NASH_diganosis=="NASH-Cirrohsis", "NASH-Cirrhosis", FIB4_Bucket))
+
+NASH_diagnosis%>% group_by(FIB4_Bucket) %>% summarise(n=sum(weight))
+
+
+FIB4_Bucket <- NASH_diagnosis %>% select(patient, FIB4_Bucket)
+
+fwrite(FIB4_Bucket, "FIB4_Bucket_Fibrosis.txt", sep=)
+
+
+NASH_diagnosis %>% group_by(NASH_diganosis) %>% summarise(n=sum(weight))
+
+
+
+NASH_diagnosis %>% group_by(FIB4_Bucket) %>% summarise(n=sum(weight))
+
+
+NASH_diagnosis <- NASH_diagnosis %>% mutate(FIB4_Bucket = ifelse(NASH_diagnosis$NASH_diganosis=="NASH-Cirrohsis", "NASH-Cirrhosis", FIB4_Bucket))
+
+
+NASH_diagnosis %>% group_by(NASH_diganosis) %>% summarise(n=sum(weight))
+
+NASH_diagnosis %>% group_by(FIB4_Bucket) %>% summarise(n=sum(weight))
+
+
+
+NASH_diagnosis %>% mutate(FIB4_Bucket = ifelse(FIB4_Bucket=="NASH-Cirrhosis", "NASH-Cirrhosis", ifelse(fibrosis4>1.45,"NASH-Fibrosis","NASH-only"))) %>% 
+  group_by(FIB4_Bucket) %>% summarise(n=sum(weight))
+
+
+
+NASH_diagnosis %>% mutate(FIB4_Bucket = ifelse(FIB4_Bucket=="NASH-Cirrhosis", "NASH-Cirrhosis", ifelse(fibrosis4>2.67,"NASH-Fibrosis","NASH-only"))) %>% 
+  group_by(FIB4_Bucket) %>% summarise(n=sum(weight))
+
+
+
+# -------
+# Random Patient Sample to predict risk ------------------------
+Rand_pts_Lab_Results_lst5y <- fread("Rand_pts_Lab_Results_lst5y.txt")
+DANU_Measure_Codes <- fread("DANU Measure Codes.txt")
+DANU_Measure_Codes <- DANU_Measure_Codes %>% select(test, code)
+
+Rand_pts_Lab_Results_lst5y <- Rand_pts_Lab_Results_lst5y %>% left_join(DANU_Measure_Codes, by=c("loinc_cd"="code"))
+
+Rand_AST <- Rand_pts_Lab_Results_lst5y %>% filter(test == "AST Level") %>% select(ptid, fst_dt, rslt_nbr)
+names(Rand_AST)[3] <- "AST"
+
+Rand_ALT <- Rand_pts_Lab_Results_lst5y %>% filter(test == "ALT Level") %>% select(ptid, fst_dt, rslt_nbr)
+names(Rand_ALT)[3] <- "ALT"
+
+Rand_Platelets <- Rand_pts_Lab_Results_lst5y %>% filter(test == "Platelet Count") %>% select(ptid, fst_dt, rslt_nbr)
+names(Rand_Platelets)[3] <- "Platelets"
+
+
+Rand_pats_Labs <- Rand_AST %>% full_join(Rand_ALT) %>% full_join(Rand_Platelets) %>% drop_na() %>% distinct()
+
+names(Rand_pats_Labs)[1] <- "patient"
+names(Rand_pats_Labs)[2] <- "claimed"
+
+Rand_pats_Labs <- Rand_pats_Labs %>% filter(AST>5&ALT>5&Platelets>5)
+
+Rand_Ages <- Rand_pts_Lab_Results_lst5y %>% select(ptid, age)
+names(Rand_Ages)[1] <- "patient"
+Rand_Ages <- Rand_Ages %>% distinct()
+Rand_pats_Labs <- Rand_pats_Labs %>% left_join(Rand_Ages)
+
+
+Rand_pats_Labs$finalDate <- as.Date("2021-04-30")
+Rand_pats_Labs$claimed <- as.Date(Rand_pats_Labs$claimed)
+
+Rand_pats_Labs$diff <- round(((Rand_pats_Labs$finalDate - Rand_pats_Labs$claimed)/30.5)/12)
+
+Rand_pats_Labs$age <- Rand_pats_Labs$age - Rand_pats_Labs$diff 
+
+Rand_pats_Labs <- Rand_pats_Labs %>% select(-c(finalDate, diff))
+
+Rand_pats_Labs$fibrosis4 <- (Rand_pats_Labs$age*Rand_pats_Labs$AST) / (Rand_pats_Labs$Platelets*sqrt(Rand_pats_Labs$ALT))
+
+Rand_pats_Labs$age <- as.numeric(Rand_pats_Labs$age)
+Rand_pats_Labs$fibrosis4 <- as.numeric(Rand_pats_Labs$fibrosis4)
+
+fwrite(Rand_pats_Labs, "FIB4_Random_Pats.txt", sep="\t")
+
+# -----
+# Filter the random patients for the right age buckets -----------------
+
+FIB4_Random_Pats <- fread("FIB4_Random_Pats.txt")
+
+FIB4_Random_Pats <- FIB4_Random_Pats %>% select(patient, age) %>% group_by(patient) %>% filter(age==max(age)) %>% slice(1) %>% arrange(age)
+FIB4_Random_Pats <- as.data.frame(FIB4_Random_Pats)
+
+sample_scheme  <- fread("Number of patients by age for NASH logisitic regression.csv")
+sample_scheme <- as.data.frame(sample_scheme)
+
+temp <- FIB4_Random_Pats %>% filter(age>0) %>%
+  nest(data = -age) %>%
+  inner_join(sample_scheme, by=c("age"="age")) %>% 
+  mutate(Sample = map2(data, PatientsNeeded, sample_n)) %>% 
+  unnest(Sample)
+
+FIB4_Random_Pats <- fread("FIB4_Random_Pats.txt")
+
+FIB4_Random_Pats <- temp %>% select(patient) %>% left_join(FIB4_Random_Pats)
+
+fwrite(FIB4_Random_Pats, "FIB4_Random_Pats_Filtered.txt")
+
+
+# -----------
+
+# Train a logistic regression model with POSITIVE cases as anyone who ever had a BIOPSY or AST&ALT&PLATELETS altered ----------
+# Those who never did but for which we have all the tests as negative controls 
+
+# Remove everyone with Liver Cancer or Alcohol Abuse
+NASH_Dossiers <- fread("NASH Dossiers.txt")
+Cancer_Alcohol_pats <- NASH_Dossiers %>% filter(condition == "Liver Cancer" | condition == "Alcohol Abuse") %>% select(patid) %>% distinct()
+Biopsy_pats <- NASH_Dossiers %>% filter(condition == "Liver Biopsy") %>% select(patid) %>% distinct()
+names(Cancer_Alcohol_pats)[1] <- "patient"
+names(Biopsy_pats)[1] <- "patient"
+Biopsy_pats$Biopsy_Ever <- "Biopsy"
+
+# Get Pats with all labs on the same date 
+NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+DIA_Pats <- fread("FIB4_Diabetes_Pats.txt")
+OBE_Pats <- fread("FIB4_Obesity_Pats.txt")
+NAFLD_Pats <- fread("FIB4_NAFLD_Pats.txt")
+Random_Pats <- fread("FIB4_Random_Pats_Filtered.txt") 
+
+NAFLD <- NAFLD_Pats %>% select(patient)
+DIA_Pats <- DIA_Pats %>% anti_join(NAFLD)
+OBE_Pats <- OBE_Pats %>% anti_join(NAFLD)
+
+
+NASH_Pats$group <- "NASH"
+DIA_Pats$group <- "DIA"
+OBE_Pats$group <- "OBE"
+NAFLD_Pats$group <- "NAFLD"
+Random_Pats$group <- "Random Sample"
+
+
+
+Temp_Ridges <- NASH_Pats %>% bind_rows(DIA_Pats) %>% bind_rows(OBE_Pats) %>% bind_rows(NAFLD_Pats) %>% bind_rows(Random_Pats)
+
+Temp_Ridges %>% filter(AST>0 & AST<200) %>% ggplot(aes(x = AST, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "D", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlab("\n AST (IU/L)") + ylab("Disease Group \n")
+
+
+Temp_Ridges %>% filter(ALT>0 & ALT<200) %>% ggplot(aes(x = ALT, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "C", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlab("\n ALT (IU/L)") + ylab("Disease Group \n")
+
+
+
+Temp_Ridges %>% filter(Platelets>0 & Platelets<600) %>% ggplot(aes(x = Platelets, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "A", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlab("\n Platelet Count (x10^3 / uL)") + ylab("Disease Group \n")
+
+
+
+Temp_Ridges %>% filter(fibrosis4<10) %>% ggplot(aes(x = fibrosis4, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "D", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlab("\n FIB4") + ylab("Disease Group \n")
+
+
+
+
+# Remove Cancer/Alcohol
+NASH_Pats <- NASH_Pats %>% anti_join(Cancer_Alcohol_pats)
+DIA_Pats <- DIA_Pats %>% anti_join(Cancer_Alcohol_pats)
+OBE_Pats<- OBE_Pats %>% anti_join(Cancer_Alcohol_pats)
+NAFLD_Pats<- NAFLD_Pats %>% anti_join(Cancer_Alcohol_pats)
+
+
+# Add Biopsy ever status
+NASH_Pats <- NASH_Pats %>% left_join(Biopsy_pats)
+DIA_Pats <- DIA_Pats %>% left_join(Biopsy_pats)
+OBE_Pats<- OBE_Pats %>% left_join(Biopsy_pats)
+NAFLD_Pats<- NAFLD_Pats %>% left_join(Biopsy_pats)
+
+
+# Flag patients as Positive / negative
+NASH_To_keep <- NASH_Pats %>% filter((AST>50&ALT>50&Platelets<150)|Biopsy_Ever=="Biopsy") %>% select(patient) %>% distinct()
+NASH_To_keep$Dx_status <- 1
+NASH_To_keep <- NASH_To_keep %>% left_join(NASH_Pats)
+NASH_To_keep <- NASH_To_keep %>% mutate(Biopsy_Ever=ifelse(Biopsy_Ever=="Biopsy",1,0))
+NASH_To_keep <- NASH_To_keep %>% select(-Biopsy_Ever)
+NASH_To_keep <- NASH_To_keep %>% select(1,3,4,5,6,7,8,2)
+
+
+DIA_To_keep <- DIA_Pats %>% filter((AST>50&ALT>50&Platelets<150)|Biopsy_Ever=="Biopsy") %>% select(patient) %>% distinct()
+DIA_To_keep$Dx_status <- 1
+DIA_To_keep <- DIA_To_keep %>% left_join(DIA_Pats)
+DIA_To_keep <- DIA_To_keep %>% mutate(Biopsy_Ever=ifelse(Biopsy_Ever=="Biopsy",1,0))
+DIA_To_keep <- DIA_To_keep %>% select(-Biopsy_Ever)
+DIA_To_keep <- DIA_To_keep %>% select(1,3,4,5,6,7,8,2)
+
+
+OBE_To_keep <- OBE_Pats %>% filter((AST>50&ALT>50&Platelets<150)|Biopsy_Ever=="Biopsy") %>% select(patient) %>% distinct()
+OBE_To_keep$Dx_status <- 1
+OBE_To_keep <- OBE_To_keep %>% left_join(OBE_Pats)
+OBE_To_keep <- OBE_To_keep %>% mutate(Biopsy_Ever=ifelse(Biopsy_Ever=="Biopsy",1,0))
+OBE_To_keep <- OBE_To_keep %>% select(-Biopsy_Ever)
+OBE_To_keep <- OBE_To_keep %>% select(1,3,4,5,6,7,8,2)
+
+
+NAFLD_To_keep <- NAFLD_Pats %>% filter((AST>50&ALT>50&Platelets<150)|Biopsy_Ever=="Biopsy") %>% select(patient) %>% distinct()
+NAFLD_To_keep$Dx_status <- 1
+NAFLD_To_keep <- NAFLD_To_keep %>% left_join(NAFLD_Pats)
+NAFLD_To_keep <- NAFLD_To_keep %>% mutate(Biopsy_Ever=ifelse(Biopsy_Ever=="Biopsy",1,0))
+NAFLD_To_keep <- NAFLD_To_keep %>% select(-Biopsy_Ever)
+NAFLD_To_keep <- NAFLD_To_keep %>% select(1,3,4,5,6,7,8,2)
+
+
+NASH_Pats_to_remove <- NASH_Pats %>% filter((AST>50|ALT>50|Platelets<150|Biopsy_Ever=="Biopsy")) %>% select(patient) %>% distinct()
+NASH_Negative <- NASH_Pats %>% anti_join(NASH_Pats_to_remove)
+NASH_Negative <- NASH_Negative %>% select(-Biopsy_Ever)
+NASH_Negative$Dx_status <- 0
+
+
+DIA_Pats_to_remove <- DIA_Pats %>% filter((AST>50|ALT>50|Platelets<150|Biopsy_Ever=="Biopsy")) %>% select(patient) %>% distinct()
+DIA_Negative <- DIA_Pats %>% anti_join(DIA_Pats_to_remove)
+DIA_Negative <- DIA_Negative %>% select(-Biopsy_Ever)
+DIA_Negative$Dx_status <- 0
+
+OBE_Pats_to_remove <- OBE_Pats %>% filter((AST>50|ALT>50|Platelets<150|Biopsy_Ever=="Biopsy")) %>% select(patient) %>% distinct()
+OBE_Negative <- OBE_Pats %>% anti_join(OBE_Pats_to_remove)
+OBE_Negative <- OBE_Negative %>% select(-Biopsy_Ever)
+OBE_Negative$Dx_status <- 0
+
+NAFLD_Pats_to_remove <- NAFLD_Pats %>% filter((AST>50|ALT>50|Platelets<150|Biopsy_Ever=="Biopsy")) %>% select(patient) %>% distinct()
+NAFLD_Negative <- NAFLD_Pats %>% anti_join(NAFLD_Pats_to_remove)
+NAFLD_Negative <- NAFLD_Negative %>% select(-Biopsy_Ever)
+NAFLD_Negative$Dx_status <- 0
+
+
+NASH_To_keep <- NASH_To_keep %>% sample_n(5000)
+DIA_To_keep <- DIA_To_keep %>% sample_n(5000)
+OBE_To_keep <- OBE_To_keep %>% sample_n(5000)
+NAFLD_To_keep <- NAFLD_To_keep %>% sample_n(5000)
+NASH_Negative <- NASH_Negative %>% sample_n(5000)
+DIA_Negative <- DIA_Negative %>% sample_n(5000)
+OBE_Negative <- OBE_Negative %>% sample_n(5000)
+NAFLD_Negative <- NAFLD_Negative %>% sample_n(5000)
+
+Indicator <- NASH_To_keep %>% bind_rows(DIA_To_keep) %>% bind_rows(OBE_To_keep) %>% bind_rows(NAFLD_To_keep) %>%
+  bind_rows(DIA_Negative) %>% bind_rows(OBE_Negative) %>% bind_rows(NAFLD_Negative)
+
+Indicator %>% filter(Dx_status==1) %>% summarise(n=mean(fibrosis4))
+Indicator %>% filter(Dx_status==0) %>% summarise(n=mean(fibrosis4))
+Indicator %>% filter(Dx_status==1) %>% summarise(n=median(fibrosis4))
+Indicator %>% filter(Dx_status==0) %>% summarise(n=median(fibrosis4))
+
+
+Risk_pred_model <- glm( Dx_status ~ AST+ALT+Platelets, data = Indicator, family = binomial)
+
+NASH_Pats <- NASH_Pats %>% select(-c(Biopsy_Ever))
+DIA_Pats <- DIA_Pats %>% select(-c(Biopsy_Ever))
+OBE_Pats <- OBE_Pats %>% select(-c(Biopsy_Ever))
+NAFLD_Pats <- NAFLD_Pats %>% select(-c(Biopsy_Ever))
+
+
+
+Indicator %>% 
+  ggplot(aes(fibrosis4, Dx_status)) +
+  #geom_point(alpha = 0.2, colour="firebrick") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), colour="darkslategray", fill="darkslategray") +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlim(0,25)+
+  xlab("\n FIB-4")+
+  ylab("Probability of High-Risk patient \n")
+
+
+Indicator %>% 
+  ggplot(aes(AST, Dx_status)) +
+  #geom_point(alpha = 0.2, colour="firebrick") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), colour="darkslategray", fill="darkslategray") +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlim(0,200)+
+  xlab("\n AST (IU/L)")+
+  ylab("Probability of High-Risk patient \n")
+
+
+Indicator %>% 
+  ggplot(aes(ALT, Dx_status)) +
+  #geom_point(alpha = 0.2, colour="firebrick") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), colour="darkslategray", fill="darkslategray") +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlim(0,200)+
+  xlab("\n ALT (IU/L)")+
+  ylab("Probability of High-Risk patient \n")
+
+
+
+Indicator %>% 
+  ggplot(aes(Platelets, Dx_status)) +
+  #geom_point(alpha = 0.2, colour="firebrick") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), colour="darkslategray", fill="darkslategray", level=0.99 ) +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlim(0,1000)+
+  xlab("\n Platelets (x 10^3 / uL)")+
+  ylab("Probability of High-Risk patient \n")
+
+
+
+
+NASH_Probability <- data.frame(Risk_pred_model %>% predict(NASH_Pats, type = "response"))
+DIA_Probability <- data.frame(Risk_pred_model %>% predict(DIA_Pats, type = "response"))
+OBE_Probability <- data.frame(Risk_pred_model %>% predict(OBE_Pats, type = "response"))
+NAFLD_Probability <- data.frame(Risk_pred_model %>% predict(NAFLD_Pats, type = "response"))
+Random_Probability <- data.frame(Risk_pred_model %>% predict(Random_Pats, type = "response"))
+
+
+NASH_Probability <- NASH_Pats %>% select(patient) %>% bind_cols(NASH_Probability)
+DIA_Probability <- DIA_Pats %>% select(patient) %>% bind_cols(DIA_Probability)
+OBE_Probability <- OBE_Pats %>% select(patient) %>% bind_cols(OBE_Probability)
+NAFLD_Probability <- NAFLD_Pats %>% select(patient) %>% bind_cols(NAFLD_Probability)
+Random_Probability <- Random_Pats %>% select(patient) %>% bind_cols(Random_Probability)
+
+
+NASH_Probability <- NASH_Probability %>% group_by(patient) %>% count() %>% filter(n>1) %>% select(patient) %>% left_join(NASH_Probability) %>% ungroup()
+DIA_Probability <- DIA_Probability %>% group_by(patient) %>% count() %>% filter(n>1) %>% select(patient) %>% left_join(DIA_Probability) %>% ungroup()
+OBE_Probability <- OBE_Probability %>% group_by(patient) %>% count() %>% filter(n>1) %>% select(patient) %>% left_join(OBE_Probability) %>% ungroup()
+NAFLD_Probability <- NAFLD_Probability %>% group_by(patient) %>% count() %>% filter(n>1) %>% select(patient) %>% left_join(NAFLD_Probability) %>% ungroup()
+Random_Probability <- Random_Probability %>% group_by(patient) %>% count() %>% filter(n>1) %>% select(patient) %>% left_join(Random_Probability) %>% ungroup()
+
+
+
+length(unique(NASH_Probability$patient)) # 2886
+length(unique(DIA_Probability$patient)) # 99120
+length(unique(OBE_Probability$patient)) # 184714
+length(unique(NAFLD_Probability$patient)) # 29967
+length(unique(Random_Probability$patient)) # 2207
+
+
+NASH_Probability %>% filter(Risk_pred_model.....predict.NASH_Pats..type....response..>0.75) %>%
+  select(patient) %>% distinct() # (62% if not using the NASH as negative)
+
+DIA_Probability %>% filter(Risk_pred_model.....predict.DIA_Pats..type....response..>0.75) %>%
+  select(patient) %>% distinct() # (24% if not using the NASH as negative)
+
+OBE_Probability %>% filter(Risk_pred_model.....predict.OBE_Pats..type....response..>0.75) %>%
+  select(patient) %>% distinct() #  (18% if not using the NASH as negative)
+
+NAFLD_Probability %>% filter(Risk_pred_model.....predict.NAFLD_Pats..type....response..>0.75) %>%
+  select(patient) %>% distinct() #   (40% if not using the NASH as negative)
+
+Random_Probability %>% filter(Risk_pred_model.....predict.Random_Pats..type....response..>0.75) %>%
+  select(patient) %>% distinct() #  (13% if not using the NASH as negative)
+
+
+
+
+NASH_Probability %>% filter(Risk_pred_model.....predict.NASH_Pats..type....response..>0.85) %>%
+  select(patient) %>% distinct() # (54% if not using the NASH as negative)
+
+DIA_Probability %>% filter(Risk_pred_model.....predict.DIA_Pats..type....response..>0.85) %>%
+  select(patient) %>% distinct() # (10% if not using the NASH as negative)
+
+OBE_Probability %>% filter(Risk_pred_model.....predict.OBE_Pats..type....response..>0.85) %>%
+  select(patient) %>% distinct() #  (13% if not using the NASH as negative)
+
+NAFLD_Probability %>% filter(Risk_pred_model.....predict.NAFLD_Pats..type....response..>0.85) %>%
+  select(patient) %>% distinct() #   (24% if not using the NASH as negative)
+
+Random_Probability %>% filter(Risk_pred_model.....predict.Random_Pats..type....response..>0.85) %>%
+  select(patient) %>% distinct() #  (9% if not using the NASH as negative)
+
+
+
+length(unique(NASH_Probability$patient)) # 2886
+length(unique(DIA_Probability$patient)) # 99120
+length(unique(OBE_Probability$patient)) # 184714
+length(unique(NAFLD_Probability$patient)) # 29967
+length(unique(Random_Probability$patient)) # 2207
+
+LiverDiseaseComorbidPats <- fread("liver disease comorbid patients.txt", sep = "\t", header = F)
+names(LiverDiseaseComorbidPats)[1] <- "patient"
+
+NASH_Probability %>% select(patient) %>% distinct() %>% anti_join(LiverDiseaseComorbidPats)
+
+NASH_Probability %>% filter(Risk_pred_model.....predict.NASH_Pats..type....response..>0.95) %>%
+  select(patient) %>% distinct() %>% anti_join(LiverDiseaseComorbidPats)
+
+NASH_Probability %>% filter(Risk_pred_model.....predict.NASH_Pats..type....response..>0.95) %>%
+  select(patient) %>% distinct() # (47% if not using the NASH as negative)
+
+DIA_Probability %>% filter(Risk_pred_model.....predict.DIA_Pats..type....response..>0.95) %>%
+  select(patient) %>% distinct() # (15% if not using the NASH as negative)
+
+OBE_Probability %>% filter(Risk_pred_model.....predict.OBE_Pats..type....response..>0.95) %>%
+  select(patient) %>% distinct() #  (11% if not using the NASH as negative)
+
+NAFLD_Probability %>% filter(Risk_pred_model.....predict.NAFLD_Pats..type....response..>0.95) %>%
+  select(patient) %>% distinct() #   (28% if not using the NASH as negative)
+
+Random_Probability %>% filter(Risk_pred_model.....predict.Random_Pats..type....response..>0.95) %>%
+  select(patient) %>% distinct() #  (9% if not using the NASH as negative)
+
+
+
+# -----
+
+# How events evolve over time and % share of physicians ------------
+NASH_Events <- fread("NASH Events.txt")
+NASH_Events <- NASH_Events %>% select(patid, weight, claimed, code, prov) %>% distinct()
+
+NASH_Diagnosis_Codes <- fread("NASH Diagnosis Codes.txt")
+NASH_Events <- NASH_Events %>% left_join(NASH_Diagnosis_Codes %>% select(code, condition))
+NASH_Events <- NASH_Events %>% filter(condition=="NASH")
+NASH_Events <- NASH_Events %>% group_by(patid) %>% slice(1)
+NASH_Events <- NASH_Events %>% select(patid, claimed)
+names(NASH_Events)[2] <- "FirstNASHDx"
+
+
+FirstNASHDx <- NASH_Events
+
+NASH_Pats <- FirstNASHDx %>% select(patid)
+
+NASH_Events <- fread("NASH Events.txt")
+NASH_Events <- NASH_Events %>% select(patid, weight, claimed, code, prov) 
+NASH_Events <- NASH_Events %>% filter(!is.na(claimed))
+NASH_Events <- NASH_Pats %>% left_join(NASH_Events)
+
+NASH_Events <- NASH_Events %>% left_join(FirstNASHDx)
+
+NASH_Events$claimed <- as.Date(NASH_Events$claimed)
+NASH_Events$FirstNASHDx <- as.Date(NASH_Events$FirstNASHDx)
+
+NASH_Events <- NASH_Events %>% mutate(ElapsedTime = round(as.numeric((claimed-FirstNASHDx)/30.5)))
+
+data.frame(NASH_Events %>% group_by(ElapsedTime) %>% count())
+
+# data.frame(NASH_Events %>% group_by(ElapsedTime, patid) %>% count() %>% ungroup() %>% 
+#   group_by(ElapsedTime) %>% summarise(n=round(mean(n))))
+
+NASH_Events %>% ggplot(aes(ElapsedTime)) +
+  geom_density(fill="darkcyan", colour="darkcyan", size=1, alpha=0.8) +
+  xlim(-24,24)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n Month(s) Before / After First NASH Dx")+
+  ylab("Density of Events (Diagnoses & Procedures) \n")
+
+
+NASH_Events %>% filter(grepl("D=",code)) %>% ggplot(aes(ElapsedTime)) +
+  geom_density(fill="deepskyblue4", colour="deepskyblue4", size=1, alpha=0.8) +
+  xlim(-24,24)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n Month(s) Before / After First NASH Dx")+
+  ylab("Density of Diagnoses \n")
+
+
+NASH_Events %>% filter(grepl("R=",code)|grepl("P=",code)) %>% ggplot(aes(ElapsedTime)) +
+  geom_density(fill="firebrick", colour="firebrick", size=1, alpha=0.8) +
+  xlim(-24,24)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  xlab("\n Month(s) Before / After First NASH Dx")+
+  ylab("Density of Procedures \n")
+
+
+
+# On month 0, we have 1324 Procedures and 9772 Dxs.
+
+NASH_Events <- NASH_Events %>% drop_na()
+
+
+NASH_Event_Claims_Providers <- fread("NASH Event Claims Providers.txt")
+
+NASH_Events <- NASH_Events %>% left_join(NASH_Event_Claims_Providers %>% select(prov, specialty)) %>% 
+  filter(ElapsedTime>= (-12) & ElapsedTime<= (12))
+
+
+NASH_Events <- NASH_Events %>% select(-c(weight, FirstNASHDx, claimed, code, prov))
+
+length(unique(NASH_Events$specialty))
+
+
+fwrite(NASH_Events, "Specialty_Over_Time_UniquePerPat.txt", sep="\t")
+
+
+NASH_Events <- NASH_Events %>% group_by(ElapsedTime, specialty) %>% count()
+
+fwrite(NASH_Events, "Specialty_Over_Time.txt", sep="\t")
+
+unique(NASH_Events$specialty)
+ 
+
+Specialty_Over_Time_UniquePerPat <- fread("Specialty_Over_Time_UniquePerPat.csv")
+
+
+
+Specialty_Over_Time_UniquePerPat <- Specialty_Over_Time_UniquePerPat %>% filter(specialty!="UNKNOWN" & specialty!="FACILITY" & specialty!="FAICLITY" & specialty!="INDEPENDENT LABORATORY") 
+
+Specialty_Over_Time_UniquePerPat <- Specialty_Over_Time_UniquePerPat %>% mutate(rank = ifelse(specialty=="GASTRO / HEPATO",1,
+                                                          ifelse(specialty=="PATHOLOGY",2,
+                                                                 ifelse(specialty=="RADIOLOGY"|specialty=="RAIDOLOGY",3,
+                                                                        ifelse(specialty=="HEMATO / ONCO",4,
+                                                                               ifelse(specialty=="CARDIOLOGY",5,
+                                                                                      ifelse(specialty=="EMERGENCY MEDICINE",6,
+                                                                                             ifelse(specialty=="INTERNAL MEDICINE",7,
+                                                                                                    ifelse(specialty=="GP",8,
+                                                                                                           ifelse(specialty=="SURGERY",9,
+                                                                                                                  ifelse(specialty=="OTHER PHYSICIAN",10,
+                                                                                                                         ifelse(specialty=="OTHER HCP",11,NA))))))))))))
+
+
+Specialty_Over_Time_UniquePerPat <- Specialty_Over_Time_UniquePerPat %>% group_by(patid, ElapsedTime) %>% filter(rank==min(rank)) %>% slice(1)
+
+Specialty_Over_Time_UniquePerPat <- Specialty_Over_Time_UniquePerPat %>% ungroup() %>% group_by(ElapsedTime, specialty) %>% count()
+
+Specialty_Over_Time_UniquePerPat <- Specialty_Over_Time_UniquePerPat %>% ungroup() %>% group_by(ElapsedTime) %>% mutate(TOTAL = sum(n))
+
+temp2 <- Specialty_Over_Time_UniquePerPat %>% mutate(share = n/TOTAL) %>%
+  select(-c(n, TOTAL)) %>% spread(key=ElapsedTime, value=share)
+
+fwrite(temp2, "Specialty_Over_Time_UniquePerPat_Wide.txt", sep="\t")
+
+# --------------
+
+# Create a matrix with the evolution of all labs, labs above threshold, any Liver Dx, gastro visit, over time ------------
+
+# Labs over time above/below predicted threshold
+Liver_Risk_OVerTime <- fread("Liver_Risk_OVerTime.txt")
+
+NASH_Events <- fread("NASH Events.txt")
+NASH_Events <- NASH_Events %>% select(patid, weight, code, claimed) %>% distinct()
+
+NASH_Diagnosis_Codes <- fread("NASH Diagnosis Codes.txt")
+NASH_Events <- NASH_Events %>% left_join(NASH_Diagnosis_Codes %>% select(code, condition))
+NASH_Events <- NASH_Events %>% filter(condition=="NASH")
+NASH_Events <- NASH_Events %>% group_by(patid) %>% slice(1)
+NASH_Events <- NASH_Events %>% select(patid, claimed)
+names(NASH_Events)[2] <- "FirstNASHDx"
+names(NASH_Events)[1] <- "patient"
+
+FirstNASHDx <- NASH_Events
+
+
+Liver_Risk_OVerTime <- FirstNASHDx %>% left_join(Liver_Risk_OVerTime)
+
+Liver_Risk_OVerTime$claimed <- as.Date(Liver_Risk_OVerTime$claimed)
+Liver_Risk_OVerTime$FirstNASHDx <- as.Date(Liver_Risk_OVerTime$FirstNASHDx)
+
+
+Liver_Risk_OVerTime <- Liver_Risk_OVerTime %>% mutate(ElapsedTime = round(as.numeric((claimed-FirstNASHDx)/30.5)))
+
+length(unique(Liver_Risk_OVerTime$patient))
+
+Liver_Risk_OVerTime <- Liver_Risk_OVerTime %>% mutate(LabResults = ifelse(GLM_NASH_Prob>0.75,2,
+                                                                          ifelse(GLM_NASH_Prob<0.75, 1,
+                                                                                 ifelse(is.na(GLM_NASH_Prob), 0, NA))))
+
+
+
+temp <- Liver_Risk_OVerTime %>% select(patient, ElapsedTime, LabResults) %>% 
+  group_by(patient, ElapsedTime) %>% filter(LabResults == max(LabResults)) %>% slice(1)
+
+
+temp <- temp %>% ungroup() %>% filter(ElapsedTime>= (-12) & ElapsedTime<=12) %>% spread(key=ElapsedTime, value=LabResults)
+
+length(unique(temp$patient))
+
+NASH_Pats <- Liver_Risk_OVerTime %>% select(patient) %>% distinct()
+
+temp <- NASH_Pats %>% left_join(temp)
+
+
+temp <- fread("PositiveVSNegative_labs_over_time.txt")
+
+temp <- temp %>% replace(is.na(.), 0)
+
+fwrite(temp, "PositiveVSNegative_labs_over_time.txt", sep="\t")
+
+
+
+# Any (liver) labs over time
+
+DANU_Measures <- fread("DANU Measures.txt")
+DANU_Measures <- DANU_Measures %>% filter(test=="ALT Level"|test=="AST Level"|test=="Platelet Count")
+DANU_Measures <- DANU_Measures %>% select(patid, claimed)
+DANU_Measures <- DANU_Measures %>% distinct()
+names(DANU_Measures)[1] <- "patient"
+
+DANU_Measures <- FirstNASHDx %>% left_join(DANU_Measures)
+
+length(unique(DANU_Measures$patient))
+
+DANU_Measures$claimed <- as.Date(DANU_Measures$claimed)
+DANU_Measures$FirstNASHDx <- as.Date(DANU_Measures$FirstNASHDx)
+
+DANU_Measures <- DANU_Measures %>% mutate(ElapsedTime = round(as.numeric((claimed-FirstNASHDx)/30.5)))
+
+DANU_Measures <- DANU_Measures %>% select(-c(FirstNASHDx, claimed)) %>% distinct()
+
+DANU_Measures <- DANU_Measures %>% mutate(AnyLabs = ifelse(is.na(ElapsedTime),0,1))
+
+DANU_Measures <- DANU_Measures %>% ungroup() %>% filter(ElapsedTime>= (-12) & ElapsedTime<=12) %>% spread(key=ElapsedTime, value=AnyLabs)
+
+
+DANU_Measures <- NASH_Pats %>% left_join(DANU_Measures)
+
+
+DANU_Measures <- DANU_Measures %>% replace(is.na(.), 0)
+
+
+fwrite(DANU_Measures, "Any_Labs_Liver_over_time.txt", sep="\t")
+
+
+
+
+
+
+# Any labs results over time
+
+NASH_Extract_Claims_Lab_Results <- fread("NASH Extract Claims Lab Results.txt")
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% select(patid, fst_dt)
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% distinct()
+names(NASH_Extract_Claims_Lab_Results)[1] <- "patient"
+names(NASH_Extract_Claims_Lab_Results)[2] <- "claimed"
+
+
+NASH_Extract_Labs <- fread("NASH Extract Labs.txt")
+NASH_Extract_Labs <- NASH_Extract_Labs %>% select(patid, result_date) %>% distinct()
+names(NASH_Extract_Labs)[1] <- "patient"
+names(NASH_Extract_Labs)[2] <- "claimed"
+
+
+NASH_Extract_NLP_Measurements <- fread("NASH Extract NLP Measurements.txt")
+NASH_Extract_NLP_Measurements <- NASH_Extract_NLP_Measurements %>% select(patid, note_date)
+names(NASH_Extract_NLP_Measurements)[1] <- "patient"
+names(NASH_Extract_NLP_Measurements)[2] <- "claimed"
+
+
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% bind_rows(NASH_Extract_Labs) %>% bind_rows(NASH_Extract_NLP_Measurements) %>% distinct()
+
+
+NASH_Extract_Claims_Lab_Results <- FirstNASHDx %>% left_join(NASH_Extract_Claims_Lab_Results)
+
+length(unique(NASH_Extract_Claims_Lab_Results$patient))
+
+NASH_Extract_Claims_Lab_Results$claimed <- as.Date(NASH_Extract_Claims_Lab_Results$claimed)
+NASH_Extract_Claims_Lab_Results$FirstNASHDx <- as.Date(NASH_Extract_Claims_Lab_Results$FirstNASHDx)
+
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% mutate(ElapsedTime = round(as.numeric((claimed-FirstNASHDx)/30.5)))
+
+
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% select(-c(FirstNASHDx, claimed)) %>% distinct()
+
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% mutate(AnyResults = ifelse(is.na(ElapsedTime),0,1))
+
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% ungroup() %>% filter(ElapsedTime>= (-12) & ElapsedTime<=12) %>% spread(key=ElapsedTime, value=AnyResults)
+
+
+NASH_Extract_Claims_Lab_Results <-  FirstNASHDx %>% select(patient) %>% left_join(NASH_Extract_Claims_Lab_Results)
+
+
+NASH_Extract_Claims_Lab_Results <- NASH_Extract_Claims_Lab_Results %>% replace(is.na(.), 0)
+
+sum(NASH_Extract_Claims_Lab_Results==1) # 29216
+
+fwrite(NASH_Extract_Claims_Lab_Results, "Any_LabsResults_over_time.txt", sep="\t")
+
+
+
+
+
+
+
+
+# Any Liver Dx over time
+NASH_Events <- fread("NASH Events.txt")
+NASH_Events <- NASH_Events %>% select(patid, claimed, code) %>% distinct()
+NASH_Events <- NASH_Events %>% drop_na()
+
+NASH_Diagnosis_Codes <- fread("NASH Diagnosis Codes.txt")
+
+NASH_Diagnosis_Codes <- NASH_Diagnosis_Codes %>% select(code, diagnosis) %>% filter(diagnosis == "Liver Disease")
+
+LiverDisease_Events <- NASH_Events %>% left_join(NASH_Diagnosis_Codes) %>% drop_na() %>% select(-code)
+
+names(LiverDisease_Events)[1] <- "patient"
+
+LiverDisease_Events <- NASH_Pats %>% left_join(LiverDisease_Events) 
+
+LiverDisease_Events$claimed <- as.Date(LiverDisease_Events$claimed)
+FirstNASHDx$FirstNASHDx <- as.Date(FirstNASHDx$FirstNASHDx)
+
+LiverDisease_Events <- FirstNASHDx %>% left_join(LiverDisease_Events) %>% mutate(ElapsedTime = round(as.numeric((claimed-FirstNASHDx)/30.5)))
+
+LiverDisease_Events <- LiverDisease_Events %>% select(-c(FirstNASHDx, claimed))
+
+LiverDisease_Events <- LiverDisease_Events %>% mutate(diagnosis = ifelse(diagnosis=="Liver Disease",1,0))
+
+LiverDisease_Events <- LiverDisease_Events %>% filter(ElapsedTime >= (-12) & ElapsedTime <= 12)
+
+LiverDisease_Events <- LiverDisease_Events %>% distinct() %>% ungroup()  %>% spread(key=ElapsedTime, value = diagnosis)
+
+
+LiverDisease_Events <- LiverDisease_Events %>% replace(is.na(.), 0)
+
+
+fwrite(LiverDisease_Events, "LiverDisease_Events_over_time.txt", sep="\t")
+
+
+
+
+
+
+# Seen any gastro over time
+NASH_Events <- fread("NASH Events.txt")
+NASH_Events <- NASH_Events %>% select(patid, claimed, prov) %>% distinct()
+NASH_Events <- NASH_Events %>% drop_na()
+
+
+NASH_Event_Claims_Providers <- fread("NASH Event Claims Providers.txt")
+NASH_Event_Claims_Providers <- NASH_Event_Claims_Providers %>% select(prov, specialty)
+
+NASH_Event_Claims_Providers <- NASH_Event_Claims_Providers %>% filter(grepl("GASTRO", specialty) | grepl("HEPATO", specialty) )
+
+GastroEvents <- NASH_Events %>% left_join(NASH_Event_Claims_Providers)
+
+GastroEvents <- GastroEvents %>% drop_na()
+names(GastroEvents)[1] <- "patient"
+
+GastroEvents <- NASH_Pats %>% left_join(GastroEvents)
+
+GastroEvents <- FirstNASHDx %>% left_join(GastroEvents)
+
+GastroEvents$FirstNASHDx <- as.Date(GastroEvents$FirstNASHDx)
+GastroEvents$claimed <- as.Date(GastroEvents$claimed)
+
+GastroEvents <- GastroEvents %>% mutate(ElapsedTime = round(as.numeric((claimed-FirstNASHDx)/30.5)))
+
+GastroEvents <- GastroEvents %>% select(-prov)
+GastroEvents <- GastroEvents %>% select(-c(FirstNASHDx, claimed))
+GastroEvents$specialty <- 1
+
+GastroEvents <- GastroEvents %>% filter(ElapsedTime >= (-12) & ElapsedTime <= 12)
+
+GastroEvents <- GastroEvents %>% ungroup() %>% distinct() %>% spread(key=ElapsedTime, value=specialty)
+
+GastroEvents <- GastroEvents %>% replace(is.na(.), 0)
+
+GastroEvents <- NASH_Pats %>% left_join(GastroEvents)
+
+GastroEvents <- GastroEvents %>% replace(is.na(.), 0)
+
+fwrite(GastroEvents, "GastroEvents_Physician_over_time.txt", sep="\t")
+
+
+
+# Pool them all together
+
+LiverDisease_Events <- fread("LiverDisease_Events_over_time.txt", header = T)
+GastroEvents <- fread("GastroEvents_Physician_over_time.txt", header = T)
+Any_LabsResults_over_time <- fread("Any_LabsResults_over_time.txt", header = T)
+#Any_labs <- fread("Any_Labs_Liver_over_time.txt", header = T)
+
+
+
+EmptyDF <- data.frame(matrix(ncol = 26, nrow = 9772))
+EmptyDF$X1 <- LiverDisease_Events$patient
+names(EmptyDF)[1] <- "patient"
+
+colnames(EmptyDF) <- colnames(LiverDisease_Events)
+
+EmptyDF <- EmptyDF %>% mutate(across(everything(), as.character))
+
+
+
+for(j in 1:nrow(EmptyDF))
+{
+  cat(j)
+  cat("\n")
+  for(k in 2:ncol(EmptyDF))
+  {
+    EmptyDF[j,k] <- paste(LiverDisease_Events[j,k, with=FALSE], GastroEvents[j,k, with=FALSE], Any_LabsResults_over_time[j,k, with=FALSE], sep="-")
+  }
+}
+
+
+fwrite(EmptyDF, "Merged_AnyResultsGlobal.txt", sep="\t")
+
+# ----------
+
+# How many patients have any liver test over the past 6 years ? And on the exact same day ? ----------------------
+
+NASH_Pats <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Pats <- NASH_Pats %>% select(patient) # 9772
+
+
+NAFLD_Pats <- fread("NAFLD Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+NAFLD_Pats <- NAFLD_Pats %>% select(patient)
+NAFLD_Pats <- NAFLD_Pats %>% anti_join(NASH_Pats) # 101794
+
+DIA_Pats <- fread("DIA Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+DIA_Pats <- DIA_Pats %>% select(patient)
+DIA_Pats <- DIA_Pats %>% anti_join(NASH_Pats)  %>% anti_join(NAFLD_Pats) # 290347
+
+
+OBE_Pats <- fread("OBE Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+OBE_Pats <- OBE_Pats %>% select(patient)
+OBE_Pats <- OBE_Pats %>% anti_join(NASH_Pats)  %>% anti_join(NAFLD_Pats) # 675316
+
+
+DANU_Measures <- fread("DANU Measures.txt", integer64 = "character", stringsAsFactors = F)
+DANU_Measures <- DANU_Measures %>% filter(test=="Platelet Count" | test=="AST Level" | test=="ALT Level")
+names(DANU_Measures)[1] <- "patient"
+
+min(DANU_Measures$claimed) # "2015-10-01"
+max(DANU_Measures$claimed) # "2021-04-30"
+
+NASH_Pats <- NASH_Pats %>% inner_join(DANU_Measures)
+NAFLD_Pats <- NAFLD_Pats %>% inner_join(DANU_Measures)
+DIA_Pats <- DIA_Pats %>% inner_join(DANU_Measures)
+OBE_Pats <- OBE_Pats %>% inner_join(DANU_Measures)
+
+length(unique(NASH_Pats$patient)) #5320   54%
+length(unique(NAFLD_Pats$patient)) #54677 54%
+length(unique(DIA_Pats$patient)) #152444   53%
+length(unique(OBE_Pats$patient)) #360431   53%
+
+
+
+NASH_Pats <- NASH_Pats %>% select(patient, test, claimed, value)
+NAFLD_Pats <- NAFLD_Pats %>% select(patient, test, claimed, value)
+DIA_Pats <- DIA_Pats %>% select(patient, test, claimed, value)
+OBE_Pats <- OBE_Pats %>% select(patient, test, claimed, value)
+
+
+
+# NASH only
+NASH_Pats_AST <- NASH_Pats %>% filter(test=="AST Level")
+NASH_Pats_ALT <- NASH_Pats %>% filter(test=="ALT Level")
+NASH_Pats_Platelets <- NASH_Pats %>% filter(test=="Platelet Count")
+
+names(NASH_Pats_AST)[4] <-"AST"
+names(NASH_Pats_ALT)[4] <-"ALT"
+names(NASH_Pats_Platelets)[4] <-"Platelets"
+
+NASH_Pats_AST <- NASH_Pats_AST %>% select(1,3,4)
+NASH_Pats_ALT <- NASH_Pats_ALT %>% select(1,3,4)
+NASH_Pats_Platelets <- NASH_Pats_Platelets %>% select(1,3,4)
+
+NASH_Pats <- NASH_Pats_AST %>% full_join(NASH_Pats_ALT, by = c("patient", "claimed")) %>% full_join(NASH_Pats_Platelets, by = c("patient", "claimed"))  %>% drop_na()
+
+
+
+# NAFLD only
+NAFLD_Pats_AST <- NAFLD_Pats %>% filter(test=="AST Level")
+NAFLD_Pats_ALT <- NAFLD_Pats %>% filter(test=="ALT Level")
+NAFLD_Pats_Platelets <- NAFLD_Pats %>% filter(test=="Platelet Count")
+
+names(NAFLD_Pats_AST)[4] <-"AST"
+names(NAFLD_Pats_ALT)[4] <-"ALT"
+names(NAFLD_Pats_Platelets)[4] <-"Platelets"
+
+NAFLD_Pats_AST <- NAFLD_Pats_AST %>% select(1,3,4)
+NAFLD_Pats_ALT <- NAFLD_Pats_ALT %>% select(1,3,4)
+NAFLD_Pats_Platelets <- NAFLD_Pats_Platelets %>% select(1,3,4)
+
+NAFLD_Pats <- NAFLD_Pats_AST %>% full_join(NAFLD_Pats_ALT, by = c("patient", "claimed")) %>% full_join(NAFLD_Pats_Platelets, by = c("patient", "claimed"))  %>% drop_na()
+
+
+
+# DIA only
+DIA_Pats_AST <- DIA_Pats %>% filter(test=="AST Level")
+DIA_Pats_ALT <- DIA_Pats %>% filter(test=="ALT Level")
+DIA_Pats_Platelets <- DIA_Pats %>% filter(test=="Platelet Count")
+
+names(DIA_Pats_AST)[4] <-"AST"
+names(DIA_Pats_ALT)[4] <-"ALT"
+names(DIA_Pats_Platelets)[4] <-"Platelets"
+
+DIA_Pats_AST <- DIA_Pats_AST %>% select(1,3,4)
+DIA_Pats_ALT <- DIA_Pats_ALT %>% select(1,3,4)
+DIA_Pats_Platelets <- DIA_Pats_Platelets %>% select(1,3,4)
+
+DIA_Pats <- DIA_Pats_AST %>% full_join(DIA_Pats_ALT, by = c("patient", "claimed")) %>% full_join(DIA_Pats_Platelets, by = c("patient", "claimed"))  %>% drop_na()
+
+
+
+# OBE only
+OBE_Pats_AST <- OBE_Pats %>% filter(test=="AST Level")
+OBE_Pats_ALT <- OBE_Pats %>% filter(test=="ALT Level")
+OBE_Pats_Platelets <- OBE_Pats %>% filter(test=="Platelet Count")
+
+names(OBE_Pats_AST)[4] <-"AST"
+names(OBE_Pats_ALT)[4] <-"ALT"
+names(OBE_Pats_Platelets)[4] <-"Platelets"
+
+OBE_Pats_AST <- OBE_Pats_AST %>% select(1,3,4)
+OBE_Pats_ALT <- OBE_Pats_ALT %>% select(1,3,4)
+OBE_Pats_Platelets <- OBE_Pats_Platelets %>% select(1,3,4)
+
+OBE_Pats <- OBE_Pats_AST %>% full_join(OBE_Pats_ALT, by = c("patient", "claimed")) %>% full_join(OBE_Pats_Platelets, by = c("patient", "claimed"))  %>% drop_na()
+
+
+length(unique(NASH_Pats$patient)) # 4543   #46%
+length(unique(NAFLD_Pats$patient)) # 46643  #46%
+length(unique(DIA_Pats$patient)) # 123584   #43%
+length(unique(OBE_Pats$patient)) # 285579   #42%
+
+
+
+
+
+FIB4_Random_Pats <- fread("FIB4_Random_Pats_Filtered.txt")
+Random_Pats <- FIB4_Random_Pats %>% select(patient)
+
+
+
+
+Rand_pts_Lab_Results_lst5y <- fread("Rand_pts_Lab_Results_lst5y.txt")
+
+DANU_Measure_Codes <- fread("DANU Measure Codes.txt")
+DANU_Measure_Codes <- DANU_Measure_Codes %>% select(test, code)
+
+Rand_pts_Lab_Results_lst5y <- Rand_pts_Lab_Results_lst5y %>% left_join(DANU_Measure_Codes, by=c("loinc_cd"="code"))
+
+length(unique(Rand_pts_Lab_Results_lst5y$ptid)) # 20000   # 100%
+
+Rand_AST <- Rand_pts_Lab_Results_lst5y %>% filter(test == "AST Level") %>% select(ptid, fst_dt, rslt_nbr)
+names(Rand_AST)[3] <- "AST"
+
+Rand_ALT <- Rand_pts_Lab_Results_lst5y %>% filter(test == "ALT Level") %>% select(ptid, fst_dt, rslt_nbr)
+names(Rand_ALT)[3] <- "ALT"
+
+Rand_Platelets <- Rand_pts_Lab_Results_lst5y %>% filter(test == "Platelet Count") %>% select(ptid, fst_dt, rslt_nbr)
+names(Rand_Platelets)[3] <- "Platelets"
+
+
+Rand_pats_Labs <- Rand_AST %>% full_join(Rand_ALT) %>% full_join(Rand_Platelets) %>% drop_na() %>% distinct()
+
+names(Rand_pats_Labs)[1] <- "patient"
+names(Rand_pats_Labs)[2] <- "claimed"
+
+
+length(unique(Rand_pats_Labs$patient)) # 15886    # 79%
+
+length(unique(FIB4_Random_Pats$patient)) # 3870    # 19%
+
+
+
+
+Rand_pts_Lab_Results_18p_lst5y <- fread("10kRand_pts18+_lab_Results_lst5y.txt")
+
+DANU_Measure_Codes <- fread("DANU Measure Codes.txt")
+DANU_Measure_Codes <- DANU_Measure_Codes %>% select(test, code)
+
+Rand_pts_Lab_Results_18p_lst5y <- Rand_pts_Lab_Results_18p_lst5y %>% left_join(DANU_Measure_Codes, by=c("loinc_cd"="code"))
+
+length(unique(Rand_pts_Lab_Results_18p_lst5y$ptid)) # 860 with any test (from 10k)    9%
+
+
+Rand_AST <- Rand_pts_Lab_Results_18p_lst5y %>% filter(test == "AST Level") %>% select(ptid, fst_dt, rslt_nbr)
+names(Rand_AST)[3] <- "AST"
+
+Rand_ALT <- Rand_pts_Lab_Results_18p_lst5y %>% filter(test == "ALT Level") %>% select(ptid, fst_dt, rslt_nbr)
+names(Rand_ALT)[3] <- "ALT"
+
+Rand_Platelets <- Rand_pts_Lab_Results_18p_lst5y %>% filter(test == "Platelet Count") %>% select(ptid, fst_dt, rslt_nbr)
+names(Rand_Platelets)[3] <- "Platelets"
+
+
+Rand_pats_Labs <- Rand_AST %>% full_join(Rand_ALT) %>% full_join(Rand_Platelets) %>% drop_na() %>% distinct()
+
+names(Rand_pats_Labs)[1] <- "patient"
+names(Rand_pats_Labs)[2] <- "claimed"
+
+length(unique(Rand_pats_Labs$patient)) # 688    # 7%
+
+# ----------
+# Compare patients with first NASH Dx gastro/hepato vs GP/IM  ---------------
+NASH_Events <- fread("NASH Events.txt")
+NASH_Diagnosis_Codes <- fread("NASH Diagnosis Codes.txt")
+
+NASH_Events <- NASH_Events %>% left_join(NASH_Diagnosis_Codes %>% select(code, condition)) %>% filter(condition=="NASH") %>% 
+  group_by(patid) %>% slice(1)
+
+NASH_Event_Claims_Providers <- fread("NASH Event Claims Providers.txt")
+NASH_Event_Claims_Providers <- NASH_Event_Claims_Providers %>% select(prov, specialty)
+
+NASH_Event_Claims_Providers <- NASH_Events %>% left_join(NASH_Event_Claims_Providers)
+
+NASH_Event_Claims_Providers <- NASH_Event_Claims_Providers %>% filter(specialty == "FAMILY PRACTICE/CAPITATED CLINIC" | specialty == "GENERAL PRACTITIONER" |
+                                                                        specialty == "FAMILY PRACTICE SPECIALIST" | specialty == "HEPATOLOGY-LIVER DISEASE" |
+                                                                        specialty == "FAMILY PRACTITIONER" | specialty == "FAMILY PRACTICE/GENERAL PRACTICE" |
+                                                                        specialty == "GASTROENTEROLOGIST"  | specialty == "INTERNAL MED PEDIATRICS" | 
+                                                                        specialty ==  "INTERNIST/GENERAL INTERNIST" | specialty == "INTERNAL MEDICINE SPECIALIST")
+
+
+NASH_Event_Claims_Providers <- NASH_Event_Claims_Providers %>% select(patid, specialty) %>% 
+  mutate(spciality = ifelse(specialty== "GASTROENTEROLOGIST" | specialty == "HEPATOLOGY-LIVER DISEASE", "GASTRO / HEPATO", "GP / IM"))
+
+NASH_Event_Claims_Providers <- NASH_Event_Claims_Providers %>% select(patid, spciality)
+
+First_Specialty_Group <- NASH_Event_Claims_Providers
+
+fwrite(First_Specialty_Group, "First_Specialty_Group.txt", sep="\t")
+
+# Any difference in age?
+
+DANU_Demographics <- fread("DANU Demographics.txt")
+
+DANU_Demographics <- DANU_Demographics %>% select(patid, weight, age)
+
+First_Specialty_Group <- First_Specialty_Group %>% left_join(DANU_Demographics)
+
+First_Specialty_Group %>% group_by(spciality) %>% summarise(n=weighted.mean(age, weight))
+
+
+First_Specialty_Group %>% group_by(spciality) %>% summarise(n=weighted.median(age, weight))
+
+
+# Any difference in max FIB4?
+
+FIB4_NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+
+FIB4_NASH_Pats <- FIB4_NASH_Pats %>% group_by(patient) %>% filter(fibrosis4 == max(fibrosis4)) %>% slice(1)
+FIB4_NASH_Pats <- FIB4_NASH_Pats %>% select(patient, fibrosis4)
+
+First_Specialty_Group  %>% left_join(FIB4_NASH_Pats, by=c("patid"="patient")) %>% filter(!is.na(fibrosis4)) %>% 
+  group_by(spciality) %>% summarise(n=weighted.mean(fibrosis4, weight))
+
+
+First_Specialty_Group  %>% left_join(FIB4_NASH_Pats, by=c("patid"="patient")) %>% filter(!is.na(fibrosis4)) %>% 
+  group_by(spciality) %>% summarise(n=weighted.median(fibrosis4, weight))
+
+
+
+# GLP1 Experience
+
+NASH_Ingredients <- fread("NASH Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Ingredients <- NASH_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+NASH_Ingredients$class <- as.numeric(NASH_Ingredients$class)
+NASH_Ingredients$molecule <- as.numeric(NASH_Ingredients$molecule)
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, weight, month1:month60)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient, Month)
+
+NASH_Drug_Histories <- separate_rows(NASH_Drug_Histories, Treat, sep = ",", convert=T )
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat != "-")
+
+names(NASH_Drug_Histories)[4] <- "molecule"
+NASH_Drug_Histories$molecule <- as.numeric(NASH_Drug_Histories$molecule)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% left_join(NASH_Ingredients %>% 
+                                                           select(molecule, drug_group, drug_class))
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(-c(Month))
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, weight,  drug_class)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(drug_class == "GLP1 Injectable" | drug_class == "GLP1 Oral" ) %>% 
+  select(patient, drug_class) %>% distinct()
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient) %>% distinct() %>% mutate(GLP1_Exp = "GLP1_Exp")
+
+First_Specialty_Group %>% left_join(NASH_Drug_Histories, by=c("patid"="patient")) %>%
+  group_by(spciality, GLP1_Exp) %>% summarise(n=sum(weight))
+
+
+# Drug Experience
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, weight, month1:month60)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient, Month)
+
+NASH_Drug_Histories <- separate_rows(NASH_Drug_Histories, Treat, sep = ",", convert=T )
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat != "-")
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient) %>% distinct() %>% mutate(Treat_Exp = "Treat_Exp")
+
+First_Specialty_Group %>% left_join(NASH_Drug_Histories, by=c("patid"="patient")) %>%
+  group_by(spciality, Treat_Exp) %>% summarise(n=sum(weight))
+
+
+
+
+# Biopsy experience
+NASH_Events <- fread("NASH Events.txt")
+Dx_code <- fread("NASH Diagnosis Codes.txt")
+Dx_code <- Dx_code %>% select(code, condition, source, type, description)
+NASH_Events <- NASH_Events %>% left_join(Dx_code)
+NASH_Pats <- NASH_Events %>% filter(condition=="NASH") %>% select(patid) %>% distinct()
+NASH_Pats <- NASH_Pats %>% left_join(NASH_Events)
+NASH_Pats %>% select(patid, weight) %>% distinct() %>% summarise(n=sum(weight)) #1339983
+Biopsy_Pats <- NASH_Pats %>% select(patid, weight, condition) %>% distinct() %>% filter(condition=="Liver Biopsy") %>% select(patid) %>% distinct()
+Biopsy_Pats$Biopsy <- "Biopsy"
+
+First_Specialty_Group %>% left_join(Biopsy_Pats) %>%
+  group_by(spciality, Biopsy) %>% summarise(n=sum(weight))
+
+
+
+# Surgery exp
+
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(-c(disease))
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>%
+  mutate(SurgeryStatus = 
+           ifelse(grepl("79", Treat)|grepl("80", Treat)|grepl("81", Treat)|grepl("82", Treat), "Surgery", "No"))
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, Month, SurgeryStatus)
+
+SurgeryPats <- NASH_Drug_Histories %>% filter(SurgeryStatus== "Surgery") %>% select(patient) %>% distinct()
+
+SurgeryPats$Surgery <- "Surgery"
+
+First_Specialty_Group %>% left_join(SurgeryPats, by=c("patid"="patient")) %>%
+  group_by(spciality, Surgery) %>% summarise(n=sum(weight))
+
+
+
+# ---------
+# Check for drug experience ever in Diabetes (treat-exp) VS Diabetes predicted as "high-risk 95%"  -------------
+
+DIA_Drug_Histories     <- fread("DIA Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+# Treatment_exp_Vector   <-fread("Treatment_exp_Vector.txt")
+# sum(Treatment_exp_Vector$weight) #30625690
+# DIA_Drug_Histories <- Treatment_exp_Vector %>% left_join(DIA_Drug_Histories)
+
+DANU_Ingredients       <- fread("DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+DANU_Ingredients <- DANU_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+DANU_Ingredients  <- DANU_Ingredients %>% select(molecule, drug_group)
+
+
+DIA_Drug_Histories <- gather(DIA_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+DIA_Drug_Histories <- DIA_Drug_Histories %>% filter(Treat!="-") %>% filter(!is.na(Treat))
+DIA_Drug_Histories <- separate_rows(DIA_Drug_Histories, Treat, sep = ",", convert=T )
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(-c(disease, Month))
+
+names(DIA_Drug_Histories)[3] <- "molecule"
+DIA_Drug_Histories$molecule <- as.character(DIA_Drug_Histories$molecule)
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% left_join(DANU_Ingredients) %>% filter(!is.na(drug_group))
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% group_by(patient, weight) %>% distinct()
+
+DIA_Drug_Histories <- data.frame(DIA_Drug_Histories %>% group_by(drug_group) %>% 
+                                   summarise(sum_weights = sum(as.numeric(weight))))
+
+
+
+
+DIA_Drug_Histories     <- fread("DIA Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+DIA_Pats_Score95_2plus     <- fread("DIA_Pats_Score95_2plus.txt", integer64 = "character", stringsAsFactors = F)
+
+DIA_Drug_Histories <- DIA_Pats_Score95_2plus %>% left_join(DIA_Drug_Histories)
+
+sum(DIA_Drug_Histories$weight) #2053529 
+
+
+
+DANU_Ingredients       <- fread("DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+DANU_Ingredients <- DANU_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+DANU_Ingredients  <- DANU_Ingredients %>% select(molecule, drug_group)
+
+
+DIA_Drug_Histories <- gather(DIA_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+DIA_Drug_Histories <- DIA_Drug_Histories %>% filter(Treat!="-") %>% filter(!is.na(Treat))
+DIA_Drug_Histories <- separate_rows(DIA_Drug_Histories, Treat, sep = ",", convert=T )
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(-c(disease, Month))
+
+names(DIA_Drug_Histories)[3] <- "molecule"
+DIA_Drug_Histories$molecule <- as.character(DIA_Drug_Histories$molecule)
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% left_join(DANU_Ingredients) %>% filter(!is.na(drug_group))
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% group_by(patient, weight) %>% distinct()
+
+DIA_Drug_Histories <- data.frame(DIA_Drug_Histories %>% group_by(drug_group) %>% 
+                                   summarise(sum_weights = sum(as.numeric(weight))))
+
+
+
+# ----------
+# Check for drug experience ever in Obesity (treat-exp) VS Obesity predicted as "high-risk 95%"  -------------
+
+OBE_Drug_Histories     <- fread("OBE Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+sum(OBE_Drug_Histories$weight) # 106469049
+
+DANU_Ingredients       <- fread("DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+DANU_Ingredients <- DANU_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+DANU_Ingredients  <- DANU_Ingredients %>% select(molecule, drug_group)
+
+
+OBE_Drug_Histories <- gather(OBE_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+OBE_Drug_Histories <- OBE_Drug_Histories %>% filter(Treat!="-") %>% filter(!is.na(Treat))
+OBE_Drug_Histories <- separate_rows(OBE_Drug_Histories)
+
+OBE_Drug_Histories <- OBE_Drug_Histories %>% select(-c(disease, Month))
+
+names(OBE_Drug_Histories)[3] <- "molecule"
+OBE_Drug_Histories$molecule <- as.character(OBE_Drug_Histories$molecule)
+
+OBE_Drug_Histories <- OBE_Drug_Histories %>% left_join(DANU_Ingredients) %>% filter(!is.na(drug_group))
+
+OBE_Drug_Histories <- OBE_Drug_Histories %>% group_by(patient, weight) %>% distinct()
+
+OBE_Drug_Histories <- data.frame(OBE_Drug_Histories %>% group_by(drug_group) %>% 
+                                   summarise(sum_weights = sum(as.numeric(weight))))
+
+
+
+OBE_Drug_Histories     <- fread("OBE Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+OBE_Pats_Score95_2plus     <- fread("OBE_Pats_Score95_2plus.txt", integer64 = "character", stringsAsFactors = F)
+
+OBE_Drug_Histories <- OBE_Pats_Score95_2plus %>% left_join(OBE_Drug_Histories)
+
+sum(OBE_Drug_Histories$weight) #2875324 
+
+
+
+DANU_Ingredients       <- fread("DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+DANU_Ingredients <- DANU_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+DANU_Ingredients  <- DANU_Ingredients %>% select(molecule, drug_group)
+
+
+OBE_Drug_Histories <- gather(OBE_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+OBE_Drug_Histories <- OBE_Drug_Histories %>% filter(Treat!="-") %>% filter(!is.na(Treat))
+OBE_Drug_Histories <- separate_rows(OBE_Drug_Histories, Treat, sep = ",", convert=T )
+
+OBE_Drug_Histories <- OBE_Drug_Histories %>% select(-c(disease, Month))
+
+names(OBE_Drug_Histories)[3] <- "molecule"
+OBE_Drug_Histories$molecule <- as.character(OBE_Drug_Histories$molecule)
+
+OBE_Drug_Histories <- OBE_Drug_Histories %>% left_join(DANU_Ingredients) %>% filter(!is.na(drug_group))
+
+OBE_Drug_Histories <- OBE_Drug_Histories %>% group_by(patient, weight) %>% distinct()
+
+OBE_Drug_Histories <- data.frame(OBE_Drug_Histories %>% group_by(drug_group) %>% 
+                                   summarise(sum_weights = sum(as.numeric(weight))))
+
+
+
+
+# --------
+# Compare lab results between diabetes/obesity and high risk diabetes/obesity --------------
+# Get Pats with all labs on the same date 
+NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+DIA_Pats <- fread("FIB4_Diabetes_Pats.txt")
+OBE_Pats <- fread("FIB4_Obesity_Pats.txt")
+NAFLD_Pats <- fread("FIB4_NAFLD_Pats.txt")
+Random_Pats <- fread("FIB4_Random_Pats_Filtered.txt") 
+
+NAFLD <- NAFLD_Pats %>% select(patient)
+DIA_Pats <- DIA_Pats %>% anti_join(NAFLD)
+OBE_Pats <- OBE_Pats %>% anti_join(NAFLD)
+
+NASH_Pats$group <- "NASH"
+DIA_Pats$group <- "DIA"
+OBE_Pats$group <- "OBE"
+NAFLD_Pats$group <- "NAFLD"
+Random_Pats$group <- "Random Sample"
+
+DIA_Pats_Score95_2plus <- fread("DIA_Pats_Score95_2plus.txt")
+OBE_Pats_Score95_2plus <- fread("OBE_Pats_Score95_2plus.txt")
+
+DIA_Pats_HighRisk <- DIA_Pats_Score95_2plus %>% left_join(DIA_Pats)
+OBE_Pats_HighRisk <- OBE_Pats_Score95_2plus %>% left_join(OBE_Pats)
+
+
+DIA_Pats <- DIA_Pats %>% anti_join(DIA_Pats_Score95_2plus)
+OBE_Pats <- OBE_Pats %>% anti_join(OBE_Pats_Score95_2plus)
+
+
+
+DIA_Pats_HighRisk$group <- "High Risk DIA"
+OBE_Pats_HighRisk$group <- "High Risk OBE"
+
+Temp_Ridges <- DIA_Pats %>% bind_rows(DIA_Pats_HighRisk) %>% bind_rows(OBE_Pats) %>% bind_rows(OBE_Pats_HighRisk)
+
+Temp_Ridges %>% filter(AST>0 & AST<200) %>% ggplot(aes(x = AST, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "D", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlab("\n AST (IU/L)") + ylab("Disease Group \n")
+
+Temp_Ridges %>% filter(ALT>0 & ALT<200) %>% ggplot(aes(x = ALT, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "C", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlab("\n ALT (IU/L)") + ylab("Disease Group \n")
+
+
+Temp_Ridges %>% filter(Platelets>0 & Platelets<600) %>% ggplot(aes(x = Platelets, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "A", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlab("\n Platelet Count (x10^3 / uL)") + ylab("Disease Group \n")
+
+
+Temp_Ridges %>% filter(fibrosis4<10) %>% ggplot(aes(x = fibrosis4, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "D", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlab("\n FIB4") + ylab("Disease Group \n")
+
+
+# -------
+# NASH patients into NASH type (lab based): Drug penetrance in each group -----------
+FIB4_Bucket_Fibrosis <- fread("FIB4_Bucket_Fibrosis.txt")
+
+FIB4_Bucket_Fibrosis %>% group_by(FIB4_Bucket) %>% count()
+
+# Drugs ever tried 
+NASH_Ingredients <- fread("NASH Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Ingredients <- NASH_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+
+NASH_Ingredients$class <- as.numeric(NASH_Ingredients$class)
+NASH_Ingredients$molecule <- as.numeric(NASH_Ingredients$molecule)
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, weight, month1:month60)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient, Month)
+
+NASH_Drug_Histories <- separate_rows(NASH_Drug_Histories, Treat, sep = ",", convert=T )
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat != "-")
+
+names(NASH_Drug_Histories)[4] <- "molecule"
+NASH_Drug_Histories$molecule <- as.numeric(NASH_Drug_Histories$molecule)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% left_join(NASH_Ingredients %>% 
+                                                           select(molecule, drug_group))
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(-c(Month))
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, weight, drug_group)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% distinct()
+
+
+
+NASH_Drug_Histories <- FIB4_Bucket_Fibrosis %>% left_join(NASH_Drug_Histories)
+
+NASH_Drug_Histories %>% select(patient, FIB4_Bucket, weight) %>% distinct() %>% group_by(FIB4_Bucket) %>%
+  summarise(n=sum(weight, na.rm = T))
+
+
+
+data.frame(NASH_Drug_Histories %>% select(patient, weight, FIB4_Bucket, drug_group) %>% 
+             distinct() %>% group_by(FIB4_Bucket, drug_group) %>%  summarise(n=sum(weight)))
+
+
+
+NASH_Drug_Histories %>% filter(!is.na(weight)) %>% select(patient, FIB4_Bucket) %>% distinct() %>%
+  group_by(FIB4_Bucket) %>% count()
+
+
+
+# ------
+# Proportion of Fibrosis / NASH only in DIA/OBE/NAFLD --------
+
+Diabetes_Pats_FIB4 <- fread("FIB4_Diabetes_Pats.txt")
+NAFLD_Pats_FIB4 <- fread("FIB4_NAFLD_Pats.txt")
+Obesity_Pats_FIB4 <- fread("FIB4_Obesity_Pats.txt")
+
+
+
+NAFLD <- NAFLD_Pats_FIB4 %>% select(patient)
+Diabetes_Pats_FIB4 <- Diabetes_Pats_FIB4 %>% anti_join(NAFLD)
+Obesity_Pats_FIB4 <- Obesity_Pats_FIB4 %>% anti_join(NAFLD)
+
+
+
+Diabetes_Pats_FIB4 <- Diabetes_Pats_FIB4 %>% group_by(patient) %>% filter(fibrosis4 == max(fibrosis4)) %>% slice(1)
+Diabetes_Pats_FIB4 <- Diabetes_Pats_FIB4 %>% select(patient, age, fibrosis4)
+
+Diabetes_Pats_FIB4 <- Diabetes_Pats_FIB4 %>% mutate(FIB4_Bucket = ifelse(fibrosis4>1.3&age<60, "Fibrosis",
+                                                                         ifelse(fibrosis4>1.88&age<70,"Fibrosis",
+                                                                                ifelse(fibrosis4>1.95&age>70,"Fibrosis", "NASH-only"))))
+
+Diabetes_Pats_FIB4 %>% group_by(FIB4_Bucket) %>% count()
+
+
+
+
+Obesity_Pats_FIB4 <- fread("FIB4_Obesity_Pats.txt")
+Obesity_Pats_FIB4 <- Obesity_Pats_FIB4 %>% group_by(patient) %>% filter(fibrosis4 == max(fibrosis4)) %>% slice(1)
+Obesity_Pats_FIB4 <- Obesity_Pats_FIB4 %>% select(patient, age, fibrosis4)
+
+Obesity_Pats_FIB4 <- Obesity_Pats_FIB4 %>% mutate(FIB4_Bucket = ifelse(fibrosis4>1.3&age<60, "Fibrosis",
+                                                                       ifelse(fibrosis4>1.88&age<70,"Fibrosis",
+                                                                              ifelse(fibrosis4>1.95&age>70,"Fibrosis", "NASH-only"))))
+
+Obesity_Pats_FIB4 %>% group_by(FIB4_Bucket) %>% count()
+
+
+
+
+NAFLD_Pats_FIB4 <- NAFLD_Pats_FIB4 %>% group_by(patient) %>% filter(fibrosis4 == max(fibrosis4)) %>% slice(1)
+NAFLD_Pats_FIB4 <- NAFLD_Pats_FIB4 %>% select(patient, age, fibrosis4)
+
+NAFLD_Pats_FIB4 <- NAFLD_Pats_FIB4 %>% mutate(FIB4_Bucket = ifelse(fibrosis4>1.3&age<60, "Fibrosis",
+                                                                   ifelse(fibrosis4>1.88&age<70,"Fibrosis",
+                                                                          ifelse(fibrosis4>1.95&age>70,"Fibrosis", "NASH-only"))))
+
+NAFLD_Pats_FIB4 %>% group_by(FIB4_Bucket) %>% count()
+
+
+# -----------
+# HbA1c and BMI for high risk Diabetes and Obesity ----------------------
+
+# NASH Pats
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Pats <- NASH_Drug_Histories %>% select(patient)
+
+# NAFLD Pats
+NAFLD_Drug_Histories <- fread("NAFLD Drug Histories.txt")
+NAFLD_Pats <- NAFLD_Drug_Histories %>% select(patient)
+
+
+# High Risk Diabetes and Obesity patients
+
+DIA_Pats_Score95_2plus <- fread("DIA_Pats_Score95_2plus.txt")
+OBE_Pats_Score95_2plus <- fread("OBE_Pats_Score95_2plus.txt")
+
+# Remove those whith NASH and NAFLD as well 
+
+DIA_Pats_Score95_2plus <- DIA_Pats_Score95_2plus %>% anti_join(NASH_Pats) %>% anti_join(NAFLD_Pats)
+OBE_Pats_Score95_2plus <- OBE_Pats_Score95_2plus %>% anti_join(NASH_Pats) %>% anti_join(NAFLD_Pats)
+
+DANU_Measures_DIAOBE <- DANU_Measures_DIAOBE %>% anti_join(NASH_Pats) %>% anti_join(NAFLD_Pats)
+DANU_Measures_DIAOBE <- DANU_Measures_DIAOBE %>% select(patient, weight, test, claimed, value)
+
+
+
+# All Diabetes and obesity patients to compare againts 
+# Excluding the high risk ones as well as those with NASH or NAFLD
+
+DIA_Drug_Histories <- fread("DIA Drug Histories.txt")
+OBE_Drug_Histories <- fread("OBE Drug Histories.txt")
+DIA_Pats <- DIA_Drug_Histories %>% select(patient)
+OBE_Pats <- OBE_Drug_Histories %>% select(patient)
+
+DIA_Pats <- DIA_Pats %>% anti_join(DIA_Pats_Score95_2plus %>% select(patient) %>% distinct())
+OBE_Pats <- OBE_Pats %>% anti_join(OBE_Pats_Score95_2plus %>% select(patient) %>% distinct())
+
+DIA_Pats <- DIA_Pats %>% anti_join(NASH_Pats) %>% anti_join(NAFLD_Pats)
+OBE_Pats <- OBE_Pats %>% anti_join(NASH_Pats) %>% anti_join(NAFLD_Pats)
+
+
+DIA_Pats <- DIA_Pats %>% left_join(DANU_Measures_DIAOBE)
+OBE_Pats <- OBE_Pats %>% left_join(DANU_Measures_DIAOBE)
+
+DIA_Pats_Score95_2plus <- DIA_Pats_Score95_2plus %>% left_join(DANU_Measures_DIAOBE)
+OBE_Pats_Score95_2plus <- OBE_Pats_Score95_2plus %>% left_join(DANU_Measures_DIAOBE)
+
+rm(DANU_Measures_DIAOBE)
+
+# using MAX HbA1c or MAX BMI per patient
+
+# Diabetes (means)
+
+DIA_Pats %>% filter(test == "HbA1c Level") %>% group_by(patient) %>% filter(value==max(value)) %>%
+  slice(1) %>% ungroup() %>% summarise(n=weighted.mean(value, weight)) # 7.50
+
+DIA_Pats_Score95_2plus %>% filter(test == "HbA1c Level" )%>% group_by(patient) %>% filter(value==max(value)) %>%
+  slice(1) %>% ungroup() %>% summarise(n=weighted.mean(value, weight)) # 7.95
+
+DIA_Pats %>% filter(test == "BMI") %>% group_by(patient) %>% filter(value==max(value)) %>%
+  slice(1) %>% ungroup() %>% summarise(n=weighted.mean(value, weight)) # 33.6
+
+DIA_Pats_Score95_2plus %>% filter(test == "BMI" )%>% group_by(patient) %>% filter(value==max(value)) %>%
+  slice(1) %>% ungroup() %>% summarise(n=weighted.mean(value, weight)) # 35.8
+
+
+# Obesity (means)
+
+OBE_Pats %>% filter(test == "HbA1c Level") %>% group_by(patient) %>% filter(value==max(value)) %>%
+  slice(1) %>% ungroup() %>% summarise(n=weighted.mean(value, weight)) # 5.63
+
+OBE_Pats_Score95_2plus %>% filter(test == "HbA1c Level" )%>% group_by(patient) %>% filter(value==max(value)) %>%
+  slice(1) %>% ungroup() %>% summarise(n=weighted.mean(value, weight)) # 5.72
+
+OBE_Pats %>% filter(test == "BMI") %>% group_by(patient) %>% filter(value==max(value)) %>%
+  slice(1) %>% ungroup() %>% summarise(n=weighted.mean(value, weight)) # 31.8
+
+OBE_Pats_Score95_2plus %>% filter(test == "BMI" )%>% group_by(patient) %>% filter(value==max(value)) %>%
+  slice(1) %>% ungroup() %>% summarise(n=weighted.mean(value, weight)) # 33.2
+
+
+
+
+# HbA1c Diabetes
+
+DIA_Pats %>% filter(test == "HbA1c Level") %>% group_by(patient) %>% filter(value==max(value)) %>%
+  slice(1) %>% ungroup() %>% mutate(group="All Diabetes") %>% 
+  bind_rows(DIA_Pats_Score95_2plus %>% filter(test == "HbA1c Level" )%>% group_by(patient) %>% filter(value==max(value)) %>%
+              slice(1) %>% ungroup() %>% mutate(group="High Liver Risk Diabetes")) %>%
+  filter(value>4 & value<15) %>%
+  ggplot(aes(x = value, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "D", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlab("\n Max HbA1c (%) per patient") + ylab("Diabetes Group \n")
+
+
+# HbA1c Obesity
+
+OBE_Pats %>% filter(test == "HbA1c Level") %>% group_by(patient) %>% filter(value==max(value)) %>%
+  slice(1) %>% ungroup() %>% mutate(group="All Obesity") %>% 
+  bind_rows(OBE_Pats_Score95_2plus %>% filter(test == "HbA1c Level" )%>% group_by(patient) %>% filter(value==max(value)) %>%
+              slice(1) %>% ungroup() %>% mutate(group="High Liver Risk Obesity")) %>%
+  filter(value>4 & value<7) %>%
+  ggplot(aes(x = value, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "D", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlab("\n Max HbA1c (%) per patient") + ylab("Obesity Group \n")
+
+
+# BMI Diabetes
+
+DIA_Pats %>% filter(test == "BMI") %>% group_by(patient) %>% filter(value==max(value)) %>%
+  slice(1) %>% ungroup() %>% mutate(group="All Diabetes") %>% 
+  bind_rows(DIA_Pats_Score95_2plus %>% filter(test == "BMI" )%>% group_by(patient) %>% filter(value==max(value)) %>%
+              slice(1) %>% ungroup() %>% mutate(group="High Liver Risk Diabetes")) %>%
+  filter(value>15 & value<50) %>%
+  ggplot(aes(x = value, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "A", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlab("\n Max BMI per patient") + ylab("Diabetes Group \n")
+
+
+# BMI Obesity
+
+OBE_Pats %>% filter(test == "BMI") %>% group_by(patient) %>% filter(value==max(value)) %>%
+  slice(1) %>% ungroup() %>% mutate(group="All Obesity") %>% 
+  bind_rows(OBE_Pats_Score95_2plus %>% filter(test == "BMI" )%>% group_by(patient) %>% filter(value==max(value)) %>%
+              slice(1) %>% ungroup() %>% mutate(group="High Liver Risk Obesity")) %>%
+  filter(value>25 & value<50) %>%
+  ggplot(aes(x = value, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "A", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlab("\n Max BMI per patient") + ylab("Obesity Group \n")
+
+
+
+
+
+
+
+# ---
+# --------
+# Compare lab results between NASH Dx with High Liver Risk vs NASH Dx Low Liver Risk vs High Liver Risk Other -----------
+
+NASH_Pats_95ConfLiver_2plusHits <- fread("NASH_Pats_95ConfLiver_2plusHits.txt")
+DIA_Pats_95ConfLiver_2plusHits <- fread("DIA_Pats_95ConfLiver_2plusHits.txt")
+OBE_Pats_95ConfLiver_2plusHits <- fread("OBE_Pats_95ConfLiver_2plusHits.txt")
+NAFLD_Pats_95ConfLiver_2plusHits <- fread("NAFLD_Pats_95ConfLiver_2plusHits.txt")
+
+
+
+FIB4_NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+FIB4_Diabetes_Pats <- fread("FIB4_Diabetes_Pats.txt")
+FIB4_Obesity_Pats <- fread("FIB4_Obesity_Pats.txt")
+FIB4_NAFLD_Pats <- fread("FIB4_NAFLD_Pats.txt")
+
+FIB4_Diabetes_Pats_HighRisk <- DIA_Pats_95ConfLiver_2plusHits %>% left_join(FIB4_Diabetes_Pats)
+FIB4_Obesity_Pats_HighRisk <- OBE_Pats_95ConfLiver_2plusHits %>% left_join(FIB4_Obesity_Pats)
+FIB4_NAFLD_Pats_HighRisk <- NAFLD_Pats_95ConfLiver_2plusHits %>% left_join(FIB4_NAFLD_Pats)
+
+FIB4_Diabetes_Pats_LowRisk <- FIB4_Diabetes_Pats %>% anti_join(DIA_Pats_95ConfLiver_2plusHits)
+FIB4_Obesity_Pats_LowRisk <- FIB4_Obesity_Pats %>% anti_join(OBE_Pats_95ConfLiver_2plusHits)
+FIB4_NAFLD_Pats_LowRisk <- FIB4_NAFLD_Pats %>% anti_join(NAFLD_Pats_95ConfLiver_2plusHits)
+
+
+
+
+FIB4_NASH_Pats_HighRisk <- NASH_Pats_95ConfLiver_2plusHits %>% left_join(FIB4_NASH_Pats)
+
+FIB4_NASH_Pats_AllRemaining <- FIB4_NASH_Pats %>% anti_join(NASH_Pats_95ConfLiver_2plusHits)
+
+
+FIB4_NASH_Pats_HighRisk$group <- "NASH Dx - High Liver Risk Predicted"
+FIB4_NASH_Pats_AllRemaining$group <- "NASH Dx - Low Liver Risk Predicted"
+
+Other_Predicted_HighRisk <- FIB4_Diabetes_Pats_HighRisk %>% bind_rows(FIB4_Obesity_Pats_HighRisk) %>% bind_rows(FIB4_NAFLD_Pats_HighRisk)
+Other_Predicted_HighRisk$group <- "No Dx - High Liver Risk Predicted"
+
+Other_Predicted_LowRisk <- FIB4_Diabetes_Pats_LowRisk %>% bind_rows(FIB4_Obesity_Pats_LowRisk) %>% bind_rows(FIB4_NAFLD_Pats_LowRisk)
+Other_Predicted_LowRisk$group <- "No Dx - Low Liver Risk Predicted"
+
+
+
+FIB4_NASH_Pats_HighRisk %>% bind_rows(FIB4_NASH_Pats_AllRemaining) %>% bind_rows(Other_Predicted_HighRisk) %>% bind_rows(Other_Predicted_LowRisk) %>%
+  group_by(patient) %>% filter(AST==max(AST)) %>% slice(1) %>% ungroup() %>%
+  filter(AST>0 & AST<200) %>% 
+  ggplot(aes(x = AST, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "C", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlab("\n Max AST (IU/L)") + ylab("Disease Group \n")
+
+
+FIB4_NASH_Pats_HighRisk %>% bind_rows(FIB4_NASH_Pats_AllRemaining) %>% bind_rows(Other_Predicted_HighRisk) %>%  bind_rows(Other_Predicted_LowRisk) %>%
+  group_by(patient) %>% filter(ALT==max(ALT)) %>% slice(1) %>% ungroup() %>%
+  filter(ALT>0 & ALT<200) %>% 
+  ggplot(aes(x = ALT, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "C", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlab("\n Max ALT (IU/L)") + ylab("Disease Group \n")
+
+
+FIB4_NASH_Pats_HighRisk %>% bind_rows(FIB4_NASH_Pats_AllRemaining) %>% bind_rows(Other_Predicted_HighRisk) %>%  bind_rows(Other_Predicted_LowRisk) %>%
+  group_by(patient) %>% filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>% ungroup() %>%
+  filter(fibrosis4>0 & fibrosis4<6) %>% 
+  ggplot(aes(x = fibrosis4, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "C", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlab("\n Max FIB4") + ylab("Disease Group \n")
+
+
+FIB4_NASH_Pats_HighRisk %>% bind_rows(FIB4_NASH_Pats_AllRemaining) %>% bind_rows(Other_Predicted_HighRisk) %>%  bind_rows(Other_Predicted_LowRisk) %>%
+  group_by(patient) %>% filter(Platelets==min(Platelets)) %>% slice(1) %>% ungroup() %>%
+  filter(Platelets>50 & Platelets<400) %>% 
+  ggplot(aes(x = Platelets, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "C", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlab("\n Min Platelet Count (x10^3 / uL)") + ylab("Disease Group \n")
+
+
+
+
+FIB4_NASH_Pats_HighRisk
+FIB4_NASH_Pats_AllRemaining
+Other_Predicted_HighRisk
+Other_Predicted_LowRisk
+
+
+
+length(unique(FIB4_NASH_Pats_HighRisk$patient))  
+# All 1362
+
+FIB4_NASH_Pats_HighRisk %>% filter(AST>50 & ALT>50 & Platelets<150) %>% select(patient) %>% distinct() 
+# All above threshold 243
+
+FIB4_NASH_Pats_HighRisk %>% filter(AST>50 | ALT>50 | Platelets<150) %>% select(patient) %>% distinct() %>%
+  anti_join(FIB4_NASH_Pats_HighRisk %>% filter(AST>50 & ALT>50 & Platelets<150) %>% select(patient) %>% distinct()) 
+# Any above threshold 1119
+
+FIB4_NASH_Pats_HighRisk %>% filter(AST<=50 & ALT<=50 & Platelets>=150) %>% select(patient) %>% distinct() %>% 
+  anti_join(FIB4_NASH_Pats_HighRisk %>% filter(AST>50 | ALT>50 | Platelets<150) %>% select(patient) %>% distinct()) 
+# None above threshold 0
+
+
+
+
+length(unique(FIB4_NASH_Pats_AllRemaining$patient))  
+# All 3179
+
+FIB4_NASH_Pats_AllRemaining %>% filter(AST>50 & ALT>50 & Platelets<150) %>% select(patient) %>% distinct() 
+# All above threshold 174
+
+FIB4_NASH_Pats_AllRemaining %>% filter(AST>50 | ALT>50 | Platelets<150) %>% select(patient) %>% distinct() %>%
+  anti_join(FIB4_NASH_Pats_AllRemaining %>% filter(AST>50 & ALT>50 & Platelets<150) %>% select(patient) %>% distinct()) 
+# Any above threshold 1455
+
+FIB4_NASH_Pats_AllRemaining %>% filter(AST<=50 & ALT<=50 & Platelets>=150) %>% select(patient) %>% distinct() %>% 
+  anti_join(FIB4_NASH_Pats_AllRemaining %>% filter(AST>50 | ALT>50 | Platelets<150) %>% select(patient) %>% distinct()) 
+# None above threshold 1550
+
+
+
+
+length(unique(Other_Predicted_HighRisk$patient))  
+# All 14999
+
+Other_Predicted_HighRisk %>% filter(AST>50 & ALT>50 & Platelets<150) %>% select(patient) %>% distinct() 
+# All above threshold 1927
+
+Other_Predicted_HighRisk %>% filter(AST>50 | ALT>50 | Platelets<150) %>% select(patient) %>% distinct() %>%
+  anti_join(Other_Predicted_HighRisk %>% filter(AST>50 & ALT>50 & Platelets<150) %>% select(patient) %>% distinct()) 
+# Any above threshold 13072
+
+Other_Predicted_HighRisk %>% filter(AST<=50 & ALT<=50 & Platelets>=150) %>% select(patient) %>% distinct() %>% 
+  anti_join(Other_Predicted_HighRisk %>% filter(AST>50 | ALT>50 | Platelets<150) %>% select(patient) %>% distinct()) 
+# None above threshold 0
+
+
+
+
+length(unique(Other_Predicted_LowRisk$patient))  
+# All 445218
+
+Other_Predicted_LowRisk %>% filter(AST>50 & ALT>50 & Platelets<150) %>% select(patient) %>% distinct() 
+# All above threshold 5336
+
+Other_Predicted_LowRisk %>% filter(AST>50 | ALT>50 | Platelets<150) %>% select(patient) %>% distinct() %>%
+  anti_join(Other_Predicted_LowRisk %>% filter(AST>50 & ALT>50 & Platelets<150) %>% select(patient) %>% distinct()) 
+# Any above threshold 95199
+
+Other_Predicted_LowRisk %>% filter(AST<=50 & ALT<=50 & Platelets>=150) %>% select(patient) %>% distinct() %>% 
+  anti_join(Other_Predicted_LowRisk %>% filter(AST>50 | ALT>50 | Platelets<150) %>% select(patient) %>% distinct()) 
+# None above threshold 344683
+
+
+
+
+NASH_Events <- fread("NASH Events.txt")
+names(NASH_Events)[1] <- "patient"
+
+NASH_Dx_HighRisk_Events <- FIB4_NASH_Pats_HighRisk %>% select(patient) %>% distinct() %>% inner_join(NASH_Events)
+No_Dx_HighRisk_Events <- Other_Predicted_HighRisk %>% select(patient) %>% distinct() %>% inner_join(NASH_Events)
+FIB4_NASH_Pats_AllRemaining <- FIB4_NASH_Pats_AllRemaining %>% select(patient) %>% distinct() %>% inner_join(NASH_Events)
+Other_Predicted_LowRisk <- Other_Predicted_LowRisk %>% select(patient) %>% distinct() %>% inner_join(NASH_Events)
+
+
+
+NASH_Dx_HighRisk_Events <- NASH_Dx_HighRisk_Events %>% drop_na()
+No_Dx_HighRisk_Events <- No_Dx_HighRisk_Events %>% drop_na()
+FIB4_NASH_Pats_AllRemaining <- FIB4_NASH_Pats_AllRemaining %>% drop_na()
+Other_Predicted_LowRisk <- Other_Predicted_LowRisk %>% drop_na()
+
+
+
+
+NASH_Event_Claims_Providers <- fread("NASH Event Claims Providers.txt")
+NASH_Event_Claims_Providers <- NASH_Event_Claims_Providers %>% select(prov, specialty)
+
+NASH_Dx_HighRisk_Events <- NASH_Dx_HighRisk_Events %>% left_join(NASH_Event_Claims_Providers) %>% drop_na()
+No_Dx_HighRisk_Events <- No_Dx_HighRisk_Events %>% left_join(NASH_Event_Claims_Providers) %>% drop_na()
+
+data.frame(NASH_Dx_HighRisk_Events %>% group_by(specialty) %>% summarise(n=sum(weight)) %>% arrange(-n)) %>% summarise(n2=sum(n))
+
+
+No_Dx_HighRisk_Events %>% group_by(specialty) %>% summarise(n=sum(weight)) %>% arrange(-n) %>% summarise(n2=sum(n))
+
+# -----------
+# Check total number of lab entries for each of the 4 cohorts, compare high risk vs low risk -----------
+
+# Those above threshold
+
+NASH_Pats_95ConfLiver_2plusHits <- fread("NASH_Pats_95ConfLiver_2plusHits.txt")
+DIA_Pats_95ConfLiver_2plusHits <- fread("DIA_Pats_95ConfLiver_2plusHits.txt")
+OBE_Pats_95ConfLiver_2plusHits <- fread("OBE_Pats_95ConfLiver_2plusHits.txt")
+NAFLD_Pats_95ConfLiver_2plusHits <- fread("NAFLD_Pats_95ConfLiver_2plusHits.txt")
+
+# Those with labs
+
+FIB4_NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+FIB4_Diabetes_Pats <- fread("FIB4_Diabetes_Pats.txt")
+FIB4_Obesity_Pats <- fread("FIB4_Obesity_Pats.txt")
+FIB4_NAFLD_Pats <- fread("FIB4_NAFLD_Pats.txt")
+
+FIB4_Diabetes_Pats <- FIB4_Diabetes_Pats %>% anti_join(FIB4_NASH_Pats %>% select(patient) %>% distinct()) %>% anti_join(FIB4_NAFLD_Pats %>% select(patient) %>% distinct())
+FIB4_Obesity_Pats <- FIB4_Obesity_Pats %>% anti_join(FIB4_NASH_Pats %>% select(patient) %>% distinct()) %>% anti_join(FIB4_NAFLD_Pats %>% select(patient) %>% distinct())
+
+
+
+DIA_HighRisk <- DIA_Pats_95ConfLiver_2plusHits
+DIA_Remaining <-  FIB4_Diabetes_Pats %>% anti_join(DIA_Pats_95ConfLiver_2plusHits) %>% select(patient) %>% distinct()
+
+OBE_HighRisk <- OBE_Pats_95ConfLiver_2plusHits
+OBE_Remaining <-  FIB4_Obesity_Pats %>% anti_join(OBE_Pats_95ConfLiver_2plusHits) %>% select(patient) %>% distinct()
+
+
+
+# Count how many tests per patient
+DANU_NLP_Measurement <- fread("DANU NLP Measurement Sample.txt")
+DANU_NLP_Measurement <- DANU_NLP_Measurement %>% select(patid)
+
+DANU_EHR_Observations <- fread("DANU EHR Observations Sample.txt")
+DANU_EHR_Observations <- DANU_EHR_Observations %>% select(patid) 
+
+DANU_EHR_Labs <- fread("DANU EHR Labs Sample.txt")
+DANU_EHR_Labs <- DANU_EHR_Labs %>% select(patid) 
+
+DANU_Claims <- fread("DANU Claims Lab Results Sample.txt")
+DANU_Claims <- DANU_Claims %>% select(patid)
+
+All_Pats_Tests <- DANU_NLP_Measurement %>% bind_rows(DANU_EHR_Observations) %>% bind_rows(DANU_EHR_Labs) %>% bind_rows(DANU_Claims)
+names(All_Pats_Tests)[1] <- "patient"
+
+
+All_Pats_Tests <- All_Pats_Tests %>% group_by(patient) %>% count()
+
+
+N_Tests_DIA <- FIB4_Diabetes_Pats %>% select(patient) %>% distinct() %>% inner_join(All_Pats_Tests)
+N_Tests_OBE <- FIB4_Obesity_Pats %>% select(patient) %>% distinct() %>% inner_join(All_Pats_Tests)
+
+N_Tests_DIA_HighRisk <- N_Tests_DIA %>% inner_join(DIA_Pats_95ConfLiver_2plusHits)
+N_Tests_DIA_LowRisk <- N_Tests_DIA %>% anti_join(DIA_Pats_95ConfLiver_2plusHits)
+
+N_Tests_OBE_HighRisk <- N_Tests_OBE %>% inner_join(OBE_Pats_95ConfLiver_2plusHits)
+N_Tests_OBE_LowRisk <- N_Tests_OBE %>% anti_join(OBE_Pats_95ConfLiver_2plusHits)
+
+
+mean(N_Tests_DIA_HighRisk$n) # 2689.343
+mean(N_Tests_DIA_LowRisk$n) # 1085.626
+
+median(N_Tests_DIA_HighRisk$n) # 1522.5
+median(N_Tests_DIA_LowRisk$n) # 565
+
+
+mean(N_Tests_OBE_HighRisk$n) # 1673.542
+mean(N_Tests_OBE_LowRisk$n) # 673.05
+
+median(N_Tests_OBE_HighRisk$n) # 918
+median(N_Tests_OBE_LowRisk$n) # 381
+
+
+
+N_Tests_DIA_HighRisk %>% mutate(group="Diabetes High Risk") %>% 
+  bind_rows(N_Tests_DIA_LowRisk %>% mutate(group="Diabetes Low Risk"))  %>%
+  filter(n<5000) %>%
+  ggplot(aes(x = n, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "D", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlab("\n Number of Individual Records") + ylab("Diabetes Predicted Group \n")
+
+
+
+N_Tests_OBE_HighRisk %>% mutate(group="Obesity High Risk") %>% 
+  bind_rows(N_Tests_OBE_LowRisk %>% mutate(group="Obesity Low Risk"))  %>%
+  filter(n<3000) %>%
+  ggplot(aes(x = n, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "D", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlab("\n Number of Individual Records") + ylab("Obesity Predicted Group \n")
+
+
+
+
+
+
+# ---------
+
+# Check number of LIVER ! lab entries for each of the 4 cohorts, compare high risk vs low risk -----------
+
+# Those above threshold
+
+NASH_Pats_95ConfLiver_2plusHits <- fread("NASH_Pats_95ConfLiver_2plusHits.txt")
+DIA_Pats_95ConfLiver_2plusHits <- fread("DIA_Pats_95ConfLiver_2plusHits.txt")
+OBE_Pats_95ConfLiver_2plusHits <- fread("OBE_Pats_95ConfLiver_2plusHits.txt")
+NAFLD_Pats_95ConfLiver_2plusHits <- fread("NAFLD_Pats_95ConfLiver_2plusHits.txt")
+
+# Those with labs
+
+FIB4_NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+FIB4_Diabetes_Pats <- fread("FIB4_Diabetes_Pats.txt")
+FIB4_Obesity_Pats <- fread("FIB4_Obesity_Pats.txt")
+FIB4_NAFLD_Pats <- fread("FIB4_NAFLD_Pats.txt")
+
+FIB4_Diabetes_Pats <- FIB4_Diabetes_Pats %>% anti_join(FIB4_NASH_Pats %>% select(patient) %>% distinct()) %>% anti_join(FIB4_NAFLD_Pats %>% select(patient) %>% distinct())
+FIB4_Obesity_Pats <- FIB4_Obesity_Pats %>% anti_join(FIB4_NASH_Pats %>% select(patient) %>% distinct()) %>% anti_join(FIB4_NAFLD_Pats %>% select(patient) %>% distinct())
+
+
+
+DIA_HighRisk <- DIA_Pats_95ConfLiver_2plusHits
+DIA_Remaining <-  FIB4_Diabetes_Pats %>% anti_join(DIA_Pats_95ConfLiver_2plusHits) %>% select(patient) %>% distinct()
+
+OBE_HighRisk <- OBE_Pats_95ConfLiver_2plusHits
+OBE_Remaining <-  FIB4_Obesity_Pats %>% anti_join(OBE_Pats_95ConfLiver_2plusHits) %>% select(patient) %>% distinct()
+
+
+
+# Count how many tests per patient
+DANU_Measures <- fread("DANU Measures.txt")
+names(DANU_Measures)[1] <- "patient"
+
+DANU_Measures <- DANU_Measures %>% group_by(patient) %>% count()
+
+
+N_Tests_DIA <- FIB4_Diabetes_Pats %>% select(patient) %>% distinct() %>% inner_join(DANU_Measures)
+N_Tests_OBE <- FIB4_Obesity_Pats %>% select(patient) %>% distinct() %>% inner_join(DANU_Measures)
+
+N_Tests_DIA_HighRisk <- N_Tests_DIA %>% inner_join(DIA_Pats_95ConfLiver_2plusHits)
+N_Tests_DIA_LowRisk <- N_Tests_DIA %>% anti_join(DIA_Pats_95ConfLiver_2plusHits)
+
+N_Tests_OBE_HighRisk <- N_Tests_OBE %>% inner_join(OBE_Pats_95ConfLiver_2plusHits)
+N_Tests_OBE_LowRisk <- N_Tests_OBE %>% anti_join(OBE_Pats_95ConfLiver_2plusHits)
+
+
+mean(N_Tests_DIA_HighRisk$n) # 105.6374
+mean(N_Tests_DIA_LowRisk$n) # 52.19834
+
+median(N_Tests_DIA_HighRisk$n) # 71
+median(N_Tests_DIA_LowRisk$n) # 35
+
+
+mean(N_Tests_OBE_HighRisk$n) # 69.709
+mean(N_Tests_OBE_LowRisk$n) # 33.54515
+
+median(N_Tests_OBE_HighRisk$n) # 47
+median(N_Tests_OBE_LowRisk$n) # 23
+
+
+
+N_Tests_DIA_HighRisk %>% mutate(group="Diabetes High Risk") %>% 
+  bind_rows(N_Tests_DIA_LowRisk %>% mutate(group="Diabetes Low Risk"))  %>%
+  filter(n<200) %>%
+  ggplot(aes(x = n, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "C", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlab("\n Number of Individual Records") + ylab("Diabetes Predicted Group \n")
+
+
+
+N_Tests_OBE_HighRisk %>% mutate(group="Obesity High Risk") %>% 
+  bind_rows(N_Tests_OBE_LowRisk %>% mutate(group="Obesity Low Risk"))  %>%
+  filter(n<150) %>%
+  ggplot(aes(x = n, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "C", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlab("\n Number of Individual Records") + ylab("Obesity Predicted Group \n")
+
+
+
+
+
+# ---------
+# Check how many diabetes / obesity also have cirrhosis or fibrosis -----------
+
+NASH_Demographics_All <- fread("NASH Demographics All.txt")
+names(NASH_Demographics_All)[1] <- "patient"
+length(unique(NASH_Demographics_All$patient))
+
+
+
+DIA_Pats <- fread("DIA Drug Histories.txt")
+DIA_Pats <- DIA_Pats %>% select(patient, weight)
+
+OBE_Pats <- fread("OBE Drug Histories.txt")
+OBE_Pats <- OBE_Pats %>% select(patient,weight)
+
+NASH_Pats <- fread("NASH Drug Histories.txt")
+NASH_Pats <- NASH_Pats %>% select(patient,weight)
+
+NAFLD_Pats <- fread("NAFLD Drug Histories.txt")
+NAFLD_Pats <- NAFLD_Pats %>% select(patient,weight)
+
+DIA_Pats <- DIA_Pats %>% anti_join(NASH_Pats) %>% anti_join(NAFLD_Pats)                                                                
+OBE_Pats <- OBE_Pats %>% anti_join(NASH_Pats) %>% anti_join(NAFLD_Pats)                                                                
+
+
+DIA_Pats <- DIA_Pats %>% left_join(NASH_Demographics_All)
+OBE_Pats <- OBE_Pats %>% left_join(NASH_Demographics_All)
+
+
+sum(DIA_Pats$weight) # 40724926
+
+DIA_Pats %>% filter(!is.na(chronic_liver_disease)) %>% summarise(n=sum(weight)) # 3143586 (8%)
+DIA_Pats %>% filter(!is.na(nash)) %>% summarise(n=sum(weight)) # 0
+DIA_Pats %>% filter(!is.na(nafld)) %>% summarise(n=sum(weight)) # 0
+DIA_Pats %>% filter(!is.na(hepatitis)) %>% summarise(n=sum(weight)) # 1287121 (3%)
+DIA_Pats %>% filter(!is.na(fibrosis)) %>% summarise(n=sum(weight)) # 78509.97 (0.2%)
+DIA_Pats %>% filter(!is.na(cirrhosis)) %>% summarise(n=sum(weight)) # 489638.5 (1%)
+DIA_Pats %>% filter(!is.na(liver_cancer)) %>% summarise(n=sum(weight)) # 223307.5 (0.5%)
+DIA_Pats %>% filter(!is.na(liver_failure)) %>% summarise(n=sum(weight)) # 211777.8 (0.5%)
+DIA_Pats %>% filter(!is.na(liver_transplant)) %>% summarise(n=sum(weight)) # 74550.95 (0.2%)
+DIA_Pats %>% filter(!is.na(liver_ultrasound)) %>% summarise(n=sum(weight)) # 105464.9 (0.3%)
+DIA_Pats %>% filter(!is.na(liver_imaging)) %>% summarise(n=sum(weight)) # 618995.4 (2%)
+DIA_Pats %>% filter(!is.na(liver_biopsy)) %>% summarise(n=sum(weight)) # 130053.3 (0.3%)
+DIA_Pats %>% filter(!is.na(alcohol_abuse)) %>% summarise(n=sum(weight)) # 2450108 (6%)
+
+
+
+sum(OBE_Pats$weight) # 99449618
+
+OBE_Pats %>% filter(!is.na(chronic_liver_disease)) %>% summarise(n=sum(weight)) # 4153743 (4%)
+OBE_Pats %>% filter(!is.na(nash)) %>% summarise(n=sum(weight)) # 0
+OBE_Pats %>% filter(!is.na(nafld)) %>% summarise(n=sum(weight)) # 0
+OBE_Pats %>% filter(!is.na(hepatitis)) %>% summarise(n=sum(weight)) # 1245348 (1%)
+OBE_Pats %>% filter(!is.na(fibrosis)) %>% summarise(n=sum(weight)) # 85351.65 (0.09%)
+OBE_Pats %>% filter(!is.na(cirrhosis)) %>% summarise(n=sum(weight)) # 1 374150.2 (0.4%)
+OBE_Pats %>% filter(!is.na(liver_cancer)) %>% summarise(n=sum(weight)) # 204691.8 (0.2%)
+OBE_Pats %>% filter(!is.na(liver_failure)) %>% summarise(n=sum(weight)) # 167382.9 (0.2%)
+OBE_Pats %>% filter(!is.na(liver_transplant)) %>% summarise(n=sum(weight)) # 44504.11 (0.04%)
+OBE_Pats %>% filter(!is.na(liver_ultrasound)) %>% summarise(n=sum(weight)) # 136295.9 (0.1%)
+OBE_Pats %>% filter(!is.na(liver_imaging)) %>% summarise(n=sum(weight)) # 1188366 (1%)
+OBE_Pats %>% filter(!is.na(liver_biopsy)) %>% summarise(n=sum(weight)) # 152191.2 (0.2%)
+OBE_Pats %>% filter(!is.na(alcohol_abuse)) %>% summarise(n=sum(weight)) # 5072429 (5%)
+
+
+
+FIB4_Diabetes_Pats_ALL <- fread("FIB4_Diabetes_Pats_ALL.txt")
+FIB4_Obesity_Pats_ALL <- fread("FIB4_Obesity_Pats_ALL.txt")
+FIB4_Diabetes_Pats_ALL <- FIB4_Diabetes_Pats_ALL %>% select(patient)
+FIB4_Obesity_Pats_ALL <- FIB4_Obesity_Pats_ALL %>% select(patient)
+
+DIA_Pats_95ConfLiver_2plusHits <- fread("DIA_Pats_95ConfLiver_2plusHits.txt")
+OBE_Pats_95ConfLiver_2plusHits <- fread("OBE_Pats_95ConfLiver_2plusHits.txt")
+
+FIB4_Diabetes_Pats_ALL <- FIB4_Diabetes_Pats_ALL %>% anti_join(DIA_Pats_95ConfLiver_2plusHits)
+FIB4_Obesity_Pats_ALL <- FIB4_Obesity_Pats_ALL %>% anti_join(OBE_Pats_95ConfLiver_2plusHits)
+
+FIB4_Diabetes_Pats_ALL <- FIB4_Diabetes_Pats_ALL %>% left_join(DIA_Pats)
+DIA_Pats_95ConfLiver_2plusHits <- DIA_Pats_95ConfLiver_2plusHits %>% left_join(DIA_Pats)
+
+FIB4_Obesity_Pats_ALL <- FIB4_Obesity_Pats_ALL %>% left_join(OBE_Pats)
+OBE_Pats_95ConfLiver_2plusHits <- OBE_Pats_95ConfLiver_2plusHits %>% left_join(OBE_Pats)
+
+FIB4_Diabetes_Pats_ALL
+FIB4_Obesity_Pats_ALL
+DIA_Pats_95ConfLiver_2plusHits
+OBE_Pats_95ConfLiver_2plusHits
+
+
+
+sum(DIA_Pats_95ConfLiver_2plusHits$weight, na.rm=T) # 686835.8
+
+DIA_Pats_95ConfLiver_2plusHits %>% filter(!is.na(chronic_liver_disease)) %>% summarise(n=sum(weight, na.rm=T)) # 97428.77 (14%)
+DIA_Pats_95ConfLiver_2plusHits %>% filter(!is.na(nash)) %>% summarise(n=sum(weight, na.rm=T)) # 0
+DIA_Pats_95ConfLiver_2plusHits %>% filter(!is.na(nafld)) %>% summarise(n=sum(weight, na.rm=T)) # 0
+DIA_Pats_95ConfLiver_2plusHits %>% filter(!is.na(hepatitis)) %>% summarise(n=sum(weight, na.rm=T)) # 42838.5 (6%)
+DIA_Pats_95ConfLiver_2plusHits %>% filter(!is.na(fibrosis)) %>% summarise(n=sum(weight, na.rm=T)) # 5349.16 (0.8%)
+DIA_Pats_95ConfLiver_2plusHits %>% filter(!is.na(cirrhosis)) %>% summarise(n=sum(weight, na.rm=T)) # 16038.96 (2%)
+DIA_Pats_95ConfLiver_2plusHits %>% filter(!is.na(liver_cancer)) %>% summarise(n=sum(weight, na.rm=T)) # 204.31 (0.03%)
+DIA_Pats_95ConfLiver_2plusHits %>% filter(!is.na(liver_failure)) %>% summarise(n=sum(weight, na.rm=T)) # 14848.91 (2%)
+DIA_Pats_95ConfLiver_2plusHits %>% filter(!is.na(liver_transplant)) %>% summarise(n=sum(weight, na.rm=T)) # 3465.14 (0.5%)
+DIA_Pats_95ConfLiver_2plusHits %>% filter(!is.na(liver_ultrasound)) %>% summarise(n=sum(weight, na.rm=T)) # 4350.54 (0.6%)
+DIA_Pats_95ConfLiver_2plusHits %>% filter(!is.na(liver_imaging)) %>% summarise(n=sum(weight, na.rm=T)) # 23087.12 (3%)
+DIA_Pats_95ConfLiver_2plusHits %>% filter(!is.na(liver_biopsy)) %>% summarise(n=sum(weight, na.rm=T)) # 8599.96 (1%)
+DIA_Pats_95ConfLiver_2plusHits %>% filter(!is.na(alcohol_abuse)) %>% summarise(n=sum(weight, na.rm=T)) # 5706.8 (0.8%)
+
+
+
+
+
+
+sum(OBE_Pats_95ConfLiver_2plusHits$weight, na.rm=T) # 715254
+
+OBE_Pats_95ConfLiver_2plusHits %>% filter(!is.na(chronic_liver_disease)) %>% summarise(n=sum(weight, na.rm=T)) # 82110.81 (11%)
+OBE_Pats_95ConfLiver_2plusHits %>% filter(!is.na(nash)) %>% summarise(n=sum(weight, na.rm=T)) # 0
+OBE_Pats_95ConfLiver_2plusHits %>% filter(!is.na(nafld)) %>% summarise(n=sum(weight, na.rm=T)) # 0
+OBE_Pats_95ConfLiver_2plusHits %>% filter(!is.na(hepatitis)) %>% summarise(n=sum(weight, na.rm=T)) # 38309.66 (5%)
+OBE_Pats_95ConfLiver_2plusHits %>% filter(!is.na(fibrosis)) %>% summarise(n=sum(weight, na.rm=T)) # 3469.08 (0.5%)
+OBE_Pats_95ConfLiver_2plusHits %>% filter(!is.na(cirrhosis)) %>% summarise(n=sum(weight, na.rm=T)) # 11904.74 (2%)
+OBE_Pats_95ConfLiver_2plusHits %>% filter(!is.na(liver_cancer)) %>% summarise(n=sum(weight, na.rm=T)) # 384.71 (0.05%)
+OBE_Pats_95ConfLiver_2plusHits %>% filter(!is.na(liver_failure)) %>% summarise(n=sum(weight, na.rm=T)) # 7961.78 (1%)
+OBE_Pats_95ConfLiver_2plusHits %>% filter(!is.na(liver_transplant)) %>% summarise(n=sum(weight, na.rm=T)) # 1353.74 (0.2%)
+OBE_Pats_95ConfLiver_2plusHits %>% filter(!is.na(liver_ultrasound)) %>% summarise(n=sum(weight, na.rm=T)) # 5213.34 (0.7%)
+OBE_Pats_95ConfLiver_2plusHits %>% filter(!is.na(liver_imaging)) %>% summarise(n=sum(weight, na.rm=T)) # 22200.64 (3%)
+OBE_Pats_95ConfLiver_2plusHits %>% filter(!is.na(liver_biopsy)) %>% summarise(n=sum(weight, na.rm=T)) # 6275.55 (0.9%)
+OBE_Pats_95ConfLiver_2plusHits %>% filter(!is.na(alcohol_abuse)) %>% summarise(n=sum(weight, na.rm=T)) # 7387.37 (1%)
+
+
+# -------------
+# Mean Platelet Volume High Risk vs Low Risk -----------
+DANU_Claims <- fread("DANU Claims Lab Results Sample.txt") 
+DANU_Claims <- DANU_Claims %>% filter(tst_desc == "MEAN PLATELET VOLUME" | tst_desc == "MPV")
+DANU_Claims <- DANU_Claims %>% filter(rslt_nbr>0)
+DANU_Claims <- DANU_Claims %>% select(patid, weight, fst_dt, rslt_nbr)
+names(DANU_Claims)[3] <- "MPV_Date"
+names(DANU_Claims)[4] <- "MPV"
+
+
+
+DANU_NLP_Measurement <- fread("DANU NLP Measurement Sample.txt")
+DANU_NLP_Measurement <- DANU_NLP_Measurement %>% filter(measurement_type == "MPV")
+DANU_NLP_Measurement$measurement_value <- as.numeric(DANU_NLP_Measurement$measurement_value)
+DANU_NLP_Measurement <- DANU_NLP_Measurement %>% filter(!is.na(measurement_value))
+range(DANU_NLP_Measurement$measurement_value)
+DANU_NLP_Measurement <- DANU_NLP_Measurement %>% filter(measurement_value>0 & measurement_value<20)
+DANU_NLP_Measurement <- DANU_NLP_Measurement %>% select(patid, weight, note_date, measurement_value)
+names(DANU_NLP_Measurement)[3] <- "MPV_Date"
+names(DANU_NLP_Measurement)[4] <- "MPV"
+
+DANU_EHR_Labs <- fread("DANU EHR Labs Sample.txt")
+DANU_EHR_Labs <- DANU_EHR_Labs %>% filter(test_name == "Platelet mean volume (MPV)")
+DANU_EHR_Labs$test_result <- as.numeric(DANU_EHR_Labs$test_result)
+DANU_EHR_Labs <- DANU_EHR_Labs %>% filter(!is.na(test_result))
+range(DANU_EHR_Labs$test_result)
+DANU_EHR_Labs <- DANU_EHR_Labs %>% filter(test_result>0 & test_result<20)
+DANU_EHR_Labs <- DANU_EHR_Labs %>% select(patid, weight, result_date,  test_result)
+names(DANU_EHR_Labs)[3] <- "MPV_Date"
+names(DANU_EHR_Labs)[4] <- "MPV"
+
+temp <- DANU_Claims %>% bind_rows(DANU_NLP_Measurement) %>% bind_rows(DANU_EHR_Labs)
+
+names(temp)[1] <- "patient"
+
+
+
+FIB4_Diabetes_Pats <- fread("FIB4_Diabetes_Pats.txt")
+FIB4_Diabetes_Pats <- FIB4_Diabetes_Pats %>% select(patient)
+DIA_Pats_95ConfLiver_2plusHits <- fread("DIA_Pats_95ConfLiver_2plusHits.txt")
+FIB4_Diabetes_Pats <- FIB4_Diabetes_Pats %>% anti_join(DIA_Pats_95ConfLiver_2plusHits)
+
+FIB4_Diabetes_Pats <- FIB4_Diabetes_Pats %>% inner_join(temp)
+DIA_Pats_95ConfLiver_2plusHits <- DIA_Pats_95ConfLiver_2plusHits %>% inner_join(temp)
+
+
+temp1 <- FIB4_Diabetes_Pats %>% group_by(patient) %>% filter(MPV == max(MPV)) %>% slice(1) %>% ungroup()
+
+temp2 <- DIA_Pats_95ConfLiver_2plusHits %>% group_by(patient) %>% filter(MPV == max(MPV)) %>% slice(1) %>% ungroup() 
+
+temp1$group <- "Low Risk Diabetes"
+temp2$group <- "High Risk Diabetes"
+
+FIB4_Diabetes_Pats$group <- "Diabetes"
+DIA_Pats_95ConfLiver_2plusHits$group <- "High Risk Diabetes"
+
+temp1 %>% bind_rows(temp2) %>%
+  ggplot(aes(x = MPV, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "D", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlim(7,14) +
+  xlab("\n Mean Platelet Volume (fL)") + ylab("Diabetes Predicted Group \n")
+
+
+
+
+
+
+FIB4_Obesity_Pats <- fread("FIB4_Obesity_Pats.txt")
+FIB4_Obesity_Pats <- FIB4_Obesity_Pats %>% select(patient)
+OBE_Pats_95ConfLiver_2plusHits <- fread("OBE_Pats_95ConfLiver_2plusHits.txt")
+FIB4_Obesity_Pats <- FIB4_Obesity_Pats %>% anti_join(OBE_Pats_95ConfLiver_2plusHits)
+
+FIB4_Obesity_Pats <- FIB4_Obesity_Pats %>% inner_join(temp)
+OBE_Pats_95ConfLiver_2plusHits <- OBE_Pats_95ConfLiver_2plusHits %>% inner_join(temp)
+
+
+temp1 <- FIB4_Obesity_Pats %>% group_by(patient) %>% filter(MPV == max(MPV)) %>% slice(1) %>% ungroup() %>% summarise(n=mean(MPV))
+# 10.1
+temp2 <- OBE_Pats_95ConfLiver_2plusHits %>% group_by(patient) %>% filter(MPV == max(MPV)) %>% slice(1) %>% ungroup() %>% summarise(n=mean(MPV))
+# 10.5
+temp1$group <- "Low Risk Obesity"
+temp2$group <- "High Risk Obesity"
+
+FIB4_Diabetes_Pats$group <- "Diabetes"
+DIA_Pats_95ConfLiver_2plusHits$group <- "High Risk Diabetes"
+
+temp1 %>% bind_rows(temp2) %>%
+  ggplot(aes(x = MPV, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "D", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlim(7,14) +
+  xlab("\n Mean Platelet Volume (fL)") + ylab("Obesity Predicted Group \n")
+
+# ---------
+# Physicians for high risk patients ------------------
+
+NASH_Event_Claims_Providers <- fread("NASH Event Claims Providers.txt")
+NASH_Event_Claims_Providers <- NASH_Event_Claims_Providers %>% select(prov, specialty)
+
+NASH_Pats_95ConfLiver_2plusHits_Provider <- fread("NASH_Pats_95ConfLiver_2plusHits_Provider.txt")
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- fread("NAFLD_Pats_95ConfLiver_2plusHits_Provider.txt")
+DIA_Pats_95ConfLiver_2plusHits_Provider <- fread("DIA_Pats_95ConfLiver_2plusHits_Provider.txt")
+OBE_Pats_95ConfLiver_2plusHits_Provider <- fread("OBE_Pats_95ConfLiver_2plusHits_Provider.txt")
+
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% filter(grepl("A|B|C|D|E|F|G|H|I|J|K|L|M|N", diag))
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% filter(grepl("A|B|C|D|E|F|G|H|I|J|K|L|M|N", diag))
+DIA_Pats_95ConfLiver_2plusHits_Provider <- DIA_Pats_95ConfLiver_2plusHits_Provider %>% filter(grepl("A|B|C|D|E|F|G|H|I|J|K|L|M|N", diag))
+OBE_Pats_95ConfLiver_2plusHits_Provider <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% filter(grepl("A|B|C|D|E|F|G|H|I|J|K|L|M|N", diag))
+
+Summary_Specialties <- fread("Summary_Specialties.txt")
+
+
+# NASH 
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% select(prov_unique, ptid,fst_dt)
+names(NASH_Pats_95ConfLiver_2plusHits_Provider)[1] <- "prov"
+NASH_Pats_95ConfLiver_2plusHits_Provider$prov <- as.character(NASH_Pats_95ConfLiver_2plusHits_Provider$prov)
+
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% group_by(ptid, fst_dt) %>% distinct()
+
+tempNASH <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% inner_join(NASH_Event_Claims_Providers) %>% drop_na() %>%
+  left_join(Summary_Specialties) %>% drop_na() %>% ungroup() %>% select(ptid, fst_dt, SUMMARY_SPECIALTY) %>%
+  group_by(ptid, fst_dt) %>% distinct() %>% 
+  mutate(rank = ifelse(SUMMARY_SPECIALTY=="GASTRO/HEPATO",1,
+                ifelse(SUMMARY_SPECIALTY=="PATHOLOGY",2,
+                       ifelse(SUMMARY_SPECIALTY=="RADIOLOGY",3,
+                              ifelse(SUMMARY_SPECIALTY=="HEMATO/ONCO",4,
+                                     ifelse(SUMMARY_SPECIALTY=="CARDIOLOGY",5,
+                                            ifelse(SUMMARY_SPECIALTY=="EMERGENCY MEDICINE",6,
+                                                   ifelse(SUMMARY_SPECIALTY=="INTERNAL MEDICINE",7,
+                                                          ifelse(SUMMARY_SPECIALTY=="GP",8,
+                                                                 ifelse(SUMMARY_SPECIALTY=="SURGERY",9,
+                                                                        ifelse(SUMMARY_SPECIALTY=="OTHER PHYSICIAN",10,
+                                                                               ifelse(SUMMARY_SPECIALTY=="OTHER HCP",11,NA)))))))))))) %>% drop_na() %>%
+  group_by(ptid, fst_dt) %>% filter(rank==min(rank)) %>% slice(1) %>% ungroup() %>%
+  group_by(SUMMARY_SPECIALTY) %>% count() %>% arrange(-n)
+  
+names(tempNASH)[2] <- "n_NASH"
+
+
+
+
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% select(prov_unique, ptid,fst_dt)
+names(NAFLD_Pats_95ConfLiver_2plusHits_Provider)[1] <- "prov"
+NAFLD_Pats_95ConfLiver_2plusHits_Provider$prov <- as.character(NAFLD_Pats_95ConfLiver_2plusHits_Provider$prov)
+
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% group_by(ptid, fst_dt) %>% distinct()
+
+
+# NAFLD
+tempNAFLD <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% inner_join(NASH_Event_Claims_Providers) %>% drop_na() %>%
+  left_join(Summary_Specialties) %>% drop_na() %>% ungroup() %>% select(ptid, fst_dt, SUMMARY_SPECIALTY) %>%
+  group_by(ptid, fst_dt) %>% distinct() %>% 
+  mutate(rank = ifelse(SUMMARY_SPECIALTY=="GASTRO/HEPATO",1,
+                       ifelse(SUMMARY_SPECIALTY=="PATHOLOGY",2,
+                              ifelse(SUMMARY_SPECIALTY=="RADIOLOGY",3,
+                                     ifelse(SUMMARY_SPECIALTY=="HEMATO/ONCO",4,
+                                            ifelse(SUMMARY_SPECIALTY=="CARDIOLOGY",5,
+                                                   ifelse(SUMMARY_SPECIALTY=="EMERGENCY MEDICINE",6,
+                                                          ifelse(SUMMARY_SPECIALTY=="INTERNAL MEDICINE",7,
+                                                                 ifelse(SUMMARY_SPECIALTY=="GP",8,
+                                                                        ifelse(SUMMARY_SPECIALTY=="SURGERY",9,
+                                                                               ifelse(SUMMARY_SPECIALTY=="OTHER PHYSICIAN",10,
+                                                                                      ifelse(SUMMARY_SPECIALTY=="OTHER HCP",11,NA)))))))))))) %>% drop_na() %>%
+  group_by(ptid, fst_dt) %>% filter(rank==min(rank)) %>% slice(1) %>% ungroup() %>%
+  group_by(SUMMARY_SPECIALTY) %>% count() %>% arrange(-n)
+
+names(tempNAFLD)[2] <- "n_NAFLD"
+
+
+# Diabetes
+DIA_Pats_95ConfLiver_2plusHits_Provider <- DIA_Pats_95ConfLiver_2plusHits_Provider %>% select(prov_unique, ptid,fst_dt)
+names(DIA_Pats_95ConfLiver_2plusHits_Provider)[1] <- "prov"
+DIA_Pats_95ConfLiver_2plusHits_Provider$prov <- as.character(DIA_Pats_95ConfLiver_2plusHits_Provider$prov)
+
+DIA_Pats_95ConfLiver_2plusHits_Provider <- DIA_Pats_95ConfLiver_2plusHits_Provider %>% group_by(ptid, fst_dt) %>% distinct()
+
+
+tempDIA <- DIA_Pats_95ConfLiver_2plusHits_Provider %>% inner_join(NASH_Event_Claims_Providers) %>% drop_na() %>%
+  left_join(Summary_Specialties) %>% drop_na() %>% ungroup() %>% select(ptid, fst_dt, SUMMARY_SPECIALTY) %>%
+  group_by(ptid, fst_dt) %>% distinct() %>% 
+  mutate(rank = ifelse(SUMMARY_SPECIALTY=="GASTRO/HEPATO",1,
+                       ifelse(SUMMARY_SPECIALTY=="PATHOLOGY",2,
+                              ifelse(SUMMARY_SPECIALTY=="RADIOLOGY",3,
+                                     ifelse(SUMMARY_SPECIALTY=="HEMATO/ONCO",4,
+                                            ifelse(SUMMARY_SPECIALTY=="CARDIOLOGY",5,
+                                                   ifelse(SUMMARY_SPECIALTY=="EMERGENCY MEDICINE",6,
+                                                          ifelse(SUMMARY_SPECIALTY=="INTERNAL MEDICINE",7,
+                                                                 ifelse(SUMMARY_SPECIALTY=="GP",8,
+                                                                        ifelse(SUMMARY_SPECIALTY=="SURGERY",9,
+                                                                               ifelse(SUMMARY_SPECIALTY=="OTHER PHYSICIAN",10,
+                                                                                      ifelse(SUMMARY_SPECIALTY=="OTHER HCP",11,NA)))))))))))) %>% drop_na() %>%
+  group_by(ptid, fst_dt) %>% filter(rank==min(rank)) %>% slice(1) %>% ungroup() %>%
+  group_by(SUMMARY_SPECIALTY) %>% count() %>% arrange(-n)
+
+names(tempDIA)[2] <- "n_DIA"
+
+
+
+
+# Obesity
+
+OBE_Pats_95ConfLiver_2plusHits_Provider <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% select(prov_unique, ptid,fst_dt)
+names(OBE_Pats_95ConfLiver_2plusHits_Provider)[1] <- "prov"
+OBE_Pats_95ConfLiver_2plusHits_Provider$prov <- as.character(OBE_Pats_95ConfLiver_2plusHits_Provider$prov)
+
+OBE_Pats_95ConfLiver_2plusHits_Provider <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% group_by(ptid, fst_dt) %>% distinct()
+
+tempOBE <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% inner_join(NASH_Event_Claims_Providers) %>% drop_na() %>%
+  left_join(Summary_Specialties) %>% drop_na() %>% ungroup() %>% select(ptid, fst_dt, SUMMARY_SPECIALTY) %>%
+  group_by(ptid, fst_dt) %>% distinct() %>% 
+  mutate(rank = ifelse(SUMMARY_SPECIALTY=="GASTRO/HEPATO",1,
+                       ifelse(SUMMARY_SPECIALTY=="PATHOLOGY",2,
+                              ifelse(SUMMARY_SPECIALTY=="RADIOLOGY",3,
+                                     ifelse(SUMMARY_SPECIALTY=="HEMATO/ONCO",4,
+                                            ifelse(SUMMARY_SPECIALTY=="CARDIOLOGY",5,
+                                                   ifelse(SUMMARY_SPECIALTY=="EMERGENCY MEDICINE",6,
+                                                          ifelse(SUMMARY_SPECIALTY=="INTERNAL MEDICINE",7,
+                                                                 ifelse(SUMMARY_SPECIALTY=="GP",8,
+                                                                        ifelse(SUMMARY_SPECIALTY=="SURGERY",9,
+                                                                               ifelse(SUMMARY_SPECIALTY=="OTHER PHYSICIAN",10,
+                                                                                      ifelse(SUMMARY_SPECIALTY=="OTHER HCP",11,NA)))))))))))) %>% drop_na() %>%
+  group_by(ptid, fst_dt) %>% filter(rank==min(rank)) %>% slice(1) %>% ungroup() %>%
+  group_by(SUMMARY_SPECIALTY) %>% count() %>% arrange(-n)
+
+names(tempOBE)[2] <- "n_OBE"
+
+
+temp <- tempNASH %>% left_join(tempNAFLD) %>% left_join(tempDIA) %>% left_join(tempOBE)
+
+
+fwrite(temp, "Physicians_All_Events_HighRisk_Summary.txt", sep="\t")
+
+# -----
+# Physicians Es and Ks only ---------------
+NASH_Event_Claims_Providers <- fread("NASH Event Claims Providers.txt")
+NASH_Event_Claims_Providers <- NASH_Event_Claims_Providers %>% select(prov, specialty)
+
+NASH_Pats_95ConfLiver_2plusHits_Provider <- fread("NASH_Pats_95ConfLiver_2plusHits_Provider.txt")
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- fread("NAFLD_Pats_95ConfLiver_2plusHits_Provider.txt")
+DIA_Pats_95ConfLiver_2plusHits_Provider <- fread("DIA_Pats_95ConfLiver_2plusHits_Provider.txt")
+OBE_Pats_95ConfLiver_2plusHits_Provider <- fread("OBE_Pats_95ConfLiver_2plusHits_Provider.txt")
+
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% filter(grepl("E|K", diag))
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% filter(grepl("E|K", diag))
+DIA_Pats_95ConfLiver_2plusHits_Provider <- DIA_Pats_95ConfLiver_2plusHits_Provider %>% filter(grepl("E|K", diag))
+OBE_Pats_95ConfLiver_2plusHits_Provider <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% filter(grepl("E|K", diag))
+
+Summary_Specialties <- fread("Summary_Specialties.txt")
+
+
+
+
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% select(prov_unique, ptid,fst_dt)
+names(NASH_Pats_95ConfLiver_2plusHits_Provider)[1] <- "prov"
+NASH_Pats_95ConfLiver_2plusHits_Provider$prov <- as.character(NASH_Pats_95ConfLiver_2plusHits_Provider$prov)
+
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% group_by(ptid, fst_dt) %>% distinct()
+
+tempNASH <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% inner_join(NASH_Event_Claims_Providers) %>% drop_na() %>%
+  left_join(Summary_Specialties) %>% drop_na() %>% ungroup() %>% select(ptid, fst_dt, SUMMARY_SPECIALTY) %>%
+  group_by(ptid, fst_dt) %>% distinct() %>% 
+  mutate(rank = ifelse(SUMMARY_SPECIALTY=="GASTRO/HEPATO",1,
+                       ifelse(SUMMARY_SPECIALTY=="PATHOLOGY",2,
+                              ifelse(SUMMARY_SPECIALTY=="RADIOLOGY",3,
+                                     ifelse(SUMMARY_SPECIALTY=="HEMATO/ONCO",4,
+                                            ifelse(SUMMARY_SPECIALTY=="CARDIOLOGY",5,
+                                                   ifelse(SUMMARY_SPECIALTY=="EMERGENCY MEDICINE",6,
+                                                          ifelse(SUMMARY_SPECIALTY=="INTERNAL MEDICINE",7,
+                                                                 ifelse(SUMMARY_SPECIALTY=="GP",8,
+                                                                        ifelse(SUMMARY_SPECIALTY=="SURGERY",9,
+                                                                               ifelse(SUMMARY_SPECIALTY=="OTHER PHYSICIAN",10,
+                                                                                      ifelse(SUMMARY_SPECIALTY=="OTHER HCP",11,NA)))))))))))) %>% drop_na() %>%
+  group_by(ptid, fst_dt) %>% filter(rank==min(rank)) %>% slice(1) %>% ungroup() %>%
+  group_by(SUMMARY_SPECIALTY) %>% count() %>% arrange(-n)
+
+names(tempNASH)[2] <- "n_NASH"
+
+
+
+
+
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% select(prov_unique, ptid,fst_dt)
+names(NAFLD_Pats_95ConfLiver_2plusHits_Provider)[1] <- "prov"
+NAFLD_Pats_95ConfLiver_2plusHits_Provider$prov <- as.character(NAFLD_Pats_95ConfLiver_2plusHits_Provider$prov)
+
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% group_by(ptid, fst_dt) %>% distinct()
+
+
+tempNAFLD <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% inner_join(NASH_Event_Claims_Providers) %>% drop_na() %>%
+  left_join(Summary_Specialties) %>% drop_na() %>% ungroup() %>% select(ptid, fst_dt, SUMMARY_SPECIALTY) %>%
+  group_by(ptid, fst_dt) %>% distinct() %>% 
+  mutate(rank = ifelse(SUMMARY_SPECIALTY=="GASTRO/HEPATO",1,
+                       ifelse(SUMMARY_SPECIALTY=="PATHOLOGY",2,
+                              ifelse(SUMMARY_SPECIALTY=="RADIOLOGY",3,
+                                     ifelse(SUMMARY_SPECIALTY=="HEMATO/ONCO",4,
+                                            ifelse(SUMMARY_SPECIALTY=="CARDIOLOGY",5,
+                                                   ifelse(SUMMARY_SPECIALTY=="EMERGENCY MEDICINE",6,
+                                                          ifelse(SUMMARY_SPECIALTY=="INTERNAL MEDICINE",7,
+                                                                 ifelse(SUMMARY_SPECIALTY=="GP",8,
+                                                                        ifelse(SUMMARY_SPECIALTY=="SURGERY",9,
+                                                                               ifelse(SUMMARY_SPECIALTY=="OTHER PHYSICIAN",10,
+                                                                                      ifelse(SUMMARY_SPECIALTY=="OTHER HCP",11,NA)))))))))))) %>% drop_na() %>%
+  group_by(ptid, fst_dt) %>% filter(rank==min(rank)) %>% slice(1) %>% ungroup() %>%
+  group_by(SUMMARY_SPECIALTY) %>% count() %>% arrange(-n)
+
+names(tempNAFLD)[2] <- "n_NAFLD"
+
+
+
+
+
+
+
+
+DIA_Pats_95ConfLiver_2plusHits_Provider <- DIA_Pats_95ConfLiver_2plusHits_Provider %>% select(prov_unique, ptid,fst_dt)
+names(DIA_Pats_95ConfLiver_2plusHits_Provider)[1] <- "prov"
+DIA_Pats_95ConfLiver_2plusHits_Provider$prov <- as.character(DIA_Pats_95ConfLiver_2plusHits_Provider$prov)
+
+DIA_Pats_95ConfLiver_2plusHits_Provider <- DIA_Pats_95ConfLiver_2plusHits_Provider %>% group_by(ptid, fst_dt) %>% distinct()
+
+
+tempDIA <- DIA_Pats_95ConfLiver_2plusHits_Provider %>% inner_join(NASH_Event_Claims_Providers) %>% drop_na() %>%
+  left_join(Summary_Specialties) %>% drop_na() %>% ungroup() %>% select(ptid, fst_dt, SUMMARY_SPECIALTY) %>%
+  group_by(ptid, fst_dt) %>% distinct() %>% 
+  mutate(rank = ifelse(SUMMARY_SPECIALTY=="GASTRO/HEPATO",1,
+                       ifelse(SUMMARY_SPECIALTY=="PATHOLOGY",2,
+                              ifelse(SUMMARY_SPECIALTY=="RADIOLOGY",3,
+                                     ifelse(SUMMARY_SPECIALTY=="HEMATO/ONCO",4,
+                                            ifelse(SUMMARY_SPECIALTY=="CARDIOLOGY",5,
+                                                   ifelse(SUMMARY_SPECIALTY=="EMERGENCY MEDICINE",6,
+                                                          ifelse(SUMMARY_SPECIALTY=="INTERNAL MEDICINE",7,
+                                                                 ifelse(SUMMARY_SPECIALTY=="GP",8,
+                                                                        ifelse(SUMMARY_SPECIALTY=="SURGERY",9,
+                                                                               ifelse(SUMMARY_SPECIALTY=="OTHER PHYSICIAN",10,
+                                                                                      ifelse(SUMMARY_SPECIALTY=="OTHER HCP",11,NA)))))))))))) %>% drop_na() %>%
+  group_by(ptid, fst_dt) %>% filter(rank==min(rank)) %>% slice(1) %>% ungroup() %>%
+  group_by(SUMMARY_SPECIALTY) %>% count() %>% arrange(-n)
+
+names(tempDIA)[2] <- "n_DIA"
+
+
+
+
+
+
+
+
+OBE_Pats_95ConfLiver_2plusHits_Provider <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% select(prov_unique, ptid,fst_dt)
+names(OBE_Pats_95ConfLiver_2plusHits_Provider)[1] <- "prov"
+OBE_Pats_95ConfLiver_2plusHits_Provider$prov <- as.character(OBE_Pats_95ConfLiver_2plusHits_Provider$prov)
+
+OBE_Pats_95ConfLiver_2plusHits_Provider <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% group_by(ptid, fst_dt) %>% distinct()
+
+tempOBE <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% inner_join(NASH_Event_Claims_Providers) %>% drop_na() %>%
+  left_join(Summary_Specialties) %>% drop_na() %>% ungroup() %>% select(ptid, fst_dt, SUMMARY_SPECIALTY) %>%
+  group_by(ptid, fst_dt) %>% distinct() %>% 
+  mutate(rank = ifelse(SUMMARY_SPECIALTY=="GASTRO/HEPATO",1,
+                       ifelse(SUMMARY_SPECIALTY=="PATHOLOGY",2,
+                              ifelse(SUMMARY_SPECIALTY=="RADIOLOGY",3,
+                                     ifelse(SUMMARY_SPECIALTY=="HEMATO/ONCO",4,
+                                            ifelse(SUMMARY_SPECIALTY=="CARDIOLOGY",5,
+                                                   ifelse(SUMMARY_SPECIALTY=="EMERGENCY MEDICINE",6,
+                                                          ifelse(SUMMARY_SPECIALTY=="INTERNAL MEDICINE",7,
+                                                                 ifelse(SUMMARY_SPECIALTY=="GP",8,
+                                                                        ifelse(SUMMARY_SPECIALTY=="SURGERY",9,
+                                                                               ifelse(SUMMARY_SPECIALTY=="OTHER PHYSICIAN",10,
+                                                                                      ifelse(SUMMARY_SPECIALTY=="OTHER HCP",11,NA)))))))))))) %>% drop_na() %>%
+  group_by(ptid, fst_dt) %>% filter(rank==min(rank)) %>% slice(1) %>% ungroup() %>%
+  group_by(SUMMARY_SPECIALTY) %>% count() %>% arrange(-n)
+
+names(tempOBE)[2] <- "n_OBE"
+
+
+temp <- tempNASH %>% left_join(tempNAFLD) %>% left_join(tempDIA) %>% left_join(tempOBE)
+
+
+fwrite(temp, "Physicians_All_Events_HighRisk_EsKs.txt", sep="\t")
+
+# -----------
+# Monocytes Fraction (%)  High Risk vs Low Risk -----------
+
+DANU_Claims <- fread("DANU Claims Lab Results Sample.txt") 
+DANU_Claims <- DANU_Claims %>% filter(grepl("MONOCYTES", tst_desc) & rslt_unit_nm == "%")
+DANU_Claims <- DANU_Claims %>% filter(rslt_nbr>0)
+DANU_Claims <- DANU_Claims %>% select(patid, weight, fst_dt, rslt_nbr)
+names(DANU_Claims)[3] <- "Percent_Monos_Date"
+names(DANU_Claims)[4] <- "Percent_Monos"
+
+
+
+DANU_NLP_Measurement <- fread("DANU NLP Measurement Sample.txt")
+DANU_NLP_Measurement <- DANU_NLP_Measurement %>% filter(grepl("MONOCYTES",measurement_type) & measurement_detail == "%")
+DANU_NLP_Measurement$measurement_value <- as.numeric(DANU_NLP_Measurement$measurement_value)
+DANU_NLP_Measurement <- DANU_NLP_Measurement %>% filter(!is.na(measurement_value))
+range(DANU_NLP_Measurement$measurement_value)
+DANU_NLP_Measurement <- DANU_NLP_Measurement %>% filter(measurement_value>0 & measurement_value<50)
+DANU_NLP_Measurement <- DANU_NLP_Measurement %>% select(patid, weight, note_date, measurement_value)
+names(DANU_NLP_Measurement)[3] <- "Percent_Monos_Date"
+names(DANU_NLP_Measurement)[4] <- "Percent_Monos"
+
+DANU_EHR_Labs <- fread("DANU EHR Labs Sample.txt")
+DANU_EHR_Labs <- DANU_EHR_Labs %>% filter(grepl("Monocyte",test_name) & result_unit == "%")
+DANU_EHR_Labs$test_result <- as.numeric(DANU_EHR_Labs$test_result)
+DANU_EHR_Labs <- DANU_EHR_Labs %>% filter(!is.na(test_result))
+range(DANU_EHR_Labs$test_result)
+DANU_EHR_Labs <- DANU_EHR_Labs %>% select(patid, weight, result_date,  test_result)
+names(DANU_EHR_Labs)[3] <- "Percent_Monos_Date"
+names(DANU_EHR_Labs)[4] <- "Percent_Monos"
+
+temp <- DANU_Claims %>% bind_rows(DANU_NLP_Measurement) %>% bind_rows(DANU_EHR_Labs)
+
+names(temp)[1] <- "patient"
+
+
+FIB4_Diabetes_Pats <- fread("FIB4_Diabetes_Pats.txt")
+FIB4_Diabetes_Pats <- FIB4_Diabetes_Pats %>% select(patient)
+DIA_Pats_95ConfLiver_2plusHits <- fread("DIA_Pats_95ConfLiver_2plusHits.txt")
+FIB4_Diabetes_Pats <- FIB4_Diabetes_Pats %>% anti_join(DIA_Pats_95ConfLiver_2plusHits)
+
+FIB4_Diabetes_Pats <- FIB4_Diabetes_Pats %>% inner_join(temp)
+DIA_Pats_95ConfLiver_2plusHits <- DIA_Pats_95ConfLiver_2plusHits %>% inner_join(temp)
+
+
+temp1 <- FIB4_Diabetes_Pats %>% group_by(patient) %>% filter(Percent_Monos == mean(Percent_Monos)) %>% slice(1) %>% ungroup()  %>% summarise(n=mean(Percent_Monos))
+# 9.42
+temp2 <- DIA_Pats_95ConfLiver_2plusHits %>% group_by(patient) %>% filter(Percent_Monos == mean(Percent_Monos)) %>% slice(1) %>% ungroup() %>% summarise(n=mean(Percent_Monos)) 
+# 10.6
+
+temp1$group <- "Low Risk Diabetes"
+temp2$group <- "High Risk Diabetes"
+
+FIB4_Diabetes_Pats$group <- "Diabetes"
+DIA_Pats_95ConfLiver_2plusHits$group <- "High Risk Diabetes"
+
+temp1 %>% bind_rows(temp2) %>%
+  ggplot(aes(x = Percent_Monos, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "D", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlim(4,16) +
+  xlab("\n Monocytes (%)") + ylab("Diabetes Predicted Group \n")
+
+
+
+
+
+
+FIB4_Obesity_Pats <- fread("FIB4_Obesity_Pats.txt")
+FIB4_Obesity_Pats <- FIB4_Obesity_Pats %>% select(patient)
+OBE_Pats_95ConfLiver_2plusHits <- fread("OBE_Pats_95ConfLiver_2plusHits.txt")
+FIB4_Obesity_Pats <- FIB4_Obesity_Pats %>% anti_join(OBE_Pats_95ConfLiver_2plusHits)
+
+FIB4_Obesity_Pats <- FIB4_Obesity_Pats %>% inner_join(temp)
+OBE_Pats_95ConfLiver_2plusHits <- OBE_Pats_95ConfLiver_2plusHits %>% inner_join(temp)
+
+
+temp1 <- FIB4_Obesity_Pats %>% group_by(patient) %>% filter(Percent_Monos == max(Percent_Monos)) %>% slice(1) %>% ungroup() 
+# 9.23
+temp2 <- OBE_Pats_95ConfLiver_2plusHits %>% group_by(patient) %>% filter(Percent_Monos == max(Percent_Monos)) %>% slice(1) %>% ungroup()
+# 11.2
+
+temp1$group <- "Low Risk Obesity"
+temp2$group <- "High Risk Obesity"
+
+FIB4_Diabetes_Pats$group <- "Diabetes"
+DIA_Pats_95ConfLiver_2plusHits$group <- "High Risk Diabetes"
+
+temp1 %>% bind_rows(temp2) %>%
+  ggplot(aes(x = Percent_Monos, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "D", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlim(4,16) +
+  xlab("\n Monocytes (%)") + ylab("Obesity Predicted Group \n")
+# ------ 
+
+# Flow "matrix" of Targets vs Origin/Comorbidities ------------
+
+Matrix_Targets_TypeVSComorb <- fread("Matrix_Targets_TypeVSComorb.txt")
+
+row.names(Matrix_Targets_TypeVSComorb) <- Matrix_Targets_TypeVSComorb$V1
+
+Matrix_Targets_TypeVSComorb <- Matrix_Targets_TypeVSComorb %>% select(-c(V1))
+
+rownames(Matrix_Targets_TypeVSComorb)
+colnames(Matrix_Targets_TypeVSComorb)
+
+
+
+grid.bubble.plot <- function(df, 
+                             axis_labels_size=10, 
+                             aspect_ratio=1/1,
+                             values_text_size=4,
+                             values_text_color="black",
+                             x_axis_position="top", # or "bottom",
+                             bubble_size_range=c(5, 30),
+                             bubble_alpha=0.7,
+                             bubble_shape=21,
+                             bubble_edge_stroke=0) {
+  col_names <- colnames(df)
+  row_names <- rownames(df)
+  values <- as.vector(as.matrix(df))
+  values_x <- as.vector(sapply(col_names, function(i) rep(i, nrow(df))))
+  values_y <- as.vector(rep(row_names, dim(df)[2]))
+  res_df <- data.frame(values = values, values_x = values_x, values_y)
+  res_df <- data.frame(res_df %>% mutate(values_x=fct_relevel(values_x,c("NASH-only","NASH-fibrosis","NASH-cirrhosis"))))
+                          
+   gg <- ggplot(res_df, aes(x=values_x, y=values_y, size = values, fill=factor(values_x))) +
+    geom_point(alpha=bubble_alpha, shape=bubble_shape, stroke=bubble_edge_stroke) +
+    scale_size(range = bubble_size_range) +
+     scale_fill_brewer(palette = "YlOrRd") +
+    scale_x_discrete(position = x_axis_position) +
+    scale_y_discrete(limits=rev)+
+    #geom_text(aes(label=paste0(values,"%")), fontface="bold", size=values_text_size, color=values_text_color,) +
+    geom_text(aes(label=paste0(values,"k")), fontface="bold", size=values_text_size, color=values_text_color,) +
+     theme(line=element_blank(), 
+          panel.background=element_blank(),
+          legend.position="none",
+          axis.title=element_blank(),
+          axis.text=element_text(size=axis_labels_size),
+          aspect.ratio=aspect_ratio)
+  gg
+}
+
+grid.bubble.plot(Matrix_Targets_TypeVSComorb)
+
+# ---------
+# Select Dates WHEN patients where high risk >95% (at least 2x!), check all the physicians seen ON THAT MONTH -------- 
+
+# Remove everyone with Liver Cancer or Alcohol Abuse
+NASH_Dossiers <- fread("NASH Dossiers.txt")
+Cancer_Alcohol_pats <- NASH_Dossiers %>% filter(condition == "Liver Cancer" | condition == "Alcohol Abuse") %>% select(patid) %>% distinct()
+Biopsy_pats <- NASH_Dossiers %>% filter(condition == "Liver Biopsy") %>% select(patid) %>% distinct()
+names(Cancer_Alcohol_pats)[1] <- "patient"
+names(Biopsy_pats)[1] <- "patient"
+Biopsy_pats$Biopsy_Ever <- "Biopsy"
+
+# Get Pats with all labs on the same date 
+NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+DIA_Pats <- fread("FIB4_Diabetes_Pats.txt")
+OBE_Pats <- fread("FIB4_Obesity_Pats.txt")
+NAFLD_Pats <- fread("FIB4_NAFLD_Pats.txt")
+Random_Pats <- fread("FIB4_Random_Pats_Filtered.txt") 
+
+NAFLD <- NAFLD_Pats %>% select(patient)
+DIA_Pats <- DIA_Pats %>% anti_join(NAFLD)
+OBE_Pats <- OBE_Pats %>% anti_join(NAFLD)
+
+
+# Remove Cancer/Alcohol
+NASH_Pats <- NASH_Pats %>% anti_join(Cancer_Alcohol_pats)
+DIA_Pats <- DIA_Pats %>% anti_join(Cancer_Alcohol_pats)
+OBE_Pats<- OBE_Pats %>% anti_join(Cancer_Alcohol_pats)
+NAFLD_Pats<- NAFLD_Pats %>% anti_join(Cancer_Alcohol_pats)
+
+
+# Add Biopsy ever status
+NASH_Pats <- NASH_Pats %>% left_join(Biopsy_pats)
+DIA_Pats <- DIA_Pats %>% left_join(Biopsy_pats)
+OBE_Pats<- OBE_Pats %>% left_join(Biopsy_pats)
+NAFLD_Pats<- NAFLD_Pats %>% left_join(Biopsy_pats)
+
+
+# Flag patients as Positive / negative
+NASH_To_keep <- NASH_Pats %>% filter((AST>50&ALT>50&Platelets<150)|Biopsy_Ever=="Biopsy") %>% select(patient) %>% distinct()
+NASH_To_keep$Dx_status <- 1
+NASH_To_keep <- NASH_To_keep %>% left_join(NASH_Pats)
+NASH_To_keep <- NASH_To_keep %>% mutate(Biopsy_Ever=ifelse(Biopsy_Ever=="Biopsy",1,0))
+NASH_To_keep <- NASH_To_keep %>% select(-Biopsy_Ever)
+NASH_To_keep <- NASH_To_keep %>% select(1,3,4,5,6,7,8,2)
+
+
+DIA_To_keep <- DIA_Pats %>% filter((AST>50&ALT>50&Platelets<150)|Biopsy_Ever=="Biopsy") %>% select(patient) %>% distinct()
+DIA_To_keep$Dx_status <- 1
+DIA_To_keep <- DIA_To_keep %>% left_join(DIA_Pats)
+DIA_To_keep <- DIA_To_keep %>% mutate(Biopsy_Ever=ifelse(Biopsy_Ever=="Biopsy",1,0))
+DIA_To_keep <- DIA_To_keep %>% select(-Biopsy_Ever)
+DIA_To_keep <- DIA_To_keep %>% select(1,3,4,5,6,7,8,2)
+
+
+OBE_To_keep <- OBE_Pats %>% filter((AST>50&ALT>50&Platelets<150)|Biopsy_Ever=="Biopsy") %>% select(patient) %>% distinct()
+OBE_To_keep$Dx_status <- 1
+OBE_To_keep <- OBE_To_keep %>% left_join(OBE_Pats)
+OBE_To_keep <- OBE_To_keep %>% mutate(Biopsy_Ever=ifelse(Biopsy_Ever=="Biopsy",1,0))
+OBE_To_keep <- OBE_To_keep %>% select(-Biopsy_Ever)
+OBE_To_keep <- OBE_To_keep %>% select(1,3,4,5,6,7,8,2)
+
+
+NAFLD_To_keep <- NAFLD_Pats %>% filter((AST>50&ALT>50&Platelets<150)|Biopsy_Ever=="Biopsy") %>% select(patient) %>% distinct()
+NAFLD_To_keep$Dx_status <- 1
+NAFLD_To_keep <- NAFLD_To_keep %>% left_join(NAFLD_Pats)
+NAFLD_To_keep <- NAFLD_To_keep %>% mutate(Biopsy_Ever=ifelse(Biopsy_Ever=="Biopsy",1,0))
+NAFLD_To_keep <- NAFLD_To_keep %>% select(-Biopsy_Ever)
+NAFLD_To_keep <- NAFLD_To_keep %>% select(1,3,4,5,6,7,8,2)
+
+
+NASH_Pats_to_remove <- NASH_Pats %>% filter((AST>50|ALT>50|Platelets<150|Biopsy_Ever=="Biopsy")) %>% select(patient) %>% distinct()
+NASH_Negative <- NASH_Pats %>% anti_join(NASH_Pats_to_remove)
+NASH_Negative <- NASH_Negative %>% select(-Biopsy_Ever)
+NASH_Negative$Dx_status <- 0
+
+DIA_Pats_to_remove <- DIA_Pats %>% filter((AST>50|ALT>50|Platelets<150|Biopsy_Ever=="Biopsy")) %>% select(patient) %>% distinct()
+DIA_Negative <- DIA_Pats %>% anti_join(DIA_Pats_to_remove)
+DIA_Negative <- DIA_Negative %>% select(-Biopsy_Ever)
+DIA_Negative$Dx_status <- 0
+
+OBE_Pats_to_remove <- OBE_Pats %>% filter((AST>50|ALT>50|Platelets<150|Biopsy_Ever=="Biopsy")) %>% select(patient) %>% distinct()
+OBE_Negative <- OBE_Pats %>% anti_join(OBE_Pats_to_remove)
+OBE_Negative <- OBE_Negative %>% select(-Biopsy_Ever)
+OBE_Negative$Dx_status <- 0
+
+NAFLD_Pats_to_remove <- NAFLD_Pats %>% filter((AST>50|ALT>50|Platelets<150|Biopsy_Ever=="Biopsy")) %>% select(patient) %>% distinct()
+NAFLD_Negative <- NAFLD_Pats %>% anti_join(NAFLD_Pats_to_remove)
+NAFLD_Negative <- NAFLD_Negative %>% select(-Biopsy_Ever)
+NAFLD_Negative$Dx_status <- 0
+
+
+NASH_To_keep <- NASH_To_keep %>% sample_n(5000)
+DIA_To_keep <- DIA_To_keep %>% sample_n(5000)
+OBE_To_keep <- OBE_To_keep %>% sample_n(5000)
+NAFLD_To_keep <- NAFLD_To_keep %>% sample_n(5000)
+NASH_Negative <- NASH_Negative %>% sample_n(5000)
+DIA_Negative <- DIA_Negative %>% sample_n(5000)
+OBE_Negative <- OBE_Negative %>% sample_n(5000)
+NAFLD_Negative <- NAFLD_Negative %>% sample_n(5000)
+
+Indicator <- NASH_To_keep %>% bind_rows(DIA_To_keep) %>% bind_rows(OBE_To_keep) %>% bind_rows(NAFLD_To_keep) %>%
+  bind_rows(DIA_Negative) %>% bind_rows(OBE_Negative) %>% bind_rows(NAFLD_Negative)
+
+Indicator %>% filter(Dx_status==1) %>% summarise(n=mean(fibrosis4))
+Indicator %>% filter(Dx_status==0) %>% summarise(n=mean(fibrosis4))
+Indicator %>% filter(Dx_status==1) %>% summarise(n=median(fibrosis4))
+Indicator %>% filter(Dx_status==0) %>% summarise(n=median(fibrosis4))
+
+Risk_pred_model <- glm( Dx_status ~ AST+ALT+Platelets, data = Indicator, family = binomial)
+
+NASH_Pats <- NASH_Pats %>% select(-c(Biopsy_Ever))
+DIA_Pats <- DIA_Pats %>% select(-c(Biopsy_Ever))
+OBE_Pats <- OBE_Pats %>% select(-c(Biopsy_Ever))
+NAFLD_Pats <- NAFLD_Pats %>% select(-c(Biopsy_Ever))
+
+
+NASH_Probability <- data.frame(Risk_pred_model %>% predict(NASH_Pats, type = "response"))
+DIA_Probability <- data.frame(Risk_pred_model %>% predict(DIA_Pats, type = "response"))
+OBE_Probability <- data.frame(Risk_pred_model %>% predict(OBE_Pats, type = "response"))
+NAFLD_Probability <- data.frame(Risk_pred_model %>% predict(NAFLD_Pats, type = "response"))
+Random_Probability <- data.frame(Risk_pred_model %>% predict(Random_Pats, type = "response"))
+
+
+NASH_Probability <- NASH_Pats %>% select(patient, claimed) %>% bind_cols(NASH_Probability)
+DIA_Probability <- DIA_Pats %>% select(patient, claimed) %>% bind_cols(DIA_Probability)
+OBE_Probability <- OBE_Pats %>% select(patient, claimed) %>% bind_cols(OBE_Probability)
+NAFLD_Probability <- NAFLD_Pats %>% select(patient, claimed) %>% bind_cols(NAFLD_Probability)
+Random_Probability <- Random_Pats %>% select(patient, claimed) %>% bind_cols(Random_Probability)
+
+
+NASH_Probability <- NASH_Probability %>% group_by(patient) %>% count() %>% filter(n>1) %>% select(patient) %>% left_join(NASH_Probability) %>% ungroup()
+DIA_Probability <- DIA_Probability %>% group_by(patient) %>% count() %>% filter(n>1) %>% select(patient) %>% left_join(DIA_Probability) %>% ungroup()
+OBE_Probability <- OBE_Probability %>% group_by(patient) %>% count() %>% filter(n>1) %>% select(patient) %>% left_join(OBE_Probability) %>% ungroup()
+NAFLD_Probability <- NAFLD_Probability %>% group_by(patient) %>% count() %>% filter(n>1) %>% select(patient) %>% left_join(NAFLD_Probability) %>% ungroup()
+Random_Probability <- Random_Probability %>% group_by(patient) %>% count() %>% filter(n>1) %>% select(patient) %>% left_join(Random_Probability) %>% ungroup()
+
+
+HighRiskPats_Dates <- NASH_Probability %>% filter(Risk_pred_model.....predict.NASH_Pats..type....response..>0.95) %>%
+  select(patient, claimed) %>% distinct() %>% 
+  bind_rows(DIA_Probability %>% filter(Risk_pred_model.....predict.DIA_Pats..type....response..>0.95) %>%
+              select(patient, claimed) %>% distinct()) %>%
+  bind_rows(OBE_Probability %>% filter(Risk_pred_model.....predict.OBE_Pats..type....response..>0.95) %>%
+              select(patient, claimed) %>% distinct()) %>%
+  bind_rows(NAFLD_Probability %>% filter(Risk_pred_model.....predict.NAFLD_Pats..type....response..>0.95) %>%
+              select(patient, claimed) %>% distinct()) %>%
+  bind_rows(Random_Probability %>% filter(Risk_pred_model.....predict.Random_Pats..type....response..>0.95) %>%
+              select(patient, claimed) %>% distinct()) %>% distinct()
+
+
+fwrite(HighRiskPats_Dates, "HighRiskPats_Dates.txt", sep="\t")
+
+HighRiskPats_Dates <- fread("HighRiskPats_Dates.txt")
+
+HighRiskPats_Dates$claimed <- as.Date(HighRiskPats_Dates$claimed)
+
+setDT(HighRiskPats_Dates)[, Month_Yr := format(as.Date(claimed), "%Y-%m") ]
+HighRiskPats_Dates <- HighRiskPats_Dates %>% select(-claimed)
+
+
+
+# Fetch All Events 
+NASH_Event_Claims_Providers <- fread("NASH Event Claims Providers.txt")
+NASH_Event_Claims_Providers <- NASH_Event_Claims_Providers %>% select(prov, specialty)
+
+NASH_Pats_95ConfLiver_2plusHits_Provider <- fread("NASH_Pats_95ConfLiver_2plusHits_Provider.txt")
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- fread("NAFLD_Pats_95ConfLiver_2plusHits_Provider.txt")
+DIA_Pats_95ConfLiver_2plusHits_Provider <- fread("DIA_Pats_95ConfLiver_2plusHits_Provider.txt")
+OBE_Pats_95ConfLiver_2plusHits_Provider <- fread("OBE_Pats_95ConfLiver_2plusHits_Provider.txt")
+
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% filter(grepl("A|B|C|D|E|F|G|H|I|J|K|L|M|N", diag))
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% filter(grepl("A|B|C|D|E|F|G|H|I|J|K|L|M|N", diag))
+DIA_Pats_95ConfLiver_2plusHits_Provider <- DIA_Pats_95ConfLiver_2plusHits_Provider %>% filter(grepl("A|B|C|D|E|F|G|H|I|J|K|L|M|N", diag))
+OBE_Pats_95ConfLiver_2plusHits_Provider <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% filter(grepl("A|B|C|D|E|F|G|H|I|J|K|L|M|N", diag))
+
+Summary_Specialties <- fread("Summary_Specialties.txt")
+
+
+# NASH 
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% select(prov_unique, ptid,fst_dt)
+names(NASH_Pats_95ConfLiver_2plusHits_Provider)[1] <- "prov"
+NASH_Pats_95ConfLiver_2plusHits_Provider$prov <- as.character(NASH_Pats_95ConfLiver_2plusHits_Provider$prov)
+
+NASH_Pats_95ConfLiver_2plusHits_Provider$fst_dt <- as.Date(NASH_Pats_95ConfLiver_2plusHits_Provider$fst_dt)
+setDT(NASH_Pats_95ConfLiver_2plusHits_Provider)[, Month_Yr := format(as.Date(fst_dt), "%Y-%m") ]
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% select(-fst_dt)
+names(NASH_Pats_95ConfLiver_2plusHits_Provider)[2] <- "patient"
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% inner_join(HighRiskPats_Dates)
+
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% group_by(patient, Month_Yr) %>% distinct()
+
+tempNASH <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% inner_join(NASH_Event_Claims_Providers) %>% drop_na() %>%
+  left_join(Summary_Specialties) %>% drop_na() %>% ungroup() %>% select(patient, Month_Yr, SUMMARY_SPECIALTY) %>%
+  group_by(patient, Month_Yr) %>% distinct() %>% 
+  mutate(rank = ifelse(SUMMARY_SPECIALTY=="GASTRO/HEPATO",1,
+                       ifelse(SUMMARY_SPECIALTY=="PATHOLOGY",2,
+                              ifelse(SUMMARY_SPECIALTY=="RADIOLOGY",3,
+                                     ifelse(SUMMARY_SPECIALTY=="HEMATO/ONCO",4,
+                                            ifelse(SUMMARY_SPECIALTY=="CARDIOLOGY",5,
+                                                   ifelse(SUMMARY_SPECIALTY=="EMERGENCY MEDICINE",6,
+                                                          ifelse(SUMMARY_SPECIALTY=="INTERNAL MEDICINE",7,
+                                                                 ifelse(SUMMARY_SPECIALTY=="GP",8,
+                                                                        ifelse(SUMMARY_SPECIALTY=="SURGERY",9,
+                                                                               ifelse(SUMMARY_SPECIALTY=="OTHER PHYSICIAN",10,
+                                                                                      ifelse(SUMMARY_SPECIALTY=="OTHER HCP",11,NA)))))))))))) %>% drop_na() %>%
+  group_by(patient, Month_Yr) %>% filter(rank==min(rank)) %>% slice(1) %>% ungroup() %>%
+  group_by(SUMMARY_SPECIALTY) %>% count() %>% arrange(-n)
+
+names(tempNASH)[2] <- "n_NASH"
+
+
+
+# NAFLD
+
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% select(prov_unique, ptid,fst_dt)
+names(NAFLD_Pats_95ConfLiver_2plusHits_Provider)[1] <- "prov"
+NAFLD_Pats_95ConfLiver_2plusHits_Provider$prov <- as.character(NAFLD_Pats_95ConfLiver_2plusHits_Provider$prov)
+
+NAFLD_Pats_95ConfLiver_2plusHits_Provider$fst_dt <- as.Date(NAFLD_Pats_95ConfLiver_2plusHits_Provider$fst_dt)
+setDT(NAFLD_Pats_95ConfLiver_2plusHits_Provider)[, Month_Yr := format(as.Date(fst_dt), "%Y-%m") ]
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% select(-fst_dt)
+names(NAFLD_Pats_95ConfLiver_2plusHits_Provider)[2] <- "patient"
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% inner_join(HighRiskPats_Dates)
+
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% group_by(patient, Month_Yr) %>% distinct()
+
+tempNAFLD <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% inner_join(NASH_Event_Claims_Providers) %>% drop_na() %>%
+  left_join(Summary_Specialties) %>% drop_na() %>% ungroup() %>% select(patient, Month_Yr, SUMMARY_SPECIALTY) %>%
+  group_by(patient, Month_Yr) %>% distinct() %>% 
+  mutate(rank = ifelse(SUMMARY_SPECIALTY=="GASTRO/HEPATO",1,
+                       ifelse(SUMMARY_SPECIALTY=="PATHOLOGY",2,
+                              ifelse(SUMMARY_SPECIALTY=="RADIOLOGY",3,
+                                     ifelse(SUMMARY_SPECIALTY=="HEMATO/ONCO",4,
+                                            ifelse(SUMMARY_SPECIALTY=="CARDIOLOGY",5,
+                                                   ifelse(SUMMARY_SPECIALTY=="EMERGENCY MEDICINE",6,
+                                                          ifelse(SUMMARY_SPECIALTY=="INTERNAL MEDICINE",7,
+                                                                 ifelse(SUMMARY_SPECIALTY=="GP",8,
+                                                                        ifelse(SUMMARY_SPECIALTY=="SURGERY",9,
+                                                                               ifelse(SUMMARY_SPECIALTY=="OTHER PHYSICIAN",10,
+                                                                                      ifelse(SUMMARY_SPECIALTY=="OTHER HCP",11,NA)))))))))))) %>% drop_na() %>%
+  group_by(patient, Month_Yr) %>% filter(rank==min(rank)) %>% slice(1) %>% ungroup() %>%
+  group_by(SUMMARY_SPECIALTY) %>% count() %>% arrange(-n)
+
+names(tempNAFLD)[2] <- "n_NAFLD"
+
+
+
+# Diabetes
+DIA_Pats_95ConfLiver_2plusHits_Provider <- DIA_Pats_95ConfLiver_2plusHits_Provider %>% select(prov_unique, ptid,fst_dt)
+names(DIA_Pats_95ConfLiver_2plusHits_Provider)[1] <- "prov"
+DIA_Pats_95ConfLiver_2plusHits_Provider$prov <- as.character(DIA_Pats_95ConfLiver_2plusHits_Provider$prov)
+
+DIA_Pats_95ConfLiver_2plusHits_Provider$fst_dt <- as.Date(DIA_Pats_95ConfLiver_2plusHits_Provider$fst_dt)
+setDT(DIA_Pats_95ConfLiver_2plusHits_Provider)[, Month_Yr := format(as.Date(fst_dt), "%Y-%m") ]
+DIA_Pats_95ConfLiver_2plusHits_Provider <- DIA_Pats_95ConfLiver_2plusHits_Provider %>% select(-fst_dt)
+names(DIA_Pats_95ConfLiver_2plusHits_Provider)[2] <- "patient"
+DIA_Pats_95ConfLiver_2plusHits_Provider <- DIA_Pats_95ConfLiver_2plusHits_Provider %>% inner_join(HighRiskPats_Dates)
+
+DIA_Pats_95ConfLiver_2plusHits_Provider <- DIA_Pats_95ConfLiver_2plusHits_Provider %>% group_by(patient, Month_Yr) %>% distinct()
+
+tempDIA <- DIA_Pats_95ConfLiver_2plusHits_Provider %>% inner_join(NASH_Event_Claims_Providers) %>% drop_na() %>%
+  left_join(Summary_Specialties) %>% drop_na() %>% ungroup() %>% select(patient, Month_Yr, SUMMARY_SPECIALTY) %>%
+  group_by(patient, Month_Yr) %>% distinct() %>% 
+  mutate(rank = ifelse(SUMMARY_SPECIALTY=="GASTRO/HEPATO",1,
+                       ifelse(SUMMARY_SPECIALTY=="PATHOLOGY",2,
+                              ifelse(SUMMARY_SPECIALTY=="RADIOLOGY",3,
+                                     ifelse(SUMMARY_SPECIALTY=="HEMATO/ONCO",4,
+                                            ifelse(SUMMARY_SPECIALTY=="CARDIOLOGY",5,
+                                                   ifelse(SUMMARY_SPECIALTY=="EMERGENCY MEDICINE",6,
+                                                          ifelse(SUMMARY_SPECIALTY=="INTERNAL MEDICINE",7,
+                                                                 ifelse(SUMMARY_SPECIALTY=="GP",8,
+                                                                        ifelse(SUMMARY_SPECIALTY=="SURGERY",9,
+                                                                               ifelse(SUMMARY_SPECIALTY=="OTHER PHYSICIAN",10,
+                                                                                      ifelse(SUMMARY_SPECIALTY=="OTHER HCP",11,NA)))))))))))) %>% drop_na() %>%
+  group_by(patient, Month_Yr) %>% filter(rank==min(rank)) %>% slice(1) %>% ungroup() %>%
+  group_by(SUMMARY_SPECIALTY) %>% count() %>% arrange(-n)
+
+names(tempDIA)[2] <- "n_DIA"
+
+
+
+# Obesity
+OBE_Pats_95ConfLiver_2plusHits_Provider <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% select(prov_unique, ptid,fst_dt)
+names(OBE_Pats_95ConfLiver_2plusHits_Provider)[1] <- "prov"
+OBE_Pats_95ConfLiver_2plusHits_Provider$prov <- as.character(OBE_Pats_95ConfLiver_2plusHits_Provider$prov)
+
+OBE_Pats_95ConfLiver_2plusHits_Provider$fst_dt <- as.Date(OBE_Pats_95ConfLiver_2plusHits_Provider$fst_dt)
+setDT(OBE_Pats_95ConfLiver_2plusHits_Provider)[, Month_Yr := format(as.Date(fst_dt), "%Y-%m") ]
+OBE_Pats_95ConfLiver_2plusHits_Provider <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% select(-fst_dt)
+names(OBE_Pats_95ConfLiver_2plusHits_Provider)[2] <- "patient"
+OBE_Pats_95ConfLiver_2plusHits_Provider <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% inner_join(HighRiskPats_Dates)
+
+OBE_Pats_95ConfLiver_2plusHits_Provider <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% group_by(patient, Month_Yr) %>% distinct()
+
+tempOBE <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% inner_join(NASH_Event_Claims_Providers) %>% drop_na() %>%
+  left_join(Summary_Specialties) %>% drop_na() %>% ungroup() %>% select(patient, Month_Yr, SUMMARY_SPECIALTY) %>%
+  group_by(patient, Month_Yr) %>% distinct() %>% 
+  mutate(rank = ifelse(SUMMARY_SPECIALTY=="GASTRO/HEPATO",1,
+                       ifelse(SUMMARY_SPECIALTY=="PATHOLOGY",2,
+                              ifelse(SUMMARY_SPECIALTY=="RADIOLOGY",3,
+                                     ifelse(SUMMARY_SPECIALTY=="HEMATO/ONCO",4,
+                                            ifelse(SUMMARY_SPECIALTY=="CARDIOLOGY",5,
+                                                   ifelse(SUMMARY_SPECIALTY=="EMERGENCY MEDICINE",6,
+                                                          ifelse(SUMMARY_SPECIALTY=="INTERNAL MEDICINE",7,
+                                                                 ifelse(SUMMARY_SPECIALTY=="GP",8,
+                                                                        ifelse(SUMMARY_SPECIALTY=="SURGERY",9,
+                                                                               ifelse(SUMMARY_SPECIALTY=="OTHER PHYSICIAN",10,
+                                                                                      ifelse(SUMMARY_SPECIALTY=="OTHER HCP",11,NA)))))))))))) %>% drop_na() %>%
+  group_by(patient, Month_Yr) %>% filter(rank==min(rank)) %>% slice(1) %>% ungroup() %>%
+  group_by(SUMMARY_SPECIALTY) %>% count() %>% arrange(-n)
+
+names(tempOBE)[2] <- "n_OBE"
+
+
+
+temp <- tempNASH %>% left_join(tempNAFLD) %>% left_join(tempDIA) %>% left_join(tempOBE)
+
+fwrite(temp, "Physicians_Events_HighRisk_MonthPredictedRisk.txt", sep="\t")
+
+# -----------
+# WBC  High Risk vs Low Risk (! not working yet) -----------
+DANU_Claims <- fread("DANU Claims Lab Results Sample.txt") 
+DANU_Claims <- DANU_Claims %>% filter(tst_desc == "ABS LYMPHOCYTES" | tst_desc == "ABSOLUTE LYMPHOCYTES" | tst_desc == "LYMPHOCYTES, ABSOLUTE")
+DANU_Claims$rslt_nbr <- as.numeric(DANU_Claims$rslt_nbr)
+DANU_Claims <- DANU_Claims %>% filter(rslt_nbr>0)
+DANU_Claims <- DANU_Claims %>% mutate(rslt_nbr = ifelse(rslt_nbr>10, rslt_nbr/1000, rslt_nbr))
+DANU_Claims <- DANU_Claims %>% select(patid, weight, fst_dt, rslt_nbr)
+names(DANU_Claims)[3] <- "Absolute_Lymphocyte_Date"
+names(DANU_Claims)[4] <- "Absolute_Lymphocyte"
+
+
+DANU_NLP_Measurement <- fread("DANU NLP Measurement Sample.txt")
+DANU_NLP_Measurement <- DANU_NLP_Measurement %>% filter(measurement_type == "WHITE BLOOD CELL COUNT")
+DANU_NLP_Measurement$measurement_value <- as.numeric(DANU_NLP_Measurement$measurement_value)
+DANU_NLP_Measurement <- DANU_NLP_Measurement %>% filter(!is.na(measurement_value))
+range(DANU_NLP_Measurement$measurement_value)
+DANU_NLP_Measurement <- DANU_NLP_Measurement %>% filter(measurement_value>0)
+DANU_NLP_Measurement <- DANU_NLP_Measurement %>% mutate(measurement_value = ifelse(measurement_value>500000, measurement_value/1000000000, measurement_value))
+DANU_NLP_Measurement <- DANU_NLP_Measurement %>% filter(measurement_value<100000)
+DANU_NLP_Measurement <- DANU_NLP_Measurement %>% filter(measurement_value<1000)
+
+DANU_NLP_Measurement <- DANU_NLP_Measurement %>% select(patid, weight, note_date, measurement_value)
+names(DANU_NLP_Measurement)[3] <- "Absolute_WBC_Date"
+names(DANU_NLP_Measurement)[4] <- "Absolute_WBC"
+
+
+
+DANU_EHR_Labs <- fread("DANU EHR Labs Sample.txt")
+DANU_EHR_Labs <- DANU_EHR_Labs %>% filter(test_name=="Lymphocyte.absolute")
+DANU_EHR_Labs$test_result <- as.numeric(DANU_EHR_Labs$test_result)
+DANU_EHR_Labs <- DANU_EHR_Labs %>% filter(!is.na(test_result))
+range(DANU_EHR_Labs$test_result)
+DANU_EHR_Labs <- DANU_EHR_Labs %>% filter(test_result>0)
+DANU_EHR_Labs <- DANU_EHR_Labs %>% select(patid, weight, result_date,  test_result)
+names(DANU_EHR_Labs)[3] <- "Absolute_Lymphocyte_Date"
+names(DANU_EHR_Labs)[4] <- "Absolute_Lymphocyte"
+
+
+
+temp <- DANU_Claims  
+
+names(temp)[1] <- "patient"
+
+
+FIB4_Diabetes_Pats <- fread("FIB4_Diabetes_Pats.txt")
+FIB4_Diabetes_Pats <- FIB4_Diabetes_Pats %>% select(patient)
+DIA_Pats_95ConfLiver_2plusHits <- fread("DIA_Pats_95ConfLiver_2plusHits.txt")
+FIB4_Diabetes_Pats <- FIB4_Diabetes_Pats %>% anti_join(DIA_Pats_95ConfLiver_2plusHits)
+
+FIB4_Diabetes_Pats <- FIB4_Diabetes_Pats %>% inner_join(temp)
+DIA_Pats_95ConfLiver_2plusHits <- DIA_Pats_95ConfLiver_2plusHits %>% inner_join(temp)
+
+
+temp1 <- FIB4_Diabetes_Pats %>% group_by(patient) %>% filter(Absolute_Lymphocyte == max(Absolute_Lymphocyte)) %>% slice(1) %>% ungroup()  %>% summarise(n=mean(Absolute_Lymphocyte))
+# 7.22
+temp2 <- DIA_Pats_95ConfLiver_2plusHits %>% group_by(patient) %>% filter(Absolute_Lymphocyte == max(Absolute_Lymphocyte)) %>% slice(1) %>% ungroup()   %>% summarise(n=mean(Absolute_Lymphocyte))
+# 4.05
+
+temp1$group <- "Low Risk Diabetes"
+temp2$group <- "High Risk Diabetes"
+
+FIB4_Diabetes_Pats$group <- "Diabetes"
+DIA_Pats_95ConfLiver_2plusHits$group <- "High Risk Diabetes"
+
+temp1 %>% bind_rows(temp2) %>%
+  ggplot(aes(x = Absolute_Lymphocyte, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "D", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlim(0,10) +
+  xlab("\n Absolute Lymphocyte Count (x10^3 / uL") + ylab("Diabetes Predicted Group \n")
+
+
+
+
+
+
+FIB4_Obesity_Pats <- fread("FIB4_Obesity_Pats.txt")
+FIB4_Obesity_Pats <- FIB4_Obesity_Pats %>% select(patient)
+OBE_Pats_95ConfLiver_2plusHits <- fread("OBE_Pats_95ConfLiver_2plusHits.txt")
+FIB4_Obesity_Pats <- FIB4_Obesity_Pats %>% anti_join(OBE_Pats_95ConfLiver_2plusHits)
+
+FIB4_Obesity_Pats <- FIB4_Obesity_Pats %>% inner_join(temp)
+OBE_Pats_95ConfLiver_2plusHits <- OBE_Pats_95ConfLiver_2plusHits %>% inner_join(temp)
+
+
+temp1 <- FIB4_Obesity_Pats %>% group_by(patient) %>% filter(Percent_Monos == max(Percent_Monos)) %>% slice(1) %>% ungroup() 
+# 9.23
+temp2 <- OBE_Pats_95ConfLiver_2plusHits %>% group_by(patient) %>% filter(Percent_Monos == max(Percent_Monos)) %>% slice(1) %>% ungroup()
+# 11.2
+
+temp1$group <- "Low Risk Obesity"
+temp2$group <- "High Risk Obesity"
+
+FIB4_Diabetes_Pats$group <- "Diabetes"
+DIA_Pats_95ConfLiver_2plusHits$group <- "High Risk Diabetes"
+
+temp1 %>% bind_rows(temp2) %>%
+  ggplot(aes(x = Percent_Monos, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "D", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlim(4,16) +
+  xlab("\n Monocytes (%)") + ylab("Obesity Predicted Group \n")
+# -----------
+# Lymphocytes Percentage High Risk vs Low Risk ------------------------------
+
+DANU_Claims <- fread("DANU Claims Lab Results Sample.txt") 
+DANU_Claims <- DANU_Claims %>% filter(tst_desc == "LYMPHOCYTES" & rslt_unit_nm =="%")
+DANU_Claims$rslt_nbr <- as.numeric(DANU_Claims$rslt_nbr)
+DANU_Claims <- DANU_Claims %>% select(patid, weight, fst_dt, rslt_nbr)
+names(DANU_Claims)[3] <- "Percent_Lymphocyte_Date"
+names(DANU_Claims)[4] <- "Percent_Lymphocyte"
+
+
+DANU_NLP_Measurement <- fread("DANU NLP Measurement Sample.txt")
+DANU_NLP_Measurement <- DANU_NLP_Measurement %>% filter(measurement_type == "LYMPHOCYTE" & measurement_detail == "%")
+DANU_NLP_Measurement$measurement_value <- as.numeric(DANU_NLP_Measurement$measurement_value)
+DANU_NLP_Measurement <- DANU_NLP_Measurement %>% filter(!is.na(measurement_value))
+range(DANU_NLP_Measurement$measurement_value)
+DANU_NLP_Measurement <- DANU_NLP_Measurement %>% select(patid, weight, note_date, measurement_value)
+names(DANU_NLP_Measurement)[3] <- "Percent_Lymphocyte_Date"
+names(DANU_NLP_Measurement)[4] <- "Percent_Lymphocyte"
+
+
+DANU_EHR_Labs <- fread("DANU EHR Labs Sample.txt")
+DANU_EHR_Labs <- DANU_EHR_Labs %>% filter(test_name=="Lymphocyte.percent" & result_unit == "%")
+DANU_EHR_Labs$test_result <- as.numeric(DANU_EHR_Labs$test_result)
+DANU_EHR_Labs <- DANU_EHR_Labs %>% filter(!is.na(test_result))
+range(DANU_EHR_Labs$test_result)
+DANU_EHR_Labs <- DANU_EHR_Labs %>% select(patid, weight, result_date,  test_result)
+names(DANU_EHR_Labs)[3] <- "Percent_Lymphocyte_Date"
+names(DANU_EHR_Labs)[4] <- "Percent_Lymphocyte"
+
+
+temp <- DANU_Claims  %>% bind_rows(DANU_NLP_Measurement) %>% bind_rows(DANU_EHR_Labs)
+
+names(temp)[1] <- "patient"
+
+
+FIB4_Diabetes_Pats <- fread("FIB4_Diabetes_Pats.txt")
+FIB4_Diabetes_Pats <- FIB4_Diabetes_Pats %>% select(patient)
+DIA_Pats_95ConfLiver_2plusHits <- fread("DIA_Pats_95ConfLiver_2plusHits.txt")
+FIB4_Diabetes_Pats <- FIB4_Diabetes_Pats %>% anti_join(DIA_Pats_95ConfLiver_2plusHits)
+
+FIB4_Diabetes_Pats <- FIB4_Diabetes_Pats %>% inner_join(temp)
+DIA_Pats_95ConfLiver_2plusHits <- DIA_Pats_95ConfLiver_2plusHits %>% inner_join(temp)
+
+
+temp1 <- FIB4_Diabetes_Pats %>% group_by(patient) %>% filter(Percent_Lymphocyte == mean(Percent_Lymphocyte)) %>% slice(1) %>% ungroup()  %>% summarise(n=mean(Percent_Lymphocyte))
+# 21
+temp2 <- DIA_Pats_95ConfLiver_2plusHits %>% group_by(patient) %>% filter(Percent_Lymphocyte == mean(Percent_Lymphocyte)) %>% slice(1) %>% ungroup()   %>% summarise(n=mean(Percent_Lymphocyte))
+# 14.7
+
+temp1$group <- "Low Risk Diabetes"
+temp2$group <- "High Risk Diabetes"
+
+FIB4_Diabetes_Pats$group <- "Diabetes"
+DIA_Pats_95ConfLiver_2plusHits$group <- "High Risk Diabetes"
+
+temp1 %>% bind_rows(temp2) %>%
+  ggplot(aes(x = Percent_Lymphocyte, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "D", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlim(-5,50) +
+  xlab("\n Peripheral Lymphocyte %") + ylab("Diabetes Predicted Group \n")
+
+
+
+
+FIB4_Obesity_Pats <- fread("FIB4_Obesity_Pats.txt")
+FIB4_Obesity_Pats <- FIB4_Obesity_Pats %>% select(patient)
+OBE_Pats_95ConfLiver_2plusHits <- fread("OBE_Pats_95ConfLiver_2plusHits.txt")
+FIB4_Obesity_Pats <- FIB4_Obesity_Pats %>% anti_join(OBE_Pats_95ConfLiver_2plusHits)
+
+FIB4_Obesity_Pats <- FIB4_Obesity_Pats %>% inner_join(temp)
+OBE_Pats_95ConfLiver_2plusHits <- OBE_Pats_95ConfLiver_2plusHits %>% inner_join(temp)
+
+
+temp1 <- FIB4_Obesity_Pats %>% group_by(patient) %>% filter(Percent_Lymphocyte == min(Percent_Lymphocyte)) %>% slice(1) %>% ungroup()#  %>% summarise(n=mean(Percent_Lymphocyte))
+# 23.5
+temp2 <- OBE_Pats_95ConfLiver_2plusHits %>% group_by(patient) %>% filter(Percent_Lymphocyte == min(Percent_Lymphocyte)) %>% slice(1) %>% ungroup() #%>% summarise(n=mean(Percent_Lymphocyte))
+# 18.8
+
+temp1$group <- "Low Risk Obesity"
+temp2$group <- "High Risk Obesity"
+
+FIB4_Diabetes_Pats$group <- "Diabetes"
+DIA_Pats_95ConfLiver_2plusHits$group <- "High Risk Diabetes"
+
+temp1 %>% bind_rows(temp2) %>%
+  ggplot(aes(x = Percent_Lymphocyte, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "D", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlim(-5,50) +
+  xlab("\n Peripheral Lymphocyte %") + ylab("Obesity Predicted Group \n")
+
+# ---------
+
+# Neutrophils Percentage High Risk vs Low Risk ------------------------------
+
+DANU_Claims <- fread("DANU Claims Lab Results Sample.txt") 
+DANU_Claims <- DANU_Claims %>% filter(tst_desc == "NEUTROPHILS" & rslt_unit_nm =="%")
+DANU_Claims$rslt_nbr <- as.numeric(DANU_Claims$rslt_nbr)
+DANU_Claims <- DANU_Claims %>% select(patid, weight, fst_dt, rslt_nbr)
+names(DANU_Claims)[3] <- "Percent_Neutrophil_Date"
+names(DANU_Claims)[4] <- "Percent_Neutrophil"
+
+
+DANU_NLP_Measurement <- fread("DANU NLP Measurement Sample.txt")
+DANU_NLP_Measurement <- DANU_NLP_Measurement %>% filter(measurement_type == "NEUTROPHILS"  & measurement_detail == "%")
+DANU_NLP_Measurement$measurement_value <- as.numeric(DANU_NLP_Measurement$measurement_value)
+DANU_NLP_Measurement <- DANU_NLP_Measurement %>% filter(!is.na(measurement_value))
+range(DANU_NLP_Measurement$measurement_value)
+DANU_NLP_Measurement <- DANU_NLP_Measurement %>% select(patid, weight, note_date, measurement_value)
+names(DANU_NLP_Measurement)[3] <- "Percent_Neutrophil_Date"
+names(DANU_NLP_Measurement)[4] <- "Percent_Neutrophil"
+
+
+DANU_EHR_Labs <- fread("DANU EHR Labs Sample.txt")
+DANU_EHR_Labs <- DANU_EHR_Labs %>% filter(test_name=="Neutrophil.percent" & result_unit == "%")
+DANU_EHR_Labs$test_result <- as.numeric(DANU_EHR_Labs$test_result)
+DANU_EHR_Labs <- DANU_EHR_Labs %>% filter(!is.na(test_result))
+range(DANU_EHR_Labs$test_result)
+DANU_EHR_Labs <- DANU_EHR_Labs %>% select(patid, weight, result_date,  test_result)
+names(DANU_EHR_Labs)[3] <- "Percent_Neutrophil_Date"
+names(DANU_EHR_Labs)[4] <- "Percent_Neutrophil"
+
+
+temp <- DANU_Claims  %>% bind_rows(DANU_NLP_Measurement) %>% bind_rows(DANU_EHR_Labs)
+
+names(temp)[1] <- "patient"
+
+
+FIB4_Diabetes_Pats <- fread("FIB4_Diabetes_Pats.txt")
+FIB4_Diabetes_Pats <- FIB4_Diabetes_Pats %>% select(patient)
+DIA_Pats_95ConfLiver_2plusHits <- fread("DIA_Pats_95ConfLiver_2plusHits.txt")
+FIB4_Diabetes_Pats <- FIB4_Diabetes_Pats %>% anti_join(DIA_Pats_95ConfLiver_2plusHits)
+
+FIB4_Diabetes_Pats <- FIB4_Diabetes_Pats %>% inner_join(temp)
+DIA_Pats_95ConfLiver_2plusHits <- DIA_Pats_95ConfLiver_2plusHits %>% inner_join(temp)
+
+
+temp1 <- FIB4_Diabetes_Pats %>% group_by(patient) %>% filter(Percent_Neutrophil == max(Percent_Neutrophil)) %>% slice(1) %>% ungroup() # %>% summarise(n=mean(Percent_Neutrophil))
+# 68.7
+temp2 <- DIA_Pats_95ConfLiver_2plusHits %>% group_by(patient) %>% filter(Percent_Neutrophil == max(Percent_Neutrophil)) %>% slice(1) %>% ungroup() #  %>% summarise(n=mean(Percent_Neutrophil))
+# 76.5
+
+temp1$group <- "Low Risk Diabetes"
+temp2$group <- "High Risk Diabetes"
+
+FIB4_Diabetes_Pats$group <- "Diabetes"
+DIA_Pats_95ConfLiver_2plusHits$group <- "High Risk Diabetes"
+
+temp1 %>% bind_rows(temp2) %>%
+  ggplot(aes(x = Percent_Neutrophil, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "D", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlim(30,100) +
+  xlab("\n Peripheral Neutrophil %") + ylab("Diabetes Predicted Group \n")
+
+
+
+
+FIB4_Obesity_Pats <- fread("FIB4_Obesity_Pats.txt")
+FIB4_Obesity_Pats <- FIB4_Obesity_Pats %>% select(patient)
+OBE_Pats_95ConfLiver_2plusHits <- fread("OBE_Pats_95ConfLiver_2plusHits.txt")
+FIB4_Obesity_Pats <- FIB4_Obesity_Pats %>% anti_join(OBE_Pats_95ConfLiver_2plusHits)
+
+FIB4_Obesity_Pats <- FIB4_Obesity_Pats %>% inner_join(temp)
+OBE_Pats_95ConfLiver_2plusHits <- OBE_Pats_95ConfLiver_2plusHits %>% inner_join(temp)
+
+
+temp1 <- FIB4_Obesity_Pats %>% group_by(patient) %>% filter(Percent_Neutrophil == max(Percent_Neutrophil)) %>% slice(1) %>% ungroup() #  %>% summarise(n=mean(Percent_Neutrophil))
+# 65.9
+temp2 <- OBE_Pats_95ConfLiver_2plusHits %>% group_by(patient) %>% filter(Percent_Neutrophil == max(Percent_Neutrophil)) %>% slice(1) %>% ungroup() # %>% summarise(n=mean(Percent_Neutrophil))
+# 71.4
+
+temp1$group <- "Low Risk Obesity"
+temp2$group <- "High Risk Obesity"
+
+FIB4_Diabetes_Pats$group <- "Diabetes"
+DIA_Pats_95ConfLiver_2plusHits$group <- "High Risk Diabetes"
+
+temp1 %>% bind_rows(temp2) %>%
+  ggplot(aes(x = Percent_Neutrophil, y = group, fill = 0.5 - abs(0.5 - stat(ecdf)))) + 
+  geom_density_ridges_gradient( scale = 2,  calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail Probability", option = "D", direction = -1)  +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlim(30,100) +
+  xlab("\n Peripheral Neutrophil %") + ylab("Obesity Predicted Group \n")
+# ------------
+
+
+NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+DIA_Pats <- fread("FIB4_Diabetes_Pats.txt")
+OBE_Pats <- fread("FIB4_Obesity_Pats.txt")
+NAFLD_Pats <- fread("FIB4_NAFLD_Pats.txt")
+Random_Pats <- fread("FIB4_Random_Pats_Filtered.txt") 
+
+NASH_Pats$group <- "NASH"
+DIA_Pats$group <- "DIA"
+OBE_Pats$group <- "OBE"
+NAFLD_Pats$group <- "NAFLD"
+Random_Pats$group <- "Random Sample"
+
+temp <- NASH_Pats %>% bind_rows(NAFLD_Pats) %>% bind_rows(DIA_Pats) %>% bind_rows(OBE_Pats, Random_Pats)
+temp <- temp %>% group_by(patient) %>% select(-c(AST, ALT, Platelets, age)) %>% arrange(patient, claimed)
+
+Pats_to_track <- temp %>% filter(fibrosis4>2.67) %>% select(patient) %>% distinct()
+
+Pats_to_track <- Pats_to_track %>% left_join(temp) %>% slice(if(any(fibrosis4>2.67)) 1:which.max(fibrosis4>2.67) else row_number()) 
+
+setDT(Pats_to_track)[, Month_Yr := format(as.Date(claimed), "%Y-%m") ]
+
+Pats_to_track <- Pats_to_track %>% group_by(patient) %>% arrange(patient, desc(Month_Yr))
+
+Pats_to_track <- Pats_to_track %>% select(patient, Month_Yr) %>% distinct() %>% group_by(patient) %>% arrange(patient, desc(Month_Yr))
+
+Pats_to_track <- Pats_to_track %>% group_by(patient) %>% mutate(rowN = row_number()) %>%
+  group_by(patient) %>% arrange(patient, Month_Yr)
+
+# Using 1.96
+Pats_to_track %>% filter(rowN==1) %>% select(patient) %>% distinct() # 91362
+Pats_to_track %>% filter(rowN==2) %>% select(patient) %>% distinct() # 38237
+Pats_to_track %>% filter(rowN==3) %>% select(patient) %>% distinct() # 22392
+Pats_to_track %>% filter(rowN==4) %>% select(patient) %>% distinct() # 13953
+Pats_to_track %>% filter(rowN==5) %>% select(patient) %>% distinct() # 9058
+Pats_to_track %>% filter(rowN==6) %>% select(patient) %>% distinct() # 6032
+
+# Using 2.97
+Pats_to_track %>% filter(rowN==1) %>% select(patient) %>% distinct() # 50644
+Pats_to_track %>% filter(rowN==2) %>% select(patient) %>% distinct() # 26192
+Pats_to_track %>% filter(rowN==3) %>% select(patient) %>% distinct() # 16457
+Pats_to_track %>% filter(rowN==4) %>% select(patient) %>% distinct() # 10894
+Pats_to_track %>% filter(rowN==5) %>% select(patient) %>% distinct() # 7368
+Pats_to_track %>% filter(rowN==6) %>% select(patient) %>% distinct() # 5156
+
+
+# Cumulative sum of events per physician - Physicians for high risk patients ------------------
+
+NASH_Event_Claims_Providers <- fread("NASH Event Claims Providers.txt")
+NASH_Event_Claims_Providers <- NASH_Event_Claims_Providers %>% select(prov, specialty)
+
+NASH_Pats_95ConfLiver_2plusHits_Provider <- fread("NASH_Pats_95ConfLiver_2plusHits_Provider.txt")
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- fread("NAFLD_Pats_95ConfLiver_2plusHits_Provider.txt")
+DIA_Pats_95ConfLiver_2plusHits_Provider <- fread("DIA_Pats_95ConfLiver_2plusHits_Provider.txt")
+OBE_Pats_95ConfLiver_2plusHits_Provider <- fread("OBE_Pats_95ConfLiver_2plusHits_Provider.txt")
+
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% filter(grepl("A|B|C|D|E|F|G|H|I|J|K|L|M|N", diag))
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% filter(grepl("A|B|C|D|E|F|G|H|I|J|K|L|M|N", diag))
+DIA_Pats_95ConfLiver_2plusHits_Provider <- DIA_Pats_95ConfLiver_2plusHits_Provider %>% filter(grepl("A|B|C|D|E|F|G|H|I|J|K|L|M|N", diag))
+OBE_Pats_95ConfLiver_2plusHits_Provider <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% filter(grepl("A|B|C|D|E|F|G|H|I|J|K|L|M|N", diag))
+
+Summary_Specialties <- fread("Summary_Specialties.txt")
+
+
+# NASH 
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% select(prov_unique, ptid,fst_dt)
+names(NASH_Pats_95ConfLiver_2plusHits_Provider)[1] <- "prov"
+NASH_Pats_95ConfLiver_2plusHits_Provider$prov <- as.character(NASH_Pats_95ConfLiver_2plusHits_Provider$prov)
+
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% group_by(ptid, fst_dt) %>% distinct()
+
+tempNASH <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% inner_join(NASH_Event_Claims_Providers) %>% drop_na() %>%
+  left_join(Summary_Specialties) %>% drop_na() %>% ungroup() %>% select(ptid, fst_dt, prov, SUMMARY_SPECIALTY) %>%
+  group_by(ptid, fst_dt) %>% distinct() %>% 
+  mutate(rank = ifelse(SUMMARY_SPECIALTY=="GASTRO/HEPATO",1,
+                       ifelse(SUMMARY_SPECIALTY=="PATHOLOGY",2,
+                              ifelse(SUMMARY_SPECIALTY=="RADIOLOGY",3,
+                                     ifelse(SUMMARY_SPECIALTY=="HEMATO/ONCO",4,
+                                            ifelse(SUMMARY_SPECIALTY=="CARDIOLOGY",5,
+                                                   ifelse(SUMMARY_SPECIALTY=="EMERGENCY MEDICINE",6,
+                                                          ifelse(SUMMARY_SPECIALTY=="INTERNAL MEDICINE",7,
+                                                                 ifelse(SUMMARY_SPECIALTY=="GP",8,
+                                                                        ifelse(SUMMARY_SPECIALTY=="SURGERY",9,
+                                                                               ifelse(SUMMARY_SPECIALTY=="OTHER PHYSICIAN",10,
+                                                                                      ifelse(SUMMARY_SPECIALTY=="OTHER HCP",11,NA)))))))))))) %>% drop_na() %>%
+  group_by(ptid, fst_dt) %>% filter(rank==min(rank)) %>% slice(1) %>% ungroup()
+
+tempNASH # 21493
+
+tempNASH <- tempNASH %>% group_by(SUMMARY_SPECIALTY) %>% mutate(N_spec=n()) %>% ungroup() %>% group_by(prov) %>%
+  mutate(N_prov=n()) %>% ungroup() %>% select(prov, SUMMARY_SPECIALTY, N_spec, N_prov) %>% distinct() %>% arrange(-N_spec, -N_prov) %>%
+  mutate(Cumsum = cumsum(N_prov)) %>% mutate(rowindex = row_number())
+
+
+tempNASH %>% group_by(SUMMARY_SPECIALTY) %>% slice(n()) %>% arrange(rowindex)
+
+
+
+tempNASH %>% select(SUMMARY_SPECIALTY, N_spec) %>% group_by(SUMMARY_SPECIALTY) %>% mutate(n=n()) %>% mutate(scriptsperphysician=N_spec/n) %>%
+  select(SUMMARY_SPECIALTY, scriptsperphysician) %>% distinct()
+
+
+
+tempNASH %>% ggplot(aes(rowindex, Cumsum)) +
+  geom_line(size=2, colour="deepskyblue4") +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlab("\n Physician Index") + ylab("Cumulative Sum of Events \n")+
+  geom_vline(xintercept=c(1873, 3033, 3826, 4660, 5151, 5366, 5628, 5901, 6071, 6249),
+             linetype='dashed', color='firebrick')+
+  scale_x_discrete(limits=c(1873,3033,3826,4660,5151, 5366, 5628, 5901 ))
+
+
+
+
+# -----------
+# Cumulative sum of events per physician - 1st NASH Dx  ------------------
+
+
+NASH_Events <- fread("NASH Events.txt")
+NASH_Diagnosis_Codes <- fread("NASH Diagnosis Codes.txt")
+
+NASH_Events <- NASH_Events %>% left_join(NASH_Diagnosis_Codes %>% select(code, condition)) %>% filter(condition=="NASH") %>% 
+  group_by(patid) %>% slice(1)
+
+NASH_Event_Claims_Providers <- fread("NASH Event Claims Providers.txt")
+NASH_Event_Claims_Providers <- NASH_Event_Claims_Providers %>% select(prov, specialty)
+
+
+Summary_Specialties <- fread("Summary_Specialties.txt")
+
+
+
+tempNASH <-  NASH_Events %>% left_join(NASH_Event_Claims_Providers) %>% ungroup() %>%
+  left_join(Summary_Specialties) %>% select(patid, prov, SUMMARY_SPECIALTY) %>% drop_na() %>%
+  mutate(rank = ifelse(SUMMARY_SPECIALTY=="GASTRO/HEPATO",1,
+                       ifelse(SUMMARY_SPECIALTY=="PATHOLOGY",2,
+                              ifelse(SUMMARY_SPECIALTY=="RADIOLOGY",3,
+                                     ifelse(SUMMARY_SPECIALTY=="HEMATO/ONCO",4,
+                                            ifelse(SUMMARY_SPECIALTY=="CARDIOLOGY",5,
+                                                   ifelse(SUMMARY_SPECIALTY=="EMERGENCY MEDICINE",6,
+                                                          ifelse(SUMMARY_SPECIALTY=="INTERNAL MEDICINE",7,
+                                                                 ifelse(SUMMARY_SPECIALTY=="GP",8,
+                                                                        ifelse(SUMMARY_SPECIALTY=="SURGERY",9,
+                                                                               ifelse(SUMMARY_SPECIALTY=="OTHER PHYSICIAN",10,
+                                                                                      ifelse(SUMMARY_SPECIALTY=="OTHER HCP",11,NA)))))))))))) %>% 
+  drop_na() %>% group_by(patid) %>% filter(rank==min(rank)) %>% slice(1) %>% ungroup()
+
+
+tempNASH # 7592
+
+
+
+tempNASH <- tempNASH %>% group_by(SUMMARY_SPECIALTY) %>% mutate(N_spec=n()) %>% ungroup() %>% group_by(prov) %>%
+  mutate(N_prov=n()) %>% ungroup() %>% select(prov, SUMMARY_SPECIALTY, N_spec, N_prov) %>% distinct() %>% arrange(-N_spec, -N_prov) %>%
+  mutate(Cumsum = cumsum(N_prov)) %>% mutate(rowindex = row_number())
+
+
+tempNASH %>% group_by(SUMMARY_SPECIALTY) %>% slice(n()) %>% arrange(rowindex)
+
+
+
+tempNASH %>% select(SUMMARY_SPECIALTY, N_spec) %>% group_by(SUMMARY_SPECIALTY) %>% mutate(n=n()) %>% mutate(scriptsperphysician=N_spec/n) %>%
+  select(SUMMARY_SPECIALTY, scriptsperphysician) %>% distinct()
+
+
+tempNASH %>% ggplot(aes(rowindex, Cumsum)) +
+  geom_line(size=2, colour="deepskyblue4") +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) +
+  xlab("\n Physician Index") + ylab("Cumulative Sum of Events \n")+
+  geom_vline(xintercept=c(1473, 2773, 3930, 4494, 4932, 5317, 5621, 5870, 5967, 6069),
+             linetype='dashed', color='firebrick')+
+  scale_x_discrete(limits=c(1473, 2773, 3930, 4494, 4932, 5317, 5621, 5870 ))
+
+
+
+# ---------
+# Onset Discourse ---------------------------
+NASH_Onset_Discouse <- fread("NASH Onset Discourse.txt")
+
+data.frame(NASH_Onset_Discouse %>% select(term, during_patient_population) %>% arrange(-during_patient_population))
+
+data.frame(NASH_Onset_Discouse %>% select(term, after_patient_population) %>% arrange(-after_patient_population))
+
+data.frame(NASH_Onset_Discouse %>% select(term, before_patient_population, after_patient_population) %>%
+  filter(before_patient_population!=0 & after_patient_population!=0) %>% 
+  mutate(fold_change=after_patient_population/before_patient_population) %>%
+  arrange(-abs(fold_change)))
+
+
+
+
+NAFLD_Onset_Discouse <- fread("NAFLD Onset Discourse.txt")
+
+data.frame(NAFLD_Onset_Discouse %>% select(term, during_patient_population) %>% arrange(-during_patient_population))
+
+data.frame(NAFLD_Onset_Discouse %>% select(term, after_patient_population) %>% arrange(-after_patient_population))
+
+data.frame(NAFLD_Onset_Discouse %>% select(term, before_patient_population, after_patient_population) %>%
+             filter(before_patient_population!=0 & after_patient_population!=0) %>% 
+             mutate(fold_change=after_patient_population/before_patient_population) %>%
+             arrange(-abs(fold_change)))
+
+# --------
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+
+NASH_Ingredients <- fread("NASH Ingredients.txt")
+
+# Remaglinide 49
+# Nateglinide 48
+
+
+
+
+
+# Persistency / visibility Netaglinide  -------------------------------------------
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(48{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(48{1})(\\D|$)', .), "Nateglinide"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Nateglinide",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Nateglinide_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Nateglinide_Periods)[3] <- "Duration"
+
+Nateglinide_Periods_VIZ <- Nateglinide_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                                       select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Nateglinide_Periods_VIZ, "Nateglinide_Periods_VIZ.csv")
+
+temp <- Nateglinide_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                    select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 11.11
+weighted.median(temp$Total_duration, temp$n) # 3.5
+
+
+
+
+# Persistency / visibility Remaglinide  -------------------------------------------
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(49{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(49{1})(\\D|$)', .), "Remaglinide"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Remaglinide",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Remaglinide_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Remaglinide_Periods)[3] <- "Duration"
+
+Remaglinide_Periods_VIZ <- Remaglinide_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                               select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Remaglinide_Periods_VIZ, "Remaglinide_Periods_VIZ.csv")
+
+temp <- Remaglinide_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                            select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 14.91535
+weighted.median(temp$Total_duration, temp$n) # 7.5
+
+
+
+
+
+
+# Persistency / visibility Netaglinide 1st episode  -------------------------------------------
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(48{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(48{1})(\\D|$)', .), "Nateglinide"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Nateglinide",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Nateglinide_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Nateglinide_Periods)[3] <- "Duration"
+
+Nateglinide_Periods <- Nateglinide_Periods %>% group_by(patient) %>% filter(grp == min(grp))
+  
+Nateglinide_Periods_VIZ <- Nateglinide_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                               select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Nateglinide_Periods_VIZ, "Nateglinide_Periods_VIZ_FIRST.csv")
+
+temp <- Nateglinide_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                            select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 9.4
+weighted.median(temp$Total_duration, temp$n) # 3.5
+
+
+
+
+# Persistency / visibility Remaglinide 1st episode  -------------------------------------------
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(49{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(49{1})(\\D|$)', .), "Remaglinide"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Remaglinide",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Remaglinide_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Remaglinide_Periods)[3] <- "Duration"
+
+Remaglinide_Periods <- Remaglinide_Periods %>% group_by(patient) %>% filter(grp == min(grp))
+
+
+Remaglinide_Periods_VIZ <- Remaglinide_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                               select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Remaglinide_Periods_VIZ, "Remaglinide_Periods_VIZ_FIRST.csv")
+
+temp <- Remaglinide_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                            select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 10.9
+weighted.median(temp$Total_duration, temp$n) # 4.5
+# -----------
+
+# Persistency / visibility Alogliptin  -------------------------------------------
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(55{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(55{1})(\\D|$)', .), "Alogliptin"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Alogliptin",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Alogliptin_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Alogliptin_Periods)[3] <- "Duration"
+
+Alogliptin_Periods_VIZ <- Alogliptin_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                               select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Alogliptin_Periods_VIZ, "Alogliptin_Periods_VIZ.csv")
+
+temp <- Alogliptin_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                            select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 20
+weighted.median(temp$Total_duration, temp$n) # 13.5
+
+
+
+
+# Persistency / visibility Alogliptin 1st episode  -------------------------------------------
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)({1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(55{1})(\\D|$)', .), "Alogliptin"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Alogliptin",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Alogliptin_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Alogliptin_Periods)[3] <- "Duration"
+
+Alogliptin_Periods <- Alogliptin_Periods %>% group_by(patient) %>% filter(grp == min(grp))
+
+Alogliptin_Periods_VIZ <- Alogliptin_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                               select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Alogliptin_Periods_VIZ, "Alogliptin_Periods_VIZ_FIRST.csv")
+
+temp <- Alogliptin_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                            select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 15
+weighted.median(temp$Total_duration, temp$n) # 7.5
+
+
+
+
+
+# --------
+
+
+# Persistency / visibility Alogliptin  -------------------------------------------
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(52{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(52{1})(\\D|$)', .), "Alogliptin"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Alogliptin",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Alogliptin_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Alogliptin_Periods)[3] <- "Duration"
+
+Alogliptin_Periods_VIZ <- Alogliptin_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                               select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Alogliptin_Periods_VIZ, "Alogliptin_Periods_VIZ.csv")
+
+temp <- Alogliptin_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                            select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 10.6
+weighted.median(temp$Total_duration, temp$n) # 5.5
+
+
+
+
+# Persistency / visibility Alogliptin 1st episode  -------------------------------------------
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(52{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(52{1})(\\D|$)', .), "Alogliptin"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Alogliptin",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Alogliptin_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Alogliptin_Periods)[3] <- "Duration"
+
+Alogliptin_Periods <- Alogliptin_Periods %>% group_by(patient) %>% filter(grp == min(grp))
+
+Alogliptin_Periods_VIZ <- Alogliptin_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                               select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Alogliptin_Periods_VIZ, "Alogliptin_Periods_VIZ_FIRST.csv")
+
+temp <- Alogliptin_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                            select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 10
+weighted.median(temp$Total_duration, temp$n) # 5.5
+
+
+
+
+
+# --------
+
+# Check All comorbidites for High Risk pats --------------------------
+
+DIA_Pats_95ConfLiver_2plusHits_Provider <- fread("DIA_Pats_95ConfLiver_2plusHits_Provider.txt")
+OBE_Pats_95ConfLiver_2plusHits_Provider <- fread("OBE_Pats_95ConfLiver_2plusHits_Provider.txt")
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- fread("NAFLD_Pats_95ConfLiver_2plusHits_Provider.txt")
+NASH_Pats_95ConfLiver_2plusHits_Provider <- fread("NASH_Pats_95ConfLiver_2plusHits_Provider.txt")
+
+
+DIA_Pats_95ConfLiver_2plusHits_Provider <- DIA_Pats_95ConfLiver_2plusHits_Provider %>% select(ptid, diag) %>% distinct()
+OBE_Pats_95ConfLiver_2plusHits_Provider <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% select(ptid, diag) %>% distinct()
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% select(ptid, diag) %>% distinct()
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% select(ptid, diag) %>% distinct()
+
+
+DIA_Pats_95ConfLiver_2plusHits_Provider <- DIA_Pats_95ConfLiver_2plusHits_Provider %>% mutate(diag = str_sub(string = diag, start = 1, end = 2))  
+OBE_Pats_95ConfLiver_2plusHits_Provider <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% mutate(diag = str_sub(string = diag, start = 1, end = 2))  
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% mutate(diag = str_sub(string = diag, start = 1, end = 2))  
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% mutate(diag = str_sub(string = diag, start = 1, end = 2))  
+
+length(unique(DIA_Pats_95ConfLiver_2plusHits_Provider$ptid)) # 4975
+length(unique(OBE_Pats_95ConfLiver_2plusHits_Provider$ptid)) # 4979
+length(unique(NAFLD_Pats_95ConfLiver_2plusHits_Provider$ptid)) # 4980
+length(unique(NASH_Pats_95ConfLiver_2plusHits_Provider$ptid)) # 1357
+
+DIA_Pats_95ConfLiver_2plusHits_Provider <- DIA_Pats_95ConfLiver_2plusHits_Provider %>% select(ptid, diag) %>% distinct()
+OBE_Pats_95ConfLiver_2plusHits_Provider <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% select(ptid, diag) %>% distinct()
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% select(ptid, diag) %>% distinct()
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% select(ptid, diag) %>% distinct()
+
+DIA_Pats_95ConfLiver_2plusHits_Provider <- DIA_Pats_95ConfLiver_2plusHits_Provider %>% group_by(diag) %>% count() %>% mutate(n=(n/4975)*100) %>% arrange(-n)
+OBE_Pats_95ConfLiver_2plusHits_Provider <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% group_by(diag) %>% count() %>% mutate(n=(n/4979)*100) %>% arrange(-n)
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% group_by(diag) %>% count() %>% mutate(n=(n/4980)*100) %>% arrange(-n)
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% group_by(diag) %>% count() %>% mutate(n=(n/1357)*100) %>% arrange(-n)
+
+names(DIA_Pats_95ConfLiver_2plusHits_Provider)[2] <- "Proportion"
+names(OBE_Pats_95ConfLiver_2plusHits_Provider)[2] <- "Proportion"
+names(NAFLD_Pats_95ConfLiver_2plusHits_Provider)[2] <- "Proportion"
+names(NASH_Pats_95ConfLiver_2plusHits_Provider)[2] <- "Proportion"
+
+fwrite(DIA_Pats_95ConfLiver_2plusHits_Provider, "Comorbidities_Percentage_HighRiskDiabetes.txt", sep="\t")
+fwrite(OBE_Pats_95ConfLiver_2plusHits_Provider, "Comorbidities_Percentage_HighRiskObesity.txt", sep="\t")
+fwrite(NAFLD_Pats_95ConfLiver_2plusHits_Provider, "Comorbidities_Percentage_HighRiskNAFLD.txt", sep="\t")
+fwrite(NASH_Pats_95ConfLiver_2plusHits_Provider, "Comorbidities_Percentage_HighRiskNASH.txt", sep="\t")
+
+# -------
+# ------
+# DIABETES Persistency / visibility Netaglinide  -------------------------------------------
+Treatment_exp_Vector <- fread("Treatment_exp_Vector.txt")
+
+DIA_Drug_Histories <- fread("DIA Drug Histories.txt")
+DIA_Drug_Histories <- Treatment_exp_Vector %>% left_join(DIA_Drug_Histories)
+
+DIA_Drug_Histories <-  DIA_Drug_Histories %>%  select(4:63)
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(26{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(26{1})(\\D|$)', .), "Nateglinide"))
+
+DIA_Drug_Histories <-  DIA_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Nateglinide",1,0))
+
+DIA_Drug_Histories[] <-  lapply(DIA_Drug_Histories,as.numeric)
+
+DIA_Drug_Histories_LONG <-  fread("DIA Drug Histories.txt")
+
+DIA_Drug_Histories_LONG <- DIA_Drug_Histories_LONG %>% select(patient, weight)
+DIA_Drug_Histories_LONG <- Treatment_exp_Vector %>% left_join(DIA_Drug_Histories_LONG)
+
+DIA_Drug_Histories <- DIA_Drug_Histories_LONG %>% bind_cols(DIA_Drug_Histories)
+
+DIA_Drug_Histories <- gather(DIA_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+DIA_Drug_Histories$Month <- as.character(DIA_Drug_Histories$Month)
+DIA_Drug_Histories$Month <- parse_number(DIA_Drug_Histories$Month)
+
+
+DIA_Drug_Histories <- DIA_Drug_Histories  %>% arrange(patient)
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% filter(Treat == 1)
+
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Nateglinide_Periods <- DIA_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Nateglinide_Periods)[3] <- "Duration"
+
+Nateglinide_Periods_VIZ <- Nateglinide_Periods %>% left_join(DIA_Drug_Histories %>% 
+                                                               select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Nateglinide_Periods_VIZ, "Nateglinide_Periods_VIZ_DIA.csv")
+
+temp <- Nateglinide_Periods %>% left_join(DIA_Drug_Histories %>% 
+                                            select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 18.68435
+weighted.median(temp$Total_duration, temp$n) # 10.5
+
+#892 pats
+
+
+# ------
+
+# DIABETES Persistency / visibility Remaglinide  -------------------------------------------
+
+DIA_Drug_Histories <- fread("DIA Drug Histories.txt")
+DIA_Drug_Histories <- Treatment_exp_Vector %>% left_join(DIA_Drug_Histories)
+
+DIA_Drug_Histories <-  DIA_Drug_Histories %>%  select(4:63)
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(27{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(27{1})(\\D|$)', .), "Remaglinide"))
+
+DIA_Drug_Histories <-  DIA_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Remaglinide",1,0))
+
+DIA_Drug_Histories[] <-  lapply(DIA_Drug_Histories,as.numeric)
+
+DIA_Drug_Histories_LONG <-  fread("DIA Drug Histories.txt")
+
+DIA_Drug_Histories_LONG <- DIA_Drug_Histories_LONG %>% select(patient, weight)
+DIA_Drug_Histories_LONG <- Treatment_exp_Vector %>% left_join(DIA_Drug_Histories_LONG)
+
+DIA_Drug_Histories <- DIA_Drug_Histories_LONG %>% bind_cols(DIA_Drug_Histories)
+
+DIA_Drug_Histories <- gather(DIA_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+DIA_Drug_Histories$Month <- as.character(DIA_Drug_Histories$Month)
+DIA_Drug_Histories$Month <- parse_number(DIA_Drug_Histories$Month)
+
+
+DIA_Drug_Histories <- DIA_Drug_Histories  %>% arrange(patient)
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% filter(Treat == 1)
+
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Remaglinide_Periods <- DIA_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Remaglinide_Periods)[3] <- "Duration"
+
+Remaglinide_Periods_VIZ <- Remaglinide_Periods %>% left_join(DIA_Drug_Histories %>% 
+                                                               select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Remaglinide_Periods_VIZ, "Remaglinide_Periods_VIZ_DIA.csv")
+
+temp <- Remaglinide_Periods %>% left_join(DIA_Drug_Histories %>% 
+                                            select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 16.19606
+weighted.median(temp$Total_duration, temp$n) # 8.5
+
+
+
+
+# -----------
+# Time from NASH to Cirrhosis/Fibrosis ------------------------
+
+NASH_diagnosis <- fread("NASH_diagnosis.txt")
+NASH_Cirrhosis_Pats <- NASH_diagnosis %>% filter(NASH_diganosis=="NASH-Cirrohsis") 
+NASH_Fibrosis_Pats <- NASH_diagnosis %>% filter(NASH_diganosis=="NASH-Fibrosis") 
+
+NASH_Events <- fread("NASH Events.txt")
+
+NASH_Diagnosis_Codes <- fread("NASH Diagnosis Codes.txt")
+
+NASH_Events <- NASH_Events %>% left_join(NASH_Diagnosis_Codes %>% select(code, condition))
+
+names(NASH_Events)[1] <- "patient"
+
+
+# NASH Cirrhosis, how many had NASH before or fibrosis before? Time to cirrhosis from NASH or from fibrosis
+
+Pats_to_remove <- NASH_Cirrhosis_Pats %>% left_join(NASH_Events) %>% 
+  filter(condition=="Cirrhosis"|condition=="Liver Failure") %>%
+  filter(claimed<"2016-10-02") %>% select(patient) %>% distinct()
+
+
+Data_First_Cirrhosis <- NASH_Cirrhosis_Pats %>% left_join(NASH_Events) %>% 
+  filter(condition=="Cirrhosis"|condition=="Liver Failure") %>%
+  group_by(patient) %>% filter(claimed==min(claimed)) %>% slice(1) %>% anti_join(Pats_to_remove)
+
+Data_First_Cirrhosis <- Data_First_Cirrhosis %>% select(patient, weight, claimed)
+
+names(Data_First_Cirrhosis)[3] <- "Date_First_Cirrhosis"
+
+
+Data_First_NASH <- NASH_Cirrhosis_Pats %>% left_join(NASH_Events) %>% 
+  filter(condition=="NASH") %>%
+  group_by(patient) %>% filter(claimed==min(claimed)) %>% slice(1)
+
+Data_First_NASH <- Data_First_NASH %>% select(patient, weight, claimed)
+
+names(Data_First_NASH)[3] <- "Date_First_NASH"
+
+sum(Data_First_Cirrhosis$weight) #205937.7
+
+Data_First_Cirrhosis %>% left_join(Data_First_NASH) %>% 
+  filter(Date_First_NASH < Date_First_Cirrhosis) %>% ungroup() %>% summarise(n=sum(weight)) # 70559
+
+Data_First_Cirrhosis %>% left_join(Data_First_NASH) %>% 
+  filter(Date_First_NASH == Date_First_Cirrhosis) %>% ungroup() %>% summarise(n=sum(weight)) # 34428
+
+Data_First_Cirrhosis %>% left_join(Data_First_NASH) %>% 
+  filter(Date_First_NASH > Date_First_Cirrhosis) %>% ungroup() %>% summarise(n=sum(weight)) # 100951
+
+
+Data_First_NASH$Date_First_NASH <- as.Date(Data_First_NASH$Date_First_NASH)
+Data_First_Cirrhosis$Date_First_Cirrhosis <- as.Date(Data_First_Cirrhosis$Date_First_Cirrhosis)
+
+
+Data_First_Cirrhosis %>% left_join(Data_First_NASH) %>% 
+  filter(Date_First_NASH < Date_First_Cirrhosis) %>% ungroup() %>% select(patient) %>% 
+  left_join(Data_First_Cirrhosis %>% left_join(Data_First_NASH)) %>%
+  mutate(Elapsed_Time = as.numeric((Date_First_Cirrhosis-Date_First_NASH)/30.5)) %>%
+  select(Elapsed_Time) %>%
+  ggplot(aes(Elapsed_Time)) +
+  geom_density()+
+  geom_density(colour="darkslategray4", fill="darkslategray4", alpha=0.6, size=2)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Proportion \n")+xlab("\n Elapsed Time From 1st NASH Dx to 1st Cirrhosis Dx")
+
+
+
+Data_First_Fibrosis <- NASH_Cirrhosis_Pats %>% left_join(NASH_Events) %>% 
+  filter(condition=="Fibrosis") %>%
+  group_by(patient) %>% filter(claimed==min(claimed)) %>% slice(1)
+
+Data_First_Fibrosis <- Data_First_Fibrosis %>% select(patient, weight, claimed)
+
+names(Data_First_Fibrosis)[3] <- "Date_First_Fibrosis"
+
+sum(Data_First_Fibrosis$weight) #69839.74 (only 23% has Fibrosis)
+
+Data_First_Cirrhosis %>% inner_join(Data_First_Fibrosis) %>% ungroup %>% summarise(n=sum(weight)) # 49157
+
+Data_First_Cirrhosis %>% inner_join(Data_First_Fibrosis) %>% 
+  filter(Date_First_Fibrosis < Date_First_Cirrhosis) %>% ungroup() %>% summarise(n=sum(weight)) # 19339
+
+Data_First_Cirrhosis %>% inner_join(Data_First_Fibrosis) %>% 
+  filter(Date_First_Fibrosis == Date_First_Cirrhosis) %>% ungroup() %>% summarise(n=sum(weight)) # 4812
+
+Data_First_Cirrhosis %>% inner_join(Data_First_Fibrosis) %>% 
+  filter(Date_First_Fibrosis > Date_First_Cirrhosis) %>% ungroup() %>% summarise(n=sum(weight)) # 25006
+
+
+Data_First_Fibrosis$Date_First_Fibrosis <- as.Date(Data_First_Fibrosis$Date_First_Fibrosis)
+Data_First_Cirrhosis$Date_First_Cirrhosis <- as.Date(Data_First_Cirrhosis$Date_First_Cirrhosis)
+
+Data_First_Cirrhosis %>% left_join(Data_First_Fibrosis) %>% drop_na() %>% 
+  filter(Date_First_Fibrosis < Date_First_Cirrhosis) %>% ungroup() %>% select(patient) %>% 
+  left_join(Data_First_Cirrhosis %>% left_join(Data_First_Fibrosis)) %>%
+  mutate(Elapsed_Time = as.numeric((Date_First_Cirrhosis-Date_First_Fibrosis)/30.5)) %>%
+  select(Elapsed_Time) %>%
+  ggplot(aes(Elapsed_Time)) +
+  geom_density()+
+  geom_density(colour="darkslategray4", fill="darkslategray4", alpha=0.6, size=2)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Proportion \n")+xlab("\n Elapsed Time From 1st Fibrosis Dx to 1st Cirrhosis Dx")
+
+
+
+
+
+# NASH Fibrosis, how many had NASH before or fibrosis before? Time to cirrhosis from NASH or from fibrosis
+
+Pats_to_remove <- NASH_Fibrosis_Pats %>% left_join(NASH_Events) %>% 
+  filter(condition=="Fibrosis") %>%
+  filter(claimed<"2016-10-02") %>% select(patient) %>% distinct()
+
+
+NASH_Fibrosis_Pats <- NASH_Fibrosis_Pats %>% left_join(NASH_Events) %>% 
+  filter(condition=="Fibrosis") %>%
+  group_by(patient) %>% filter(claimed==min(claimed)) %>% slice(1) %>% anti_join(Pats_to_remove)
+
+NASH_Fibrosis_Pats <- NASH_Fibrosis_Pats %>% select(patient, weight, claimed)
+
+names(NASH_Fibrosis_Pats)[3] <- "Date_First_Fibrosis"
+
+
+Data_First_NASH <- NASH_Fibrosis_Pats %>% left_join(NASH_Events) %>% 
+  filter(condition=="NASH") %>%
+  group_by(patient) %>% filter(claimed==min(claimed)) %>% slice(1)
+
+Data_First_NASH <- Data_First_NASH %>% select(patient, weight, claimed)
+
+names(Data_First_NASH)[3] <- "Date_First_NASH"
+
+sum(NASH_Fibrosis_Pats$weight) #82843
+
+NASH_Fibrosis_Pats %>% left_join(Data_First_NASH) %>% 
+  filter(Date_First_NASH < Date_First_Fibrosis) %>% ungroup() %>% summarise(n=sum(weight)) # 30360
+
+NASH_Fibrosis_Pats %>% left_join(Data_First_NASH) %>% 
+  filter(Date_First_NASH == Date_First_Fibrosis) %>% ungroup() %>% summarise(n=sum(weight)) # 34890
+
+NASH_Fibrosis_Pats %>% left_join(Data_First_NASH) %>% 
+  filter(Date_First_NASH > Date_First_Fibrosis) %>% ungroup() %>% summarise(n=sum(weight)) # 17593
+
+
+Data_First_NASH$Date_First_NASH <- as.Date(Data_First_NASH$Date_First_NASH)
+NASH_Fibrosis_Pats$Date_First_Fibrosis <- as.Date(NASH_Fibrosis_Pats$Date_First_Fibrosis)
+
+
+NASH_Fibrosis_Pats %>% left_join(Data_First_NASH) %>% 
+  filter(Date_First_NASH < Date_First_Fibrosis) %>% ungroup() %>% select(patient) %>% 
+  left_join(NASH_Fibrosis_Pats %>% left_join(Data_First_NASH)) %>%
+  mutate(Elapsed_Time = as.numeric((Date_First_Fibrosis-Date_First_NASH)/30.5)) %>%
+  select(Elapsed_Time) %>%
+  ggplot(aes(Elapsed_Time)) +
+  geom_density()+
+  geom_density(colour="darkslategray4", fill="darkslategray4", alpha=0.6, size=2)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Proportion \n")+xlab("\n Elapsed Time From 1st NASH Dx to 1st Fibrosis Dx")
+
+
+# -----
+# Time from NAFLD to Cirrhosis/Fibrosis -------------------
+NASH_diagnosis <- fread("NASH_diagnosis.txt")
+NAFLD_Pats <- NASH_diagnosis %>% filter(NASH_diganosis=="NAFLD") 
+
+
+NASH_Events <- fread("NASH Events.txt")
+NASH_Diagnosis_Codes <- fread("NASH Diagnosis Codes.txt")
+NASH_Events <- NASH_Events %>% left_join(NASH_Diagnosis_Codes %>% select(code, condition))
+names(NASH_Events)[1] <- "patient"
+
+# NAFLD Cirrhosis
+Pats_to_remove <- NAFLD_Pats %>% left_join(NASH_Events) %>% 
+  filter(condition=="Cirrhosis"|condition=="Liver Failure") %>%
+  filter(claimed<"2017-10-02") %>% select(patient) %>% distinct()
+
+Data_First_Cirrhosis <- NAFLD_Pats %>% left_join(NASH_Events) %>% 
+  filter(condition=="Cirrhosis"|condition=="Liver Failure") %>%
+  group_by(patient) %>% filter(claimed==min(claimed)) %>% slice(1) %>% anti_join(Pats_to_remove)
+
+Data_First_Cirrhosis <- Data_First_Cirrhosis %>% select(patient, weight, claimed)
+
+names(Data_First_Cirrhosis)[3] <- "Date_First_Cirrhosis"
+
+
+Data_First_NAFLD <- Data_First_Cirrhosis %>% left_join(NASH_Events) %>% 
+  filter(condition=="NAFLD") %>%
+  group_by(patient) %>% filter(claimed==min(claimed)) %>% slice(1)
+
+Data_First_NAFLD <- Data_First_NAFLD %>% select(patient, weight, claimed)
+
+names(Data_First_NAFLD)[3] <- "Date_First_NAFLD"
+
+sum(Data_First_Cirrhosis$weight) #354294.8
+
+Data_First_Cirrhosis %>% left_join(Data_First_NAFLD) %>% 
+  filter(Date_First_NAFLD < Date_First_Cirrhosis) %>% ungroup() %>% summarise(n=sum(weight)) # 225096
+
+Data_First_Cirrhosis %>% left_join(Data_First_NAFLD) %>% 
+  filter(Date_First_NAFLD == Date_First_Cirrhosis) %>% ungroup() %>% summarise(n=sum(weight)) # 42759
+
+Data_First_Cirrhosis %>% left_join(Data_First_NAFLD) %>% 
+  filter(Date_First_NAFLD > Date_First_Cirrhosis) %>% ungroup() %>% summarise(n=sum(weight)) # 86439
+
+
+Data_First_NAFLD$Date_First_NAFLD <- as.Date(Data_First_NAFLD$Date_First_NAFLD)
+Data_First_Cirrhosis$Date_First_Cirrhosis <- as.Date(Data_First_Cirrhosis$Date_First_Cirrhosis)
+
+# Mean 20.8
+Data_First_Cirrhosis %>% left_join(Data_First_NAFLD) %>% 
+  filter(Date_First_NAFLD < Date_First_Cirrhosis) %>% ungroup() %>% select(patient) %>% 
+  left_join(Data_First_Cirrhosis %>% left_join(Data_First_NAFLD)) %>%
+  mutate(Elapsed_Time = as.numeric((Date_First_Cirrhosis-Date_First_NAFLD)/30.5)) %>%
+  select(Elapsed_Time) %>%
+  ggplot(aes(Elapsed_Time)) +
+  geom_density()+
+  geom_density(colour="darkslategray4", fill="darkslategray4", alpha=0.6, size=2)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Proportion \n")+xlab("\n Elapsed Time From 1st NAFLD Dx to 1st Cirrhosis Dx")
+
+
+
+# NAFLD Fibrosis 
+
+NASH_diagnosis <- fread("NASH_diagnosis.txt")
+NAFLD_Pats <- NASH_diagnosis %>% filter(NASH_diganosis=="NAFLD") 
+
+
+NASH_Events <- fread("NASH Events.txt")
+NASH_Diagnosis_Codes <- fread("NASH Diagnosis Codes.txt")
+NASH_Events <- NASH_Events %>% left_join(NASH_Diagnosis_Codes %>% select(code, condition))
+names(NASH_Events)[1] <- "patient"
+
+
+Pats_to_remove <- NAFLD_Pats %>% left_join(NASH_Events) %>% 
+  filter(condition=="Fibrosis") %>%
+  filter(claimed<"2017-10-02") %>% select(patient) %>% distinct()
+
+Data_First_Fibrosis <- NAFLD_Pats %>% left_join(NASH_Events) %>% 
+  filter(condition=="Fibrosis") %>%
+  group_by(patient) %>% filter(claimed==min(claimed)) %>% slice(1) %>% anti_join(Pats_to_remove)
+
+Data_First_Fibrosis <- Data_First_Fibrosis %>% select(patient, weight, claimed)
+
+names(Data_First_Fibrosis)[3] <- "Date_First_Fibrosis"
+
+
+Data_First_NAFLD <- Data_First_Fibrosis %>% left_join(NASH_Events) %>% 
+  filter(condition=="NAFLD") %>%
+  group_by(patient) %>% filter(claimed==min(claimed)) %>% slice(1)
+
+Data_First_NAFLD <- Data_First_NAFLD %>% select(patient, weight, claimed)
+
+names(Data_First_NAFLD)[3] <- "Date_First_NAFLD"
+
+sum(Data_First_Fibrosis$weight) #146903.3
+
+Data_First_Fibrosis %>% left_join(Data_First_NAFLD) %>% 
+  filter(Date_First_NAFLD < Date_First_Fibrosis) %>% ungroup() %>% summarise(n=sum(weight)) # 97981
+
+Data_First_Fibrosis %>% left_join(Data_First_NAFLD) %>% 
+  filter(Date_First_NAFLD == Date_First_Fibrosis) %>% ungroup() %>% summarise(n=sum(weight)) # 27618
+
+Data_First_Fibrosis %>% left_join(Data_First_NAFLD) %>% 
+  filter(Date_First_NAFLD > Date_First_Fibrosis) %>% ungroup() %>% summarise(n=sum(weight)) # 21304
+
+
+Data_First_NAFLD$Date_First_NAFLD <- as.Date(Data_First_NAFLD$Date_First_NAFLD)
+Data_First_Fibrosis$Date_First_Fibrosis <- as.Date(Data_First_Fibrosis$Date_First_Fibrosis)
+
+# Mean 17.1
+Data_First_Fibrosis %>% left_join(Data_First_NAFLD) %>% 
+  filter(Date_First_NAFLD < Date_First_Fibrosis) %>% ungroup() %>% select(patient) %>% 
+  left_join(Data_First_Fibrosis %>% left_join(Data_First_NAFLD)) %>%
+  mutate(Elapsed_Time = as.numeric((Date_First_Fibrosis-Date_First_NAFLD)/30.5)) %>%
+  select(Elapsed_Time) %>%
+  ggplot(aes(Elapsed_Time)) +
+  geom_density()+
+  geom_density(colour="darkslategray4", fill="darkslategray4", alpha=0.6, size=2)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Proportion \n")+xlab("\n Elapsed Time From 1st NAFLD Dx to 1st Fibrosis Dx")
+
+
+
+# --------
+
+
+# Time from NASH to Cirrhosis/Fibrosis -------------------
+NASH_diagnosis <- fread("NASH_diagnosis.txt")
+NASH_Pats <- NASH_diagnosis %>% filter(NASH_diganosis!="NAFLD" & NASH_diganosis!="Other Liver") 
+
+
+NASH_Events <- fread("NASH Events.txt")
+NASH_Diagnosis_Codes <- fread("NASH Diagnosis Codes.txt")
+NASH_Events <- NASH_Events %>% left_join(NASH_Diagnosis_Codes %>% select(code, condition))
+names(NASH_Events)[1] <- "patient"
+
+# NASH Cirrhosis
+Pats_to_remove <- NASH_Pats %>% left_join(NASH_Events) %>% 
+  filter(condition=="Cirrhosis"|condition=="Liver Failure") %>%
+  filter(claimed<"2017-10-02") %>% select(patient) %>% distinct()
+
+Data_First_Cirrhosis <- NASH_Pats %>% left_join(NASH_Events) %>% 
+  filter(condition=="Cirrhosis"|condition=="Liver Failure") %>%
+  group_by(patient) %>% filter(claimed==min(claimed)) %>% slice(1) %>% anti_join(Pats_to_remove)
+
+Data_First_Cirrhosis <- Data_First_Cirrhosis %>% select(patient, weight, claimed)
+
+names(Data_First_Cirrhosis)[3] <- "Date_First_Cirrhosis"
+
+
+Data_First_NASH <- Data_First_Cirrhosis %>% left_join(NASH_Events) %>% 
+  filter(condition=="NASH") %>%
+  group_by(patient) %>% filter(claimed==min(claimed)) %>% slice(1)
+
+Data_First_NASH <- Data_First_NASH %>% select(patient, weight, claimed)
+
+names(Data_First_NASH)[3] <- "Date_First_NASH"
+
+sum(Data_First_Cirrhosis$weight) #160190.4
+
+Data_First_Cirrhosis %>% left_join(Data_First_NASH) %>% 
+  filter(Date_First_NASH < Date_First_Cirrhosis) %>% ungroup() %>% summarise(n=sum(weight)) # 60244
+
+Data_First_Cirrhosis %>% left_join(Data_First_NASH) %>% 
+  filter(Date_First_NASH == Date_First_Cirrhosis) %>% ungroup() %>% summarise(n=sum(weight)) # 27254
+
+Data_First_Cirrhosis %>% left_join(Data_First_NASH) %>% 
+  filter(Date_First_NASH > Date_First_Cirrhosis) %>% ungroup() %>% summarise(n=sum(weight)) # 72693
+
+
+Data_First_NASH$Date_First_NASH <- as.Date(Data_First_NASH$Date_First_NASH)
+Data_First_Cirrhosis$Date_First_Cirrhosis <- as.Date(Data_First_Cirrhosis$Date_First_Cirrhosis)
+
+# Mean 18.9   , 1180
+Data_First_Cirrhosis %>% left_join(Data_First_NASH) %>% 
+  filter(Date_First_NASH < Date_First_Cirrhosis) %>% ungroup() %>% select(patient) %>% 
+  left_join(Data_First_Cirrhosis %>% left_join(Data_First_NASH)) %>%
+  mutate(Elapsed_Time = as.numeric((Date_First_Cirrhosis-Date_First_NASH)/30.5)) %>%
+  select(Elapsed_Time) %>%
+  ggplot(aes(Elapsed_Time)) +
+  geom_density()+
+  geom_density(colour="darkslategray4", fill="darkslategray4", alpha=0.6, size=2)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Proportion \n")+xlab("\n Elapsed Time From 1st NASH Dx to 1st Cirrhosis Dx")
+
+
+
+# NASH Fibrosis 
+NASH_diagnosis <- fread("NASH_diagnosis.txt")
+NASH_Pats <- NASH_diagnosis %>% filter(NASH_diganosis!="NASH" & NASH_diganosis!="Other Liver") 
+
+
+NASH_Events <- fread("NASH Events.txt")
+NASH_Diagnosis_Codes <- fread("NASH Diagnosis Codes.txt")
+NASH_Events <- NASH_Events %>% left_join(NASH_Diagnosis_Codes %>% select(code, condition))
+names(NASH_Events)[1] <- "patient"
+
+
+Pats_to_remove <- NASH_Pats %>% left_join(NASH_Events) %>% 
+  filter(condition=="Fibrosis") %>%
+  filter(claimed<"2017-10-02") %>% select(patient) %>% distinct()
+
+Data_First_Fibrosis <- NASH_Pats %>% left_join(NASH_Events) %>% 
+  filter(condition=="Fibrosis") %>%
+  group_by(patient) %>% filter(claimed==min(claimed)) %>% slice(1) %>% anti_join(Pats_to_remove)
+
+Data_First_Fibrosis <- Data_First_Fibrosis %>% select(patient, weight, claimed)
+
+names(Data_First_Fibrosis)[3] <- "Date_First_Fibrosis"
+
+
+Data_First_NASH <- Data_First_Fibrosis %>% left_join(NASH_Events) %>% 
+  filter(condition=="NASH") %>%
+  group_by(patient) %>% filter(claimed==min(claimed)) %>% slice(1)
+
+Data_First_NASH <- Data_First_NASH %>% select(patient, weight, claimed)
+
+names(Data_First_NASH)[3] <- "Date_First_NASH"
+
+sum(Data_First_Fibrosis$weight) #146903.3
+
+Data_First_Fibrosis %>% left_join(Data_First_NASH) %>% 
+  filter(Date_First_NASH < Date_First_Fibrosis) %>% ungroup() %>% summarise(n=sum(weight)) # 97981
+
+Data_First_Fibrosis %>% left_join(Data_First_NASH) %>% 
+  filter(Date_First_NASH == Date_First_Fibrosis) %>% ungroup() %>% summarise(n=sum(weight)) # 27618
+
+Data_First_Fibrosis %>% left_join(Data_First_NASH) %>% 
+  filter(Date_First_NASH > Date_First_Fibrosis) %>% ungroup() %>% summarise(n=sum(weight)) # 21304
+
+
+Data_First_NASH$Date_First_NASH <- as.Date(Data_First_NASH$Date_First_NASH)
+Data_First_Fibrosis$Date_First_Fibrosis <- as.Date(Data_First_Fibrosis$Date_First_Fibrosis)
+
+# Mean 18.8
+Data_First_Fibrosis %>% left_join(Data_First_NASH) %>% 
+  filter(Date_First_NASH < Date_First_Fibrosis) %>% ungroup() %>% select(patient) %>% 
+  left_join(Data_First_Fibrosis %>% left_join(Data_First_NASH)) %>%
+  mutate(Elapsed_Time = as.numeric((Date_First_Fibrosis-Date_First_NASH)/30.5)) %>%
+  select(Elapsed_Time) %>%
+  ggplot(aes(Elapsed_Time)) +
+  geom_density()+
+  geom_density(colour="darkslategray4", fill="darkslategray4", alpha=0.6, size=2)+
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("Proportion \n")+xlab("\n Elapsed Time From 1st NASH Dx to 1st Fibrosis Dx")
+
+
+
+
+
+
+
+
+
+# -----------------
+
+# Calculate Percentage of NASH patients with each comorbidty ------------
+
+DIA_Drug_Histories <- fread("DIA Drug Histories.txt")
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(patient, weight)
+
+DANU_Demographics <- fread("DANU Demographics.txt")
+DANU_Demographics <- DANU_Demographics %>% select(patid, diagnosis)
+names(DANU_Demographics)[1] <- "patient"
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% left_join(DANU_Demographics)
+
+
+# DIA / OBE Vector
+Diabetes_OBesity_Pats <- DIA_Drug_Histories
+Diabetes_OBesity_Pats <- Diabetes_OBesity_Pats %>% select(patient, weight, diagnosis)
+
+# # NAFLD Vector
+# NAFLD_Drug_histories <- fread("NAFLD Drug Histories.txt")
+# NAFLD_Drug_histories <- NAFLD_Drug_histories %>% select(patient) %>% mutate(condition_2="NAFLD")
+
+
+# OBE Vector
+OBE_Drug_Histories <- fread("OBE Drug Histories.txt")
+OBE_Drug_Histories <- OBE_Drug_Histories %>% select(patient, weight) %>% mutate(diagnosis="Obesity")
+
+
+
+NASH_Drug_histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_histories <- NASH_Drug_histories %>% select(patient, weight) %>% mutate(diagnosisNASH="NASH")
+
+Diabetes_OBesity_Pats %>% bind_rows(OBE_Drug_Histories) %>% left_join(NASH_Drug_histories) %>% group_by(diagnosis, diagnosisNASH) %>% count()
+
+
+
+
+NASH_Drug_histories %>% left_join(Diabetes_OBesity_Pats) %>% left_join(OBE_Drug_Histories, by=c("patient"="patient")) %>%
+  filter(is.na(diagnosis.y)) %>% group_by(diagnosis.x) %>% summarise(n=sum(weight))
+
+
+NASH_Drug_histories %>% left_join(Diabetes_OBesity_Pats) %>% left_join(OBE_Drug_Histories, by=c("patient"="patient")) %>%
+  filter(!is.na(diagnosis.y)) %>% group_by(diagnosis.y) %>% summarise(n=sum(weight))
+
+
+
+# ---------------
+
+# Proportion ever treated with GLP1s --------------------------
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_Final <- NASH_Drug_Histories %>% anti_join(DIA_Drug_Histories %>% select(patient))%>% anti_join(OBE_Drug_Histories %>% select(patient))
+
+
+NAFLD_Drug_Histories <- fread("NAFLD Drug Histories.txt")
+NAFLD_Drug_Histories_Final <-  NAFLD_Drug_Histories %>% anti_join(DIA_Drug_Histories %>% select(patient)) %>% anti_join(OBE_Drug_Histories %>% select(patient))
+
+DIA_Drug_Histories <- fread("DIA Drug Histories.txt")
+
+
+OBE_Drug_Histories <- fread("OBE Drug Histories.txt")
+OBE_Drug_Histories_Final <- OBE_Drug_Histories %>% anti_join(DIA_Drug_Histories %>% select(patient)) 
+
+
+NASH_Drug_Histories <- NASH_Drug_Histories_Final
+NAFLD_Drug_Histories <- NAFLD_Drug_Histories_Final
+DIA_Drug_Histories
+OBE_Drug_Histories <- OBE_Drug_Histories_Final
+
+rm(NASH_Drug_Histories_Final, OBE_Drug_Histories_Final, NAFLD_Drug_Histories_Final)
+
+
+
+
+
+sum(NASH_Drug_Histories$weight) # 68944.33
+NASH_Ingredients       <- fread("NASH Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Ingredients <- NASH_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+NASH_Ingredients  <- NASH_Ingredients %>% select(molecule, drug_group)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat!="-") %>% filter(!is.na(Treat))
+NASH_Drug_Histories <- separate_rows(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(-c(disease, Month))
+
+names(NASH_Drug_Histories)[3] <- "molecule"
+NASH_Drug_Histories$molecule <- as.character(NASH_Drug_Histories$molecule)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% left_join(NASH_Ingredients) %>% filter(!is.na(drug_group))
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient, weight) %>% distinct()
+
+NASH_Drug_Histories <- data.frame(NASH_Drug_Histories %>% group_by(drug_group) %>% 
+                                    summarise(sum_weights = sum(as.numeric(weight))))
+
+
+
+sum(NAFLD_Drug_Histories$weight) # 14081980
+
+NASH_Ingredients       <- fread("NASH Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Ingredients <- NASH_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+NASH_Ingredients  <- NASH_Ingredients %>% select(molecule, drug_group)
+
+NAFLD_Drug_Histories <- gather(NAFLD_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+NAFLD_Drug_Histories <- NAFLD_Drug_Histories %>% filter(Treat!="-") %>% filter(!is.na(Treat))
+NAFLD_Drug_Histories <- separate_rows(NAFLD_Drug_Histories)
+
+NAFLD_Drug_Histories <- NAFLD_Drug_Histories %>% select(-c(disease, Month))
+
+names(NAFLD_Drug_Histories)[3] <- "molecule"
+NAFLD_Drug_Histories$molecule <- as.character(NAFLD_Drug_Histories$molecule)
+
+NAFLD_Drug_Histories <- NAFLD_Drug_Histories %>% left_join(NASH_Ingredients) %>% filter(!is.na(drug_group))
+
+NAFLD_Drug_Histories <- NAFLD_Drug_Histories %>% group_by(patient, weight) %>% distinct()
+
+NAFLD_Drug_Histories <- data.frame(NAFLD_Drug_Histories %>% group_by(drug_group) %>% 
+                                     summarise(sum_weights = sum(as.numeric(weight))))
+
+
+
+
+
+sum(DIA_Drug_Histories$weight) # 48244424
+DANU_Ingredients       <- fread("DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+DANU_Ingredients <- DANU_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+DANU_Ingredients  <- DANU_Ingredients %>% select(molecule, drug_group)
+
+DIA_Drug_Histories <- gather(DIA_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+DIA_Drug_Histories <- DIA_Drug_Histories %>% filter(Treat!="-") %>% filter(!is.na(Treat))
+DIA_Drug_Histories <- separate_rows(DIA_Drug_Histories)
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(-c(disease, Month))
+
+names(DIA_Drug_Histories)[3] <- "molecule"
+DIA_Drug_Histories$molecule <- as.character(DIA_Drug_Histories$molecule)
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% left_join(DANU_Ingredients) %>% filter(!is.na(drug_group))
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% group_by(patient, weight) %>% distinct()
+
+DIA_Drug_Histories <- data.frame(DIA_Drug_Histories %>% group_by(drug_group) %>% 
+                                   summarise(sum_weights = sum(as.numeric(weight))))
+
+
+
+
+sum(OBE_Drug_Histories$weight) # 106457299
+DANU_Ingredients       <- fread("DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+DANU_Ingredients <- DANU_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+DANU_Ingredients  <- DANU_Ingredients %>% select(molecule, drug_group)
+
+OBE_Drug_Histories <- gather(OBE_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+OBE_Drug_Histories <- OBE_Drug_Histories %>% filter(Treat!="-") %>% filter(!is.na(Treat))
+OBE_Drug_Histories <- separate_rows(OBE_Drug_Histories)
+
+OBE_Drug_Histories <- OBE_Drug_Histories %>% select(-c(disease, Month))
+
+names(OBE_Drug_Histories)[3] <- "molecule"
+OBE_Drug_Histories$molecule <- as.character(OBE_Drug_Histories$molecule)
+
+OBE_Drug_Histories <- OBE_Drug_Histories %>% left_join(DANU_Ingredients) %>% filter(!is.na(drug_group))
+
+OBE_Drug_Histories <- OBE_Drug_Histories %>% group_by(patient, weight) %>% distinct()
+
+OBE_Drug_Histories <- data.frame(OBE_Drug_Histories %>% group_by(drug_group) %>% 
+                                   summarise(sum_weights = sum(as.numeric(weight))))
+
+
+# -----------------
+# Summary table for Bella ------------------
+
+# Split NASH into types of NASH based on FIB4 + Age
+
+FIB4_Bucket_Fibrosis <- fread("FIB4_Bucket_Fibrosis.txt")
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+
+FIB4_Bucket_Fibrosis <- FIB4_Bucket_Fibrosis %>% left_join(NASH_Drug_Histories %>% select(patient, weight)) 
+
+
+DIA_Drug_Histories <- fread("DIA Drug Histories.txt")
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(patient, weight)
+
+DANU_Demographics <- fread("DANU Demographics.txt")
+DANU_Demographics <- DANU_Demographics %>% select(patid, diagnosis)
+names(DANU_Demographics)[1] <- "patient"
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% left_join(DANU_Demographics)
+
+DIA_Drug_Histories %>% group_by(diagnosis) %>% summarise(n=sum(weight))
+
+# DIA / OBE Vector
+Diabetes_OBesity_Pats <- DIA_Drug_Histories
+Diabetes_OBesity_Pats <- Diabetes_OBesity_Pats %>% select(patient, diagnosis)
+
+# OBE Vector
+OBE_Drug_Histories <- fread("OBE Drug Histories.txt")
+OBE_Drug_Histories <- OBE_Drug_Histories %>% select(patient) %>% mutate(diagnosis="Obesity")
+OBE_Drug_Histories <- OBE_Drug_Histories %>% anti_join(DIA_Drug_Histories %>% select(patient))
+Diabetes_OBesity_Pats <- Diabetes_OBesity_Pats %>% bind_rows(OBE_Drug_Histories)
+
+FIB4_Bucket_Fibrosis <- FIB4_Bucket_Fibrosis %>% left_join(Diabetes_OBesity_Pats) %>% mutate(diagnosis = ifelse(is.na(diagnosis), "NASH", diagnosis))
+
+sum(FIB4_Bucket_Fibrosis$weight)
+
+FIB4_Bucket_Fibrosis$weight <- FIB4_Bucket_Fibrosis$weight * 2.605148
+
+sum(FIB4_Bucket_Fibrosis$weight)
+
+FIB4_Bucket_Fibrosis %>% group_by(diagnosis, FIB4_Bucket) %>% summarise(n=sum(weight)/1000)
+
+
+# Biopsy 
+NASH_Dossiers <- fread("NASH Dossiers.txt")
+Biopsy_pats <- NASH_Dossiers %>% filter(condition == "Liver Biopsy") %>% select(patid) %>% distinct()
+
+Biopsy_pats <- Biopsy_pats %>% mutate(Biopsy_Status = "Biopsy")
+names(Biopsy_pats)[1] <- "patient"
+
+data.frame(FIB4_Bucket_Fibrosis %>% left_join(Biopsy_pats) %>% group_by(diagnosis, FIB4_Bucket, Biopsy_Status) %>%
+             summarise(n=sum(weight)/1000))
+
+
+
+
+
+# Ultrasound 
+NASH_Dossiers <- fread("NASH Dossiers.txt")
+Ultrasound_pats <- NASH_Dossiers %>% filter(condition == "Liver Ultrasound") %>% select(patid) %>% distinct()
+
+Ultrasound_pats <- Ultrasound_pats %>% mutate(Ultrasound_pats = "Ultrasound")
+names(Ultrasound_pats)[1] <- "patient"
+
+data.frame(FIB4_Bucket_Fibrosis %>% left_join(Ultrasound_pats) %>% group_by(diagnosis, FIB4_Bucket, Ultrasound_pats) %>%
+             summarise(n=sum(weight)/1000))
+
+
+
+
+
+# Liver Imaging 
+NASH_Dossiers <- fread("NASH Dossiers.txt")
+Imaging_pats <- NASH_Dossiers %>% filter(condition == "Liver Imaging") %>% select(patid) %>% distinct()
+
+Imaging_pats <- Imaging_pats %>% mutate(Imaging_Status = "Imaging")
+names(Imaging_pats)[1] <- "patient"
+
+data.frame(FIB4_Bucket_Fibrosis %>% left_join(Imaging_pats) %>% group_by(diagnosis, FIB4_Bucket, Imaging_Status) %>%
+             summarise(n=sum(weight)/1000))
+
+
+
+
+data.frame(FIB4_Bucket_Fibrosis %>% group_by(diagnosis, FIB4_Bucket) %>%
+             summarise(n=sum(weight)/1000))
+
+
+
+FIB4_Bucket_Fibrosis %>% left_join(Biopsy_pats) %>% left_join(Ultrasound_pats) %>% left_join(Imaging_pats) %>%
+  filter(Biopsy_Status=="Biopsy" | Ultrasound_pats=="Ultrasound" | Imaging_Status=="Imaging") %>% group_by(diagnosis, FIB4_Bucket) %>%
+  summarise(n=sum(weight)/1000)
+
+
+
+
+FIB4_NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+FIB4_NASH_Pats <- FIB4_NASH_Pats %>% select(patient) %>% distinct() %>% mutate(FIB4_Status="FIB4")
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Pats <- NASH_Drug_Histories %>% select(patient)
+
+DIA_Drug_Histories <- fread("DIA Drug Histories.txt")
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(patient, weight)
+
+DANU_Demographics <- fread("DANU Demographics.txt")
+DANU_Demographics <- DANU_Demographics %>% select(patid, diagnosis)
+names(DANU_Demographics)[1] <- "patient"
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% left_join(DANU_Demographics)
+
+DIA_Drug_Histories %>% group_by(diagnosis) %>% summarise(n=sum(weight))
+
+# DIA / OBE Vector
+Diabetes_OBesity_Pats <- DIA_Drug_Histories
+Diabetes_OBesity_Pats <- Diabetes_OBesity_Pats %>% select(patient, diagnosis)
+
+# OBE Vector
+OBE_Drug_Histories <- fread("OBE Drug Histories.txt")
+OBE_Drug_Histories <- OBE_Drug_Histories %>% select(patient) %>% mutate(diagnosis="Obesity")
+OBE_Drug_Histories <- OBE_Drug_Histories %>% anti_join(DIA_Drug_Histories %>% select(patient))
+Diabetes_OBesity_Pats <- Diabetes_OBesity_Pats %>% bind_rows(OBE_Drug_Histories)
+
+
+NASH_Pats <- NASH_Pats %>% left_join(Diabetes_OBesity_Pats) %>% mutate(diagnosis = ifelse(is.na(diagnosis), "NASH", diagnosis))
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories %>% select(patient, weight)
+
+NASH_Pats %>% left_join(NASH_Drug_Histories %>% select(patient, weight)) %>%
+  left_join(FIB4_NASH_Pats) %>% group_by(diagnosis, FIB4_Status) %>% summarise(n=sum(weight)) 
+
+
+
+sum(NASH_Drug_Histories$weight)
+# 
+# NASH_Pats %>% left_join(NASH_Drug_Histories %>% select(patient, weight)) %>%
+#   left_join(FIB4_NASH_Pats) %>% left_join(Biopsy_pats) %>% left_join(Ultrasound_pats) %>% left_join(Imaging_pats) %>%
+#   filter(Biopsy_Status=="Biopsy" | Ultrasound_pats=="Ultrasound" | Imaging_Status=="Imaging" | FIB4_Status=="FIB4") %>% 
+#   summarise(n=sum(weight) 
+#             
+#             
+#             FIB4_Bucket_Fibrosis
+#             
+#             
+#             
+#             
+#             NASH_diagnosis <- fread("NASH_diagnosis.txt")
+#             NASH_diagnosis %>% filter(grepl("NASH",NASH_diganosis)) %>% summarise(n=sum(weight)) # 1339983
+#             NASH_diagnosis <- NASH_diagnosis %>%filter(grepl("NASH",NASH_diganosis))
+#             
+#             NASH_Events <- fread("NASH Events.txt")
+#             NASH_Diagnosis_Codes <- fread("NASH Diagnosis Codes.txt")
+#             
+#             NASH_Events <- NASH_Events %>% left_join(NASH_Diagnosis_Codes %>% select(code, condition)) %>% filter(condition=="NASH") %>% 
+#               group_by(patid) %>% slice(1)
+#             
+#             Summary_Specialties <- fread("Summary_Specialties.txt")
+#             
+#             NASH_Event_Claims_Providers <- fread("NASH Event Claims Providers.txt")
+#             NASH_Event_Claims_Providers <- NASH_Event_Claims_Providers %>% select(prov, specialty)
+#             
+#             NASH_Events <- NASH_diagnosis %>% select(patient, NASH_diganosis) %>% left_join(NASH_Events, by=c("patient"="patid"))
+#             
+#             temp <- data.frame(NASH_Events %>% left_join(NASH_Event_Claims_Providers) %>% ungroup() %>% left_join(Summary_Specialties) %>%
+#                                  select(patient, SUMMARY_SPECIALTY))
+#             
+#             
+#             temp2 <- data.frame(FIB4_Bucket_Fibrosis %>% left_join(temp) %>% group_by(diagnosis, FIB4_Bucket, SUMMARY_SPECIALTY) %>%
+#                                   summarise(n=sum(weight)) %>% spread(key=diagnosis, value=n)) %>% arrange(FIB4_Bucket, -Diabetes)
+#             
+#             fwrite(temp2, "First_NASH_Dx_Specialty_NASHTypeVScomorbidity.txt" , sep="\t")
+#             
+# ---------
+            
+# Continue ------
+# Biopsy 
+# NASH_Dossiers <- fread("NASH Dossiers.txt")
+# Biopsy_pats <- NASH_Dossiers %>% filter(condition == "Liver Biopsy") %>% select(patid) %>% distinct()
+# Biopsy_pats <- Biopsy_pats %>% mutate(BiopsyStatus = "BIopsy")
+#             
+# FIB4_NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+# FIB4_NASH_Pats <- FIB4_NASH_Pats %>% left_join(Biopsy_pats, by=c("patient"="patid"))
+# FIB4_NASH_Pats <- FIB4_NASH_Pats %>% mutate(BiopsyStatus=ifelse(is.na(BiopsyStatus), "No", BiopsyStatus))
+#             
+# FIB4_NASH_Pats %>% group_by(BiopsyStatus, patient) %>% filter(AST==max(AST)) %>% slice(1) %>%
+#   ungroup() %>% group_by(BiopsyStatus) %>% summarise(n=mean(AST))
+#             
+#             
+# FIB4_NASH_Pats %>% group_by(BiopsyStatus, patient) %>% filter(ALT==max(ALT)) %>% slice(1) %>%
+#   ungroup() %>% group_by(BiopsyStatus) %>% summarise(n=mean(ALT))
+#             
+#             
+# FIB4_NASH_Pats %>% group_by(BiopsyStatus, patient) %>% filter(Platelets==max(Platelets)) %>% slice(1) %>%
+#   ungroup() %>% group_by(BiopsyStatus) %>% summarise(n=mean(Platelets))
+#             
+       
+# FIB4_NASH_Pats %>% group_by(BiopsyStatus, patient) %>% filter(age==max(age)) %>% slice(1) %>%
+#   ungroup() %>% group_by(BiopsyStatus) %>% summarise(n=mean(age))
+
+     
+# FIB4_NASH_Pats %>% group_by(BiopsyStatus, patient) %>% filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>%
+#               ungroup() %>% group_by(BiopsyStatus) %>% summarise(n=mean(fibrosis4))
+#             
+        
+#             
+#             
+# # Diagnosis / FIB4 Bucket 
+# FIB4_Bucket_Fibrosis <- fread("FIB4_Bucket_Fibrosis.txt")
+#             
+# NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+#             
+# FIB4_Bucket_Fibrosis <- FIB4_Bucket_Fibrosis %>% left_join(NASH_Drug_Histories %>% select(patient, weight)) 
+#             
+#             
+# DIA_Drug_Histories <- fread("DIA Drug Histories.txt")
+# DIA_Drug_Histories <- DIA_Drug_Histories %>% select(patient, weight)
+#             
+# DANU_Demographics <- fread("DANU Demographics.txt")
+# DANU_Demographics <- DANU_Demographics %>% select(patid, diagnosis)
+# names(DANU_Demographics)[1] <- "patient"
+#             
+# DIA_Drug_Histories <- DIA_Drug_Histories %>% left_join(DANU_Demographics)
+#             
+# DIA_Drug_Histories %>% group_by(diagnosis) %>% summarise(n=sum(weight))
+#             
+# # DIA / OBE Vector
+# Diabetes_OBesity_Pats <- DIA_Drug_Histories
+# Diabetes_OBesity_Pats <- Diabetes_OBesity_Pats %>% select(patient, diagnosis)
+#             
+# # OBE Vector
+# OBE_Drug_Histories <- fread("OBE Drug Histories.txt")
+# OBE_Drug_Histories <- OBE_Drug_Histories %>% select(patient) %>% mutate(diagnosis="Obesity")
+# OBE_Drug_Histories <- OBE_Drug_Histories %>% anti_join(DIA_Drug_Histories %>% select(patient))
+# Diabetes_OBesity_Pats <- Diabetes_OBesity_Pats %>% bind_rows(OBE_Drug_Histories)
+#             
+# FIB4_Bucket_Fibrosis <- FIB4_Bucket_Fibrosis %>% left_join(Diabetes_OBesity_Pats) %>% mutate(diagnosis = ifelse(is.na(diagnosis), "NASH", diagnosis))
+#             
+# sum(FIB4_Bucket_Fibrosis$weight)
+#             
+# FIB4_Bucket_Fibrosis$weight <- FIB4_Bucket_Fibrosis$weight * 2.605148
+#             
+# sum(FIB4_Bucket_Fibrosis$weight)
+#             
+# FIB4_Bucket_Fibrosis %>% group_by(diagnosis, FIB4_Bucket) %>% summarise(n=sum(weight)/1000)
+#             
+#             
+# FIB4_NASH_Pats <- FIB4_NASH_Pats %>% left_join(FIB4_Bucket_Fibrosis)
+#             
+#             
+# data.frame(FIB4_NASH_Pats %>% drop_na() %>% group_by(patient) %>% filter(AST==max(AST)) %>% slice(1) %>%
+#                          ungroup() %>% group_by(diagnosis, FIB4_Bucket, BiopsyStatus) %>% summarise(n=mean(AST)) %>%
+#                          spread(key=diagnosis, value=n))
+#             
+  
+#             
+# data.frame(FIB4_NASH_Pats %>% drop_na() %>% group_by(patient) %>% filter(ALT==max(ALT)) %>% slice(1) %>%
+#                          ungroup() %>% group_by(diagnosis, FIB4_Bucket, BiopsyStatus) %>% summarise(n=mean(ALT))%>% spread(key=diagnosis, value=n))
+#             
+          
+# data.frame(FIB4_NASH_Pats %>% drop_na() %>% group_by(patient) %>% filter(Platelets==min(Platelets)) %>% slice(1) %>%
+#                          ungroup() %>% group_by(diagnosis, FIB4_Bucket, BiopsyStatus) %>% summarise(n=mean(Platelets))%>%
+#                          spread(key=diagnosis, value=n))
+#             
+     
+#             
+# data.frame(FIB4_NASH_Pats %>% drop_na() %>% group_by(patient) %>% filter(age==max(age)) %>% slice(1) %>%
+#                          ungroup() %>% group_by(diagnosis, FIB4_Bucket, BiopsyStatus) %>% summarise(n=mean(age))%>%
+#                          spread(key=diagnosis, value=n))
+#             
+    
+# 
+# data.frame(FIB4_NASH_Pats %>% drop_na() %>%  group_by(patient) %>% filter(fibrosis4==max(fibrosis4)) %>% slice(1) %>%
+#              ungroup() %>% group_by(diagnosis, FIB4_Bucket, BiopsyStatus) %>% summarise(n=mean(fibrosis4))%>%
+#              spread(key=diagnosis, value=n))
+#             
+
+# ---------------
+
+# NASH Onsets -----------------
+
+          
+# What drugs increase the most after 1st NASH Dx ?
+# Only drugs that already existed, only population >1000 afterwards (~10 pats)
+
+NASH_Onset_Drug <- fread("NASH Onset Drug.txt")
+          
+Tops_Drugs_Increase <- NASH_Onset_Drug %>% select(drug, before_patient_population, after_patient_population) %>% 
+  mutate(fold_change = after_patient_population/before_patient_population) %>% arrange(-fold_change)
+
+data.frame(Tops_Drugs_Increase %>% filter(fold_change != "Inf" & fold_change>2 & after_patient_population>1000))
+
+NAFLD_Onset_Drug <- fread("NAFLD Onset Drug.txt")
+
+Tops_Drugs_Increase <- NAFLD_Onset_Drug %>% select(drug, before_patient_population, after_patient_population) %>% 
+  mutate(fold_change = after_patient_population/before_patient_population) %>% arrange(-fold_change)
+
+data.frame(Tops_Drugs_Increase %>% filter(fold_change != "Inf" & fold_change>2 & after_patient_population>1000))
+
+data.frame(Tops_Drugs_Increase %>% filter(fold_change != "Inf" & fold_change>2 & after_patient_population>1000))
+
+
+
+NASH_Onset_Procedure <- fread("NASH Onset Procedure.txt")
+
+Tops_Procedures_Increase <- NASH_Onset_Procedure %>% select(description, before_patient_population, after_patient_population) %>% 
+  mutate(fold_change = after_patient_population/before_patient_population) %>% arrange(-fold_change) %>% drop_na()
+
+Tops_Procedures_Increase <- data.frame(Tops_Procedures_Increase %>% filter(fold_change != "Inf" & fold_change>2 & after_patient_population>1000))
+
+
+
+NASH_Onset_Diagnosis <- fread("NASH Onset Diagnosis.txt")
+
+Tops_Procedures_Diagnosis <- NASH_Onset_Diagnosis %>% select(description, before_patient_population, after_patient_population) %>% 
+  mutate(fold_change = after_patient_population/before_patient_population) %>% arrange(-fold_change) %>% drop_na()
+
+Tops_Procedures_Diagnosis <- data.frame(Tops_Procedures_Diagnosis %>% filter(fold_change != "Inf" & fold_change>2 & after_patient_population>1000))
+
+data.frame(Tops_Procedures_Diagnosis %>% filter(fold_change != "Inf" & fold_change>2 & after_patient_population>1000))
+
+
+# -------------
+# DIA vs OBE vs DIA+OBE Comorbidity penetrance --------
+
+DIA_Drug_Histories <- fread("DIA Drug Histories.txt")
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(patient, weight)
+
+DANU_Demographics <- fread("DANU Demographics.txt")
+DANU_Demographics <- DANU_Demographics %>% select(patid, diagnosis)
+names(DANU_Demographics)[1] <- "patient"
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% left_join(DANU_Demographics)
+
+DIA_Drug_Histories %>% group_by(diagnosis) %>% summarise(n=sum(weight))
+
+# DIA / OBE Vector
+Diabetes_OBesity_Pats <- DIA_Drug_Histories
+Diabetes_OBesity_Pats <- Diabetes_OBesity_Pats %>% select(patient, diagnosis)
+
+# OBE Vector
+OBE_Drug_Histories <- fread("OBE Drug Histories.txt")
+OBE_Drug_Histories <- OBE_Drug_Histories %>% select(patient) %>% mutate(diagnosis="Obesity")
+OBE_Drug_Histories <- OBE_Drug_Histories %>% anti_join(DIA_Drug_Histories %>% select(patient))
+
+Diabetes_OBesity_Pats <- Diabetes_OBesity_Pats %>% bind_rows(OBE_Drug_Histories)
+
+
+
+DIA_Pats_95ConfLiver_2plusHits_Provider <- fread("DIA_Pats_95ConfLiver_2plusHits_Provider.txt")
+OBE_Pats_95ConfLiver_2plusHits_Provider <- fread("OBE_Pats_95ConfLiver_2plusHits_Provider.txt")
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- fread("NAFLD_Pats_95ConfLiver_2plusHits_Provider.txt")
+NASH_Pats_95ConfLiver_2plusHits_Provider <- fread("NASH_Pats_95ConfLiver_2plusHits_Provider.txt")
+
+DIA_Pats_95ConfLiver_2plusHits_Provider <- DIA_Pats_95ConfLiver_2plusHits_Provider %>% select(ptid, diag) %>% distinct()
+OBE_Pats_95ConfLiver_2plusHits_Provider <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% select(ptid, diag) %>% distinct()
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% select(ptid, diag) %>% distinct()
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% select(ptid, diag) %>% distinct()
+
+names(DIA_Pats_95ConfLiver_2plusHits_Provider)[1] <- "patient"
+names(OBE_Pats_95ConfLiver_2plusHits_Provider)[1] <- "patient"
+names(NAFLD_Pats_95ConfLiver_2plusHits_Provider)[1] <- "patient"
+names(NASH_Pats_95ConfLiver_2plusHits_Provider)[1] <- "patient"
+
+
+DIAandOBE_Pats_95ConfLiver_2plusHits_Provider  <- Diabetes_OBesity_Pats %>%  filter(diagnosis == "Diabetes + Obesity") %>% select(patient) %>% inner_join(DIA_Pats_95ConfLiver_2plusHits_Provider)
+DIA_Pats_95ConfLiver_2plusHits_Provider  <- Diabetes_OBesity_Pats %>%  filter(diagnosis == "Diabetes") %>% select(patient) %>% inner_join(DIA_Pats_95ConfLiver_2plusHits_Provider)
+OBE_Pats_95ConfLiver_2plusHits_Provider  <- Diabetes_OBesity_Pats %>%  filter(diagnosis == "Obesity") %>% select(patient) %>% inner_join(OBE_Pats_95ConfLiver_2plusHits_Provider)
+NAFLD_Pats_95ConfLiver_2plusHits_Provider
+NASH_Pats_95ConfLiver_2plusHits_Provider
+
+
+DIAandOBE_Pats_95ConfLiver_2plusHits_Provider <- DIAandOBE_Pats_95ConfLiver_2plusHits_Provider %>% mutate(diag = str_sub(string = diag, start = 1, end = 2))  
+DIA_Pats_95ConfLiver_2plusHits_Provider <- DIA_Pats_95ConfLiver_2plusHits_Provider %>% mutate(diag = str_sub(string = diag, start = 1, end = 2))  
+OBE_Pats_95ConfLiver_2plusHits_Provider <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% mutate(diag = str_sub(string = diag, start = 1, end = 2))  
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% mutate(diag = str_sub(string = diag, start = 1, end = 2))  
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% mutate(diag = str_sub(string = diag, start = 1, end = 2))  
+
+
+length(unique(DIAandOBE_Pats_95ConfLiver_2plusHits_Provider$patient)) # 4567
+length(unique(DIA_Pats_95ConfLiver_2plusHits_Provider$patient)) # 407
+length(unique(OBE_Pats_95ConfLiver_2plusHits_Provider$patient)) # 4979
+length(unique(NAFLD_Pats_95ConfLiver_2plusHits_Provider$patient)) # 4980
+length(unique(NASH_Pats_95ConfLiver_2plusHits_Provider$patient)) # 1357
+
+DIAandOBE_Pats_95ConfLiver_2plusHits_Provider <- DIAandOBE_Pats_95ConfLiver_2plusHits_Provider %>% select(patient, diag) %>% distinct()
+DIA_Pats_95ConfLiver_2plusHits_Provider <- DIA_Pats_95ConfLiver_2plusHits_Provider %>% select(patient, diag) %>% distinct()
+OBE_Pats_95ConfLiver_2plusHits_Provider <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% select(patient, diag) %>% distinct()
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% select(patient, diag) %>% distinct()
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% select(patient, diag) %>% distinct()
+
+DIAandOBE_Pats_95ConfLiver_2plusHits_Provider <- DIAandOBE_Pats_95ConfLiver_2plusHits_Provider %>% group_by(diag) %>% count() %>% mutate(n=(n/4567)*100) %>% arrange(-n)
+DIA_Pats_95ConfLiver_2plusHits_Provider <- DIA_Pats_95ConfLiver_2plusHits_Provider %>% group_by(diag) %>% count() %>% mutate(n=(n/407)*100) %>% arrange(-n)
+OBE_Pats_95ConfLiver_2plusHits_Provider <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% group_by(diag) %>% count() %>% mutate(n=(n/4979)*100) %>% arrange(-n)
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% group_by(diag) %>% count() %>% mutate(n=(n/4980)*100) %>% arrange(-n)
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% group_by(diag) %>% count() %>% mutate(n=(n/1357)*100) %>% arrange(-n)
+
+names(DIAandOBE_Pats_95ConfLiver_2plusHits_Provider)[2] <- "Proportion"
+names(DIA_Pats_95ConfLiver_2plusHits_Provider)[2] <- "Proportion"
+names(OBE_Pats_95ConfLiver_2plusHits_Provider)[2] <- "Proportion"
+names(NAFLD_Pats_95ConfLiver_2plusHits_Provider)[2] <- "Proportion"
+names(NASH_Pats_95ConfLiver_2plusHits_Provider)[2] <- "Proportion"
+
+
+
+diag_lookup <- fread("diag_lookup.txt", sep="\t")
+
+DIAandOBE_Pats_95ConfLiver_2plusHits_Provider <- diag_lookup %>% left_join(DIAandOBE_Pats_95ConfLiver_2plusHits_Provider) 
+DIA_Pats_95ConfLiver_2plusHits_Provider <- diag_lookup %>% left_join(DIA_Pats_95ConfLiver_2plusHits_Provider) 
+OBE_Pats_95ConfLiver_2plusHits_Provider <- diag_lookup %>% left_join(OBE_Pats_95ConfLiver_2plusHits_Provider) 
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- diag_lookup %>% left_join(NAFLD_Pats_95ConfLiver_2plusHits_Provider) 
+NASH_Pats_95ConfLiver_2plusHits_Provider <- diag_lookup %>% left_join(NASH_Pats_95ConfLiver_2plusHits_Provider) 
+
+
+
+fwrite(DIAandOBE_Pats_95ConfLiver_2plusHits_Provider, "Comorbidities_Percentage_HighRiskDiabetesPlusObe_new.txt", sep="\t")
+fwrite(DIA_Pats_95ConfLiver_2plusHits_Provider, "Comorbidities_Percentage_HighRiskDiabetes_new.txt", sep="\t")
+fwrite(OBE_Pats_95ConfLiver_2plusHits_Provider, "Comorbidities_Percentage_HighRiskObesity_new.txt", sep="\t")
+fwrite(NAFLD_Pats_95ConfLiver_2plusHits_Provider, "Comorbidities_Percentage_HighRiskNAFLD_new.txt", sep="\t")
+fwrite(NASH_Pats_95ConfLiver_2plusHits_Provider, "Comorbidities_Percentage_HighRiskNASH_new.txt", sep="\t")
+
+
+
+# -------------
+# DIA vs OBE vs DIA+OBE Comorbidity penetrance SPlit NAFLD into NAFLD with/without comorb --------
+
+DIA_Drug_Histories <- fread("DIA Drug Histories.txt")
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(patient, weight)
+
+DANU_Demographics <- fread("DANU Demographics.txt")
+DANU_Demographics <- DANU_Demographics %>% select(patid, diagnosis)
+names(DANU_Demographics)[1] <- "patient"
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% left_join(DANU_Demographics)
+
+DIA_Drug_Histories %>% group_by(diagnosis) %>% summarise(n=sum(weight))
+
+# DIA / OBE Vector
+Diabetes_OBesity_Pats <- DIA_Drug_Histories
+Diabetes_OBesity_Pats <- Diabetes_OBesity_Pats %>% select(patient, diagnosis)
+
+# OBE Vector
+OBE_Drug_Histories <- fread("OBE Drug Histories.txt")
+OBE_Drug_Histories <- OBE_Drug_Histories %>% select(patient) %>% mutate(diagnosis="Obesity")
+OBE_Drug_Histories <- OBE_Drug_Histories %>% anti_join(DIA_Drug_Histories %>% select(patient))
+
+Diabetes_OBesity_Pats <- Diabetes_OBesity_Pats %>% bind_rows(OBE_Drug_Histories)
+
+
+
+DIA_Pats_95ConfLiver_2plusHits_Provider <- fread("DIA_Pats_95ConfLiver_2plusHits_Provider.txt")
+OBE_Pats_95ConfLiver_2plusHits_Provider <- fread("OBE_Pats_95ConfLiver_2plusHits_Provider.txt")
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- fread("NAFLD_Pats_95ConfLiver_2plusHits_Provider.txt")
+NASH_Pats_95ConfLiver_2plusHits_Provider <- fread("NASH_Pats_95ConfLiver_2plusHits_Provider.txt")
+Rand_pts_ICD10_lst5y_dx <- fread("Rand_pts_ICD10_lst5y_dx.txt")
+
+DIA_Pats_95ConfLiver_2plusHits_Provider <- DIA_Pats_95ConfLiver_2plusHits_Provider %>% select(ptid, diag) %>% distinct()
+OBE_Pats_95ConfLiver_2plusHits_Provider <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% select(ptid, diag) %>% distinct()
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% select(ptid, diag) %>% distinct()
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% select(ptid, diag) %>% distinct()
+Rand_pts_ICD10_lst5y_dx <- Rand_pts_ICD10_lst5y_dx %>% select(ptid, diag) %>% distinct()
+
+
+names(DIA_Pats_95ConfLiver_2plusHits_Provider)[1] <- "patient"
+names(OBE_Pats_95ConfLiver_2plusHits_Provider)[1] <- "patient"
+names(NAFLD_Pats_95ConfLiver_2plusHits_Provider)[1] <- "patient"
+names(NASH_Pats_95ConfLiver_2plusHits_Provider)[1] <- "patient"
+names(Rand_pts_ICD10_lst5y_dx)[1] <- "patient"
+
+
+
+DIAandOBE_Pats_95ConfLiver_2plusHits_Provider  <- Diabetes_OBesity_Pats %>%  filter(diagnosis == "Diabetes + Obesity") %>% select(patient) %>% inner_join(DIA_Pats_95ConfLiver_2plusHits_Provider)
+DIA_Pats_95ConfLiver_2plusHits_Provider  <- Diabetes_OBesity_Pats %>%  filter(diagnosis == "Diabetes") %>% select(patient) %>% inner_join(DIA_Pats_95ConfLiver_2plusHits_Provider)
+OBE_Pats_95ConfLiver_2plusHits_Provider  <- Diabetes_OBesity_Pats %>%  filter(diagnosis == "Obesity") %>% select(patient) %>% inner_join(OBE_Pats_95ConfLiver_2plusHits_Provider)
+NAFLD_Pats_95ConfLiver_2plusHits_Provider
+NASH_Pats_95ConfLiver_2plusHits_Provider
+Rand_pts_ICD10_lst5y_dx
+
+DIAandOBE_Pats_95ConfLiver_2plusHits_Provider <- DIAandOBE_Pats_95ConfLiver_2plusHits_Provider %>% mutate(diag = str_sub(string = diag, start = 1, end = 2))  
+DIA_Pats_95ConfLiver_2plusHits_Provider <- DIA_Pats_95ConfLiver_2plusHits_Provider %>% mutate(diag = str_sub(string = diag, start = 1, end = 2))  
+OBE_Pats_95ConfLiver_2plusHits_Provider <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% mutate(diag = str_sub(string = diag, start = 1, end = 2))  
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% mutate(diag = str_sub(string = diag, start = 1, end = 2))  
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% mutate(diag = str_sub(string = diag, start = 1, end = 2))  
+
+length(unique(Rand_pts_ICD10_lst5y_dx$patient)) #9999
+
+Rand_comorb_pts_ICD10_lst5y_dx <- Rand_pts_ICD10_lst5y_dx %>% filter(grepl("E65",diag)| grepl("E66",diag)| grepl("E67",diag)|  grepl("E68",diag)|
+                                                                       grepl("E08",diag)| grepl("E09",diag)| grepl("E10",diag)|
+                                                                       grepl("E11",diag)|  grepl("E12",diag)|  grepl("E13",diag)| grepl("E14",diag)|
+                                                                       grepl("E15",diag)| grepl("E16",diag)| grepl("K70",diag)| grepl("K71",diag)|
+                                                                       grepl("K72",diag)| grepl("K73",diag)| grepl("K74",diag)| grepl("K75",diag)|
+                                                                       grepl("K76",diag)| grepl("K77",diag))%>% select(patient) %>% distinct() %>%
+  left_join(Rand_pts_ICD10_lst5y_dx)
+
+
+Rand_only_pts_ICD10_lst5y_dx <- Rand_pts_ICD10_lst5y_dx %>% anti_join(Rand_pts_ICD10_lst5y_dx %>% filter(grepl("E65",diag)| grepl("E66",diag)| grepl("E67",diag)|  grepl("E68",diag)|
+                                                                                                           grepl("E08",diag)| grepl("E09",diag)| grepl("E10",diag)|
+                                                                                                           grepl("E11",diag)|  grepl("E12",diag)|  grepl("E13",diag)| grepl("E14",diag)|
+                                                                                                           grepl("E15",diag)| grepl("E16",diag)| grepl("K70",diag)| grepl("K71",diag)|
+                                                                                                           grepl("K72",diag)| grepl("K73",diag)| grepl("K74",diag)| grepl("K75",diag)|
+                                                                                                           grepl("K76",diag)| grepl("K77",diag))%>% select(patient) %>% distinct())
+
+
+
+
+
+length(unique(DIAandOBE_Pats_95ConfLiver_2plusHits_Provider$patient)) # 4567
+length(unique(DIA_Pats_95ConfLiver_2plusHits_Provider$patient)) # 407
+length(unique(OBE_Pats_95ConfLiver_2plusHits_Provider$patient)) # 4979
+length(unique(NAFLD_Pats_95ConfLiver_2plusHits_Provider$patient)) # 4980
+length(unique(NASH_Pats_95ConfLiver_2plusHits_Provider$patient)) # 1357
+
+DIAandOBE_Pats_95ConfLiver_2plusHits_Provider <- DIAandOBE_Pats_95ConfLiver_2plusHits_Provider %>% select(patient, diag) %>% distinct()
+DIA_Pats_95ConfLiver_2plusHits_Provider <- DIA_Pats_95ConfLiver_2plusHits_Provider %>% select(patient, diag) %>% distinct()
+OBE_Pats_95ConfLiver_2plusHits_Provider <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% select(patient, diag) %>% distinct()
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% select(patient, diag) %>% distinct()
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% select(patient, diag) %>% distinct()
+
+
+# NAFLD_Comorb_Pats_95ConfLiver_2plusHits_Provider <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% inner_join(Diabetes_OBesity_Pats %>% select(patient))
+# NAFLD_Only_Pats_95ConfLiver_2plusHits_Provider <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% anti_join(Diabetes_OBesity_Pats %>% select(patient))
+
+
+
+Rand_comorb_pts_ICD10_lst5y_dx <- Rand_comorb_pts_ICD10_lst5y_dx %>% mutate(diag = str_sub(string = diag, start = 1, end = 2))
+Rand_only_pts_ICD10_lst5y_dx <- Rand_only_pts_ICD10_lst5y_dx %>% mutate(diag = str_sub(string = diag, start = 1, end = 2))
+
+
+DIAandOBE_Pats_95ConfLiver_2plusHits_Provider <- DIAandOBE_Pats_95ConfLiver_2plusHits_Provider %>% group_by(diag) %>% count() %>% mutate(n=(n/4567)*100) %>% arrange(-n)
+DIA_Pats_95ConfLiver_2plusHits_Provider <- DIA_Pats_95ConfLiver_2plusHits_Provider %>% group_by(diag) %>% count() %>% mutate(n=(n/407)*100) %>% arrange(-n)
+OBE_Pats_95ConfLiver_2plusHits_Provider <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% group_by(diag) %>% count() %>% mutate(n=(n/4979)*100) %>% arrange(-n)
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- NAFLD_Pats_95ConfLiver_2plusHits_Provider %>% group_by(diag) %>% count() %>% mutate(n=(n/4980)*100) %>% arrange(-n)
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% group_by(diag) %>% count() %>% mutate(n=(n/1357)*100) %>% arrange(-n)
+
+
+# length(unique(NAFLD_Comorb_Pats_95ConfLiver_2plusHits_Provider$patient)) #4825
+# length(unique(NAFLD_Only_Pats_95ConfLiver_2plusHits_Provider$patient)) #155
+
+# length(unique(Rand_comorb_pts_ICD10_lst5y_dx$patient)) #6238
+# length(unique(Rand_only_pts_ICD10_lst5y_dx$patient)) #3761
+
+
+
+
+# NAFLD_Comorb_Pats_95ConfLiver_2plusHits_Provider <- NAFLD_Comorb_Pats_95ConfLiver_2plusHits_Provider %>% group_by(diag) %>% count() %>% mutate(n=(n/4825)*100) %>% arrange(-n)
+# NAFLD_Only_Pats_95ConfLiver_2plusHits_Provider <- NAFLD_Only_Pats_95ConfLiver_2plusHits_Provider %>% group_by(diag) %>% count() %>% mutate(n=(n/155)*100) %>% arrange(-n)
+
+Rand_comorb_pts_ICD10_lst5y_dx <- Rand_comorb_pts_ICD10_lst5y_dx %>% select(patient, diag) %>% distinct()
+Rand_only_pts_ICD10_lst5y_dx <- Rand_only_pts_ICD10_lst5y_dx %>% select(patient, diag) %>% distinct()
+
+
+# Rand_comorb_pts_ICD10_lst5y_dx <- Rand_comorb_pts_ICD10_lst5y_dx %>% group_by(diag) %>% count() %>% mutate(n=(n/6238)*100) %>% arrange(-n)
+# Rand_only_pts_ICD10_lst5y_dx <- Rand_only_pts_ICD10_lst5y_dx %>% group_by(diag) %>% count() %>% mutate(n=(n/3761)*100) %>% arrange(-n)
+
+
+
+
+names(DIAandOBE_Pats_95ConfLiver_2plusHits_Provider)[2] <- "Proportion"
+names(DIA_Pats_95ConfLiver_2plusHits_Provider)[2] <- "Proportion"
+names(OBE_Pats_95ConfLiver_2plusHits_Provider)[2] <- "Proportion"
+names(NAFLD_Pats_95ConfLiver_2plusHits_Provider)[2] <- "Proportion"
+names(NASH_Pats_95ConfLiver_2plusHits_Provider)[2] <- "Proportion"
+
+
+
+
+diag_lookup <- fread("diag_lookup.txt", sep="\t")
+
+DIAandOBE_Pats_95ConfLiver_2plusHits_Provider <- diag_lookup %>% left_join(DIAandOBE_Pats_95ConfLiver_2plusHits_Provider) 
+DIA_Pats_95ConfLiver_2plusHits_Provider <- diag_lookup %>% left_join(DIA_Pats_95ConfLiver_2plusHits_Provider) 
+OBE_Pats_95ConfLiver_2plusHits_Provider <- diag_lookup %>% left_join(OBE_Pats_95ConfLiver_2plusHits_Provider) 
+NAFLD_Pats_95ConfLiver_2plusHits_Provider <- diag_lookup %>% left_join(NAFLD_Pats_95ConfLiver_2plusHits_Provider) 
+NASH_Pats_95ConfLiver_2plusHits_Provider <- diag_lookup %>% left_join(NASH_Pats_95ConfLiver_2plusHits_Provider) 
+
+#NAFLD_Comorb_Pats_95ConfLiver_2plusHits_Provider <- diag_lookup %>% left_join(NAFLD_Comorb_Pats_95ConfLiver_2plusHits_Provider) 
+#NAFLD_Only_Pats_95ConfLiver_2plusHits_Provider <- diag_lookup %>% left_join(NAFLD_Only_Pats_95ConfLiver_2plusHits_Provider) 
+#Rand_comorb_pts_ICD10_lst5y_dx <- diag_lookup %>% left_join(Rand_comorb_pts_ICD10_lst5y_dx) 
+#Rand_only_pts_ICD10_lst5y_dx <- diag_lookup %>% left_join(Rand_only_pts_ICD10_lst5y_dx) 
+
+
+
+fwrite(DIAandOBE_Pats_95ConfLiver_2plusHits_Provider, "Comorbidities_Percentage_HighRiskDiabetesPlusObe_new.txt", sep="\t")
+fwrite(DIA_Pats_95ConfLiver_2plusHits_Provider, "Comorbidities_Percentage_HighRiskDiabetes_new.txt", sep="\t")
+fwrite(OBE_Pats_95ConfLiver_2plusHits_Provider, "Comorbidities_Percentage_HighRiskObesity_new.txt", sep="\t")
+fwrite(NAFLD_Pats_95ConfLiver_2plusHits_Provider, "Comorbidities_Percentage_HighRiskNAFLD_new.txt", sep="\t")
+fwrite(NASH_Pats_95ConfLiver_2plusHits_Provider, "Comorbidities_Percentage_HighRiskNASH_new.txt", sep="\t")
+
+
+fwrite(NAFLD_Comorb_Pats_95ConfLiver_2plusHits_Provider, "NAFLD_Comorb_Pats_95ConfLiver_2plusHits_Provider.txt", sep="\t")
+fwrite(NAFLD_Only_Pats_95ConfLiver_2plusHits_Provider, "NAFLD_Only_Pats_95ConfLiver_2plusHits_Provider", sep="\t")
+
+
+
+fwrite(Rand_comorb_pts_ICD10_lst5y_dx, "Rand_comorb_pts_ICD10_lst5y_dx.txt", sep="\t")
+fwrite(Rand_only_pts_ICD10_lst5y_dx, "Rand_only_pts_ICD10_lst5y_dx.txt", sep="\t")
+
+# -----
+# Split NAFLD into comorbid vs NAFLD only --------
+
+NAFLD_Pats_95ConfLiver_2plusHits <- fread("NAFLD_Pats_95ConfLiver_2plusHits.txt")
+
+
+DIA_Drug_Histories <- fread("DIA Drug Histories.txt")
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(patient, weight)
+
+DANU_Demographics <- fread("DANU Demographics.txt")
+DANU_Demographics <- DANU_Demographics %>% select(patid, diagnosis)
+names(DANU_Demographics)[1] <- "patient"
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% left_join(DANU_Demographics)
+
+DIA_Drug_Histories %>% group_by(diagnosis) %>% summarise(n=sum(weight))
+
+# DIA / OBE Vector
+Diabetes_OBesity_Pats <- DIA_Drug_Histories
+Diabetes_OBesity_Pats <- Diabetes_OBesity_Pats %>% select(patient, diagnosis)
+
+# OBE Vector
+OBE_Drug_Histories <- fread("OBE Drug Histories.txt")
+OBE_Drug_Histories <- OBE_Drug_Histories %>% select(patient) %>% mutate(diagnosis="Obesity")
+OBE_Drug_Histories <- OBE_Drug_Histories %>% anti_join(DIA_Drug_Histories %>% select(patient))
+
+Diabetes_OBesity_Pats <- Diabetes_OBesity_Pats %>% bind_rows(OBE_Drug_Histories)
+Diabetes_OBesity_Pats <- Diabetes_OBesity_Pats %>% select(patient)
+
+
+
+NAFLD_Pats_95ConfLiver_2plusHits %>% left_join(Diabetes_OBesity_Pats %>% left_join(DANU_Demographics)) %>%
+  group_by(diagnosis) %>% count()
+
+# ---------
+
+
+# BMI distribution within those predicted as high risk -----------------
+DANU_Events <- fread("DANU Events.txt")
+DANU_Events <- DANU_Events %>% filter(grepl("BMI", code))       
+DANU_Events$code <- as.character(DANU_Events$code)
+DANU_Events$code <- parse_number(DANU_Events$code)
+DANU_Events <- DANU_Events %>% select(patid, code, claimed)
+
+DANU_Events <- DANU_Events %>% group_by(patid) %>% filter(code==max(code)) %>% slice(1)
+DANU_Events <- DANU_Events %>% select(patid, code)
+
+
+OBE_Pats_95ConfLiver_2plusHits_Provider <- fread("OBE_Pats_95ConfLiver_2plusHits_Provider.txt")
+OBE_Pats_95ConfLiver_2plusHits_Provider <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% select(ptid) %>% distinct()
+
+
+OBE_Pats_95ConfLiver_2plusHits_Provider <- OBE_Pats_95ConfLiver_2plusHits_Provider %>% left_join(DANU_Events, by=c("ptid"="patid")) %>% drop_na()
+
+OBE_Pats_95ConfLiver_2plusHits_Provider %>% mutate(bucket= ifelse(code<25, "<25",
+                                                                  ifelse(code>=25&code<=30,"25-30",
+                                                                         ifelse(code>30&code<=35,"30-35",
+                                                                                ifelse(code>35&code<=40, "35-40",">40"))))) %>%
+  group_by(bucket) %>% count()
+
+
+mean(OBE_Pats_95ConfLiver_2plusHits_Provider$code)
+
+
+
+
+# BMI dis for entire Obe population
+DANU_Events <- fread("DANU Events.txt")
+DANU_Events <- DANU_Events %>% filter(grepl("BMI", code))       
+DANU_Events$code <- as.character(DANU_Events$code)
+DANU_Events$code <- parse_number(DANU_Events$code)
+DANU_Events <- DANU_Events %>% select(patid, code, claimed)
+
+DANU_Events <- DANU_Events %>% group_by(patid) %>% filter(code==max(code)) %>% slice(1)
+DANU_Events <- DANU_Events %>% select(patid, code)
+
+
+DANU_Events <- DANU_Events %>% mutate(bucket= ifelse(code<25, "<25",
+                                                     ifelse(code>=25&code<=30,"25-30",
+                                                            ifelse(code>30&code<=35,"30-35",
+                                                                   ifelse(code>35&code<=40, "35-40",">40")))))
+
+
+
+#OBE with tests
+FIB4_Obesity_Pats <- fread("FIB4_Obesity_Pats.txt")
+
+FIB4_Obesity_Pats <- FIB4_Obesity_Pats %>% select(patient) %>% inner_join(DANU_Events, by=c("patient"="patid"))
+
+OBE_Pats_Score95_2plus <- fread("OBE_Pats_Score95_2plus.txt")
+
+OBE_Pats_Score95_2plus <- OBE_Pats_Score95_2plus %>% mutate(HighRisk = "HighRisk")
+
+FIB4_Obesity_Pats %>% group_by(bucket) %>% count()
+
+FIB4_Obesity_Pats %>% select(patient, bucket) %>% distinct() %>% 
+  left_join(OBE_Pats_Score95_2plus) %>% group_by(HighRisk) %>% count()
+
+
+# ---------
+
+
+
+
+
+
+
+
+
+
+# Files for t-SNE classification in python ---------------
+
+
+All_NASH <- NASH_Probability %>% select(patient) %>% distinct()
+
+HighRisk_NASH <- NASH_Probability %>% filter(Risk_pred_model.....predict.NASH_Pats..type....response..>0.95) %>%
+  select(patient) %>% distinct() 
+
+All_DIA <- DIA_Probability %>% select(patient) %>% distinct()
+
+HighRisk_DIA <- DIA_Probability %>% filter(Risk_pred_model.....predict.DIA_Pats..type....response..>0.95) %>%
+  select(patient) %>% distinct() 
+
+All_OBE <- OBE_Probability %>% select(patient) %>% distinct()
+
+HighRisk_OBE <- OBE_Probability %>% filter(Risk_pred_model.....predict.OBE_Pats..type....response..>0.95) %>%
+  select(patient) %>% distinct() 
+
+All_NAFLD <- NAFLD_Probability %>% select(patient) %>% distinct()
+
+HighRisk_NAFLD <- NAFLD_Probability %>% filter(Risk_pred_model.....predict.NAFLD_Pats..type....response..>0.95) %>%
+  select(patient) %>% distinct() 
+
+
+All_Random <- Random_Probability %>% select(patient) %>% distinct()
+
+HighRisk_Random <- Random_Probability %>% filter(Risk_pred_model.....predict.Random_Pats..type....response..>0.95) %>%
+  select(patient) %>% distinct() 
+
+
+fwrite(All_NASH, "All_NASH.txt", sep="\t")
+fwrite(All_DIA, "All_DIA.txt", sep="\t")
+fwrite(All_OBE, "All_OBE.txt", sep="\t")
+fwrite(All_NAFLD, "All_NAFLD.txt", sep="\t")
+fwrite(All_Random, "All_Random.txt", sep="\t")
+
+fwrite(HighRisk_NASH, "HighRisk_NASH.txt", sep="\t")
+fwrite(HighRisk_DIA, "HighRisk_DIA.txt", sep="\t")
+fwrite(HighRisk_OBE, "HighRisk_OBE.txt", sep="\t")
+fwrite(HighRisk_NAFLD, "HighRisk_NAFLD.txt", sep="\t")
+fwrite(HighRisk_Random, "HighRisk_Random.txt", sep="\t")
+
+
+All_NASH <- fread("All_NASH.txt")
+All_DIA <- fread("All_DIA.txt")
+All_OBE <- fread("All_OBE.txt")
+All_NAFLD <- fread("All_NAFLD.txt")
+All_Random <- fread("All_Random.txt")
+
+
+HighRisk_NASH <- fread("HighRisk_NASH.txt")
+HighRisk_DIA <- fread("HighRisk_DIA.txt")
+HighRisk_OBE <- fread("HighRisk_OBE.txt")
+HighRisk_NAFLD <- fread("HighRisk_NAFLD.txt")
+HighRisk_Random <- fread("HighRisk_Random.txt")
+
+All_NASH <- All_NASH %>% anti_join(HighRisk_NASH)
+All_DIA <- All_DIA %>% anti_join(HighRisk_DIA)
+All_OBE <- All_OBE %>% anti_join(HighRisk_OBE)
+All_NAFLD <- All_NAFLD %>% anti_join(HighRisk_NAFLD)
+All_Random <- All_Random %>% anti_join(HighRisk_Random)
+
+
+All_NASH <- All_NASH %>% mutate(Group = "Low_Risk")
+All_DIA <- All_DIA %>% mutate(Group = "Low_Risk")
+All_OBE <- All_OBE %>% mutate(Group = "Low_Risk")
+All_NAFLD <- All_NAFLD %>% mutate(Group = "Low_Risk")
+All_Random <- All_Random %>% mutate(Group = "Low_Risk")
+
+
+
+HighRisk_NASH <- HighRisk_NASH %>% mutate(Group = "High_Risk")
+HighRisk_DIA <- HighRisk_DIA %>% mutate(Group = "High_Risk")
+HighRisk_OBE <- HighRisk_OBE %>% mutate(Group = "High_Risk")
+HighRisk_NAFLD <- HighRisk_NAFLD %>% mutate(Group = "High_Risk")
+HighRisk_Random <- HighRisk_Random %>% mutate(Group = "High_Risk")
+
+ALL_NASH_Preds <- All_NASH %>% bind_rows(All_DIA) %>% bind_rows(All_OBE) %>% bind_rows(All_NAFLD) %>% bind_rows(All_Random) %>% 
+  bind_rows(HighRisk_NASH) %>% bind_rows(HighRisk_DIA) %>% bind_rows(HighRisk_OBE) %>% 
+  bind_rows(HighRisk_NAFLD) %>% bind_rows(HighRisk_Random)
+
+
+
+# Get Pats with all labs on the same date 
+NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+DIA_Pats <- fread("FIB4_Diabetes_Pats.txt")
+OBE_Pats <- fread("FIB4_Obesity_Pats.txt")
+NAFLD_Pats <- fread("FIB4_NAFLD_Pats.txt")
+Random_Pats <- fread("FIB4_Random_Pats_Filtered.txt") 
+
+All_records <- NASH_Pats %>% bind_rows(DIA_Pats) %>% bind_rows(OBE_Pats) %>% bind_rows(NAFLD_Pats) %>% bind_rows(Random_Pats)
+
+ALL_NASH_Preds <- ALL_NASH_Preds %>% left_join(All_records) %>% select(-c(patient, claimed))
+
+fwrite(ALL_NASH_Preds, "ALL_NASH_Preds.txt", sep="\t")
+
+ALL_NASH_Preds <- fread("ALL_NASH_Preds.txt", sep="\t")
+ALL_NASH_Preds <- ALL_NASH_Preds %>% drop_na() %>% distinct()
+fwrite(ALL_NASH_Preds, "ALL_NASH_Preds.txt", sep="\t")
+
+
+
+
+
+
+
+DIA_Pats <- fread("FIB4_Diabetes_Pats.txt")
+
+HighRisk_DIA <- fread("HighRisk_DIA.txt")
+All_DIA <- fread("All_DIA.txt", sep="\t")
+All_DIA <- All_DIA %>% anti_join(HighRisk_DIA)
+
+All_DIA <- All_DIA %>% left_join(DIA_Pats) %>% mutate(Group="Low")
+HighRisk_DIA <- HighRisk_DIA %>% left_join(DIA_Pats) %>% mutate(Group="High")
+
+Diabetes_To_Predict <- All_DIA %>% bind_rows(HighRisk_DIA) %>% distinct() %>% select(-c("patient", "claimed"))
+
+fwrite(Diabetes_To_Predict, "Diabetes_To_Predict.txt", sep="\t")
+
+
+
+Random_Pats <- fread("FIB4_Random_Pats.txt")
+
+HighRisk_Random <- fread("HighRisk_Random.txt")
+All_Random <- fread("All_Random.txt", sep="\t")
+All_Random <- All_Random %>% anti_join(HighRisk_Random)
+
+All_Random <- All_Random %>% left_join(Random_Pats) %>% mutate(Group="Low")
+HighRisk_Random <- HighRisk_Random %>% left_join(Random_Pats) %>% mutate(Group="High")
+
+Random_To_Predict <- All_Random %>% bind_rows(HighRisk_Random) %>% distinct() %>% select(-c("patient", "claimed"))
+
+fwrite(Random_To_Predict, "Random_To_Predict.txt", sep="\t")
+
+
+
+
+
+NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+
+HighRisk_NASH <- fread("HighRisk_NASH.txt")
+All_NASH <- fread("All_NASH.txt", sep="\t")
+All_NASH <- All_NASH %>% anti_join(HighRisk_NASH)
+
+All_NASH <- All_NASH %>% left_join(NASH_Pats) %>% mutate(Group="Low")
+HighRisk_NASH <- HighRisk_NASH %>% left_join(NASH_Pats) %>% mutate(Group="High")
+
+NASH_To_Predict <- All_NASH %>% bind_rows(HighRisk_NASH) %>% distinct() %>% select(-c("patient", "claimed"))
+
+
+NASH_To_Predict <- HighRisk_NASH %>% arrange(Group, AST, ALT) %>% slice_tail(n=20000) %>% 
+  bind_rows(All_NASH %>% arrange(Group, AST, ALT) %>% slice_head(n=20000)) 
+
+
+NASH_To_Predict <- HighRisk_NASH %>% arrange(Group, AST, ALT) %>%
+  bind_rows(All_NASH %>% arrange(Group, AST, ALT)) %>% group_by(patient) %>%
+  filter(AST==max(AST)) %>% slice(1) %>% ungroup() %>% select(-c("patient","claimed"))
+
+fwrite(NASH_To_Predict, "NASH_To_Predict.txt", sep="\t")
+
+
+
+
+
+
+NAFLD_Pats <- fread("FIB4_NAFLD_Pats.txt")
+
+HighRisk_NAFLD <- fread("HighRisk_NAFLD.txt")
+All_NAFLD <- fread("All_NAFLD.txt", sep="\t")
+All_NAFLD <- All_NAFLD %>% anti_join(HighRisk_NAFLD)
+
+All_NAFLD <- All_NAFLD %>% left_join(NAFLD_Pats) %>% mutate(Group="Low")
+HighRisk_NAFLD <- HighRisk_NAFLD %>% left_join(NAFLD_Pats) %>% mutate(Group="High")
+
+NAFLD_To_Predict <- All_NAFLD %>% bind_rows(HighRisk_NAFLD) %>% distinct() %>% select(-c("patient", "claimed"))
+
+
+NAFLD_To_Predict <- HighRisk_NAFLD %>% arrange(Group, AST, ALT) %>% slice_tail(n=20000) %>% 
+  bind_rows(All_NAFLD %>% arrange(Group, AST, ALT) %>% slice_head(n=20000)) 
+
+
+NAFLD_To_Predict <- HighRisk_NAFLD %>% arrange(Group, AST, ALT) %>%
+  bind_rows(All_NAFLD %>% arrange(Group, AST, ALT)) %>% group_by(patient) %>%
+  filter(AST==max(AST)) %>% slice(1) %>% ungroup() %>% select(-c("patient","claimed"))
+
+fwrite(NAFLD_To_Predict, "NAFLD_To_Predict.txt", sep="\t")
+
+
+
+
+
+
+
+
+
+
+
+DIA_Pats <- fread("FIB4_Diabetes_Pats.txt")
+
+HighRisk_DIA <- fread("HighRisk_DIA.txt")
+All_DIA <- fread("All_DIA.txt", sep="\t")
+All_DIA <- All_DIA %>% anti_join(HighRisk_DIA)
+
+All_DIA <- All_DIA %>% left_join(DIA_Pats) %>% mutate(Group="Low")
+HighRisk_DIA <- HighRisk_DIA %>% left_join(DIA_Pats) %>% mutate(Group="High")
+
+DIA_To_Predict <- All_DIA %>% bind_rows(HighRisk_DIA) %>% distinct() %>% select(-c("patient", "claimed"))
+
+
+DIA_To_Predict <- HighRisk_DIA %>% arrange(Group, AST, ALT) %>% slice_tail(n=20000) %>% 
+  bind_rows(All_DIA %>% arrange(Group, AST, ALT) %>% slice_head(n=20000)) 
+
+
+DIA_To_Predict <- HighRisk_DIA %>% arrange(Group, AST, ALT) %>%
+  bind_rows(All_DIA %>% arrange(Group, AST, ALT)) %>% group_by(patient) %>%
+  filter(AST==max(AST)) %>% slice(1) %>% ungroup() %>% select(-c("patient","claimed"))
+
+fwrite(DIA_To_Predict, "DIA_To_Predict.txt", sep="\t")
+
+
+
+
+
+
+
+
+
+
+OBE_Pats <- fread("FIB4_Obesity_Pats.txt")
+
+HighRisk_OBE <- fread("HighRisk_OBE.txt")
+All_OBE <- fread("All_OBE.txt", sep="\t")
+All_OBE <- All_OBE %>% anti_join(HighRisk_OBE)
+
+All_OBE <- All_OBE %>% left_join(OBE_Pats) %>% mutate(Group="Low")
+HighRisk_OBE <- HighRisk_OBE %>% left_join(OBE_Pats) %>% mutate(Group="High")
+
+OBE_To_Predict <- All_OBE %>% bind_rows(HighRisk_OBE) %>% distinct() %>% select(-c("patient", "claimed"))
+
+
+OBE_To_Predict <- HighRisk_OBE %>% arrange(Group, AST, ALT) %>% slice_tail(n=20000) %>% 
+  bind_rows(All_OBE %>% arrange(Group, AST, ALT) %>% slice_head(n=20000)) 
+
+
+OBE_To_Predict <- HighRisk_OBE %>% arrange(Group, AST, ALT) %>%
+  bind_rows(All_OBE %>% arrange(Group, AST, ALT)) %>% group_by(patient) %>%
+  filter(AST==max(AST)) %>% slice(1) %>% ungroup() %>% select(-c("patient","claimed"))
+
+fwrite(OBE_To_Predict, "OBE_To_Predict.txt", sep="\t")
+
+
+
+# --------------
+# Ages for diagnosed vs undiagnosed bs nash stage vs comorbidity --------
+
+All_NASH <- fread("All_NASH.txt")
+All_DIA <- fread("All_DIA.txt")
+All_OBE <- fread("All_OBE.txt")
+All_NAFLD <- fread("All_NAFLD.txt")
+All_Random <- fread("All_Random.txt")
+
+HighRisk_NASH <- fread("HighRisk_NASH.txt")
+HighRisk_DIA <- fread("HighRisk_DIA.txt")
+HighRisk_OBE <- fread("HighRisk_OBE.txt")
+HighRisk_NAFLD <- fread("HighRisk_NAFLD.txt")
+HighRisk_Random <- fread("HighRisk_Random.txt")
+
+All_NASH <- All_NASH %>% anti_join(HighRisk_NASH)
+All_DIA <- All_DIA %>% anti_join(HighRisk_DIA)
+All_OBE <- All_OBE %>% anti_join(HighRisk_OBE)
+All_NAFLD <- All_NAFLD %>% anti_join(HighRisk_NAFLD)
+All_Random <- All_Random %>% anti_join(HighRisk_Random)
+
+
+
+DIA_Drug_Histories <- fread("DIA Drug Histories.txt")
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(patient, weight)
+
+DANU_Demographics <- fread("DANU Demographics.txt")
+DANU_Demographics <- DANU_Demographics %>% select(patid, diagnosis)
+names(DANU_Demographics)[1] <- "patient"
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% left_join(DANU_Demographics)
+
+# DIA / OBE Vector
+Diabetes_OBesity_Pats <- DIA_Drug_Histories
+Diabetes_OBesity_Pats <- Diabetes_OBesity_Pats %>% select(patient, diagnosis)
+
+# OBE Vector
+OBE_Drug_Histories <- fread("OBE Drug Histories.txt")
+OBE_Drug_Histories <- OBE_Drug_Histories %>% select(patient) %>% mutate(diagnosis="Obesity")
+OBE_Drug_Histories <- OBE_Drug_Histories %>% anti_join(DIA_Drug_Histories %>% select(patient))
+
+Diabetes_OBesity_Pats <- Diabetes_OBesity_Pats %>% bind_rows(OBE_Drug_Histories)
+
+All_DIA <- All_DIA %>% left_join(Diabetes_OBesity_Pats) 
+All_NAFLD  <- All_NAFLD %>% left_join(Diabetes_OBesity_Pats) %>% mutate(ifelse(is.na(diagnosis), "NAFLD-only", diagnosis))
+All_NASH  <- All_NASH %>% left_join(Diabetes_OBesity_Pats) %>% mutate(ifelse(is.na(diagnosis), "NASH-only", diagnosis))
+All_OBE  <- All_OBE %>% left_join(Diabetes_OBesity_Pats) 
+All_Random  <- All_Random %>% mutate(diagnosis="All_Random")
+
+
+HighRisk_DIA <- HighRisk_DIA %>% left_join(Diabetes_OBesity_Pats) 
+All_NAFLD  <- All_NAFLD %>% left_join(Diabetes_OBesity_Pats) %>% mutate(ifelse(is.na(diagnosis), "NAFLD-only", diagnosis))
+HighRisk_NASH  <- HighRisk_NASH %>% left_join(Diabetes_OBesity_Pats) %>% mutate(ifelse(is.na(diagnosis), "NASH-only", diagnosis))
+HighRisk_OBE  <- HighRisk_OBE %>% left_join(Diabetes_OBesity_Pats) 
+HighRisk_Random  <- HighRisk_Random %>% mutate(diagnosis="All_Random")
+
+
+
+
+
+# For the already diagnosed
+
+FIB4_Bucket_dx <- fread("FIB4_Bucket_Fibrosis.txt")
+NASH_Demographics <- fread("NASH Demographics.txt")
+
+FIB4_Bucket_dx %>% left_join(NASH_Demographics %>% select(patid, weight, age), by = c("patient"="patid")) %>%
+  left_join(Diabetes_OBesity_Pats) %>% group_by(diagnosis, FIB4_Bucket) %>% summarise(n=weighted.mean(age, weight))
+
+
+
+FIB4_Bucket_dx %>% left_join(NASH_Demographics %>% select(patid, weight, age), by = c("patient"="patid")) %>%
+  left_join(Diabetes_OBesity_Pats) %>% group_by(FIB4_Bucket) %>% summarise(n=weighted.mean(age, weight))
+
+
+FIB4_Bucket_dx %>% left_join(NASH_Demographics %>% select(patid, weight, age), by = c("patient"="patid")) %>%
+  left_join(Diabetes_OBesity_Pats) %>% summarise(n=weighted.mean(age, weight))
+
+
+FIB4_Bucket_dx %>% left_join(NASH_Demographics %>% select(patid, weight, age), by = c("patient"="patid")) %>%
+  left_join(Diabetes_OBesity_Pats) %>% group_by(diagnosis) %>% summarise(n=weighted.mean(age, weight))
+
+
+
+
+# Ages For the undiagnosed high risk -------------
+HighRisk_DIA <- fread("HighRisk_DIA.txt")
+HighRisk_OBE <- fread("HighRisk_OBE.txt")
+HighRisk_NAFLD <- fread("HighRisk_NAFLD.txt")
+HighRisk_Random <- fread("HighRisk_Random.txt")
+
+
+# Get Ages
+
+Rand_pts_Lab_Results_lst5y <- fread("Rand_pts_Lab_Results_lst5y.txt")
+Rand_pts_Lab_Results_lst5y <- Rand_pts_Lab_Results_lst5y %>% select(ptid, age) %>% distinct()
+names(Rand_pts_Lab_Results_lst5y)[1] <- "patient"
+
+NAFLD_Demographics <- fread("NAFLD Demographics.txt")
+names(NAFLD_Demographics)[1] <- "patient"
+
+DANU_Demographics <- fread("DANU Demographics.txt")
+names(DANU_Demographics)[1] <- "patient"
+
+
+HighRisk_DIA <- HighRisk_DIA %>% left_join(DANU_Demographics %>% select(patient, age))
+HighRisk_OBE <- HighRisk_OBE %>% left_join(DANU_Demographics %>% select(patient, age))
+HighRisk_NAFLD <- HighRisk_NAFLD %>% left_join(NAFLD_Demographics %>% select(patient, age))
+HighRisk_Random <- HighRisk_Random %>%left_join(Rand_pts_Lab_Results_lst5y)
+
+
+NASH_Demographics_All <- fread("NASH Demographics All.txt")
+names(NASH_Demographics_All)[1] <- "patient"
+length(unique(NASH_Demographics_All$patient))
+NASH_Demographics_All <- NASH_Demographics_All %>% select(patient, weight, fibrosis, cirrhosis)
+
+HighRisk_DIA <- HighRisk_DIA %>% inner_join(NASH_Demographics_All)
+HighRisk_OBE <- HighRisk_OBE %>% inner_join(NASH_Demographics_All)
+HighRisk_NAFLD <- HighRisk_NAFLD %>% inner_join(NASH_Demographics_All) 
+
+
+# Comorbidity status
+
+DIA_Drug_Histories <- fread("DIA Drug Histories.txt")
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(patient, weight)
+
+DANU_Demographics <- fread("DANU Demographics.txt")
+DANU_Demographics <- DANU_Demographics %>% select(patid, diagnosis)
+names(DANU_Demographics)[1] <- "patient"
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% left_join(DANU_Demographics)
+
+# DIA / OBE Vector
+Diabetes_OBesity_Pats <- DIA_Drug_Histories
+Diabetes_OBesity_Pats <- Diabetes_OBesity_Pats %>% select(patient, diagnosis)
+
+# OBE Vector
+OBE_Drug_Histories <- fread("OBE Drug Histories.txt")
+OBE_Drug_Histories <- OBE_Drug_Histories %>% select(patient) %>% mutate(diagnosis="Obesity")
+OBE_Drug_Histories <- OBE_Drug_Histories %>% anti_join(DIA_Drug_Histories %>% select(patient))
+
+Diabetes_OBesity_Pats <- Diabetes_OBesity_Pats %>% bind_rows(OBE_Drug_Histories)
+
+HighRisk_DIA <- HighRisk_DIA %>% left_join(Diabetes_OBesity_Pats)
+HighRisk_OBE <- HighRisk_OBE %>% left_join(Diabetes_OBesity_Pats)
+HighRisk_NAFLD <- HighRisk_NAFLD %>% left_join(Diabetes_OBesity_Pats)
+
+
+HighRisk_DIA %>% filter(!is.na(cirrhosis)) %>% group_by(diagnosis) %>% summarise(n=mean(age))
+HighRisk_DIA %>% filter(is.na(cirrhosis) & !is.na(fibrosis)) %>% group_by(diagnosis) %>% summarise(n=mean(age))
+HighRisk_DIA %>% filter(is.na(cirrhosis) & is.na(fibrosis)) %>% group_by(diagnosis) %>% summarise(n=mean(age))
+HighRisk_DIA  %>% group_by(diagnosis) %>% summarise(n=mean(age))
+
+
+HighRisk_OBE %>% filter(!is.na(cirrhosis)) %>% group_by(diagnosis) %>% summarise(n=mean(age))
+HighRisk_OBE %>% filter(is.na(cirrhosis) & !is.na(fibrosis)) %>% group_by(diagnosis) %>% summarise(n=mean(age))
+HighRisk_OBE %>% filter(is.na(cirrhosis) & is.na(fibrosis)) %>% group_by(diagnosis) %>% summarise(n=mean(age))
+HighRisk_OBE  %>% group_by(diagnosis) %>% summarise(n=mean(age))
+
+
+
+HighRisk_NAFLD %>% filter(is.na(diagnosis)) %>% filter(!is.na(cirrhosis))  %>% summarise(n=mean(age, na.rm=T))
+HighRisk_NAFLD %>% filter(!is.na(diagnosis)) %>% filter(!is.na(cirrhosis))  %>% summarise(n=mean(age, na.rm=T))
+
+
+HighRisk_NAFLD %>% filter(is.na(diagnosis)) %>% filter(is.na(cirrhosis) & !is.na(fibrosis))  %>% summarise(n=mean(age, na.rm=T))
+HighRisk_NAFLD %>% filter(!is.na(diagnosis)) %>% filter(is.na(cirrhosis) & !is.na(fibrosis))  %>% summarise(n=mean(age, na.rm=T))
+
+HighRisk_NAFLD %>% filter(is.na(diagnosis)) %>% filter(is.na(cirrhosis) & is.na(fibrosis))  %>% summarise(n=mean(age, na.rm=T))
+HighRisk_NAFLD %>% filter(!is.na(diagnosis)) %>% filter(is.na(cirrhosis) & is.na(fibrosis))  %>% summarise(n=mean(age, na.rm=T))
+
+HighRisk_NAFLD  %>% filter(is.na(diagnosis)) %>% summarise(n=mean(age, na.rm=T))
+HighRisk_NAFLD  %>% filter(!is.na(diagnosis)) %>% summarise(n=mean(age, na.rm=T))
+
+
+HighRisk_DIA %>% bind_rows(HighRisk_OBE) %>% bind_rows(HighRisk_NAFLD) %>%
+  filter(!is.na(cirrhosis))  %>% summarise(n=mean(age, na.rm=T))
+
+
+HighRisk_DIA %>% bind_rows(HighRisk_OBE) %>% bind_rows(HighRisk_NAFLD) %>%
+  filter(is.na(cirrhosis) & !is.na(fibrosis))  %>% summarise(n=mean(age, na.rm=T))
+
+
+HighRisk_DIA %>% bind_rows(HighRisk_OBE) %>% bind_rows(HighRisk_NAFLD) %>%
+  filter(is.na(cirrhosis) & is.na(fibrosis))  %>% summarise(n=mean(age, na.rm=T))
+
+# ----------
+# Age Biopsy vs no Biopsy ------------------
+NASH_Dossiers <- fread("NASH Dossiers.txt")
+Biopsy_pats <- NASH_Dossiers %>% filter(condition == "Liver Biopsy") %>% select(patid) %>% distinct()
+Biopsy_pats$Biopsy = "Biopsy"
+names(Biopsy_pats)[1] <- "patient"
+
+FIB4_Bucket_dx <- fread("FIB4_Bucket_Fibrosis.txt")
+
+
+
+DIA_Drug_Histories <- fread("DIA Drug Histories.txt")
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(patient, weight)
+
+DANU_Demographics <- fread("DANU Demographics.txt")
+DANU_Demographics <- DANU_Demographics %>% select(patid, diagnosis)
+names(DANU_Demographics)[1] <- "patient"
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% left_join(DANU_Demographics)
+
+# DIA / OBE Vector
+Diabetes_OBesity_Pats <- DIA_Drug_Histories
+Diabetes_OBesity_Pats <- Diabetes_OBesity_Pats %>% select(patient, diagnosis)
+
+# OBE Vector
+OBE_Drug_Histories <- fread("OBE Drug Histories.txt")
+OBE_Drug_Histories <- OBE_Drug_Histories %>% select(patient) %>% mutate(diagnosis="Obesity")
+OBE_Drug_Histories <- OBE_Drug_Histories %>% anti_join(DIA_Drug_Histories %>% select(patient))
+
+Diabetes_OBesity_Pats <- Diabetes_OBesity_Pats %>% bind_rows(OBE_Drug_Histories)
+
+DANU_Demographics <- fread("DANU Demographics.txt")
+names(DANU_Demographics)[1] <- "patient"
+
+FIB4_Bucket_dx <- FIB4_Bucket_dx %>% left_join(Diabetes_OBesity_Pats) %>% left_join(Biopsy_pats) %>% 
+  left_join(DANU_Demographics %>% select(patient, age))
+
+FIB4_Bucket_dx %>% group_by(Biopsy) %>% summarise(n=mean(age))
+
+
+data.frame(FIB4_Bucket_dx %>% group_by(diagnosis, FIB4_Bucket, Biopsy) %>% summarise(n=mean(age)))
+
+
+# -------
+# Penetrance of other imaging tests: Biopsy vs no Biopsy --------------
+# from above
+
+# Ultrasound 
+NASH_Dossiers <- fread("NASH Dossiers.txt")
+Ultrasound_pats <- NASH_Dossiers %>% filter(condition == "Liver Ultrasound") %>% select(patid) %>% distinct()
+
+Ultrasound_pats <- Ultrasound_pats %>% mutate(Ultrasound_pats = "Ultrasound")
+names(Ultrasound_pats)[1] <- "patient"
+
+
+# Liver Imaging 
+NASH_Dossiers <- fread("NASH Dossiers.txt")
+Imaging_pats <- NASH_Dossiers %>% filter(condition == "Liver Imaging") %>% select(patid) %>% distinct()
+
+Imaging_pats <- Imaging_pats %>% mutate(Imaging_Status = "Imaging")
+names(Imaging_pats)[1] <- "patient"
+
+FIB4_Bucket_dx <- FIB4_Bucket_dx %>% left_join(Ultrasound_pats) %>% left_join(Imaging_pats)
+
+FIB4_Bucket_dx %>% group_by(Biopsy, Ultrasound_pats) %>% count()
+
+
+
+FIB4_Bucket_dx %>% group_by(Biopsy, Imaging_Status) %>% count()
+
+
+data.frame(FIB4_Bucket_dx %>% group_by(diagnosis, FIB4_Bucket, Biopsy, Ultrasound_pats) %>% count())
+
+
+
+
+data.frame(FIB4_Bucket_dx %>% group_by(diagnosis, FIB4_Bucket, Biopsy, Imaging_Status) %>% count())
+
+# -----
+
+# Payer Mix across comorbidity and NASH stages --------------------------------
+NASH_Demographics <- fread("NASH Demographics All.txt")
+NASH_Demographics <- NASH_Demographics %>% select(patid, plan)
+names(NASH_Demographics)[1] <- "patient"
+
+# Comorbidity status
+DIA_Drug_Histories <- fread("DIA Drug Histories.txt")
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(patient, weight)
+DANU_Demographics <- fread("DANU Demographics.txt")
+DANU_Demographics <- DANU_Demographics %>% select(patid, diagnosis)
+names(DANU_Demographics)[1] <- "patient"
+DIA_Drug_Histories <- DIA_Drug_Histories %>% left_join(DANU_Demographics)
+# DIA / OBE Vector
+Diabetes_OBesity_Pats <- DIA_Drug_Histories
+Diabetes_OBesity_Pats <- Diabetes_OBesity_Pats %>% select(patient, diagnosis)
+# OBE Vector
+OBE_Drug_Histories <- fread("OBE Drug Histories.txt")
+OBE_Drug_Histories <- OBE_Drug_Histories %>% select(patient) %>% mutate(diagnosis="Obesity")
+OBE_Drug_Histories <- OBE_Drug_Histories %>% anti_join(DIA_Drug_Histories %>% select(patient))
+Diabetes_OBesity_Pats <- Diabetes_OBesity_Pats %>% bind_rows(OBE_Drug_Histories)
+
+
+# Diagnosed
+FIB4_Bucket_dx <- fread("FIB4_Bucket_Fibrosis.txt")
+
+
+data.frame(FIB4_Bucket_dx %>% left_join(NASH_Demographics) %>%
+             left_join(Diabetes_OBesity_Pats) %>% group_by(diagnosis, FIB4_Bucket) %>% count())
+
+
+
+
+FIB4_Bucket_dx %>% left_join(NASH_Demographics) %>%
+  left_join(Diabetes_OBesity_Pats) %>% group_by(plan) %>% count()
+
+
+data.frame(FIB4_Bucket_dx %>% left_join(NASH_Demographics) %>%
+             left_join(Diabetes_OBesity_Pats) %>% group_by(diagnosis) %>% count())
+
+
+data.frame(FIB4_Bucket_dx %>% left_join(NASH_Demographics) %>%
+             left_join(Diabetes_OBesity_Pats) %>% group_by(FIB4_Bucket) %>% count())
+
+
+data.frame(FIB4_Bucket_dx %>% left_join(NASH_Demographics) %>%
+             left_join(Diabetes_OBesity_Pats) %>% group_by(diagnosis, FIB4_Bucket, plan) %>% count())
+
+
+# High Risk Undiagnosed 
+HighRisk_DIA <- fread("HighRisk_DIA.txt")
+HighRisk_OBE <- fread("HighRisk_OBE.txt")
+HighRisk_NAFLD <- fread("HighRisk_NAFLD.txt")
+HighRisk_Random <- fread("HighRisk_Random.txt")
+
+NASH_Demographics # from before, with plan
+
+NASH_Demographics_All <- fread("NASH Demographics All.txt")
+names(NASH_Demographics_All)[1] <- "patient"
+NASH_Demographics_All <- NASH_Demographics_All %>% select(patient, fibrosis, cirrhosis)
+
+HighRisk_DIA <- HighRisk_DIA %>% inner_join(NASH_Demographics_All) %>% left_join(NASH_Demographics)
+HighRisk_OBE <- HighRisk_OBE %>% inner_join(NASH_Demographics_All) %>% left_join(NASH_Demographics)
+HighRisk_NAFLD <- HighRisk_NAFLD %>% inner_join(NASH_Demographics_All) %>% left_join(NASH_Demographics)
+
+HighRisk_DIA <- HighRisk_DIA %>% left_join(Diabetes_OBesity_Pats)
+HighRisk_OBE <- HighRisk_OBE %>% left_join(Diabetes_OBesity_Pats)
+HighRisk_NAFLD <- HighRisk_NAFLD %>% left_join(Diabetes_OBesity_Pats)
+
+
+
+#T2 DM only
+data.frame(HighRisk_DIA %>% filter(diagnosis=="Diabetes") %>% count()) # 832
+data.frame(HighRisk_DIA %>% filter(diagnosis=="Diabetes") %>% filter(!is.na(cirrhosis)) %>% count()) # 28
+data.frame(HighRisk_DIA %>% filter(diagnosis=="Diabetes") %>% filter(is.na(cirrhosis) & !is.na(fibrosis)) %>% count()) # 10
+data.frame(HighRisk_DIA %>% filter(diagnosis=="Diabetes") %>% filter(is.na(cirrhosis) & is.na(fibrosis)) %>% count()) # 794
+
+data.frame(HighRisk_DIA %>% filter(diagnosis=="Diabetes") %>% group_by(plan) %>% count()) # 832
+
+data.frame(HighRisk_DIA %>% filter(diagnosis=="Diabetes") %>% filter(!is.na(cirrhosis)) %>% group_by(plan) %>% count()) 
+data.frame(HighRisk_DIA %>% filter(diagnosis=="Diabetes") %>%filter(is.na(cirrhosis) & !is.na(fibrosis)) %>% group_by(plan) %>% count()) 
+data.frame(HighRisk_DIA %>% filter(diagnosis=="Diabetes") %>%filter(is.na(cirrhosis) & is.na(fibrosis)) %>% group_by(plan) %>% count()) 
+
+
+#T2 DM + OBE
+data.frame(HighRisk_DIA %>% filter(diagnosis=="Diabetes + Obesity") %>% count()) # 9656
+data.frame(HighRisk_DIA %>% filter(diagnosis=="Diabetes + Obesity") %>% filter(!is.na(cirrhosis)) %>% count()) # 227
+data.frame(HighRisk_DIA %>% filter(diagnosis=="Diabetes + Obesity") %>% filter(is.na(cirrhosis) & !is.na(fibrosis)) %>% count()) # 27
+data.frame(HighRisk_DIA %>% filter(diagnosis=="Diabetes + Obesity") %>% filter(is.na(cirrhosis) & is.na(fibrosis)) %>% count()) # 9402
+
+data.frame(HighRisk_DIA %>% filter(diagnosis=="Diabetes + Obesity") %>% group_by(plan) %>% count()) #
+
+data.frame(HighRisk_DIA %>% filter(diagnosis=="Diabetes + Obesity") %>% filter(!is.na(cirrhosis)) %>% group_by(plan) %>% count()) 
+data.frame(HighRisk_DIA %>% filter(diagnosis=="Diabetes + Obesity") %>%filter(is.na(cirrhosis) & !is.na(fibrosis)) %>% group_by(plan) %>% count()) 
+data.frame(HighRisk_DIA %>% filter(diagnosis=="Diabetes + Obesity") %>%filter(is.na(cirrhosis) & is.na(fibrosis)) %>% group_by(plan) %>% count()) 
+
+
+
+# OBE
+data.frame(HighRisk_OBE %>% count()) # 16282
+data.frame(HighRisk_OBE %>% filter(!is.na(cirrhosis)) %>% count()) # 2
+data.frame(HighRisk_OBE %>% filter(is.na(cirrhosis) & !is.na(fibrosis)) %>% count()) # 52
+data.frame(HighRisk_OBE %>% filter(is.na(cirrhosis) & is.na(fibrosis)) %>% count()) # 16000
+
+data.frame(HighRisk_OBE %>% group_by(plan) %>% count()) #
+
+data.frame(HighRisk_OBE %>% filter(!is.na(cirrhosis)) %>% group_by(plan) %>% count()) 
+data.frame(HighRisk_OBE %>% filter(is.na(cirrhosis) & !is.na(fibrosis)) %>% group_by(plan) %>% count()) 
+data.frame(HighRisk_OBE %>% filter(is.na(cirrhosis) & is.na(fibrosis)) %>% group_by(plan) %>% count()) 
+
+
+
+# NAFLD-only
+data.frame(HighRisk_NAFLD %>% filter(is.na(diagnosis)) %>%  count()) # 257
+data.frame(HighRisk_NAFLD %>% filter(is.na(diagnosis)) %>%  filter(!is.na(cirrhosis)) %>% count()) # 17
+data.frame(HighRisk_NAFLD %>% filter(is.na(diagnosis)) %>%  filter(is.na(cirrhosis) & !is.na(fibrosis)) %>% count()) # 6
+data.frame(HighRisk_NAFLD %>% filter(is.na(diagnosis)) %>%  filter(is.na(cirrhosis) & is.na(fibrosis)) %>% count()) # 234
+
+data.frame(HighRisk_NAFLD %>% filter(is.na(diagnosis)) %>%  group_by(plan) %>% count()) 
+
+data.frame(HighRisk_NAFLD %>%  filter(is.na(diagnosis)) %>% filter(!is.na(cirrhosis)) %>% group_by(plan) %>% count()) 
+data.frame(HighRisk_NAFLD %>%  filter(is.na(diagnosis)) %>% filter(is.na(cirrhosis) & !is.na(fibrosis)) %>% group_by(plan) %>% count()) 
+data.frame(HighRisk_NAFLD %>%  filter(is.na(diagnosis)) %>% filter(is.na(cirrhosis) & is.na(fibrosis)) %>% group_by(plan) %>% count()) 
+
+
+
+
+# NAFLD-only
+data.frame(HighRisk_NAFLD %>% filter(!is.na(diagnosis)) %>%  count()) # 8022
+data.frame(HighRisk_NAFLD %>% filter(!is.na(diagnosis)) %>%  filter(!is.na(cirrhosis)) %>% count()) # 338
+data.frame(HighRisk_NAFLD %>% filter(!is.na(diagnosis)) %>%  filter(is.na(cirrhosis) & !is.na(fibrosis)) %>% count()) # 138
+data.frame(HighRisk_NAFLD %>% filter(!is.na(diagnosis)) %>%  filter(is.na(cirrhosis) & is.na(fibrosis)) %>% count()) # 7546
+
+data.frame(HighRisk_NAFLD %>% filter(!is.na(diagnosis)) %>%  group_by(plan) %>% count()) 
+
+data.frame(HighRisk_NAFLD %>%  filter(!is.na(diagnosis)) %>% filter(!is.na(cirrhosis)) %>% group_by(plan) %>% count()) 
+data.frame(HighRisk_NAFLD %>%  filter(!is.na(diagnosis)) %>% filter(is.na(cirrhosis) & !is.na(fibrosis)) %>% group_by(plan) %>% count()) 
+data.frame(HighRisk_NAFLD %>%  filter(!is.na(diagnosis)) %>% filter(is.na(cirrhosis) & is.na(fibrosis)) %>% group_by(plan) %>% count()) 
+
+
+HighRisk_NAFLD %>% bind_rows(HighRisk_DIA) %>% bind_rows(HighRisk_OBE) %>% 
+  filter(!is.na(cirrhosis)) %>% count()
+
+HighRisk_NAFLD %>% bind_rows(HighRisk_DIA) %>% bind_rows(HighRisk_OBE) %>% 
+  filter(is.na(cirrhosis) & !is.na(fibrosis)) %>% count()
+
+HighRisk_NAFLD %>% bind_rows(HighRisk_DIA) %>% bind_rows(HighRisk_OBE) %>% 
+  filter(is.na(cirrhosis) & is.na(fibrosis)) %>% count()
+
+
+
+
+HighRisk_NAFLD %>% bind_rows(HighRisk_DIA) %>% bind_rows(HighRisk_OBE)%>% 
+  group_by(plan) %>% count()
+
+HighRisk_NAFLD %>% bind_rows(HighRisk_DIA) %>% bind_rows(HighRisk_OBE) %>% 
+  filter(!is.na(cirrhosis))  %>% group_by(plan) %>% count()
+
+HighRisk_NAFLD %>% bind_rows(HighRisk_DIA) %>% bind_rows(HighRisk_OBE) %>% 
+  filter(is.na(cirrhosis) & !is.na(fibrosis)) %>% group_by(plan) %>% count()
+
+
+HighRisk_NAFLD %>% bind_rows(HighRisk_DIA) %>% bind_rows(HighRisk_OBE) %>% 
+  filter(is.na(cirrhosis) & is.na(fibrosis)) %>% group_by(plan) %>% count()
+
+
+
+
+
+# ---------
+# Specialties associated with liver biopsy events -----------
+NASH_Events <- fread("NASH Events.txt")
+NASH_Events <- NASH_Events %>% select(code, prov) 
+
+NASH_Diagnosis_Codes <- fread("NASH Diagnosis Codes.txt")
+NASH_Diagnosis_Codes <- NASH_Diagnosis_Codes %>% filter(condition=="Liver Biopsy") %>% select(code, condition)
+
+NASH_Events <- NASH_Events %>% inner_join(NASH_Diagnosis_Codes)
+
+NASH_Event_Claims_Providers <- fread("NASH Event Claims Providers.txt")
+
+NASH_Event_Claims_Providers <- NASH_Event_Claims_Providers %>% select(prov, specialty)
+
+NASH_Events <- NASH_Events %>% left_join(NASH_Event_Claims_Providers)
+
+data.frame(NASH_Events %>% group_by(specialty) %>% count() %>% arrange(-n))
+
+Summary_Specialties <- fread("Summary_Specialties.txt")
+
+NASH_Events <- NASH_Events %>% left_join(Summary_Specialties)
+
+temp <- data.frame(NASH_Events %>% group_by(specialty) %>% count() %>% arrange(-n))
+
+fwrite(temp, "Specialties_Biopsy.txt", sep="\t")
+
+# -------
+
+# Comorbidities based on biopsy status ------
+NASH_Pats_95ConfLiver_2plusHits_Provider <- fread("NASH_Pats_95ConfLiver_2plusHits_Provider.txt")
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% select(ptid, diag) %>% distinct()
+names(NASH_Pats_95ConfLiver_2plusHits_Provider)[1] <- "patient"
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% mutate(diag = str_sub(string = diag, start = 1, end = 2))  
+
+length(unique(NASH_Pats_95ConfLiver_2plusHits_Provider$patient)) # 1357
+
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% select(patient, diag) %>% distinct()
+
+
+NASH_Dossiers <- fread("NASH Dossiers.txt")
+Biopsy_pats <- NASH_Dossiers %>% filter(condition == "Liver Biopsy") %>% select(patid) %>% distinct()
+Biopsy_pats$Biopsy = "Biopsy"
+names(Biopsy_pats)[1] <- "patient"
+
+
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% left_join(Biopsy_pats)
+
+NASH_Pats_95ConfLiver_2plusHits_Provider %>% select(patient, Biopsy) %>% distinct() %>% group_by(Biopsy) %>% count()
+
+
+
+
+NASH_Pats_95ConfLiver_2plusHits_Provider <- data.frame(NASH_Pats_95ConfLiver_2plusHits_Provider %>% group_by(Biopsy, diag) %>% count())
+
+diag_lookup <- fread("diag_lookup.txt", sep="\t")
+
+NASH_Pats_95ConfLiver_2plusHits_Provider <- diag_lookup %>% left_join(NASH_Pats_95ConfLiver_2plusHits_Provider) 
+
+NASH_Pats_95ConfLiver_2plusHits_Provider <- NASH_Pats_95ConfLiver_2plusHits_Provider %>% mutate(n2 = ifelse(is.na(Biopsy),n/1065,n/292))
+
+fwrite(NASH_Pats_95ConfLiver_2plusHits_Provider, "Comorbidities_Percentage_HighRiskNASH_BIOPSY.txt", sep="\t")
+
+# ------
+# Total duration on treatment -------
+FIB4_Bucket_dx <- fread("FIB4_Bucket_Fibrosis.txt")
+NASH_only <- FIB4_Bucket_dx %>% filter(FIB4_Bucket=="NASH-only") %>% select(patient)
+NASH_fibrosis <- FIB4_Bucket_dx %>% filter(FIB4_Bucket=="Fibrosis") %>% select(patient)
+NASH_cirrhosis <- FIB4_Bucket_dx %>% filter(FIB4_Bucket=="NASH-Cirrhosis") %>% select(patient)
+
+
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories <- NASH_only %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('-',.), ~replace(., grepl('-', .), "Lapsed"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Lapsed",0,1))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_LONG <- NASH_only %>% left_join(NASH_Drug_Histories_LONG)
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Total_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Total_Periods)[3] <- "Duration"
+
+Total_Periods_VIZ <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                   select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Total_Periods_VIZ, "Total_Periods_NASH_only_VIZ.csv")
+
+temp <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                      select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 30.37262
+weighted.median(temp$Total_duration, temp$n) # 28.5
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories <- NASH_fibrosis %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('-',.), ~replace(., grepl('-', .), "Lapsed"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Lapsed",0,1))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_LONG <- NASH_fibrosis %>% left_join(NASH_Drug_Histories_LONG)
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Total_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Total_Periods)[3] <- "Duration"
+
+Total_Periods_VIZ <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                   select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Total_Periods_VIZ, "Total_Periods_NASH_fibrosis_VIZ.csv")
+
+temp <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                      select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 35.12016
+weighted.median(temp$Total_duration, temp$n) # 38.5
+
+
+
+
+
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories <- NASH_cirrhosis %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('-',.), ~replace(., grepl('-', .), "Lapsed"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Lapsed",0,1))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_LONG <- NASH_cirrhosis %>% left_join(NASH_Drug_Histories_LONG)
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Total_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Total_Periods)[3] <- "Duration"
+
+Total_Periods_VIZ <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                   select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Total_Periods_VIZ, "Total_Periods_NASH_cirrhosis_VIZ.csv")
+
+temp <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                      select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 39.29523
+weighted.median(temp$Total_duration, temp$n) # 49.5
+# ---
+# Most common drugs to track -----
+
+# Drugs ever tried 
+NASH_Ingredients <- fread("NASH Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Ingredients <- NASH_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+
+NASH_Ingredients$class <- as.numeric(NASH_Ingredients$class)
+NASH_Ingredients$molecule <- as.numeric(NASH_Ingredients$molecule)
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, weight, month1:month60)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient, Month)
+
+NASH_Drug_Histories <- separate_rows(NASH_Drug_Histories, Treat, sep = ",", convert=T )
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat != "-")
+
+names(NASH_Drug_Histories)[4] <- "molecule"
+NASH_Drug_Histories$molecule <- as.numeric(NASH_Drug_Histories$molecule)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% left_join(NASH_Ingredients %>% 
+                                                           select(molecule, drug_group, drug_class))
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(-c(Month))
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, weight, molecule, drug_group, drug_class)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% distinct()
+
+NASH_Drug_Histories %>% ungroup() %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 976705 (7208 ever treated)
+
+data.frame(NASH_Drug_Histories %>% ungroup() %>% select(patient, weight, drug_group, drug_class, molecule) %>% distinct() %>% 
+             group_by( drug_group, drug_class, molecule) %>% summarise(n=sum(weight))  %>% arrange(-n))
+
+
+# --------
+# Total duration on individual molecules per NASH Stage --------------
+FIB4_Bucket_dx <- fread("FIB4_Bucket_Fibrosis.txt")
+NASH_only <- FIB4_Bucket_dx %>% filter(FIB4_Bucket=="NASH-only") %>% select(patient)
+NASH_fibrosis <- FIB4_Bucket_dx %>% filter(FIB4_Bucket=="Fibrosis") %>% select(patient)
+NASH_cirrhosis <- FIB4_Bucket_dx %>% filter(FIB4_Bucket=="NASH-Cirrhosis") %>% select(patient)
+
+
+# Sitagliptin
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories <- NASH_only %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(55{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(55{1})(\\D|$)', .), "Sitagliptin"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Sitagliptin",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_LONG <- NASH_only %>% left_join(NASH_Drug_Histories_LONG)
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Total_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Total_Periods)[3] <- "Duration"
+
+Total_Periods_VIZ <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                   select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Total_Periods_VIZ, "Sitagliptin_Periods_NASH_only_VIZ.csv")
+
+temp <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                      select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 17.54485
+weighted.median(temp$Total_duration, temp$n) # 7.5
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories <- NASH_fibrosis %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(55{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(55{1})(\\D|$)', .), "Sitagliptin"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Sitagliptin",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_LONG <- NASH_fibrosis %>% left_join(NASH_Drug_Histories_LONG)
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Total_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Total_Periods)[3] <- "Duration"
+
+Total_Periods_VIZ <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                   select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Total_Periods_VIZ, "Sitagliptin_Periods_NASH_fibrosis_VIZ.csv")
+
+temp <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                      select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 15.90619
+weighted.median(temp$Total_duration, temp$n) # 10.5
+
+
+
+
+
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories <- NASH_cirrhosis %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(55{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(55{1})(\\D|$)', .), "Sitagliptin"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Sitagliptin",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_LONG <- NASH_cirrhosis %>% left_join(NASH_Drug_Histories_LONG)
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Total_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Total_Periods)[3] <- "Duration"
+
+Total_Periods_VIZ <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                   select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Total_Periods_VIZ, "Sitagliptin_NASH_cirrhosis_VIZ.csv")
+
+temp <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                      select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 22.41477
+weighted.median(temp$Total_duration, temp$n) # 13.5
+
+
+
+
+
+
+
+
+
+
+
+
+# Glipizide
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories <- NASH_only %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(45{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(45{1})(\\D|$)', .), "Glipizide"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Glipizide",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_LONG <- NASH_only %>% left_join(NASH_Drug_Histories_LONG)
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Total_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Total_Periods)[3] <- "Duration"
+
+Total_Periods_VIZ <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                   select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Total_Periods_VIZ, "Glipizide_Periods_NASH_only_VIZ.csv")
+
+temp <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                      select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 21.13234
+weighted.median(temp$Total_duration, temp$n) # 14.5
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories <- NASH_fibrosis %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(45{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(45{1})(\\D|$)', .), "Glipizide"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Glipizide",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_LONG <- NASH_fibrosis %>% left_join(NASH_Drug_Histories_LONG)
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Total_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Total_Periods)[3] <- "Duration"
+
+Total_Periods_VIZ <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                   select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Total_Periods_VIZ, "Glipizide_Periods_NASH_fibrosis_VIZ.csv")
+
+temp <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                      select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 27.2865
+weighted.median(temp$Total_duration, temp$n) # 22.5
+
+
+
+
+
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories <- NASH_cirrhosis %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(45{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(45{1})(\\D|$)', .), "Glipizide"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Glipizide",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_LONG <- NASH_cirrhosis %>% left_join(NASH_Drug_Histories_LONG)
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Total_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Total_Periods)[3] <- "Duration"
+
+Total_Periods_VIZ <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                   select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Total_Periods_VIZ, "Glipizide_NASH_cirrhosis_VIZ.csv")
+
+temp <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                      select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 25.18047
+weighted.median(temp$Total_duration, temp$n) # 17.5
+
+
+
+
+
+
+
+
+
+
+
+# Insulin Glargine
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories <- NASH_only %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(64{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(64{1})(\\D|$)', .), "Insulin Glargine"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Insulin Glargine",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_LONG <- NASH_only %>% left_join(NASH_Drug_Histories_LONG)
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Total_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Total_Periods)[3] <- "Duration"
+
+Total_Periods_VIZ <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                   select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Total_Periods_VIZ, "InsulinGlargine_Periods_NASH_only_VIZ.csv")
+
+temp <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                      select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 19.19121
+weighted.median(temp$Total_duration, temp$n) # 12.5
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories <- NASH_fibrosis %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(64{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(64{1})(\\D|$)', .), "Insulin Glargine"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Insulin Glargine",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_LONG <- NASH_fibrosis %>% left_join(NASH_Drug_Histories_LONG)
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Total_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Total_Periods)[3] <- "Duration"
+
+Total_Periods_VIZ <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                   select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Total_Periods_VIZ, "InsulinGlargine_Periods_NASH_fibrosis_VIZ.csv")
+
+temp <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                      select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 22.06705
+weighted.median(temp$Total_duration, temp$n) # 16.5
+
+
+
+
+
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories <- NASH_cirrhosis %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(64{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(64{1})(\\D|$)', .), "Insulin Glargine"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Insulin Glargine",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_LONG <- NASH_cirrhosis %>% left_join(NASH_Drug_Histories_LONG)
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Total_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Total_Periods)[3] <- "Duration"
+
+Total_Periods_VIZ <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                   select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Total_Periods_VIZ, "InsulinGlargine_NASH_cirrhosis_VIZ.csv")
+
+temp <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                      select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 25.5817
+weighted.median(temp$Total_duration, temp$n) # 19.5
+
+
+
+
+# Empagliflozin
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories <- NASH_only %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(58{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(58{1})(\\D|$)', .), "Empagliflozin"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Empagliflozin",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_LONG <- NASH_only %>% left_join(NASH_Drug_Histories_LONG)
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Total_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Total_Periods)[3] <- "Duration"
+
+Total_Periods_VIZ <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                   select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Total_Periods_VIZ, "Empagliflozin_Periods_NASH_only_VIZ.csv")
+
+temp <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                      select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 12.79377
+weighted.median(temp$Total_duration, temp$n) # 7.5
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories <- NASH_fibrosis %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(58{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(58{1})(\\D|$)', .), "Empagliflozin"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Empagliflozin",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_LONG <- NASH_fibrosis %>% left_join(NASH_Drug_Histories_LONG)
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Total_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Total_Periods)[3] <- "Duration"
+
+Total_Periods_VIZ <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                   select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Total_Periods_VIZ, "Empagliflozin_Periods_NASH_fibrosis_VIZ.csv")
+
+temp <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                      select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 11.77188
+weighted.median(temp$Total_duration, temp$n) # 7.5
+
+
+
+
+
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories <- NASH_cirrhosis %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(58{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(58{1})(\\D|$)', .), "Empagliflozin"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Empagliflozin",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_LONG <- NASH_cirrhosis %>% left_join(NASH_Drug_Histories_LONG)
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Total_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Total_Periods)[3] <- "Duration"
+
+Total_Periods_VIZ <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                   select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Total_Periods_VIZ, "Empagliflozin_NASH_cirrhosis_VIZ.csv")
+
+temp <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                      select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 12.34805
+weighted.median(temp$Total_duration, temp$n) # 5.5
+
+
+
+
+
+
+
+
+
+# Dulaglutide
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories <- NASH_only %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(71{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(71{1})(\\D|$)', .), "Dulaglutide"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Dulaglutide",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_LONG <- NASH_only %>% left_join(NASH_Drug_Histories_LONG)
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Total_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Total_Periods)[3] <- "Duration"
+
+Total_Periods_VIZ <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                   select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Total_Periods_VIZ, "Dulaglutide_Periods_NASH_only_VIZ.csv")
+
+temp <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                      select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 12.79873
+weighted.median(temp$Total_duration, temp$n) # 6.5
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories <- NASH_fibrosis %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(71{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(71{1})(\\D|$)', .), "Dulaglutide"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Dulaglutide",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_LONG <- NASH_fibrosis %>% left_join(NASH_Drug_Histories_LONG)
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Total_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Total_Periods)[3] <- "Duration"
+
+Total_Periods_VIZ <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                   select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Total_Periods_VIZ, "Dulaglutide_Periods_NASH_fibrosis_VIZ.csv")
+
+temp <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                      select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 16.62818
+weighted.median(temp$Total_duration, temp$n) # 13.5
+
+
+
+
+
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories <- NASH_cirrhosis %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(71{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(71{1})(\\D|$)', .), "Dulaglutide"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Dulaglutide",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_LONG <- NASH_cirrhosis %>% left_join(NASH_Drug_Histories_LONG)
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Total_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Total_Periods)[3] <- "Duration"
+
+Total_Periods_VIZ <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                   select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Total_Periods_VIZ, "Dulaglutide_NASH_cirrhosis_VIZ.csv")
+
+temp <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                      select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 15.64786
+weighted.median(temp$Total_duration, temp$n) # 9.5
+
+
+
+
+
+
+
+
+# Metformin
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories <- NASH_only %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(36{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(36{1})(\\D|$)', .), "Metformin"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Metformin",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_LONG <- NASH_only %>% left_join(NASH_Drug_Histories_LONG)
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Total_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Total_Periods)[3] <- "Duration"
+
+Total_Periods_VIZ <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                   select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Total_Periods_VIZ, "Metformin_Periods_NASH_only_VIZ.csv")
+
+temp <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                      select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 27.02888
+weighted.median(temp$Total_duration, temp$n) # 22.5
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories <- NASH_fibrosis %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(36{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(36{1})(\\D|$)', .), "Metformin"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Metformin",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_LONG <- NASH_fibrosis %>% left_join(NASH_Drug_Histories_LONG)
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Total_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Total_Periods)[3] <- "Duration"
+
+Total_Periods_VIZ <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                   select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Total_Periods_VIZ, "Metformin_Periods_NASH_fibrosis_VIZ.csv")
+
+temp <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                      select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 29.7685
+weighted.median(temp$Total_duration, temp$n) # 29.5
+
+
+
+
+
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories <- NASH_cirrhosis %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(36{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(36{1})(\\D|$)', .), "Metformin"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Metformin",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_LONG <- NASH_cirrhosis %>% left_join(NASH_Drug_Histories_LONG)
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Total_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Total_Periods)[3] <- "Duration"
+
+Total_Periods_VIZ <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                   select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Total_Periods_VIZ, "Metformin_NASH_cirrhosis_VIZ.csv")
+
+temp <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                      select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 35.35389
+weighted.median(temp$Total_duration, temp$n) # 40.5
+
+
+
+
+
+
+# Fenofibrate
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories <- NASH_only %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(4{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(4{1})(\\D|$)', .), "Fenofibrate"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Fenofibrate",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_LONG <- NASH_only %>% left_join(NASH_Drug_Histories_LONG)
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Total_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Total_Periods)[3] <- "Duration"
+
+Total_Periods_VIZ <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                   select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Total_Periods_VIZ, "Fenofibrate_Periods_NASH_only_VIZ.csv")
+
+temp <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                      select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 26.46475
+weighted.median(temp$Total_duration, temp$n) # 20.5
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories <- NASH_fibrosis %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(4{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(4{1})(\\D|$)', .), "Fenofibrate"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Fenofibrate",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_LONG <- NASH_fibrosis %>% left_join(NASH_Drug_Histories_LONG)
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Total_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Total_Periods)[3] <- "Duration"
+
+Total_Periods_VIZ <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                   select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Total_Periods_VIZ, "Fenofibrate_Periods_NASH_fibrosis_VIZ.csv")
+
+temp <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                      select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 26.57474
+weighted.median(temp$Total_duration, temp$n) # 22
+
+
+
+
+
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories <- NASH_cirrhosis %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(4{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(4{1})(\\D|$)', .), "Fenofibrate"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Fenofibrate",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_LONG <- NASH_cirrhosis %>% left_join(NASH_Drug_Histories_LONG)
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Total_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Total_Periods)[3] <- "Duration"
+
+Total_Periods_VIZ <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                   select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Total_Periods_VIZ, "Fenofibrate_NASH_cirrhosis_VIZ.csv")
+
+temp <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                      select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 25.8553
+weighted.median(temp$Total_duration, temp$n) # 19.5
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Orlistat
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories <- NASH_only %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(21{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(21{1})(\\D|$)', .), "Orlistat"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Orlistat",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_LONG <- NASH_only %>% left_join(NASH_Drug_Histories_LONG)
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Total_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Total_Periods)[3] <- "Duration"
+
+Total_Periods_VIZ <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                   select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Total_Periods_VIZ, "Orlistat_Periods_NASH_only_VIZ.csv")
+
+temp <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                      select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 1
+weighted.median(temp$Total_duration, temp$n) # 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories <- NASH_fibrosis %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(21{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(21{1})(\\D|$)', .), "Orlistat"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Orlistat",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_LONG <- NASH_fibrosis %>% left_join(NASH_Drug_Histories_LONG)
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Total_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Total_Periods)[3] <- "Duration"
+
+Total_Periods_VIZ <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                   select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Total_Periods_VIZ, "Orlistat_Periods_NASH_fibrosis_VIZ.csv")
+
+temp <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                      select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 1.70
+weighted.median(temp$Total_duration, temp$n) # 1
+
+
+
+
+
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories <- NASH_cirrhosis %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(21{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(21{1})(\\D|$)', .), "Orlistat"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Orlistat",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_LONG <- NASH_cirrhosis %>% left_join(NASH_Drug_Histories_LONG)
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Total_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Total_Periods)[3] <- "Duration"
+
+Total_Periods_VIZ <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                   select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Total_Periods_VIZ, "Orlistat_NASH_cirrhosis_VIZ.csv")
+
+temp <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                      select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 1
+weighted.median(temp$Total_duration, temp$n) # 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Ursodiol
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt")
+NASH_Drug_Histories <- NASH_only %>% left_join(NASH_Drug_Histories)
+NASH_Drug_Histories <-  NASH_Drug_Histories %>%  select(4:63)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% 
+  mutate_if(grepl('(^|\\D)(35{1})(\\D|$)',.), ~replace(., grepl('(^|\\D)(35{1})(\\D|$)', .), "Ursodiol"))
+
+NASH_Drug_Histories <-  NASH_Drug_Histories %>% mutate_all(function(x) ifelse(x=="Ursodiol",1,0))
+
+NASH_Drug_Histories[] <-  lapply(NASH_Drug_Histories,as.numeric)
+
+NASH_Drug_Histories_LONG <-  fread("NASH Drug Histories.txt")
+NASH_Drug_Histories_LONG <- NASH_only %>% left_join(NASH_Drug_Histories_LONG)
+
+NASH_Drug_Histories_LONG <- NASH_Drug_Histories_LONG %>% select(patient, weight)
+
+NASH_Drug_Histories <- NASH_Drug_Histories_LONG %>% bind_cols(NASH_Drug_Histories)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% mutate(grp = rle(Treat)$lengths %>% {rep(seq(length(.)), .)})
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat == 1)
+
+NASH_Drug_Histories$Month <- as.character(NASH_Drug_Histories$Month)
+NASH_Drug_Histories$Month <- parse_number(NASH_Drug_Histories$Month)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% 
+  mutate(start = min(Month)) %>% mutate(visibility = 60-start) %>% ungroup()
+
+Total_Periods <- NASH_Drug_Histories %>% group_by(patient, grp) %>% summarise(n=n())
+
+names(Total_Periods)[3] <- "Duration"
+
+Total_Periods_VIZ <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                                   select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% mutate(visibility = visibility+1) %>% 
+  mutate(pats = sum(weight)) %>%
+  group_by(visibility, Total_duration) %>% summarise(total= sum(weight)) %>%
+  spread(key = visibility, value = total)
+
+write.csv(Total_Periods_VIZ, "Ursodiol_Periods_NASH_only_VIZ.csv")
+
+temp <- Total_Periods %>% left_join(NASH_Drug_Histories %>% 
+                                      select(patient, weight, visibility), by=c("patient"="patient")) %>% 
+  distinct() %>% mutate(weight = as.numeric(weight)) %>% mutate(Total_duration =sum(Duration)) %>% ungroup() %>%
+  select(patient, weight, visibility, Total_duration) %>% distinct() %>% group_by(Total_duration) %>% summarise(n=sum(weight))
+
+library(spatstat)
+weighted.mean(temp$Total_duration, temp$n)  # 9.649722
+weighted.median(temp$Total_duration, temp$n) # 3.5
+
+# -------
+# Drug Penetrance by NASH Stage (using our classification) ------------
+FIB4_Bucket_dx <- fread("FIB4_Bucket_Fibrosis.txt")
+NASH_only <- FIB4_Bucket_dx %>% filter(FIB4_Bucket=="NASH-only") %>% select(patient)
+NASH_fibrosis <- FIB4_Bucket_dx %>% filter(FIB4_Bucket=="Fibrosis") %>% select(patient)
+NASH_cirrhosis <- FIB4_Bucket_dx %>% filter(FIB4_Bucket=="NASH-Cirrhosis") %>% select(patient)
+
+
+
+
+# Drugs ever tried 
+NASH_Ingredients <- fread("NASH Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Ingredients <- NASH_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+
+NASH_Ingredients$class <- as.numeric(NASH_Ingredients$class)
+NASH_Ingredients$molecule <- as.numeric(NASH_Ingredients$molecule)
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, weight, month1:month60)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient, Month)
+
+NASH_Drug_Histories <- separate_rows(NASH_Drug_Histories, Treat, sep = ",", convert=T )
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat != "-")
+
+names(NASH_Drug_Histories)[4] <- "molecule"
+NASH_Drug_Histories$molecule <- as.numeric(NASH_Drug_Histories$molecule)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% left_join(NASH_Ingredients %>% 
+                                                           select(molecule, drug_group, drug_class))
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(-c(Month))
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, weight, drug_group, drug_class)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% distinct()
+
+NASH_Drug_Histories %>% ungroup() %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 976705 (7208 ever treated)
+
+NASH_Drug_Histories %>% ungroup() %>% select(patient, weight, drug_group) %>% distinct() %>% group_by(drug_group) %>% summarise(n=sum(weight)) 
+
+
+
+
+NASH_Drug_Histories <- FIB4_Bucket_dx %>% inner_join(NASH_Drug_Histories)
+
+NASH_Drug_Histories %>% select(patient, FIB4_Bucket, weight) %>% distinct() %>% group_by(FIB4_Bucket) %>% summarise(n=sum(weight))
+
+
+data.frame(NASH_Drug_Histories %>% select(patient, weight, FIB4_Bucket, drug_group) %>% 
+             distinct() %>% group_by(FIB4_Bucket , drug_group) %>%  summarise(n=sum(weight)) %>%
+             spread(key = FIB4_Bucket , value=n))
+
+
+
+
+# ------
+
+# Enzyme levels in GLP1 experienced vs naive patients --------------------
+FIB4_NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+
+FIB4_NASH_Pats
+
+NASH_Ingredients <- fread("NASH Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Ingredients <- NASH_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+
+NASH_Ingredients$class <- as.numeric(NASH_Ingredients$class)
+NASH_Ingredients$molecule <- as.numeric(NASH_Ingredients$molecule)
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, weight, month1:month60)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient, Month)
+
+NASH_Drug_Histories <- separate_rows(NASH_Drug_Histories, Treat, sep = ",", convert=T )
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat != "-")
+
+names(NASH_Drug_Histories)[4] <- "molecule"
+NASH_Drug_Histories$molecule <- as.numeric(NASH_Drug_Histories$molecule)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% left_join(NASH_Ingredients %>% 
+                                                           select(molecule, drug_group, drug_class))
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(-c(Month))
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, weight, drug_group, drug_class)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% distinct()
+
+NASH_Drug_Histories %>% ungroup() %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 976705 (7208 ever treated)
+
+NASH_Drug_Histories %>% ungroup() %>% select(patient, weight, drug_group) %>% distinct() %>% group_by(drug_group) %>% summarise(n=sum(weight)) 
+
+
+
+
+FIB4_NASH_Pats <- FIB4_NASH_Pats %>% left_join(NASH_Drug_Histories %>% filter(drug_group=="GLP1 Oral" | drug_group=="GLP1 Injectable") %>% 
+                                                 select(patient) %>% distinct() %>% mutate(GLP1_Exp="GLP1_Exp"))
+
+FIB4_NASH_Pats <- FIB4_NASH_Pats %>% mutate(GLP1_Exp = ifelse(is.na(GLP1_Exp), "None", GLP1_Exp))
+
+FIB4_NASH_Pats %>% filter(AST<3000 & ALT<3000) %>% group_by(GLP1_Exp) %>% summarise(mean(AST))
+
+FIB4_NASH_Pats %>% filter(AST<3000 & ALT<3000) %>% group_by(GLP1_Exp) %>% count()
+
+FIB4_NASH_Pats %>% filter(AST<200 & ALT<200) %>% group_by(GLP1_Exp) %>%  sample_n(1000) %>%
+  ggplot(aes(AST, ALT, colour=factor(GLP1_Exp, levels=c("None", "GLP1_Exp")))) +
+  geom_point(alpha=0.5) +
+  theme(panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  ylab("ALT (IU/L) \n")+xlab("\n AST (IU/L")
+
+# ------
+# LAB scores before/after SGLT" --------------
+
+NASH_Ingredients <- fread("NASH Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Ingredients <- NASH_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+
+NASH_Ingredients$class <- as.numeric(NASH_Ingredients$class)
+NASH_Ingredients$molecule <- as.numeric(NASH_Ingredients$molecule)
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, weight, month1:month60)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient, Month)
+
+NASH_Drug_Histories <- separate_rows(NASH_Drug_Histories, Treat, sep = ",", convert=T )
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat != "-")
+
+names(NASH_Drug_Histories)[4] <- "molecule"
+NASH_Drug_Histories$molecule <- as.numeric(NASH_Drug_Histories$molecule)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% left_join(NASH_Ingredients %>% 
+                                                           select(molecule, drug_group, drug_class))
+
+
+First_SGLT2 <- NASH_Drug_Histories %>% filter(drug_class=="SGLT2") %>% 
+  group_by(patient) %>% slice(1) %>% select(patient, Month) 
+
+First_SGLT2$Month <- as.character(First_SGLT2$Month)
+First_SGLT2$Month <- parse_number(First_SGLT2$Month)
+
+FIB4_NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+FIB4_NASH_Pats$claimed <- as.Date(FIB4_NASH_Pats$claimed)
+
+First_SGLT2 <- First_SGLT2 %>% inner_join(FIB4_NASH_Pats)
+
+First_SGLT2$claimed <- format(as.Date(First_SGLT2$claimed), "%Y-%m")
+
+
+Months_lookup <- fread("Months_lookup.txt",  integer64 = "character", stringsAsFactors = F)
+
+Months_lookup$Month <- paste0(Months_lookup$Month,"-1")
+Months_lookup$Month <- format(as.Date(Months_lookup$Month), "%Y-%m")
+
+First_SGLT2 <- First_SGLT2 %>% left_join(Months_lookup, by=c("claimed"="Month")) %>% 
+  drop_na() %>% select(-claimed)
+
+First_SGLT2 <- First_SGLT2 %>% mutate(elapsedTime=Month-Exact_Month) %>% select(-c(Month, Exact_Month, age))
+
+Pats_to_keep <- First_SGLT2 %>% filter(elapsedTime<0) %>% select(patient) %>% distinct() %>%
+  inner_join(First_SGLT2 %>% filter(elapsedTime>0) %>% select(patient) %>% distinct())
+
+
+Pats_to_keep %>% left_join(First_SGLT2) %>% filter(elapsedTime<0) %>% ungroup() %>%
+  summarise(n=mean(AST)) # 40.1
+
+Pats_to_keep %>% left_join(First_SGLT2) %>% filter(elapsedTime>0) %>% ungroup() %>%
+  summarise(n=mean(AST)) # 46.5
+
+
+Pats_to_keep %>% left_join(First_SGLT2) %>% filter(elapsedTime<0) %>% ungroup() %>%
+  summarise(n=mean(ALT)) # 50.4
+
+Pats_to_keep %>% left_join(First_SGLT2) %>% filter(elapsedTime>0) %>% ungroup() %>%
+  summarise(n=mean(ALT)) # 55.0
+
+
+Pats_to_keep %>% left_join(First_SGLT2) %>% filter(elapsedTime<0) %>% ungroup() %>%
+  summarise(n=mean(fibrosis4)) # 2.55
+
+Pats_to_keep %>% left_join(First_SGLT2) %>% filter(elapsedTime>0) %>% ungroup() %>%
+  summarise(n=mean(fibrosis4)) # 2.84
+
+
+Pats_to_keep %>% left_join(First_SGLT2) %>% filter(elapsedTime<0) %>% ungroup() %>%
+  summarise(n=mean(Platelets)) # 213
+
+Pats_to_keep %>% left_join(First_SGLT2) %>% filter(elapsedTime>0) %>% ungroup() %>%
+  summarise(n=mean(Platelets)) # 201
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# LAB scores before/after GLP1 Inj ------
+
+NASH_Ingredients <- fread("NASH Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Ingredients <- NASH_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+
+NASH_Ingredients$class <- as.numeric(NASH_Ingredients$class)
+NASH_Ingredients$molecule <- as.numeric(NASH_Ingredients$molecule)
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, weight, month1:month60)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient, Month)
+
+NASH_Drug_Histories <- separate_rows(NASH_Drug_Histories, Treat, sep = ",", convert=T )
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat != "-")
+
+names(NASH_Drug_Histories)[4] <- "molecule"
+NASH_Drug_Histories$molecule <- as.numeric(NASH_Drug_Histories$molecule)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% left_join(NASH_Ingredients %>% 
+                                                           select(molecule, drug_group, drug_class))
+
+
+First_GLP1_Inj <- NASH_Drug_Histories %>% filter(drug_group=="GLP1 Injectable") %>% 
+  group_by(patient) %>% slice(1) %>% select(patient, Month) 
+
+First_GLP1_Inj$Month <- as.character(First_GLP1_Inj$Month)
+First_GLP1_Inj$Month <- parse_number(First_GLP1_Inj$Month)
+
+FIB4_NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+FIB4_NASH_Pats$claimed <- as.Date(FIB4_NASH_Pats$claimed)
+
+First_GLP1_Inj <- First_GLP1_Inj %>% inner_join(FIB4_NASH_Pats)
+
+First_GLP1_Inj$claimed <- format(as.Date(First_GLP1_Inj$claimed), "%Y-%m")
+
+
+Months_lookup <- fread("Months_lookup.txt",  integer64 = "character", stringsAsFactors = F)
+
+Months_lookup$Month <- paste0(Months_lookup$Month,"-1")
+Months_lookup$Month <- format(as.Date(Months_lookup$Month), "%Y-%m")
+
+First_GLP1_Inj <- First_GLP1_Inj %>% left_join(Months_lookup, by=c("claimed"="Month")) %>% 
+  drop_na() %>% select(-claimed)
+
+First_GLP1_Inj <- First_GLP1_Inj %>% mutate(elapsedTime=Month-Exact_Month) %>% select(-c(Month, Exact_Month, age))
+
+Pats_to_keep <- First_GLP1_Inj %>% filter(elapsedTime<0) %>% select(patient) %>% distinct() %>%
+  inner_join(First_GLP1_Inj %>% filter(elapsedTime>0) %>% select(patient) %>% distinct())
+
+
+
+Pats_to_keep %>% left_join(First_GLP1_Inj) %>% filter(elapsedTime<0) %>% ungroup() %>%
+  summarise(n=mean(AST)) # 63.5
+
+Pats_to_keep %>% left_join(First_GLP1_Inj) %>% filter(elapsedTime>0) %>% ungroup() %>%
+  summarise(n=mean(AST)) # 42.6
+
+
+Pats_to_keep %>% left_join(First_GLP1_Inj) %>% filter(elapsedTime<0) %>% ungroup() %>%
+  summarise(n=mean(ALT)) # 75.0
+
+Pats_to_keep %>% left_join(First_GLP1_Inj) %>% filter(elapsedTime>0) %>% ungroup() %>%
+  summarise(n=mean(ALT)) # 49.6
+
+
+Pats_to_keep %>% left_join(First_GLP1_Inj) %>% filter(elapsedTime<0) %>% ungroup() %>%
+  summarise(n=mean(fibrosis4)) # 3.85
+
+Pats_to_keep %>% left_join(First_GLP1_Inj) %>% filter(elapsedTime>0) %>% ungroup() %>%
+  summarise(n=mean(fibrosis4)) # 2.46
+
+
+Pats_to_keep %>% left_join(First_GLP1_Inj) %>% filter(elapsedTime<0) %>% ungroup() %>%
+  summarise(n=mean(Platelets)) # 203
+
+Pats_to_keep %>% left_join(First_GLP1_Inj) %>% filter(elapsedTime>0) %>% ungroup() %>%
+  summarise(n=mean(Platelets)) # 207
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# LAB scores before/after Surgery ------
+
+NASH_Ingredients <- fread("NASH Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Ingredients <- NASH_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+
+NASH_Ingredients$class <- as.numeric(NASH_Ingredients$class)
+NASH_Ingredients$molecule <- as.numeric(NASH_Ingredients$molecule)
+
+NASH_Drug_Histories <- fread("NASH Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% select(patient, weight, month1:month60)
+
+NASH_Drug_Histories <- gather(NASH_Drug_Histories, Month, Treat, month1:month60, factor_key=TRUE)
+NASH_Drug_Histories <- NASH_Drug_Histories %>% group_by(patient) %>% arrange(patient, Month)
+
+NASH_Drug_Histories <- separate_rows(NASH_Drug_Histories, Treat, sep = ",", convert=T )
+NASH_Drug_Histories <- NASH_Drug_Histories %>% filter(Treat != "-")
+
+names(NASH_Drug_Histories)[4] <- "molecule"
+NASH_Drug_Histories$molecule <- as.numeric(NASH_Drug_Histories$molecule)
+
+NASH_Drug_Histories <- NASH_Drug_Histories %>% left_join(NASH_Ingredients %>% 
+                                                           select(molecule, drug_group, drug_class))
+
+
+First_Surgery <- NASH_Drug_Histories %>% filter(drug_class=="Liver Transplant") %>% 
+  group_by(patient) %>% slice(1) %>% select(patient, Month) 
+
+First_Surgery$Month <- as.character(First_Surgery$Month)
+First_Surgery$Month <- parse_number(First_Surgery$Month)
+
+FIB4_NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+FIB4_NASH_Pats$claimed <- as.Date(FIB4_NASH_Pats$claimed)
+
+First_Surgery <- First_Surgery %>% inner_join(FIB4_NASH_Pats)
+
+First_Surgery$claimed <- format(as.Date(First_Surgery$claimed), "%Y-%m")
+
+
+Months_lookup <- fread("Months_lookup.txt",  integer64 = "character", stringsAsFactors = F)
+
+Months_lookup$Month <- paste0(Months_lookup$Month,"-1")
+Months_lookup$Month <- format(as.Date(Months_lookup$Month), "%Y-%m")
+
+First_Surgery <- First_Surgery %>% left_join(Months_lookup, by=c("claimed"="Month")) %>% 
+  drop_na() %>% select(-claimed)
+
+First_Surgery <- First_Surgery %>% mutate(elapsedTime=Month-Exact_Month) %>% select(-c(Month, Exact_Month, age))
+
+Pats_to_keep <- First_Surgery %>% filter(elapsedTime<0) %>% select(patient) %>% distinct() %>%
+  inner_join(First_Surgery %>% filter(elapsedTime>0) %>% select(patient) %>% distinct())
+
+
+
+Pats_to_keep %>% left_join(First_Surgery) %>% filter(elapsedTime<0) %>% ungroup() %>%
+  summarise(n=mean(AST)) # 45.2
+
+Pats_to_keep %>% left_join(First_Surgery) %>% filter(elapsedTime>0) %>% ungroup() %>%
+  summarise(n=mean(AST)) # 302
+
+
+Pats_to_keep %>% left_join(First_Surgery) %>% filter(elapsedTime<0) %>% ungroup() %>%
+  summarise(n=mean(ALT)) # 51.4
+
+Pats_to_keep %>% left_join(First_Surgery) %>% filter(elapsedTime>0) %>% ungroup() %>%
+  summarise(n=mean(ALT)) # 140
+
+
+Pats_to_keep %>% left_join(First_Surgery) %>% filter(elapsedTime<0) %>% ungroup() %>%
+  summarise(n=mean(fibrosis4)) # 4.65
+
+Pats_to_keep %>% left_join(First_Surgery) %>% filter(elapsedTime>0) %>% ungroup() %>%
+  summarise(n=mean(fibrosis4)) # 15.7
+
+
+Pats_to_keep %>% left_join(First_Surgery) %>% filter(elapsedTime<0) %>% ungroup() %>%
+  summarise(n=mean(Platelets)) # 175
+
+Pats_to_keep %>% left_join(First_Surgery) %>% filter(elapsedTime>0) %>% ungroup() %>%
+  summarise(n=mean(Platelets)) # 175
+
+
+
+
+
+
+
+
+# ---------
+# Drug Specialties all ----------------
+
+NASH_Drug_Specialties_Annual <- fread("NASH Drug Specialties Annual.txt")
+
+NASH_Drug_Specialties_Annual %>% group_by(specialty) %>% 
+  summarise(n=sum(physician_sample)) %>%
+  arrange(-n)
+
+
+
+NAFLD_Drug_Specialties_Annual <- fread("NAFLD Drug Specialties Annual.txt")
+
+NAFLD_Drug_Specialties_Annual %>% group_by(specialty) %>% 
+  summarise(n=sum(physician_sample)) %>%
+  arrange(-n)
+
+
+
+
+
+# Drug Specialties all ----------------
+
+NASH_Drug_Specialties_Annual <- fread("NASH Drug Specialties Annual.txt")
+
+NASH_Drug_Specialties_Annual %>% group_by(specialty) %>% 
+  summarise(n=sum(physician_sample)) %>%
+  arrange(-n)
+
+
+
+
+
+NAFLD_Drug_Specialties_Annual <- fread("NAFLD Drug Specialties Annual.txt")
+
+NAFLD_Drug_Specialties_Annual %>% group_by(specialty) %>% 
+  summarise(n=sum(physician_sample)) %>%
+  arrange(-n)
+
+
+
+# -----
+
+
+# -------
+# ---------
+
+# Proportion  GLP1 exp last year in DIA / OB , Dxed, predited ----------
+# All DIA treat exp
+DANU_Ingredients       <- fread("DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+DANU_Ingredients$drug_id <- unlist(lapply(DANU_Ingredients$drug_id, function(x) as.numeric(unlist(str_extract_all(x,"[:digit:]+$")))))
+string_GLP1Injectable <- paste0("\\b(",paste0(DANU_Ingredients$drug_id[DANU_Ingredients$drug_group == "GLP1 Injectable"], collapse = "|"),")\\b")
+string_GLP1Oral <- paste0("\\b(",paste0(DANU_Ingredients$drug_id[DANU_Ingredients$drug_group == "GLP1 Oral"], collapse = "|"),")\\b")
+
+DIA_Drug_Histories     <- fread("DIA Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+Treatment_exp_Vector   <- fread("Treatment_exp_Vector.txt")
+DIA_Drug_Histories     <- Treatment_exp_Vector %>% left_join(DIA_Drug_Histories) 
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(patient, weight, month49:month60)
+DIA_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 30625690
+DIA_Drug_Histories <- gather(DIA_Drug_Histories, Month, Drugs, month49:month60, factor_key=TRUE)
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(-Month)
+
+DIA_Drug_Histories %>% filter(grepl(string_GLP1Injectable,Drugs)|grepl(string_GLP1Oral,Drugs)) %>% 
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 3831181  (0.125097)
+
+
+#NASH Dxed
+NASH_Dx <- fread("NASH Drug Histories.txt")
+NASH_Dx <- NASH_Dx %>% select(4:63)
+NASH_Dx[NASH_Dx != "-"] <- 1  # on drug 
+NASH_Dx[NASH_Dx == "-"] <- 0  # no drug
+
+NASH_Dx[] <- lapply(NASH_Dx,as.numeric)
+
+NASH_Dx$SUM <- rowSums(NASH_Dx)
+
+NASH_Dx_LONG <- fread("NASH Drug Histories.txt")
+
+Pats_vec <- NASH_Dx_LONG %>% select(patient, weight)
+
+NASH_Dx <- Pats_vec %>% bind_cols(NASH_Dx)
+
+NASH_Dx <- NASH_Dx %>% filter(SUM != 0)
+
+sum(NASH_Dx$weight) # 976704.5
+
+Treatment_exp_Vector <- NASH_Dx %>% select(patient, weight)
+
+fwrite(Treatment_exp_Vector, "Treatment_exp_Vector.txt")
+NASH_Treatment_exp_Vector <- Treatment_exp_Vector
+
+NASH_Treatment_exp_Vector <- fread("Treatment_exp_Vector.txt")
+
+NASH_Dx <- fread("NASH Drug Histories.txt") 
+NASH_Dx <- NASH_Dx %>% inner_join(NASH_Treatment_exp_Vector) %>% inner_join(DIA_Drug_Histories %>% select(patient))
+NASH_Ingredients <- fread("NASH Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Ingredients$drug_id <- unlist(lapply(NASH_Ingredients$drug_id, function(x) as.numeric(unlist(str_extract_all(x,"[:digit:]+$")))))
+string_GLP1InjectableNASH <- paste0("\\b(",paste0(NASH_Ingredients$drug_id[NASH_Ingredients$drug_group == "GLP1 Injectable"], collapse = "|"),")\\b")
+string_GLP1OralNASH <- paste0("\\b(",paste0(NASH_Ingredients$drug_id[NASH_Ingredients$drug_group == "GLP1 Oral"], collapse = "|"),")\\b")
+NASH_Dx %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 611186.6
+
+NASH_Dx <- NASH_Dx %>% select(patient, weight, month49:month60)
+NASH_Dx <- gather(NASH_Dx, Month, Drugs, month49:month60, factor_key=TRUE)
+NASH_Dx <- NASH_Dx %>% select(-Month)
+
+NASH_Dx %>% filter(grepl(string_GLP1InjectableNASH,Drugs)|grepl(string_GLP1OralNASH,Drugs)) %>% 
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 118630.7  (0.1234318)  
+
+
+# High risk predicted
+DIA_Pats_Score95_2plus <- fread("DIA_Pats_Score95_2plus.txt")
+DIA_Pats_Score95_2plus %>% inner_join(DIA_Drug_Histories) %>% select(patient, weight) %>%
+  distinct() %>% summarise(n=sum(weight)) # 1440396
+
+DIA_Pats_Score95_2plus %>% inner_join(DIA_Drug_Histories) %>% 
+  filter(grepl(string_GLP1Injectable,Drugs)|grepl(string_GLP1Oral,Drugs)) %>% 
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 194430.4 (0.134984)
+
+
+DIA_Drug_Histories %>% anti_join(DIA_Pats_Score95_2plus %>% select(patient)) %>% anti_join(NASH_Dx %>% select(patient)) %>%
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 28574108
+
+# Non NASH
+DIA_Drug_Histories %>% anti_join(DIA_Pats_Score95_2plus %>% select(patient)) %>% anti_join(NASH_Dx %>% select(patient)) %>%
+  filter(grepl(string_GLP1Injectable,Drugs)|grepl(string_GLP1Oral,Drugs)) %>% 
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 3518120
+
+
+
+
+
+
+
+
+# All OBE treat exp
+DANU_Ingredients       <- fread("DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+DANU_Ingredients$drug_id <- unlist(lapply(DANU_Ingredients$drug_id, function(x) as.numeric(unlist(str_extract_all(x,"[:digit:]+$")))))
+string_GLP1Injectable <- paste0("\\b(",paste0(DANU_Ingredients$drug_id[DANU_Ingredients$drug_group == "GLP1 Injectable"], collapse = "|"),")\\b")
+string_GLP1Oral <- paste0("\\b(",paste0(DANU_Ingredients$drug_id[DANU_Ingredients$drug_group == "GLP1 Oral"], collapse = "|"),")\\b")
+
+OBE_Drug_Histories     <- fread("OBE Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+Treatment_exp_Vector   <- fread("Treatment_exp_Vector.txt")
+OBE_Drug_Histories     <- Treatment_exp_Vector %>% left_join(OBE_Drug_Histories) 
+
+OBE_Drug_Histories <- OBE_Drug_Histories %>% select(patient, weight, month49:month60)
+OBE_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 9155116
+OBE_Drug_Histories <- gather(OBE_Drug_Histories, Month, Drugs, month49:month60, factor_key=TRUE)
+OBE_Drug_Histories <- OBE_Drug_Histories %>% select(-Month)
+
+OBE_Drug_Histories %>% filter(grepl(string_GLP1Injectable,Drugs)|grepl(string_GLP1Oral,Drugs)) %>% 
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 158857.6  (0.01735178)
+
+
+#NASH Dxed
+NASH_Dx <- fread("NASH Drug Histories.txt")
+NASH_Dx <- NASH_Dx %>% select(4:63)
+NASH_Dx[NASH_Dx != "-"] <- 1  # on drug 
+NASH_Dx[NASH_Dx == "-"] <- 0  # no drug
+
+NASH_Dx[] <- lapply(NASH_Dx,as.numeric)
+
+NASH_Dx$SUM <- rowSums(NASH_Dx)
+
+NASH_Dx_LONG <- fread("NASH Drug Histories.txt")
+
+Pats_vec <- NASH_Dx_LONG %>% select(patient, weight)
+
+NASH_Dx <- Pats_vec %>% bind_cols(NASH_Dx)
+
+NASH_Dx <- NASH_Dx %>% filter(SUM != 0)
+
+sum(NASH_Dx$weight) # 976704.5
+
+Treatment_exp_Vector <- NASH_Dx %>% select(patient, weight)
+
+fwrite(Treatment_exp_Vector, "Treatment_exp_Vector.txt")
+NASH_Treatment_exp_Vector <- Treatment_exp_Vector
+
+NASH_Treatment_exp_Vector <- fread("Treatment_exp_Vector.txt")
+
+NASH_Dx <- fread("NASH Drug Histories.txt")
+NASH_Dx <- NASH_Dx %>% inner_join(NASH_Treatment_exp_Vector)
+
+NASH_Ingredients <- fread("NASH Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Ingredients$drug_id <- unlist(lapply(NASH_Ingredients$drug_id, function(x) as.numeric(unlist(str_extract_all(x,"[:digit:]+$")))))
+string_GLP1InjectableNASH <- paste0("\\b(",paste0(NASH_Ingredients$drug_id[NASH_Ingredients$drug_group == "GLP1 Injectable"], collapse = "|"),")\\b")
+string_GLP1OralNASH <- paste0("\\b(",paste0(NASH_Ingredients$drug_id[NASH_Ingredients$drug_group == "GLP1 Oral"], collapse = "|"),")\\b")
+NASH_Dx %>% inner_join(OBE_Drug_Histories %>% select(patient)) %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 61842.46
+NASH_Dx <- NASH_Dx %>% inner_join(OBE_Drug_Histories %>% select(patient))
+NASH_Dx <- NASH_Dx %>% select(patient, weight, month49:month60)
+NASH_Dx <- gather(NASH_Dx, Month, Drugs, month49:month60, factor_key=TRUE)
+NASH_Dx <- NASH_Dx %>% select(-Month)
+
+NASH_Dx %>% filter(grepl(string_GLP1InjectableNASH,Drugs)|grepl(string_GLP1OralNASH,Drugs)) %>% 
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 1925.65  (0.03113799)  
+
+
+# High risk predicted
+OBE_Pats_Score95_2plus <- fread("OBE_Pats_Score95_2plus.txt")
+OBE_Pats_Score95_2plus %>% inner_join(OBE_Drug_Histories) %>% select(patient, weight) %>%
+  distinct() %>% summarise(n=sum(weight)) # 225370.2
+
+OBE_Pats_Score95_2plus %>% inner_join(OBE_Drug_Histories) %>% 
+  filter(grepl(string_GLP1Injectable,Drugs)|grepl(string_GLP1Oral,Drugs)) %>% 
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 4078.61 (0.01809738)
+
+
+OBE_Drug_Histories %>% anti_join(OBE_Pats_Score95_2plus %>% select(patient)) %>% anti_join(NASH_Dx %>% select(patient)) %>%
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 8867903
+
+# Non NASH
+OBE_Drug_Histories %>% anti_join(OBE_Pats_Score95_2plus %>% select(patient)) %>% anti_join(NASH_Dx %>% select(patient)) %>%
+  filter(grepl(string_GLP1Injectable,Drugs)|grepl(string_GLP1Oral,Drugs)) %>% 
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 152853.4 0.0172367
+
+# ------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# HF in DIA
+DIA_Comorbidity_Inventories <- fread("DIA Comorbidity Inventories.txt")
+DIA_Comorbidity_Inventories %>% filter(diagnosis=="I51") %>% select(patid, weight) %>% distinct() %>% summarise(n=sum(weight))
+
+
+# HF in OBE
+OBE_Comorbidity_Inventories <- fread("OBE Comorbidity Inventories.txt")
+OBE_Comorbidity_Inventories %>% filter(diagnosis=="I51") %>% select(patid, weight) %>% distinct() %>% summarise(n=sum(weight))
+
+
+
+DIA_Drug_Histories <- fread("DIA Drug Histories.txt")
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(patient, weight)
+
+DANU_Demographics <- fread("DANU Demographics.txt")
+DANU_Demographics <- DANU_Demographics %>% select(patid, diagnosis)
+names(DANU_Demographics)[1] <- "patient"
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% left_join(DANU_Demographics)
+
+DIA_Drug_Histories %>% group_by(diagnosis) %>% summarise(n=sum(weight))
+
+
+# DIA / OBE Vector
+Diabetes_OBesity_Pats <- DIA_Drug_Histories
+Diabetes_OBesity_Pats <- Diabetes_OBesity_Pats %>% select(patient, diagnosis)
+
+# OBE Vector
+OBE_Drug_Histories <- fread("OBE Drug Histories.txt")
+OBE_Drug_Histories <- OBE_Drug_Histories %>% select(patient) %>% mutate(diagnosis="Obesity")
+OBE_Drug_Histories <- OBE_Drug_Histories %>% anti_join(DIA_Drug_Histories %>% select(patient))
+
+Diabetes_OBesity_Pats <- Diabetes_OBesity_Pats %>% bind_rows(OBE_Drug_Histories)
+
+DANU_Demographics <- fread("DANU Demographics.txt")
+
+Diabetes_OBesity_Pats <- Diabetes_OBesity_Pats %>% left_join(DANU_Demographics %>% select(patid, weight), by=c("patient"="patid")) 
+
+Diabetes_OBesity_Pats %>% group_by(diagnosis) %>% summarise(n=sum(weight))
+
+
+
+OBE_Pats_Score95_2plus <- fread("OBE_Pats_Score95_2plus.txt")
+DIA_Pats_Score95_2plus <- fread("DIA_Pats_Score95_2plus.txt")
+
+
+Diabetes_OBesity_Pats %>% inner_join(DIA_Pats_Score95_2plus) %>% summarise(n=sum(weight))
+Diabetes_OBesity_Pats %>% inner_join(OBE_Pats_Score95_2plus) %>% summarise(n=sum(weight))
+
+
+
+
+
+
+
+
+
+
+
+NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+DIA_Pats <- fread("FIB4_Diabetes_Pats.txt")
+OBE_Pats <- fread("FIB4_Obesity_Pats.txt")
+NAFLD_Pats <- fread("FIB4_NAFLD_Pats.txt")
+Random_Pats <- fread("FIB4_Random_Pats_Filtered.txt")
+
+NAFLD <- NAFLD_Pats %>% select(patient)
+DIA_Pats <- DIA_Pats %>% anti_join(NAFLD)
+OBE_Pats <- OBE_Pats %>% anti_join(NAFLD)
+
+NASH_Pats$group <- "NASH"
+DIA_Pats$group <- "DIA"
+OBE_Pats$group <- "OBE"
+NAFLD_Pats$group <- "NAFLD"
+Random_Pats$group <- "Random Sample"
+
+DIA_Pats_Score95_2plus <- fread("DIA_Pats_Score95_2plus.txt")
+OBE_Pats_Score95_2plus <- fread("OBE_Pats_Score95_2plus.txt")
+
+DIA_Pats_HighRisk <- DIA_Pats_Score95_2plus %>% left_join(DIA_Pats)
+OBE_Pats_HighRisk <- OBE_Pats_Score95_2plus %>% left_join(OBE_Pats)
+
+
+DIA_Pats <- DIA_Pats %>% anti_join(DIA_Pats_Score95_2plus)
+OBE_Pats <- OBE_Pats %>% anti_join(OBE_Pats_Score95_2plus)
+
+
+# % share of GLP1: source Dx, Predicted or other DIA/OBE ----------------------
+
+# All DIA treat exp
+DANU_Ingredients       <- fread("DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+DANU_Ingredients$drug_id <- unlist(lapply(DANU_Ingredients$drug_id, function(x) as.numeric(unlist(str_extract_all(x,"[:digit:]+$")))))
+string_GLP1Injectable <- paste0("\\b(",paste0(DANU_Ingredients$drug_id[DANU_Ingredients$drug_group == "GLP1 Injectable"], collapse = "|"),")\\b")
+string_GLP1Oral <- paste0("\\b(",paste0(DANU_Ingredients$drug_id[DANU_Ingredients$drug_group == "GLP1 Oral"], collapse = "|"),")\\b")
+
+DIA_Drug_Histories     <- fread("DIA Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+Treatment_exp_Vector   <- fread("Treatment_exp_Vector.txt")
+DIA_Drug_Histories     <- Treatment_exp_Vector %>% left_join(DIA_Drug_Histories) 
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(patient, weight, month49:month60)
+DIA_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 30625690
+DIA_Drug_Histories <- gather(DIA_Drug_Histories, Month, Drugs, month49:month60, factor_key=TRUE)
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(-Month)
+
+DIA_Drug_Histories %>% filter(grepl(string_GLP1Injectable,Drugs)|grepl(string_GLP1Oral,Drugs)) %>% 
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 3831181  (0.125097)
+
+GLP1_Pats <- 
+  DIA_Drug_Histories %>% filter(grepl(string_GLP1Injectable,Drugs)|grepl(string_GLP1Oral,Drugs)) %>% 
+  select(patient, weight) %>% distinct()
+
+
+#NASH Dxed
+
+NASH_Dx <- fread("NASH Drug Histories.txt") 
+NASH_Dx <- NASH_Dx %>% select(patient) %>% inner_join(DIA_Drug_Histories)
+NASH_Dx %>%  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 611186.6
+
+NASH_Dx %>% filter(grepl(string_GLP1Injectable,Drugs)|grepl(string_GLP1Oral,Drugs)) %>% 
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 118630.7  (0.125097)
+
+
+GLP1_Pats_NASHDx <- NASH_Dx %>% filter(grepl(string_GLP1InjectableNASH,Drugs)|grepl(string_GLP1OralNASH,Drugs)) %>% 
+  select(patient, weight) %>% distinct()
+
+
+
+# High risk predicted
+DIA_Pats_Score95_2plus <- fread("DIA_Pats_Score95_2plus.txt")
+DIA_Pats_Score95_2plus %>% inner_join(DIA_Drug_Histories) %>% select(patient, weight) %>%
+  distinct() %>% summarise(n=sum(weight)) # 1440396
+
+DIA_Pats_Score95_2plus %>% inner_join(DIA_Drug_Histories) %>% 
+  filter(grepl(string_GLP1Injectable,Drugs)|grepl(string_GLP1Oral,Drugs)) %>% 
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 194430.4 (0.134984)
+
+GLP1_Pats_NASHPred <- 
+  DIA_Pats_Score95_2plus %>% inner_join(DIA_Drug_Histories) %>%  
+  filter(grepl(string_GLP1Injectable,Drugs)|grepl(string_GLP1Oral,Drugs)) %>% 
+  select(patient, weight) %>% distinct()
+
+
+DIA_Drug_Histories %>% anti_join(DIA_Pats_Score95_2plus %>% select(patient)) %>% anti_join(NASH_Dx %>% select(patient)) %>%
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 28574108
+
+# Non NASH
+DIA_Drug_Histories %>% anti_join(DIA_Pats_Score95_2plus %>% select(patient)) %>% anti_join(NASH_Dx %>% select(patient)) %>%
+  filter(grepl(string_GLP1Injectable,Drugs)|grepl(string_GLP1Oral,Drugs)) %>% 
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 3518120
+
+
+
+
+
+
+
+
+# All OBE treat exp
+DANU_Ingredients       <- fread("DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+DANU_Ingredients$drug_id <- unlist(lapply(DANU_Ingredients$drug_id, function(x) as.numeric(unlist(str_extract_all(x,"[:digit:]+$")))))
+string_GLP1Injectable <- paste0("\\b(",paste0(DANU_Ingredients$drug_id[DANU_Ingredients$drug_group == "GLP1 Injectable"], collapse = "|"),")\\b")
+string_GLP1Oral <- paste0("\\b(",paste0(DANU_Ingredients$drug_id[DANU_Ingredients$drug_group == "GLP1 Oral"], collapse = "|"),")\\b")
+
+OBE_Drug_Histories     <- fread("OBE Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+Treatment_exp_Vector   <- fread("Treatment_exp_Vector.txt")
+OBE_Drug_Histories     <- Treatment_exp_Vector %>% left_join(OBE_Drug_Histories) 
+
+OBE_Drug_Histories <- OBE_Drug_Histories %>% select(patient, weight, month49:month60)
+OBE_Drug_Histories %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 9155116
+OBE_Drug_Histories <- gather(OBE_Drug_Histories, Month, Drugs, month49:month60, factor_key=TRUE)
+OBE_Drug_Histories <- OBE_Drug_Histories %>% select(-Month)
+
+OBE_Drug_Histories %>% filter(grepl(string_GLP1Injectable,Drugs)|grepl(string_GLP1Oral,Drugs)) %>% 
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 158857.6  (0.01735178)
+
+
+GLP1_Pats <- 
+  OBE_Drug_Histories %>% filter(grepl(string_GLP1Injectable,Drugs)|grepl(string_GLP1Oral,Drugs)) %>% 
+  select(patient, weight) %>% distinct()
+
+
+#NASH Dxed
+NASH_Dx <- fread("NASH Drug Histories.txt")
+NASH_Dx <- NASH_Dx %>% select(4:63)
+NASH_Dx[NASH_Dx != "-"] <- 1  # on drug 
+NASH_Dx[NASH_Dx == "-"] <- 0  # no drug
+
+NASH_Dx[] <- lapply(NASH_Dx,as.numeric)
+
+NASH_Dx$SUM <- rowSums(NASH_Dx)
+
+NASH_Dx_LONG <- fread("NASH Drug Histories.txt")
+
+Pats_vec <- NASH_Dx_LONG %>% select(patient, weight)
+
+NASH_Dx <- Pats_vec %>% bind_cols(NASH_Dx)
+
+NASH_Dx <- NASH_Dx %>% filter(SUM != 0)
+
+sum(NASH_Dx$weight) # 976704.5
+
+Treatment_exp_Vector <- NASH_Dx %>% select(patient, weight)
+
+fwrite(Treatment_exp_Vector, "Treatment_exp_Vector.txt")
+NASH_Treatment_exp_Vector <- Treatment_exp_Vector
+
+NASH_Treatment_exp_Vector <- fread("Treatment_exp_Vector.txt")
+
+NASH_Dx <- fread("NASH Drug Histories.txt")
+
+NASH_Ingredients <- fread("NASH Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+NASH_Ingredients$drug_id <- unlist(lapply(NASH_Ingredients$drug_id, function(x) as.numeric(unlist(str_extract_all(x,"[:digit:]+$")))))
+string_GLP1InjectableNASH <- paste0("\\b(",paste0(NASH_Ingredients$drug_id[NASH_Ingredients$drug_group == "GLP1 Injectable"], collapse = "|"),")\\b")
+string_GLP1OralNASH <- paste0("\\b(",paste0(NASH_Ingredients$drug_id[NASH_Ingredients$drug_group == "GLP1 Oral"], collapse = "|"),")\\b")
+NASH_Dx %>% inner_join(OBE_Drug_Histories %>% select(patient)) %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 61842.46
+NASH_Dx <- NASH_Dx %>% inner_join(OBE_Drug_Histories %>% select(patient))
+NASH_Dx <- NASH_Dx %>% select(patient, weight, month49:month60)
+NASH_Dx <- gather(NASH_Dx, Month, Drugs, month49:month60, factor_key=TRUE)
+NASH_Dx <- NASH_Dx %>% select(-Month)
+NASH_Dx %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 61842.46
+NASH_Dx %>% filter(grepl(string_GLP1InjectableNASH,Drugs)|grepl(string_GLP1OralNASH,Drugs)) %>% 
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 1925.65  (0.03113799)  
+
+GLP1_Pats_NASHDx <- NASH_Dx %>% filter(grepl(string_GLP1InjectableNASH,Drugs)|grepl(string_GLP1OralNASH,Drugs)) %>% 
+  select(patient, weight) %>% distinct()
+
+
+# High risk predicted
+OBE_Pats_Score95_2plus <- fread("OBE_Pats_Score95_2plus.txt")
+OBE_Pats_Score95_2plus %>% inner_join(OBE_Drug_Histories) %>% select(patient, weight) %>%
+  distinct() %>% summarise(n=sum(weight)) # 225370.2
+
+OBE_Pats_Score95_2plus %>% inner_join(OBE_Drug_Histories) %>% 
+  filter(grepl(string_GLP1Injectable,Drugs)|grepl(string_GLP1Oral,Drugs)) %>% 
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 4078.61 (0.01809738)
+
+
+GLP1_Pats_NASHPred <- 
+  OBE_Pats_Score95_2plus %>% inner_join(OBE_Drug_Histories) %>%  
+  filter(grepl(string_GLP1Injectable,Drugs)|grepl(string_GLP1Oral,Drugs)) %>% 
+  select(patient, weight) %>% distinct()
+
+
+OBE_Drug_Histories %>% anti_join(OBE_Pats_Score95_2plus %>% select(patient)) %>% anti_join(NASH_Dx %>% select(patient)) %>%
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 8867903
+
+# Non NASH
+OBE_Drug_Histories %>% anti_join(OBE_Pats_Score95_2plus %>% select(patient)) %>% anti_join(NASH_Dx %>% select(patient)) %>%
+  filter(grepl(string_GLP1Injectable,Drugs)|grepl(string_GLP1Oral,Drugs)) %>% 
+  select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 152853.4 0.0172367
+
+# [1] 0.1079035
+
+
+GLP1_Pats %>% summarise(n=sum(weight)) # 158857.6
+
+GLP1_Pats %>% inner_join(GLP1_Pats_NASHDx) %>% summarise(n=sum(weight)) # 1925.65 (0.01212186)
+
+GLP1_Pats %>% inner_join(GLP1_Pats_NASHPred) %>% summarise(n=sum(weight)) # 4078.61 (0.02567463) but only 0.02461686, should 3x this
+
+
+# -----------
+# ------------
+# Drug Usage T2D with NASH Dx vs non NASH ---------------
+DANU_Ingredients <- fread("DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+DANU_Ingredients <- DANU_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+DANU_Ingredients$class <- as.numeric(DANU_Ingredients$class)
+DANU_Ingredients$molecule <- as.numeric(DANU_Ingredients$molecule)
+
+DIA_Drug_Histories <- fread("DIA Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(patient, weight, month49:month60)
+DIA_Drug_Histories <- gather(DIA_Drug_Histories, Month, Drugs, month49:month60, factor_key=TRUE)
+
+DIA_Drug_Histories <- separate_rows(DIA_Drug_Histories, Drugs, sep = ",", convert=T )
+DIA_Drug_Histories <- DIA_Drug_Histories %>% filter(Drugs != "-")
+
+names(DIA_Drug_Histories)[3] <- "Month"
+names(DIA_Drug_Histories)[4] <- "molecule"
+DIA_Drug_Histories$molecule <- as.numeric(DIA_Drug_Histories$molecule)
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% left_join(DANU_Ingredients %>% 
+                                                         select(molecule, drug_group))
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(patient, weight, drug_group)
+DIA_Drug_Histories <- DIA_Drug_Histories %>% distinct()
+Drugs_temp <- DIA_Drug_Histories
+
+
+Treatment_exp_Vector <- fread("Treatment_exp_Vector.txt")
+NASH_Pats <- fread("NASH Drug Histories.txt") %>% select(patient, weight)
+DIA_Pats <- fread("DIA Drug Histories.txt") %>% select(patient, weight)
+DIA_Pats %>% select(patient, weight) %>% distinct() %>% inner_join(Treatment_exp_Vector) %>% summarise(n=sum(weight)) # 30625690
+DIA_Pats %>% inner_join(NASH_Pats) %>% inner_join(Treatment_exp_Vector) %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 611186.6
+NASH_Pats$Group <- "NASH_Diagnosed"
+
+
+
+Drugs_temp %>% left_join(NASH_Pats) %>% inner_join(Treatment_exp_Vector) %>% ungroup() %>% select(patient, weight, drug_group,Group) %>% distinct() %>% group_by(Group, drug_group) %>% summarise(n=sum(weight)) 
+
+
+
+
+
+# ------------
+# Drug Usage T2D with High risk NASH vs Low risk NASH ----------
+
+DANU_Ingredients <- fread("DANU Ingredients.txt", integer64 = "character", stringsAsFactors = F)
+DANU_Ingredients <- DANU_Ingredients %>%  separate(drug_id, c('class', 'molecule'))
+DANU_Ingredients$class <- as.numeric(DANU_Ingredients$class)
+DANU_Ingredients$molecule <- as.numeric(DANU_Ingredients$molecule)
+
+DIA_Drug_Histories <- fread("DIA Drug Histories.txt", integer64 = "character", stringsAsFactors = F)
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(patient, weight, month49:month60)
+DIA_Drug_Histories <- gather(DIA_Drug_Histories, Month, Drugs, month49:month60, factor_key=TRUE)
+
+DIA_Drug_Histories <- separate_rows(DIA_Drug_Histories, Drugs, sep = ",", convert=T )
+DIA_Drug_Histories <- DIA_Drug_Histories %>% filter(Drugs != "-")
+
+names(DIA_Drug_Histories)[3] <- "Month"
+names(DIA_Drug_Histories)[4] <- "molecule"
+DIA_Drug_Histories$molecule <- as.numeric(DIA_Drug_Histories$molecule)
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% left_join(DANU_Ingredients %>% 
+                                                         select(molecule, drug_group))
+
+DIA_Drug_Histories <- DIA_Drug_Histories %>% select(patient, weight, drug_group)
+DIA_Drug_Histories <- DIA_Drug_Histories %>% distinct()
+Drugs_temp <- DIA_Drug_Histories
+
+Treatment_exp_Vector <- fread("Treatment_exp_Vector.txt")
+Drugs_temp <- Drugs_temp %>% inner_join(Treatment_exp_Vector)
+
+NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+DIA_Pats <- fread("FIB4_Diabetes_Pats.txt")
+NAFLD_Pats <- fread("FIB4_NAFLD_Pats.txt")
+DIA_Pats <- DIA_Pats %>% anti_join(NAFLD_Pats %>% select(patient)) %>% anti_join(NASH_Pats %>% select(patient))
+DIA_Pats <- DIA_Pats %>% select(patient)%>% distinct()
+DIA_Pats_Score95_2plus <- fread("DIA_Pats_Score95_2plus.txt")
+DIA_Pats_Score95_2plus$Group <-"HighRisk"
+
+
+Drugs_temp <- Drugs_temp %>% inner_join(DIA_Pats)
+Drugs_temp <- Drugs_temp %>% left_join(DIA_Pats_Score95_2plus)
+
+DIA_Pats <- fread("DIA Drug Histories.txt") %>% select(patient, weight)
+DIA_Pats %>% select(patient, weight) %>% distinct() %>% inner_join(Drugs_temp %>% select(patient)) %>% summarise(n=sum(weight)) # 14249936
+DIA_Pats %>% inner_join(DIA_Pats_Score95_2plus) %>% select(patient, weight) %>% distinct() %>% summarise(n=sum(weight)) # 2053529
+
+Drugs_temp %>% ungroup() %>% select(patient, weight, drug_group,Group) %>% distinct() %>% group_by(Group, drug_group) %>% summarise(n=sum(weight)) 
+
+
+
+
+
+# ------
+
+
+# Within each stock,  % high risk vs % low risk -------
+
+Treatment_exp_Vector <- fread("Treatment_exp_Vector.txt")
+
+DIA_Box_Histories     <- fread("DIA Box Histories.txt", integer64 = "character", stringsAsFactors = F)
+DIA_Box_Histories     <- DIA_Box_Histories %>% mutate(month60 = str_sub(month60, 2L, 2L)) %>% select(patient, month60)
+names(DIA_Box_Histories)[2] <- "Stock_m60"
+DIA_Box_Histories <- DIA_Box_Histories %>% inner_join(Treatment_exp_Vector)
+
+DIA_Box_Histories 
+
+
+
+NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+DIA_Pats <- fread("FIB4_Diabetes_Pats.txt")
+NAFLD_Pats <- fread("FIB4_NAFLD_Pats.txt")
+DIA_Pats <- DIA_Pats %>% anti_join(NAFLD_Pats %>% select(patient)) %>% anti_join(NASH_Pats %>% select(patient))
+DIA_Pats <- DIA_Pats %>% select(patient)%>% distinct()
+DIA_Pats_Score95_2plus <- fread("DIA_Pats_Score95_2plus.txt")
+DIA_Pats_Score95_2plus$Group <-"HighRisk"
+
+DIA_Box_Histories <- DIA_Box_Histories %>% inner_join(DIA_Pats)
+DIA_Box_Histories <- DIA_Box_Histories %>% left_join(DIA_Pats_Score95_2plus)
+DIA_Box_Histories %>% group_by(Group) %>% summarise(n=sum(weight))
+
+DIA_Box_Histories %>% group_by(Stock_m60, Group) %>% summarise(n=sum(weight))
+
+
+# -------------
+
+
+
+
+# NASH DIA OBE vs Heart Failure --------------
+
+DIA_Pats_Score95_2plus <- fread("DIA_Pats_Score95_2plus.txt")
+OBE_Pats_Score95_2plus <- fread("OBE_Pats_Score95_2plus.txt")
+DIA_Pats_Score95_2plus$Group <- "HighRisk"
+OBE_Pats_Score95_2plus$Group <- "HighRisk"
+
+
+NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+DIA_Pats <- fread("FIB4_Diabetes_Pats.txt")
+OBE_Pats <- fread("FIB4_Obesity_Pats.txt")
+NAFLD_Pats <- fread("FIB4_NAFLD_Pats.txt")
+Random_Pats <- fread("FIB4_Random_Pats_Filtered.txt") 
+Random_Pats <- Random_Pats %>% select(patient)
+
+DIA_Pats <- DIA_Pats %>% anti_join(NAFLD_Pats %>% select(patient)) %>% anti_join(NASH_Pats %>% select(patient))
+DIA_Pats <- DIA_Pats %>% select(patient)%>% distinct()
+OBE_Pats <- OBE_Pats %>% anti_join(NAFLD_Pats %>% select(patient)) %>% anti_join(NASH_Pats %>% select(patient))
+OBE_Pats <- OBE_Pats %>% select(patient)%>% distinct()
+
+NASH_Dossiers <- fread("NASH Dossiers.txt")
+Cancer_Alcohol_pats <- NASH_Dossiers %>% filter(condition == "Liver Cancer" | condition == "Alcohol Abuse") %>% select(patid) %>% distinct()
+names(Cancer_Alcohol_pats)[1] <- "patient"
+
+DIA_Pats <- DIA_Pats %>% anti_join(Cancer_Alcohol_pats)
+OBE_Pats <- OBE_Pats %>% anti_join(Cancer_Alcohol_pats)
+
+DIA_Pats <- DIA_Pats %>% left_join(DIA_Pats_Score95_2plus) %>% mutate(Group=ifelse(is.na(Group),"LowRisk",Group))
+OBE_Pats <- OBE_Pats %>% left_join(OBE_Pats_Score95_2plus) %>% mutate(Group=ifelse(is.na(Group),"LowRisk",Group))
+
+
+DANU_Demographics <- fread("DANU Demographics.txt")
+names(DANU_Demographics)[1] <- "patient"
+
+DIA_Pats <- DIA_Pats %>% left_join(DANU_Demographics %>% select(patient, weight))
+OBE_Pats <- OBE_Pats %>% left_join(DANU_Demographics %>% select(patient, weight))
+
+
+
+
+ce18HFdxs <- fread("ce18HFdxs.txt")
+ce18HFdxs %>% filter(diag!="I97131"&diag!="I97130") %>% select(ptid) %>% distinct()
+# ce18HFdxs %>% filter(diag=="I501") %>% select(ptid) %>% distinct()
+
+ce18HFpts <- fread("ce18HFpts.txt")
+ce18HFpts <- ce18HFpts %>% mutate(gender=ifelse(gender=="Male","M","F"))
+#ce18HFpts <- ce18HFpts %>% left_join(DANU_Demographics %>% select(age, gender, weight) %>% distinct())
+sum(ce18HFpts$weight) # 69157993
+ce18HFpts$HeartFailure <- "HeartFailure"
+names(ce18HFpts)[1] <- "patient"
+ce18HFpts <- ce18HFpts %>% select(patient, HeartFailure)
+DIA_Pats %>% left_join(ce18HFpts) %>% group_by(Group, HeartFailure) %>% summarise(n=sum(weight))
+
+
+
+
+OBE_Pats %>% left_join(ce18HFpts) %>% group_by(Group, HeartFailure) %>% summarise(n=sum(weight))
+
+
+# Mar's data 
+DIA_Pats_Score95_2plus <- fread("DIA_Pats_Score95_2plus.txt")
+OBE_Pats_Score95_2plus <- fread("OBE_Pats_Score95_2plus.txt")
+DIA_Pats_Score95_2plus$Group <- "HighRisk"
+OBE_Pats_Score95_2plus$Group <- "HighRisk"
+
+
+NASH_Pats <- fread("FIB4_NASH_Pats.txt")
+DIA_Pats <- fread("FIB4_Diabetes_Pats.txt")
+OBE_Pats <- fread("FIB4_Obesity_Pats.txt")
+NAFLD_Pats <- fread("FIB4_NAFLD_Pats.txt")
+Random_Pats <- fread("FIB4_Random_Pats_Filtered.txt") 
+Random_Pats <- Random_Pats %>% select(patient)
+
+
+DIA_Pats <- DIA_Pats %>% anti_join(NAFLD_Pats %>% select(patient)) %>% anti_join(NASH_Pats %>% select(patient))
+DIA_Pats <- DIA_Pats %>% select(patient)%>% distinct()
+OBE_Pats <- OBE_Pats %>% anti_join(NAFLD_Pats %>% select(patient)) %>% anti_join(NASH_Pats %>% select(patient))
+OBE_Pats <- OBE_Pats %>% select(patient)%>% distinct()
+
+NASH_Dossiers <- fread("NASH Dossiers.txt")
+Cancer_Alcohol_pats <- NASH_Dossiers %>% filter(condition == "Liver Cancer" | condition == "Alcohol Abuse") %>% select(patid) %>% distinct()
+names(Cancer_Alcohol_pats)[1] <- "patient"
+
+DIA_Pats <- DIA_Pats %>% anti_join(Cancer_Alcohol_pats)
+OBE_Pats <- OBE_Pats %>% anti_join(Cancer_Alcohol_pats)
+
+DIA_Pats <- DIA_Pats %>% left_join(DIA_Pats_Score95_2plus) %>% mutate(Group=ifelse(is.na(Group),"LowRisk",Group))
+OBE_Pats <- OBE_Pats %>% left_join(OBE_Pats_Score95_2plus) %>% mutate(Group=ifelse(is.na(Group),"LowRisk",Group))
+
+
+DANU_Demographics <- fread("DANU Demographics.txt")
+names(DANU_Demographics)[1] <- "patient"
+DANU_Demographics <- DANU_Demographics %>% select(patient, weight,diagnosis , heart_failure_condition)
+DANU_Demographics <- DANU_Demographics %>% mutate(heart_failure_condition=ifelse(heart_failure_condition=="-",0,1))
+
+DIA_Pats <- DIA_Pats %>% left_join(DANU_Demographics)
+OBE_Pats <- OBE_Pats %>% left_join(DANU_Demographics)
+
+
+DIA_Pats %>% ungroup() %>% group_by(diagnosis, Group, heart_failure_condition) %>% summarise(n=sum(weight))
+
+
+
+
+OBE_Pats %>% ungroup() %>% group_by(diagnosis, Group, heart_failure_condition) %>% summarise(n=sum(weight))
+
+
+
+
+
+NASH_Dx <- fread("NASH Drug Histories.txt")
+NASH_Dx %>% select(patient) %>% left_join(DANU_Demographics) %>% group_by(diagnosis, heart_failure_condition) %>% summarise(n=sum(weight))
+
+
+  
+  
+DANU_Demographics <- fread("DANU Demographics.txt")
+names(DANU_Demographics)[1] <- "patient"
+DANU_Demographics <- DANU_Demographics %>% filter(heart_failure_condition!="-")
+
+DANU_Demographics %>% group_by(diagnosis, heart_failure_condition) %>%  summarise(n=sum(weight))
+
+
+# ------------
+
+# Statins med strength  -----------
+NAFLD_US_Doses <- fread("NAFLD Doses.txt")
+NAFLD_US_Doses <- NAFLD_US_Doses %>% filter(paid == "P")
+unique(NAFLD_US_Doses$drug_class)
+NAFLD_US_Doses <- NAFLD_US_Doses %>% filter(drug_class=="Statin") %>% select(pat_id, generic_name, drug_id, from_dt) %>% distinct()
+
+NASH_Medication_Surveys <- fread("NASH Medication Surveys.txt")
+
+NAFLD_US_Doses <- NAFLD_US_Doses %>% left_join(NASH_Medication_Surveys %>% select(drug_id, med_strength))
+
+NAFLD_US_Doses %>% select(generic_name, med_strength) %>% distinct() %>% arrange(generic_name, med_strength)
+
+data.frame(NAFLD_US_Doses %>% group_by(generic_name, med_strength) %>% count()) %>% arrange(generic_name, n)
+
+DANU_Demographics <- fread("DANU Demographics.txt")
+DANU_Demographics <- DANU_Demographics %>% filter(diagnosis!="-") %>% select(patid, weight, diagnosis)
+DANU_Demographics <- DANU_Demographics %>% mutate(diagnosis=ifelse(grepl("Diabetes", diagnosis), "Diabetes", diagnosis))
+DANU_Demographics %>% group_by(diagnosis) %>% summarise(n=sum(weight))
+
+NAFLD_Demographics <- fread("NAFLD Demographics.txt")
+DANU_Demographics <- NAFLD_Demographics %>% select(patid) %>% inner_join(DANU_Demographics)
+DANU_Demographics %>% group_by(diagnosis) %>% summarise(n=sum(weight))
+
+
+sum(NAFLD_Demographics$weight) #14471091
+
+names(NAFLD_US_Doses)[1] <- "patid"
+
+max(NAFLD_US_Doses$from_dt)
+
+NAFLD_US_Doses <- NAFLD_US_Doses %>% filter(from_dt>="2020-07-01")
+
+DANU_Demographics %>% inner_join(NAFLD_US_Doses %>% select(patid) %>% distinct()) %>%
+  group_by(diagnosis) %>% summarise(n=sum(weight))
+  
+
+
+DANU_Demographics %>% inner_join(NAFLD_US_Doses %>% select(patid, generic_name) %>% distinct()) %>%
+  group_by(diagnosis, generic_name) %>% summarise(n=sum(weight)) %>%
+  ungroup() %>% spread(key=generic_name, value=n)
+
+
+
+data.frame(DANU_Demographics %>% inner_join(NAFLD_US_Doses %>% select(patid, generic_name, med_strength) %>% distinct()) %>%
+  group_by(diagnosis, generic_name, med_strength) %>% summarise(n=sum(weight)) %>%
+  ungroup() %>% spread(key=generic_name, value=n))
